@@ -1,6 +1,12 @@
 spring:
   application:
-    name: yu-ai-agent
+    name: vio-ai-agent
+  ai:
+    dashscope:
+      api-key: ${AI_DASHSCOPE_API_KEY}
+      chat:
+        options:
+          model: qwen-plus
 server:
   port: 8123
   servlet:
@@ -16,7 +22,7 @@ springdoc:
   group-configs:
     - group: 'default'
       paths-to-match: '/**'
-      packages-to-scan: com.yupi.yuaiagent.controller
+      packages-to-scan: com.vio.vioaiagent.controller
 
 knife4j:
   enable: true
