@@ -44,6 +44,31 @@ class LoveAppTest {
         String message = "我已经结婚了，但是婚后关系不太亲密，怎么办？";
         String answer = loveApp.doChatWithRag(message, chatId);
         Assertions.assertNotNull(answer);
+        System.out.println("RAG 回答: " + answer);
+    }
+
+    @Test
+    void doChatWithRagByStream() {
+        String chatId = UUID.randomUUID().toString();
+        String message = "我是单身，怎么提升自己的魅力？";
+        String answer = loveApp.doChatWithRagByStream(message, chatId)
+                .collectList()
+                .block()
+                .stream()
+                .reduce("", String::concat);
+        Assertions.assertNotNull(answer);
+        Assertions.assertFalse(answer.isEmpty(), "RAG 流式回答不应为空");
+        System.out.println("RAG 流式回答: " + answer);
+    }
+
+    @Test
+    void doChatWithRagSpecificStatus() {
+        String chatId = UUID.randomUUID().toString();
+        // 测试单身相关问题是否能检索到单身篇知识库
+        String message = "我是单身，怎么扩大社交圈认识更多人？";
+        String answer = loveApp.doChatWithRag(message, chatId);
+        Assertions.assertNotNull(answer);
+        System.out.println("单身篇 RAG 回答: " + answer);
     }
 
     // TODO: 以下测试依赖工具类（tools 包），待后续章节实现后启用

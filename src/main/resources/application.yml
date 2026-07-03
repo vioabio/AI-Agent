@@ -29,12 +29,12 @@ spring:
 #        stdio:
 #          servers-configuration: classpath:mcp-servers.json
 # 临时注释掉，便于大家开发调试和部署（实际需要启动 PgVector 数据库）
-#    vectorstore:
-#      pgvector:
-#        index-type: HNSW
-#        dimensions: 1536
-#        distance-type: COSINE_DISTANCE
-#        max-document-batch-size: 10000 # Optional: Maximum number of documents per batch
+    vectorstore:
+      pgvector:
+        index-type: HNSW
+        dimensions: 1536
+        distance-type: COSINE_DISTANCE
+        max-document-batch-size: 10000 # Optional: Maximum number of documents per batch
 server:
   port: 8123
   servlet:

@@ -7,6 +7,7 @@ import com.vio.vioaiagent.rag.LoveAppRagCustomAdvisorFactory;
 import com.vio.vioaiagent.rag.QueryRewriter;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
@@ -124,10 +125,10 @@ public class LoveApp {
     @Resource
     private VectorStore loveAppVectorStore;
 
-    @Resource
+    @Autowired(required = false)
     private Advisor loveAppRagCloudAdvisor;
 
-    @Resource
+    @Autowired(required = false)
     private VectorStore pgVectorVectorStore;
 
     @Resource
@@ -169,8 +170,27 @@ public class LoveApp {
         return content;
     }
 
+    /**
+     * 和 RAG 知识库进行对话（SSE 流式传输）
+     *
+     * @param message
+     * @param chatId
+     * @return
+     */
+    public Flux<String> doChatWithRagByStream(String message, String chatId) {
+        // 查询重写
+        String rewrittenMessage = queryRewriter.doQueryRewrite(message);
+        return chatClient
+                .prompt()
+                .user(rewrittenMessage)
+                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
+                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
+                .stream()
+                .content();
+    }
+
     // AI 调用工具能力
-    @Resource
+    @Autowired(required = false)
     private ToolCallback[] allTools;
 
     /**
@@ -187,7 +207,7 @@ public class LoveApp {
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
                 // 开启日志，便于观察效果
                 .advisors(new MyLoggerAdvisor())
-                .toolCallbacks(allTools)
+                .tools(allTools)
                 .call()
                 .chatResponse();
         String content = chatResponse.getResult().getOutput().getText();
@@ -197,7 +217,7 @@ public class LoveApp {
 
     // AI 调用 MCP 服务
 
-    @Resource
+    @Autowired(required = false)
     private ToolCallbackProvider toolCallbackProvider;
 
     /**
@@ -214,7 +234,7 @@ public class LoveApp {
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
                 // 开启日志，便于观察效果
                 .advisors(new MyLoggerAdvisor())
-                .toolCallbacks(toolCallbackProvider)
+                .tools(toolCallbackProvider)
                 .call()
                 .chatResponse();
         String content = chatResponse.getResult().getOutput().getText();
