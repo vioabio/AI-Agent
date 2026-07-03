@@ -106,6 +106,30 @@ public class AiController {
         return loveApp.doChatWithRagByStream(message, chatId);
     }
 
+    /**
+     * 同步调用 AI 恋爱大师应用（支持工具调用）
+     *
+     * @param message 用户消息
+     * @param chatId  会话 ID
+     * @return AI 回复（可调用工具）
+     */
+    @GetMapping("/love_app/chat/tools/sync")
+    public String doChatWithLoveAppToolsSync(String message, String chatId) {
+        return loveApp.doChatWithTools(message, chatId);
+    }
+
+    /**
+     * SSE 流式调用 AI 恋爱大师应用（支持工具调用）
+     *
+     * @param message 用户消息
+     * @param chatId  会话 ID
+     * @return 流式响应（可调用工具）
+     */
+    @GetMapping(value = "/love_app/chat/tools/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> doChatWithLoveAppToolsSSE(String message, String chatId) {
+        return loveApp.doChatWithToolsByStream(message, chatId);
+    }
+
     // TODO: Manus 超级智能体端点 — 待后续章节实现 agent 包后启用
     // @Resource
     // private ToolCallback[] allTools;

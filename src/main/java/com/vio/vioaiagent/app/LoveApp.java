@@ -194,7 +194,7 @@ public class LoveApp {
     private ToolCallback[] allTools;
 
     /**
-     * AI 恋爱报告功能（支持调用工具）
+     * AI 对话（支持调用工具）
      *
      * @param message
      * @param chatId
@@ -213,6 +213,24 @@ public class LoveApp {
         String content = chatResponse.getResult().getOutput().getText();
         log.info("content: {}", content);
         return content;
+    }
+
+    /**
+     * AI 对话（支持调用工具，SSE 流式传输）
+     *
+     * @param message
+     * @param chatId
+     * @return
+     */
+    public Flux<String> doChatWithToolsByStream(String message, String chatId) {
+        return chatClient
+                .prompt()
+                .user(message)
+                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
+                .advisors(new MyLoggerAdvisor())
+                .tools(allTools)
+                .stream()
+                .content();
     }
 
     // AI 调用 MCP 服务
