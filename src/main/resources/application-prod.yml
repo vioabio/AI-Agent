@@ -1,2 +1,22 @@
-# 可以编写生产环境的配置，会覆盖 application.yml 配置
-# 注意提交时不要包含敏感信息（或者不要提交该文件）
+# ==================== 生产环境配置 ====================
+# 覆盖 application.yml 的默认配置
+# 注意：不要提交 API Key 等敏感信息到此文件
+
+spring:
+  ai:
+    # 生产环境暂时关闭 MCP（简化部署，需要时开启）
+    mcp:
+      client:
+        sse:
+          connections:
+            # 生产环境 MCP 服务地址（部署 MCP Server 后取消注释并修改地址）
+            # server1:
+            #   url: http://your-mcp-server:8127
+        stdio:
+          servers-configuration: classpath:mcp-servers.json
+
+# 生产环境日志级别（减少日志输出，节约存储）
+logging:
+  level:
+    org.springframework.ai: INFO
+    com.vio.vioaiagent: INFO
