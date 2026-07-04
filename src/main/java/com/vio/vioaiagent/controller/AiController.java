@@ -1,7 +1,10 @@
 package com.vio.vioaiagent.controller;
 
+import com.vio.vioaiagent.agent.VioManus;
 import com.vio.vioaiagent.app.LoveApp;
 import jakarta.annotation.Resource;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -154,16 +157,26 @@ public class AiController {
         return loveApp.doChatWithMcpByStream(message, chatId);
     }
 
-    // TODO: Manus 超级智能体端点 — 待后续章节实现 agent 包后启用
-    // @Resource
-    // private ToolCallback[] allTools;
-    //
-    // @Resource
-    // private ChatModel dashscopeChatModel;
-    //
-    // @GetMapping("/manus/chat")
-    // public SseEmitter doChatWithManus(String message) {
-    //     YuManus yuManus = new YuManus(allTools, dashscopeChatModel);
-    //     return yuManus.runStream(message);
-    // }
+    // ==================== Manus 超级智能体 ====================
+
+    @Resource
+    private ToolCallback[] allTools;
+
+    @Resource
+    private ChatModel dashscopeChatModel;
+
+    /**
+     * SSE 流式调用 VioManus 超级智能体
+     * <p>
+     * 智能体拥有自主规划能力，能将复杂任务分解为多步骤并逐步执行。
+     * 每次请求创建新的 VioManus 实例（Agent 有状态，不可跨请求共享）。
+     *
+     * @param message 用户输入/任务描述
+     * @return SseEmitter 实时推送每步执行结果（5 分钟超时）
+     */
+    @GetMapping("/manus/chat")
+    public SseEmitter doChatWithManus(String message) {
+        VioManus vioManus = new VioManus(allTools, dashscopeChatModel);
+        return vioManus.runStream(message);
+    }
 }
