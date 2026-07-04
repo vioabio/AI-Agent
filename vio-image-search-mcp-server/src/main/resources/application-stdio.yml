@@ -1,0 +1,14 @@
+# STDIO 传输模式配置
+# MCP Server 作为客户端子进程运行，通过标准输入/输出流通信
+# 适用于：本地调用、小型项目、无需网络传输
+spring:
+  ai:
+    mcp:
+      server:
+        name: vio-image-search-mcp-server
+        version: 0.0.1
+        type: SYNC
+        stdio: true
+  main:
+    web-application-type: none
+    banner-mode: off

@@ -112,13 +112,40 @@ class LoveAppTest {
         System.out.println("工具调用流式回答: " + answer);
     }
 
-    // TODO: 以下测试依赖 MCP 服务配置，待后续章节实现后启用
-    // @Test
-    // void doChatWithMcp() {
-    //     String chatId = UUID.randomUUID().toString();
-    //     // 测试图片搜索 MCP
-    //     String message = "帮我搜索一些哄另一半开心的图片";
-    //     String answer = loveApp.doChatWithMcp(message, chatId);
-    //     Assertions.assertNotNull(answer);
-    // }
+    // ==================== MCP 服务测试 ====================
+
+    @Test
+    void doChatWithMcp() {
+        String chatId = UUID.randomUUID().toString();
+        // 测试图片搜索 MCP
+        String message = "帮我搜索一些哄另一半开心的图片";
+        String answer = loveApp.doChatWithMcp(message, chatId);
+        Assertions.assertNotNull(answer);
+        System.out.println("MCP 图片搜索回答: " + answer);
+    }
+
+    @Test
+    void doChatWithMcpByStream() {
+        String chatId = UUID.randomUUID().toString();
+        // 测试 MCP 流式调用
+        String message = "搜索一些可爱的猫咪照片";
+        String answer = loveApp.doChatWithMcpByStream(message, chatId)
+                .collectList()
+                .block()
+                .stream()
+                .reduce("", String::concat);
+        Assertions.assertNotNull(answer);
+        Assertions.assertFalse(answer.isEmpty(), "MCP 流式回答不应为空");
+        System.out.println("MCP 流式回答: " + answer);
+    }
+
+    @Test
+    void doChatWithMcpLocation() {
+        String chatId = UUID.randomUUID().toString();
+        // 测试高德地图 MCP（需要配置高德 API Key 和启动 amap-maps 服务）
+        String message = "我的另一半居住在上海静安区，请帮我找到5公里内合适的约会地点";
+        String answer = loveApp.doChatWithMcp(message, chatId);
+        Assertions.assertNotNull(answer);
+        System.out.println("MCP 地图搜索回答: " + answer);
+    }
 }

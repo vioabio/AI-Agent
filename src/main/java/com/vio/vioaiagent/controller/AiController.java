@@ -130,6 +130,30 @@ public class AiController {
         return loveApp.doChatWithToolsByStream(message, chatId);
     }
 
+    /**
+     * 同步调用 AI 恋爱大师应用（MCP 服务）
+     *
+     * @param message 用户消息
+     * @param chatId  会话 ID
+     * @return AI 回复（可调用 MCP 工具）
+     */
+    @GetMapping("/love_app/chat/mcp/sync")
+    public String doChatWithLoveAppMcpSync(String message, String chatId) {
+        return loveApp.doChatWithMcp(message, chatId);
+    }
+
+    /**
+     * SSE 流式调用 AI 恋爱大师应用（MCP 服务）
+     *
+     * @param message 用户消息
+     * @param chatId  会话 ID
+     * @return 流式响应（可调用 MCP 工具）
+     */
+    @GetMapping(value = "/love_app/chat/mcp/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> doChatWithLoveAppMcpSSE(String message, String chatId) {
+        return loveApp.doChatWithMcpByStream(message, chatId);
+    }
+
     // TODO: Manus 超级智能体端点 — 待后续章节实现 agent 包后启用
     // @Resource
     // private ToolCallback[] allTools;

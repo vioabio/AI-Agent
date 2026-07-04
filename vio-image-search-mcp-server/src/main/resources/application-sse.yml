@@ -1,0 +1,11 @@
+# SSE 传输模式配置（默认激活）
+# MCP Server 作为独立 Web 服务运行，通过 HTTP SSE 与客户端通信
+# 适用于：远程部署、多客户端共享、模块化中大型项目
+spring:
+  ai:
+    mcp:
+      server:
+        name: vio-image-search-mcp-server
+        version: 0.0.1
+        type: SYNC
+        stdio: false
