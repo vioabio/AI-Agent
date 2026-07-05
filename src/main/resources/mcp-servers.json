@@ -7,7 +7,7 @@
         "@amap/amap-maps-mcp-server"
       ],
       "env": {
-        "AMAP_MAPS_API_KEY": "你的高德地图 API Key"
+        "AMAP_MAPS_API_KEY": "${AMAP_MAPS_API_KEY}"
       }
     },
     "vio-image-search-mcp-server": {
@@ -20,7 +20,7 @@
         "vio-image-search-mcp-server/target/vio-image-search-mcp-server-0.0.1-SNAPSHOT.jar"
       ],
       "env": {
-        "PEXELS_API_KEY": "你的 Pexels API Key"
+        "PEXELS_API_KEY": "${PEXELS_API_KEY}"
       }
     }
   }

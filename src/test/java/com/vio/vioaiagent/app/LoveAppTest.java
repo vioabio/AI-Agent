@@ -117,11 +117,12 @@ class LoveAppTest {
     @Test
     void doChatWithMcp() {
         String chatId = UUID.randomUUID().toString();
-        // 测试图片搜索 MCP
-        String message = "帮我搜索一些哄另一半开心的图片";
+        // 测试高德地图 MCP：搜索指定位置周边的约会地点
+        String message = "我的另一半居住在上海静安区，请帮我找到 5 公里内合适的约会地点";
         String answer = loveApp.doChatWithMcp(message, chatId);
         Assertions.assertNotNull(answer);
-        System.out.println("MCP 图片搜索回答: " + answer);
+        Assertions.assertFalse(answer.isEmpty(), "MCP 地图搜索回答不应为空");
+        System.out.println("MCP 地图搜索回答: " + answer);
     }
 
     @Test
@@ -140,12 +141,14 @@ class LoveAppTest {
     }
 
     @Test
-    void doChatWithMcpLocation() {
+    void doChatWithMcpMultiStep() {
         String chatId = UUID.randomUUID().toString();
-        // 测试高德地图 MCP（需要配置高德 API Key 和启动 amap-maps 服务）
-        String message = "我的另一半居住在上海静安区，请帮我找到5公里内合适的约会地点";
+        // 测试高德地图 MCP 多步骤调用：先搜索位置，再搜索图片，验证 MCP 多工具协同
+        // 第一步：搜索上海静安区附近的约会地点
+        String message = "我的另一半居住在上海静安区，请帮我找到5公里内合适的约会地点，并帮我搜索一些浪漫的约会场景图片";
         String answer = loveApp.doChatWithMcp(message, chatId);
         Assertions.assertNotNull(answer);
-        System.out.println("MCP 地图搜索回答: " + answer);
+        Assertions.assertFalse(answer.isEmpty(), "MCP 多工具调用回答不应为空");
+        System.out.println("MCP 多工具调用回答: " + answer);
     }
 }
