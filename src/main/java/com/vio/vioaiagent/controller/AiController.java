@@ -1,10 +1,13 @@
 package com.vio.vioaiagent.controller;
 
+import com.vio.vioaiagent.agent.BaseAgent;
 import com.vio.vioaiagent.agent.VioManus;
 import com.vio.vioaiagent.app.LoveApp;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.ToolCallbackProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -68,7 +71,7 @@ public class AiController {
      * @param chatId  会话 ID
      * @return SseEmitter
      */
-    @GetMapping(value = "/love_app/chat/sse_emitter")
+    @GetMapping(value = "/love_app/chat/sse_emitter", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter doChatWithLoveAppServerSseEmitter(String message, String chatId) {
         // 创建一个超时时间较长的 SseEmitter
         SseEmitter sseEmitter = new SseEmitter(180000L); // 3 分钟超时
@@ -157,6 +160,28 @@ public class AiController {
         return loveApp.doChatWithMcpByStream(message, chatId);
     }
 
+    // ==================== SSE 诊断端点 ====================
+
+    /**
+     * SSE 连通性测试 — 发送固定内容验证 SSE 链路是否正常
+     */
+    @GetMapping(value = "/ping_sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter pingSse() {
+        SseEmitter emitter = new SseEmitter(10000L);
+        new Thread(() -> {
+            try {
+                for (int i = 1; i <= 3; i++) {
+                    emitter.send("SSE 测试消息 " + i + "/3 ✅");
+                    Thread.sleep(500);
+                }
+                emitter.complete();
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+            }
+        }).start();
+        return emitter;
+    }
+
     // ==================== Manus 超级智能体 ====================
 
     @Resource
@@ -165,18 +190,55 @@ public class AiController {
     @Resource
     private ChatModel dashscopeChatModel;
 
+    @Autowired(required = false)
+    private ToolCallbackProvider toolCallbackProvider;
+
+    /** 活跃的 Agent 实例，用于手动停止 */
+    private final java.util.concurrent.ConcurrentHashMap<String, BaseAgent> activeAgents =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
     /**
      * SSE 流式调用 VioManus 超级智能体
      * <p>
-     * 智能体拥有自主规划能力，能将复杂任务分解为多步骤并逐步执行。
-     * 每次请求创建新的 VioManus 实例（Agent 有状态，不可跨请求共享）。
-     *
-     * @param message 用户输入/任务描述
-     * @return SseEmitter 实时推送每步执行结果（5 分钟超时）
+     * 第一个 SSE 事件携带 sessionId（格式：[SESSION:xxxx]），后续是执行步骤。
+     * 前端拿到 sessionId 后可通过 /manus/stop 手动终止。
      */
-    @GetMapping("/manus/chat")
+    @GetMapping(value = "/manus/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter doChatWithManus(String message) {
-        VioManus vioManus = new VioManus(allTools, dashscopeChatModel);
-        return vioManus.runStream(message);
+        VioManus vioManus = new VioManus(allTools, toolCallbackProvider, dashscopeChatModel);
+        String sessionId = java.util.UUID.randomUUID().toString().substring(0, 8);
+        activeAgents.put(sessionId, vioManus);
+
+        // 用自定义 SseEmitter 在最前面注入 sessionId
+        SseEmitter emitter = new SseEmitter(300000L);
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                // 第一条消息：sessionId
+                emitter.send("[SESSION:" + sessionId + "]");
+                // 之后交由 Agent 自己的 runStream 逻辑执行
+                vioManus.runStream(message, emitter);
+            } catch (Exception e) {
+                activeAgents.remove(sessionId);
+                try { emitter.completeWithError(e); } catch (Exception ignored) {}
+            } finally {
+                activeAgents.remove(sessionId);
+            }
+        });
+        emitter.onCompletion(() -> activeAgents.remove(sessionId));
+        emitter.onTimeout(() -> { activeAgents.remove(sessionId); vioManus.stop(); });
+        return emitter;
+    }
+
+    /**
+     * 手动停止正在运行的 Agent
+     */
+    @GetMapping("/manus/stop")
+    public String stopManus(String sessionId) {
+        BaseAgent agent = activeAgents.remove(sessionId);
+        if (agent != null) {
+            agent.stop();
+            return "已停止会话: " + sessionId;
+        }
+        return "未找到运行中的会话: " + sessionId;
     }
 }

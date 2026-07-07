@@ -17,7 +17,9 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.model.tool.ToolExecutionResult;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.ToolCallbackProvider;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,16 +28,6 @@ import java.util.stream.Collectors;
  * <p>
  * 具体实现了 ReActAgent 的 {@link #think()} 和 {@link #act()} 方法，
  * 具备完整的工具调用能力。可作为具体智能体实例（如 VioManus）的直接父类。
- * <p>
- * 核心设计决策：
- * <ul>
- *   <li><b>禁用 Spring AI 内置工具执行</b>（withInternalToolExecutionEnabled = false）：
- *       自主管理消息上下文和工具调用流程，保持对 Agent Loop 的完全控制</li>
- *   <li><b>手动维护 messageList</b>：ToolCallingManager.executeToolCalls() 返回的
- *       conversationHistory 包含完整的助手消息 + 工具返回消息，直接替换当前的 messageList</li>
- *   <li><b>TerminateTool 检测</b>：act() 中检查是否调用了 doTerminate 工具，
- *       若是则触发 state = FINISHED，优雅结束 Agent Loop</li>
- * </ul>
  *
  * @author vio
  * @see VioManus
@@ -45,61 +37,58 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ToolCallAgent extends ReActAgent {
 
+    /** 单次工具调用返回结果的最大字符数（超过则截断，防止 Token 爆炸） */
+    private static final int MAX_TOOL_OUTPUT_LENGTH = 3000;
+
+    /** 连续错误的最大容忍次数（超过则强制终止，防止无限循环） */
+    private static final int MAX_CONSECUTIVE_ERRORS = 3;
+
     // ==================== 工具系统 ====================
 
-    /**
-     * 可用工具列表（由 ToolRegistration 注册的 Bean 注入）
-     */
     private final ToolCallback[] availableTools;
 
-    /**
-     * 当前步骤的 AI 工具调用响应（think 阶段产生，act 阶段消费）
-     */
+    private ToolCallbackProvider toolCallbackProvider;
+
     private ChatResponse toolCallChatResponse;
 
-    /**
-     * 工具调用管理器（手动控制工具执行，不使用 Spring AI 内置机制）
-     */
-    private final ToolCallingManager toolCallingManager;
+    private ToolCallingManager toolCallingManager;
 
-    /**
-     * 对话选项 — 禁用 Spring AI 内置工具执行
-     */
     private final ChatOptions chatOptions;
+
+    /** 连续错误计数器 */
+    private int consecutiveErrors = 0;
 
     // ==================== 构造器 ====================
 
-    /**
-     * 构造工具调用智能体
-     *
-     * @param availableTools 可用工具列表
-     */
     public ToolCallAgent(ToolCallback[] availableTools) {
         super();
         this.availableTools = availableTools;
         this.toolCallingManager = ToolCallingManager.builder().build();
-        // 关键：禁用 Spring AI 内置的工具调用机制，自主管理消息上下文和执行流程
         this.chatOptions = DashScopeChatOptions.builder()
                 .withInternalToolExecutionEnabled(false)
                 .build();
     }
 
+    public void setToolCallbackProvider(ToolCallbackProvider toolCallbackProvider) {
+        this.toolCallbackProvider = toolCallbackProvider;
+    }
+
+    private ToolCallback[] getMergedTools() {
+        if (toolCallbackProvider == null) {
+            return availableTools;
+        }
+        ToolCallback[] mcpTools = toolCallbackProvider.getToolCallbacks();
+        if (mcpTools == null || mcpTools.length == 0) {
+            return availableTools;
+        }
+        ToolCallback[] merged = Arrays.copyOf(availableTools,
+                availableTools.length + mcpTools.length);
+        System.arraycopy(mcpTools, 0, merged, availableTools.length, mcpTools.length);
+        return merged;
+    }
+
     // ==================== Think：推理阶段 ====================
 
-    /**
-     * 思考阶段：调用 AI 大模型，让 AI 根据当前上下文决定是否需要调用工具
-     * <p>
-     * 执行流程：
-     * <ol>
-     *   <li>将 nextStepPrompt 追加到消息列表（引导 AI 主动规划下一步）</li>
-     *   <li>调用 ChatClient，传入系统提示词 + 完整消息历史 + 可用工具列表</li>
-     *   <li>解析 AI 返回的 AssistantMessage，提取 ToolCall 列表</li>
-     *   <li>有工具调用 → 保存响应，返回 true</li>
-     *   <li>无工具调用 → 记录 AI 的文本回复，返回 false（Agent Loop 继续下一轮）</li>
-     * </ol>
-     *
-     * @return true 表示 AI 决定调用工具（需要进入 act 阶段），false 表示无需行动
-     */
     @Override
     public boolean think() {
         // 1. 将"下一步提示词"追加到消息列表，引导 AI 主动规划
@@ -114,18 +103,18 @@ public class ToolCallAgent extends ReActAgent {
         try {
             ChatResponse chatResponse = getChatClient().prompt(prompt)
                     .system(getSystemPrompt())
-                    .tools(availableTools)
+                    .toolCallbacks(getMergedTools())
                     .call()
                     .chatResponse();
 
-            // 保存响应，供 act() 阶段使用
+            // 成功调用，重置错误计数
+            this.consecutiveErrors = 0;
+
             this.toolCallChatResponse = chatResponse;
 
-            // 3. 解析工具调用结果
             AssistantMessage assistantMessage = chatResponse.getResult().getOutput();
             List<AssistantMessage.ToolCall> toolCallList = assistantMessage.getToolCalls();
 
-            // 日志：记录 AI 的思考内容
             String thinkText = assistantMessage.getText();
             log.info("{} 的思考：{}", getName(), thinkText);
             log.info("{} 选择了 {} 个工具来使用", getName(), toolCallList.size());
@@ -136,18 +125,26 @@ public class ToolCallAgent extends ReActAgent {
                 log.info("工具调用详情：\n{}", toolCallInfo);
             }
 
-            // 4. 判断是否需要行动
             if (toolCallList.isEmpty()) {
-                // 无工具调用：AI 给出了纯文本回复，记录到消息历史
                 getMessageList().add(assistantMessage);
                 return false;
             } else {
-                // 有工具调用：不需要手动记录 assistantMessage，
-                // ToolCallingManager.executeToolCalls() 会自动处理消息追加
                 return true;
             }
         } catch (Exception e) {
-            log.error("{} 的思考过程遇到问题：{}", getName(), e.getMessage());
+            consecutiveErrors++;
+            log.error("{} 的思考过程遇到问题（连续错误 {}/{}）：{}",
+                    getName(), consecutiveErrors, MAX_CONSECUTIVE_ERRORS, e.getMessage());
+
+            // 连续错误超过阈值 → 强制终止，防止无限循环
+            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                log.error("{} 连续错误达到 {} 次，强制终止 Agent", getName(), MAX_CONSECUTIVE_ERRORS);
+                setState(AgentState.FINISHED);
+                getMessageList().add(new AssistantMessage("抱歉，多次尝试后仍然无法完成任务："
+                        + e.getMessage()));
+                return false;
+            }
+
             getMessageList().add(new AssistantMessage("思考时遇到错误：" + e.getMessage()));
             return false;
         }
@@ -155,20 +152,6 @@ public class ToolCallAgent extends ReActAgent {
 
     // ==================== Act：行动阶段 ====================
 
-    /**
-     * 行动阶段：执行 think() 阶段 AI 决定的工具调用
-     * <p>
-     * 执行流程：
-     * <ol>
-     *   <li>通过 ToolCallingManager 执行 AI 选择的所有工具</li>
-     *   <li>用 conversationHistory 替换当前 messageList（包含助手消息 + 工具返回消息）</li>
-     *   <li>检测是否调用了 doTerminate 终止工具</li>
-     *   <li>若是 → 设置 state = FINISHED，Agent Loop 下一轮检查时自然退出</li>
-     *   <li>返回工具执行结果描述</li>
-     * </ol>
-     *
-     * @return 工具执行结果
-     */
     @Override
     public String act() {
         if (!toolCallChatResponse.hasToolCalls()) {
@@ -180,8 +163,7 @@ public class ToolCallAgent extends ReActAgent {
         ToolExecutionResult toolExecutionResult =
                 toolCallingManager.executeToolCalls(prompt, toolCallChatResponse);
 
-        // 2. 更新消息上下文 — conversationHistory 已包含：
-        //    用户消息 + 助手消息（含 ToolCall）+ 工具返回消息
+        // 2. 更新消息上下文
         setMessageList(toolExecutionResult.conversationHistory());
 
         // 3. 检查是否调用了终止工具
@@ -195,11 +177,35 @@ public class ToolCallAgent extends ReActAgent {
             log.info("{} 调用了终止工具，任务正常结束", getName());
         }
 
-        // 4. 格式化返回结果
+        // 4. 格式化返回结果（截断过长的输出）
         String results = toolResponseMessage.getResponses().stream()
-                .map(response -> "工具 " + response.name() + " 返回结果：" + response.responseData())
+                .map(response -> {
+                    String data = response.responseData();
+                    String truncated = truncateIfNeeded(data);
+                    return "工具 " + response.name() + " 返回结果：" + truncated;
+                })
                 .collect(Collectors.joining("\n"));
         log.info("工具执行结果：\n{}", results);
         return results;
+    }
+
+    /**
+     * 截断过长的工具输出，防止塞爆 AI 上下文窗口
+     */
+    private String truncateIfNeeded(String text) {
+        if (text == null) {
+            return "(empty)";
+        }
+        if (text.length() <= MAX_TOOL_OUTPUT_LENGTH) {
+            return text;
+        }
+        return text.substring(0, MAX_TOOL_OUTPUT_LENGTH)
+                + "...(truncated, total " + text.length() + " chars)";
+    }
+
+    @Override
+    protected void cleanup() {
+        this.consecutiveErrors = 0;
+        super.cleanup();
     }
 }

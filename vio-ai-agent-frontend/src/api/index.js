@@ -53,7 +53,7 @@ function connectSSE(url, params, onMessage, onError) {
  */
 export function chatWithLoveApp(message, chatId, onMessage, onError) {
   return connectSSE(
-    '/ai/love_app/chat/sse',
+    '/ai/love_app/chat/sse_emitter',
     { message, chatId },
     onMessage,
     onError
@@ -64,17 +64,37 @@ export function chatWithLoveApp(message, chatId, onMessage, onError) {
  * 连接 AI 超级智能体 VioManus（SSE 分步输出）
  *
  * @param {string} message - 用户任务
- * @param {function} onMessage - 收到消息回调
+ * @param {function} onMessage - 收到消息回调 (data: string) => void
+ * @param {function} onSession - 收到 sessionId 回调 (sessionId: string) => void
  * @param {function} onError   - 出错回调
  * @returns {EventSource}
  */
-export function chatWithManus(message, onMessage, onError) {
+export function chatWithManus(message, onMessage, onSession, onError) {
+  let sessionReceived = false
   return connectSSE(
     '/ai/manus/chat',
     { message },
-    onMessage,
+    (data) => {
+      // 拦截第一条消息提取 sessionId
+      if (!sessionReceived && data.startsWith('[SESSION:')) {
+        sessionReceived = true
+        const sessionId = data.match(/\[SESSION:(.+?)\]/)?.[1]
+        if (sessionId && onSession) onSession(sessionId)
+        return  // 不显示 sessionId 给用户
+      }
+      onMessage(data)
+    },
     onError
   )
+}
+
+/**
+ * 手动停止 Agent
+ * @param {string} sessionId
+ * @returns {Promise<Response>}
+ */
+export function stopManus(sessionId) {
+  return fetch(`${API_BASE_URL}/ai/manus/stop?sessionId=${encodeURIComponent(sessionId)}`)
 }
 
 export { connectSSE, API_BASE_URL }

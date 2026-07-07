@@ -1,0 +1,44 @@
+# ============================================================
+# MCP Client 测试专用 Profile
+# 禁用外部服务依赖和实际 MCP 连接，确保测试可独立运行
+# 各测试类按需在 @TestConfiguration 中搭建嵌入式 MCP 服务
+# ============================================================
+spring:
+  autoconfigure:
+    exclude:
+      # 排除 PGVector 自动配置（测试环境无需数据库）
+      - org.springframework.ai.autoconfigure.vectorstore.pgvector.PgVectorStoreAutoConfiguration
+      # 排除 spring-ai-alibaba 自动配置（1.0.0-M6.1 与 BOM 覆盖的 Spring AI 1.0.0-M6 版本兼容，但与 1.0.0 GA 不兼容）
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.prompt.PromptTemplateAutoConfiguration
+      # 排除所有 Observation 自动配置（M6 版本的 *ObservationFilter 类在 1.0.0 GA 中不存在）
+      - org.springframework.ai.autoconfigure.chat.client.ChatClientAutoConfiguration
+      - org.springframework.ai.autoconfigure.chat.observation.ChatObservationAutoConfiguration
+      - org.springframework.ai.autoconfigure.image.observation.ImageObservationAutoConfiguration
+      - org.springframework.ai.autoconfigure.embedding.observation.EmbeddingObservationAutoConfiguration
+      - org.springframework.ai.autoconfigure.vectorstore.observation.VectorStoreObservationAutoConfiguration
+      # 排除 DataSource 和 JDBC 自动配置（测试环境无需数据库）
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration
+  ai:
+    dashscope:
+      api-key: ${AI_DASHSCOPE_API_KEY:test-key}
+    ollama:
+      base-url: http://localhost:19999
+    mcp:
+      client:
+        enabled: true
+        initialized: false
+        toolcallback:
+          enabled: true
+
+# 禁用 search API
+search-api:
+  api-key: test-search-api-key
+
+# 降低日志级别，减少测试输出噪音
+logging:
+  level:
+    org.springframework.ai: WARN
+    io.modelcontextprotocol: WARN

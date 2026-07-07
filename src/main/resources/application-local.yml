@@ -1,0 +1,28 @@
+# ============================================================
+# 本地开发环境配置（spring.profiles.active: local）
+# 覆盖 application.yml 中的默认配置
+# 禁用本地不可用的外部服务：MCP Server、PGVector
+# ============================================================
+spring:
+  autoconfigure:
+    exclude:
+      # 本地无 PostgreSQL，排除 PGVector 自动配置
+      - org.springframework.ai.autoconfigure.vectorstore.pgvector.PgVectorStoreAutoConfiguration
+      # 排除 DataSource 自动配置（无数据库）
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration
+  ai:
+    dashscope:
+      # 从环境变量读取，不要硬编码在配置文件中
+      api-key: ${AI_DASHSCOPE_API_KEY}
+    mcp:
+      client:
+        # 本地开发时 MCP Server 未启动，禁用 MCP 客户端
+        # 需要 MCP 功能时改为 true 并先启动 MCP Server
+        enabled: false
+
+logging:
+  level:
+    org.springframework.ai: INFO
+    com.vio.vioaiagent: DEBUG

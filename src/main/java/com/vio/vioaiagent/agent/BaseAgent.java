@@ -72,6 +72,11 @@ public abstract class BaseAgent {
      */
     private int maxSteps = 10;
 
+    /**
+     * 手动停止标志（volatile 保证跨线程可见性）
+     */
+    private volatile boolean stopped = false;
+
     // ==================== AI 大模型 ====================
 
     /**
@@ -113,7 +118,7 @@ public abstract class BaseAgent {
         // 3. Agent Loop：循环执行直到完成或超步数
         List<String> results = new ArrayList<>();
         try {
-            for (int i = 0; i < maxSteps && state != AgentState.FINISHED; i++) {
+            for (int i = 0; i < maxSteps && state != AgentState.FINISHED && !stopped; i++) {
                 int stepNumber = i + 1;
                 currentStep = stepNumber;
                 log.info("{} 正在执行步骤 {}/{}", name, stepNumber, maxSteps);
@@ -123,8 +128,10 @@ public abstract class BaseAgent {
                 results.add(result);
             }
 
-            // 检查是否因超步数而终止
-            if (currentStep >= maxSteps) {
+            if (stopped) {
+                state = AgentState.FINISHED;
+                results.add("用户手动停止了任务");
+            } else if (currentStep >= maxSteps) {
                 state = AgentState.FINISHED;
                 results.add("执行终止：已达到最大步数限制（" + maxSteps + "）");
             }
@@ -142,90 +149,86 @@ public abstract class BaseAgent {
     // ==================== SSE 流式执行 ====================
 
     /**
-     * SSE 流式运行智能体（每步结果实时推送到客户端）
-     *
-     * @param userPrompt 用户的输入/任务描述
-     * @return SseEmitter 用于 SSE 推送
+     * SSE 流式运行智能体（创建新的 SseEmitter）
      */
     public SseEmitter runStream(String userPrompt) {
-        // 创建 SseEmitter，5 分钟超时
         SseEmitter sseEmitter = new SseEmitter(300000L);
+        CompletableFuture.runAsync(() -> doRunStream(userPrompt, sseEmitter));
+        sseEmitter.onTimeout(() -> { this.state = AgentState.ERROR; this.cleanup(); });
+        sseEmitter.onCompletion(() -> {
+            if (this.state == AgentState.RUNNING) this.state = AgentState.FINISHED;
+            this.cleanup();
+        });
+        return sseEmitter;
+    }
 
-        // 异步执行，避免阻塞主线程（Tomcat 的 NIO 线程）
-        CompletableFuture.runAsync(() -> {
-            try {
-                // 1. 基础校验
-                if (this.state != AgentState.IDLE) {
-                    sseEmitter.send("错误：无法从状态 " + this.state + " 运行智能体");
-                    sseEmitter.complete();
-                    return;
-                }
-                if (StrUtil.isBlank(userPrompt)) {
-                    sseEmitter.send("错误：不能使用空的用户提示词运行智能体");
-                    sseEmitter.complete();
-                    return;
-                }
-            } catch (Exception e) {
-                sseEmitter.completeWithError(e);
+    /**
+     * SSE 流式运行智能体（写入已有 emitter，用于外部管理生命周期）
+     */
+    public void runStream(String userPrompt, SseEmitter sseEmitter) {
+        CompletableFuture.runAsync(() -> doRunStream(userPrompt, sseEmitter));
+    }
+
+    /**
+     * SSE 流式执行的核心逻辑
+     */
+    private void doRunStream(String userPrompt, SseEmitter sseEmitter) {
+        try {
+            // 1. 基础校验
+            if (this.state != AgentState.IDLE) {
+                sseEmitter.send("错误：无法从状态 " + this.state + " 运行智能体");
+                sseEmitter.complete();
                 return;
             }
-
-            // 2. 状态切换 + 记录用户消息
-            this.state = AgentState.RUNNING;
-            messageList.add(new UserMessage(userPrompt));
-
-            // 3. Agent Loop（SSE 实时推送每步结果）
-            try {
-                for (int i = 0; i < maxSteps && state != AgentState.FINISHED; i++) {
-                    int stepNumber = i + 1;
-                    currentStep = stepNumber;
-                    log.info("{} 正在执行步骤 {}/{}", name, stepNumber, maxSteps);
-
-                    String stepResult = step();
-                    String result = "Step " + stepNumber + ": " + stepResult;
-                    // 实时推送当前步骤结果
-                    sseEmitter.send(result);
-                }
-
-                // 检查是否因超步数而终止
-                if (currentStep >= maxSteps) {
-                    state = AgentState.FINISHED;
-                    sseEmitter.send("执行终止：已达到最大步数限制（" + maxSteps + "）");
-                }
-
+            if (StrUtil.isBlank(userPrompt)) {
+                sseEmitter.send("错误：不能使用空的用户提示词运行智能体");
                 sseEmitter.complete();
-            } catch (Exception e) {
-                state = AgentState.ERROR;
-                log.error("智能体 {} SSE 执行出错", name, e);
-                try {
-                    sseEmitter.send("执行错误：" + e.getMessage());
-                    sseEmitter.complete();
-                } catch (IOException ex) {
-                    sseEmitter.completeWithError(ex);
-                }
-            } finally {
-                // 4. 清理资源
-                this.cleanup();
+                return;
             }
-        });
+        } catch (Exception e) {
+            sseEmitter.completeWithError(e);
+            return;
+        }
 
-        // SSE 超时回调
-        sseEmitter.onTimeout(() -> {
-            this.state = AgentState.ERROR;
-            this.cleanup();
-            log.warn("{} 的 SSE 连接超时", name);
-        });
+        // 2. 状态切换 + 记录用户消息
+        this.state = AgentState.RUNNING;
+        messageList.add(new UserMessage(userPrompt));
 
-        // SSE 完成回调
-        sseEmitter.onCompletion(() -> {
-            if (this.state == AgentState.RUNNING) {
-                this.state = AgentState.FINISHED;
+        // 3. Agent Loop（SSE 实时推送每步结果）
+        try {
+            sseEmitter.send("正在分析任务：「" + userPrompt + "」...");
+
+            for (int i = 0; i < maxSteps && state != AgentState.FINISHED && !stopped; i++) {
+                int stepNumber = i + 1;
+                currentStep = stepNumber;
+                log.info("{} 正在执行步骤 {}/{}", name, stepNumber, maxSteps);
+
+                String stepResult = step();
+                String result = "Step " + stepNumber + ": " + stepResult;
+                sseEmitter.send(result);
             }
-            this.cleanup();
-            log.info("{} 的 SSE 连接已完成", name);
-        });
 
-        return sseEmitter;
+            if (stopped) {
+                state = AgentState.FINISHED;
+                sseEmitter.send("⏹ 用户手动停止了任务");
+            } else if (currentStep >= maxSteps) {
+                state = AgentState.FINISHED;
+                sseEmitter.send("执行终止：已达到最大步数限制（" + maxSteps + "）");
+            }
+
+            sseEmitter.complete();
+        } catch (Exception e) {
+            state = AgentState.ERROR;
+            log.error("智能体 {} SSE 执行出错", name, e);
+            try {
+                sseEmitter.send("执行错误：" + e.getMessage());
+                sseEmitter.complete();
+            } catch (IOException ex) {
+                sseEmitter.completeWithError(ex);
+            }
+        } finally {
+            this.cleanup();
+        }
     }
 
     // ==================== 抽象方法 ====================
@@ -243,9 +246,17 @@ public abstract class BaseAgent {
     // ==================== 资源清理 ====================
 
     /**
+     * 手动停止 Agent（线程安全）
+     */
+    public void stop() {
+        this.stopped = true;
+        log.info("{} 收到停止信号", name);
+    }
+
+    /**
      * 清理资源（子类可按需重写）
      */
     protected void cleanup() {
-        // 默认空实现，子类可重写以清理工具连接、释放资源等
+        this.stopped = false;
     }
 }

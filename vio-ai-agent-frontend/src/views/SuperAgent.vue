@@ -6,6 +6,13 @@
       <span class="status-badge" :class="connectionStatus">
         {{ statusLabel }}
       </span>
+      <button
+        v-if="connectionStatus === 'connecting' || connectionStatus === 'connected'"
+        class="stop-btn"
+        @click="handleStop"
+      >
+        ⏹ 停止
+      </button>
     </header>
 
     <ChatRoom
@@ -18,14 +25,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onBeforeUnmount } from 'vue'
+import { ref, onBeforeUnmount } from 'vue'
 import ChatRoom from '@/components/ChatRoom.vue'
-import { chatWithManus } from '@/api'
+import { chatWithManus, stopManus } from '@/api'
 
 const messages = ref([])
 const connectionStatus = ref('idle')
 const statusLabel = ref('就绪')
 let currentEventSource = null
+let currentSessionId = null
 let bubbleBuffer = ''
 let lastBubbleTime = 0
 
@@ -35,21 +43,12 @@ messages.value.push({
   content: '你好！我是 VioManus 🤖，一个拥有自主规划能力的 AI 超级智能体。\n\n我可以搜索网络、读写文件、抓取网页、生成 PDF、执行终端命令——将复杂任务分解为多步骤并逐步完成。\n\n例如你可以让我：「搜索上海的约会地点，保存为文件，并生成一份 PDF 报告」'
 })
 
-/**
- * 智能拆分 SSE 流式数据为多个消息气泡
- *
- * 拆分规则：
- * 1. 遇到中文结束标点（。！？…）→ 拆分
- * 2. 缓冲内容超过 40 字 → 拆分
- * 3. 两次拆分间隔至少 800ms（模拟自然思考节奏）
- */
 function splitBubble(chunk) {
   bubbleBuffer += chunk
   const now = Date.now()
   const minInterval = 800
 
-  // 检查是否有结束标点
-  const endPunctuation = bubbleBuffer.match(/[。！？…]/)
+  const endPunctuation = bubbleBuffer.match(/[。！？…\n]/)
   const isLengthThreshold = bubbleBuffer.length > 40
 
   if (endPunctuation || isLengthThreshold) {
@@ -61,7 +60,6 @@ function splitBubble(chunk) {
     bubbleBuffer = bubbleBuffer.slice(idx)
 
     if (bubbleContent) {
-      // 保证气泡间最小间隔
       if (now - lastBubbleTime < minInterval) {
         setTimeout(() => {
           messages.value.push({ role: 'assistant', content: bubbleContent })
@@ -75,14 +73,28 @@ function splitBubble(chunk) {
   }
 }
 
-/**
- * 清空剩余缓冲（SSE 连接关闭后调用）
- */
 function flushBuffer() {
   if (bubbleBuffer.trim()) {
     messages.value.push({ role: 'assistant', content: bubbleBuffer.trim() })
     bubbleBuffer = ''
   }
+}
+
+function handleStop() {
+  if (currentSessionId) {
+    stopManus(currentSessionId).catch(console.error)
+  }
+  if (currentEventSource) {
+    currentEventSource.close()
+    currentEventSource = null
+  }
+  flushBuffer()
+  connectionStatus.value = 'done'
+  statusLabel.value = '已停止'
+  messages.value.push({
+    role: 'assistant',
+    content: '⏹ 任务已手动停止'
+  })
 }
 
 function handleSend(message) {
@@ -100,21 +112,32 @@ function handleSend(message) {
       connectionStatus.value = 'connected'
       statusLabel.value = '执行中'
     },
+    // onSession
+    (sessionId) => {
+      currentSessionId = sessionId
+    },
     // onError
     () => {
       flushBuffer()
       connectionStatus.value = 'done'
       statusLabel.value = '已完成'
+      currentSessionId = null
+      if (messages.value.filter(m => m.role === 'assistant').length === 1) {
+        messages.value.push({
+          role: 'assistant',
+          content: '⚠️ 连接断开，未收到回复。请检查后端日志排查错误。'
+        })
+      }
     }
   )
 
-  // 检测连接关闭
   const checkDone = setInterval(() => {
     if (currentEventSource && currentEventSource.readyState === 2) {
       clearInterval(checkDone)
       flushBuffer()
       connectionStatus.value = 'done'
       statusLabel.value = '已完成'
+      currentSessionId = null
     }
   }, 200)
 }
@@ -167,8 +190,23 @@ onBeforeUnmount(() => {
   color: #fff;
 }
 
-.status-badge {
+.stop-btn {
   margin-left: auto;
+  background: rgba(255, 77, 79, 0.15);
+  color: #ff4d4f;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.stop-btn:hover {
+  background: rgba(255, 77, 79, 0.3);
+  color: #ff7875;
+}
+
+.status-badge {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.4);
   padding: 4px 10px;

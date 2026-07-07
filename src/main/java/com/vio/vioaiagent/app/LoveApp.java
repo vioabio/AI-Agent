@@ -8,6 +8,7 @@ import com.vio.vioaiagent.rag.QueryRewriter;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
@@ -53,11 +54,7 @@ public class LoveApp {
         chatClient = ChatClient.builder(dashscopeChatModel)
                 .defaultSystem(SYSTEM_PROMPT)
                 .defaultAdvisors(
-                        MessageChatMemoryAdvisor.builder(chatMemory).build(),
-                        // 自定义日志 Advisor，可按需开启
-                        new MyLoggerAdvisor()
-//                        // 自定义推理增强 Advisor，可按需开启
-//                       ,new ReReadingAdvisor()
+                        MessageChatMemoryAdvisor.builder(chatMemory).build()
                 )
                 .build();
     }
@@ -83,18 +80,24 @@ public class LoveApp {
 
     /**
      * AI 基础对话（支持多轮对话记忆，SSE 流式传输）
-     *
-     * @param message
-     * @param chatId
-     * @return
+     * <p>
+     * 使用默认 advisors（包含 MessageChatMemoryAdvisor）实现多轮对话，
+     * 同时通过 advisors 回调传入 conversationId 参数
      */
     public Flux<String> doChatByStream(String message, String chatId) {
-        return chatClient
-                .prompt()
-                .user(message)
-                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
-                .stream()
-                .content();
+        // 使用 try-catch 包裹，避免 advisor 异常导致整个流失败
+        try {
+            return chatClient
+                    .prompt()
+                    .user(message)
+                    .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
+                    .stream()
+                    .content()
+                    .doOnError(e -> log.error("LoveApp 流式对话出错: {}", e.getMessage(), e));
+        } catch (Exception e) {
+            log.error("LoveApp 流式对话启动失败: {}", e.getMessage(), e);
+            return Flux.just("抱歉，服务暂时不可用：" + e.getMessage());
+        }
     }
 
     record LoveReport(String title, List<String> suggestions) {
@@ -122,6 +125,7 @@ public class LoveApp {
 
     // AI 恋爱知识库问答功能
 
+    @Lazy
     @Resource
     private VectorStore loveAppVectorStore;
 
@@ -207,7 +211,7 @@ public class LoveApp {
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
                 // 开启日志，便于观察效果
                 .advisors(new MyLoggerAdvisor())
-                .tools(allTools)
+                .toolCallbacks(allTools)
                 .call()
                 .chatResponse();
         String content = chatResponse.getResult().getOutput().getText();
@@ -228,7 +232,7 @@ public class LoveApp {
                 .user(message)
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
                 .advisors(new MyLoggerAdvisor())
-                .tools(allTools)
+                .toolCallbacks(allTools)
                 .stream()
                 .content();
     }
@@ -252,7 +256,7 @@ public class LoveApp {
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
                 // 开启日志，便于观察效果
                 .advisors(new MyLoggerAdvisor())
-                .tools(toolCallbackProvider)
+                .toolCallbacks(toolCallbackProvider)
                 .call()
                 .chatResponse();
         String content = chatResponse.getResult().getOutput().getText();
@@ -274,7 +278,7 @@ public class LoveApp {
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
                 // 开启日志，便于观察效果
                 .advisors(new MyLoggerAdvisor())
-                .tools(toolCallbackProvider)
+                .toolCallbacks(toolCallbackProvider)
                 .stream()
                 .content();
     }

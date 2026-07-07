@@ -4,7 +4,7 @@ import com.vio.vioaiagent.advisor.MyLoggerAdvisor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
-import org.springframework.stereotype.Component;
+import org.springframework.ai.tool.ToolCallbackProvider;
 
 /**
  * VioManus — AI 超级智能体
@@ -32,7 +32,6 @@ import org.springframework.stereotype.Component;
  *
  * @author vio
  */
-@Component
 public class VioManus extends ToolCallAgent {
 
     /**
@@ -79,12 +78,27 @@ public class VioManus extends ToolCallAgent {
             """;
 
     /**
-     * 构造 VioManus 超级智能体
+     * 构造 VioManus 超级智能体（仅本地工具）
      *
      * @param allTools           所有注册的本地工具（来自 ToolRegistration）
      * @param dashscopeChatModel DashScope AI 大模型
      */
     public VioManus(ToolCallback[] allTools, ChatModel dashscopeChatModel) {
+        this(allTools, null, dashscopeChatModel);
+    }
+
+    /**
+     * 构造 VioManus 超级智能体（本地工具 + MCP 远程工具）
+     * <p>
+     * 当 MCP Server（高德地图、图片搜索等）已启动时，通过 ToolCallbackProvider
+     * 将远程 MCP 工具与本地工具合并，让 Agent 获得地图搜索、图片搜索等额外能力。
+     *
+     * @param allTools            所有注册的本地工具（来自 ToolRegistration）
+     * @param mcpToolProvider     MCP 工具提供者，可为 null（MCP Server 未启动时）
+     * @param dashscopeChatModel  DashScope AI 大模型
+     */
+    public VioManus(ToolCallback[] allTools, ToolCallbackProvider mcpToolProvider,
+                    ChatModel dashscopeChatModel) {
         super(allTools);
 
         // 基本信息
@@ -94,6 +108,11 @@ public class VioManus extends ToolCallAgent {
 
         // 最大执行步数（复杂任务可能需要更多步骤）
         this.setMaxSteps(20);
+
+        // 集成 MCP 工具提供者（高德地图、图片搜索等）
+        if (mcpToolProvider != null) {
+            this.setToolCallbackProvider(mcpToolProvider);
+        }
 
         // 初始化 ChatClient（带日志 Advisor，便于调试观察 Agent 的思考过程）
         ChatClient chatClient = ChatClient.builder(dashscopeChatModel)
