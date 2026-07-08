@@ -36,7 +36,7 @@ public class Result<T> implements Serializable {
      */
     private Long timestamp;
 
-    private Result() {
+    protected Result() {
         this.timestamp = System.currentTimeMillis();
     }
 

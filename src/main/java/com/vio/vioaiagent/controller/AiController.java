@@ -3,6 +3,10 @@ package com.vio.vioaiagent.controller;
 import com.vio.vioaiagent.agent.BaseAgent;
 import com.vio.vioaiagent.agent.VioManus;
 import com.vio.vioaiagent.app.LoveApp;
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
@@ -18,6 +22,7 @@ import reactor.core.publisher.Flux;
 
 import java.io.IOException;
 
+@Tag(name = "AI 智能体", description = "AI 恋爱大师 & VioManus 超级智能体接口")
 @RestController
 @RequestMapping("/ai")
 public class AiController {
@@ -25,37 +30,78 @@ public class AiController {
     @Resource
     private LoveApp loveApp;
 
-    /**
-     * 同步调用 AI 恋爱大师应用
-     *
-     * @param message 用户消息
-     * @param chatId  会话 ID
-     * @return AI 回复
-     */
+    // ==================== 同步 REST 端点（可用 axios 调用） ====================
+
+    @Operation(summary = "同步对话（基础）")
     @GetMapping("/love_app/chat/sync")
-    public String doChatWithLoveAppSync(String message, String chatId) {
+    public String doChatWithLoveAppSync(
+            @Parameter(description = "用户消息") String message,
+            @Parameter(description = "会话 ID") String chatId) {
         return loveApp.doChat(message, chatId);
     }
 
-    /**
-     * SSE 流式调用 AI 恋爱大师应用
-     *
-     * @param message 用户消息
-     * @param chatId  会话 ID
-     * @return 流式响应
-     */
+    @Operation(summary = "同步对话（RAG 知识库增强）")
+    @GetMapping("/love_app/chat/rag/sync")
+    public String doChatWithLoveAppRagSync(
+            @Parameter(description = "用户消息") String message,
+            @Parameter(description = "会话 ID") String chatId) {
+        return loveApp.doChatWithRag(message, chatId);
+    }
+
+    @Operation(summary = "同步对话（工具调用）")
+    @GetMapping("/love_app/chat/tools/sync")
+    public String doChatWithLoveAppToolsSync(
+            @Parameter(description = "用户消息") String message,
+            @Parameter(description = "会话 ID") String chatId) {
+        return loveApp.doChatWithTools(message, chatId);
+    }
+
+    @Operation(summary = "同步对话（MCP 服务）")
+    @GetMapping("/love_app/chat/mcp/sync")
+    public String doChatWithLoveAppMcpSync(
+            @Parameter(description = "用户消息") String message,
+            @Parameter(description = "会话 ID") String chatId) {
+        return loveApp.doChatWithMcp(message, chatId);
+    }
+
+    // ==================== SSE 流式端点（需用 EventSource，不可用 axios） ====================
+
+    @Operation(summary = "SSE 流式对话（基础）",
+            description = "注意：此端点返回 text/event-stream，前端需使用 EventSource 而非 axios 调用")
     @GetMapping(value = "/love_app/chat/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> doChatWithLoveAppSSE(String message, String chatId) {
+    public Flux<String> doChatWithLoveAppSSE(
+            @Parameter(description = "用户消息") String message,
+            @Parameter(description = "会话 ID") String chatId) {
         return loveApp.doChatByStream(message, chatId);
     }
 
-    /**
-     * ServerSentEvent 流式调用 AI 恋爱大师应用
-     *
-     * @param message 用户消息
-     * @param chatId  会话 ID
-     * @return ServerSentEvent 流
-     */
+    @Operation(summary = "SSE 流式对话（RAG 知识库增强）")
+    @GetMapping(value = "/love_app/chat/rag/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> doChatWithLoveAppRagSSE(
+            @Parameter(description = "用户消息") String message,
+            @Parameter(description = "会话 ID") String chatId) {
+        return loveApp.doChatWithRagByStream(message, chatId);
+    }
+
+    @Operation(summary = "SSE 流式对话（工具调用）")
+    @GetMapping(value = "/love_app/chat/tools/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> doChatWithLoveAppToolsSSE(
+            @Parameter(description = "用户消息") String message,
+            @Parameter(description = "会话 ID") String chatId) {
+        return loveApp.doChatWithToolsByStream(message, chatId);
+    }
+
+    @Operation(summary = "SSE 流式对话（MCP 服务）")
+    @GetMapping(value = "/love_app/chat/mcp/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> doChatWithLoveAppMcpSSE(
+            @Parameter(description = "用户消息") String message,
+            @Parameter(description = "会话 ID") String chatId) {
+        return loveApp.doChatWithMcpByStream(message, chatId);
+    }
+
+    // ==================== 以下端点返回 Spring 内部类型，标记 @Hidden 避免生成无意义的代码 ====================
+
+    @Hidden
     @GetMapping(value = "/love_app/chat/server_sent_event")
     public Flux<ServerSentEvent<String>> doChatWithLoveAppServerSentEvent(String message, String chatId) {
         return loveApp.doChatByStream(message, chatId)
@@ -64,18 +110,10 @@ public class AiController {
                         .build());
     }
 
-    /**
-     * SseEmitter 流式调用 AI 恋爱大师应用
-     *
-     * @param message 用户消息
-     * @param chatId  会话 ID
-     * @return SseEmitter
-     */
+    @Hidden
     @GetMapping(value = "/love_app/chat/sse_emitter", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter doChatWithLoveAppServerSseEmitter(String message, String chatId) {
-        // 创建一个超时时间较长的 SseEmitter
-        SseEmitter sseEmitter = new SseEmitter(180000L); // 3 分钟超时
-        // 获取 Flux 响应式数据流并且直接通过订阅推送给 SseEmitter
+        SseEmitter sseEmitter = new SseEmitter(180000L);
         loveApp.doChatByStream(message, chatId)
                 .subscribe(chunk -> {
                     try {
@@ -84,87 +122,12 @@ public class AiController {
                         sseEmitter.completeWithError(e);
                     }
                 }, sseEmitter::completeWithError, sseEmitter::complete);
-        // 返回
         return sseEmitter;
     }
 
-    /**
-     * 同步调用 AI 恋爱大师应用（RAG 知识库增强）
-     *
-     * @param message 用户消息
-     * @param chatId  会话 ID
-     * @return AI 回复（基于知识库）
-     */
-    @GetMapping("/love_app/chat/rag/sync")
-    public String doChatWithLoveAppRagSync(String message, String chatId) {
-        return loveApp.doChatWithRag(message, chatId);
-    }
+    // ==================== SSE 诊断 ====================
 
-    /**
-     * SSE 流式调用 AI 恋爱大师应用（RAG 知识库增强）
-     *
-     * @param message 用户消息
-     * @param chatId  会话 ID
-     * @return 流式响应（基于知识库）
-     */
-    @GetMapping(value = "/love_app/chat/rag/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> doChatWithLoveAppRagSSE(String message, String chatId) {
-        return loveApp.doChatWithRagByStream(message, chatId);
-    }
-
-    /**
-     * 同步调用 AI 恋爱大师应用（支持工具调用）
-     *
-     * @param message 用户消息
-     * @param chatId  会话 ID
-     * @return AI 回复（可调用工具）
-     */
-    @GetMapping("/love_app/chat/tools/sync")
-    public String doChatWithLoveAppToolsSync(String message, String chatId) {
-        return loveApp.doChatWithTools(message, chatId);
-    }
-
-    /**
-     * SSE 流式调用 AI 恋爱大师应用（支持工具调用）
-     *
-     * @param message 用户消息
-     * @param chatId  会话 ID
-     * @return 流式响应（可调用工具）
-     */
-    @GetMapping(value = "/love_app/chat/tools/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> doChatWithLoveAppToolsSSE(String message, String chatId) {
-        return loveApp.doChatWithToolsByStream(message, chatId);
-    }
-
-    /**
-     * 同步调用 AI 恋爱大师应用（MCP 服务）
-     *
-     * @param message 用户消息
-     * @param chatId  会话 ID
-     * @return AI 回复（可调用 MCP 工具）
-     */
-    @GetMapping("/love_app/chat/mcp/sync")
-    public String doChatWithLoveAppMcpSync(String message, String chatId) {
-        return loveApp.doChatWithMcp(message, chatId);
-    }
-
-    /**
-     * SSE 流式调用 AI 恋爱大师应用（MCP 服务）
-     *
-     * @param message 用户消息
-     * @param chatId  会话 ID
-     * @return 流式响应（可调用 MCP 工具）
-     */
-    @GetMapping(value = "/love_app/chat/mcp/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> doChatWithLoveAppMcpSSE(String message, String chatId) {
-        return loveApp.doChatWithMcpByStream(message, chatId);
-    }
-
-    // ==================== SSE 诊断端点 ====================
-
-    /**
-     * SSE 连通性测试 — 发送固定内容验证 SSE 链路是否正常
-     */
+    @Hidden
     @GetMapping(value = "/ping_sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter pingSse() {
         SseEmitter emitter = new SseEmitter(10000L);
@@ -193,29 +156,23 @@ public class AiController {
     @Autowired(required = false)
     private ToolCallbackProvider toolCallbackProvider;
 
-    /** 活跃的 Agent 实例，用于手动停止 */
     private final java.util.concurrent.ConcurrentHashMap<String, BaseAgent> activeAgents =
             new java.util.concurrent.ConcurrentHashMap<>();
 
-    /**
-     * SSE 流式调用 VioManus 超级智能体
-     * <p>
-     * 第一个 SSE 事件携带 sessionId（格式：[SESSION:xxxx]），后续是执行步骤。
-     * 前端拿到 sessionId 后可通过 /manus/stop 手动终止。
-     */
+    @Hidden
+    @Operation(summary = "SSE 流式调用 VioManus 超级智能体",
+            description = "第一个 SSE 事件携带 sessionId（格式：[SESSION:xxxx]），后续是执行步骤。前端拿到 sessionId 后可通过 /manus/stop 手动终止。")
     @GetMapping(value = "/manus/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter doChatWithManus(String message) {
+    public SseEmitter doChatWithManus(
+            @Parameter(description = "用户任务描述") String message) {
         VioManus vioManus = new VioManus(allTools, toolCallbackProvider, dashscopeChatModel);
         String sessionId = java.util.UUID.randomUUID().toString().substring(0, 8);
         activeAgents.put(sessionId, vioManus);
 
-        // 用自定义 SseEmitter 在最前面注入 sessionId
         SseEmitter emitter = new SseEmitter(300000L);
         java.util.concurrent.CompletableFuture.runAsync(() -> {
             try {
-                // 第一条消息：sessionId
                 emitter.send("[SESSION:" + sessionId + "]");
-                // 之后交由 Agent 自己的 runStream 逻辑执行
                 vioManus.runStream(message, emitter);
             } catch (Exception e) {
                 activeAgents.remove(sessionId);
@@ -229,11 +186,10 @@ public class AiController {
         return emitter;
     }
 
-    /**
-     * 手动停止正在运行的 Agent
-     */
+    @Operation(summary = "手动停止正在运行的 Agent")
     @GetMapping("/manus/stop")
-    public String stopManus(String sessionId) {
+    public String stopManus(
+            @Parameter(description = "会话 ID（来自 /manus/chat 返回的第一条消息）") String sessionId) {
         BaseAgent agent = activeAgents.remove(sessionId);
         if (agent != null) {
             agent.stop();

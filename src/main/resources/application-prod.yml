@@ -1,19 +1,25 @@
-# ==================== 生产环境配置 ====================
-# 覆盖 application.yml 的默认配置
+# ============================================================
+# 生产环境配置（--spring.profiles.active=prod）
+# 覆盖 application.yml 中的默认配置
 # 注意：不要提交 API Key 等敏感信息到此文件
-
+# ============================================================
 spring:
+  autoconfigure:
+    exclude:
+      # 生产环境无 PostgreSQL，排除 PGVector 自动配置
+      - org.springframework.ai.autoconfigure.vectorstore.pgvector.PgVectorStoreAutoConfiguration
+      # 排除 DataSource 自动配置（无数据库）
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration
   ai:
-    # 生产环境暂时关闭 MCP（简化部署，需要时开启）
+    dashscope:
+      # 从环境变量 AI_DASHSCOPE_API_KEY 读取，不要硬编码
+      api-key: ${AI_DASHSCOPE_API_KEY}
+    # 生产环境关闭 MCP（简化部署，需要时开启并配置 MCP Server 地址）
     mcp:
       client:
-        sse:
-          connections:
-            # 生产环境 MCP 服务地址（部署 MCP Server 后取消注释并修改地址）
-            # server1:
-            #   url: http://your-mcp-server:8127
-        stdio:
-          servers-configuration: classpath:mcp-servers.json
+        enabled: false
 
 # 生产环境日志级别（减少日志输出，节约存储）
 logging:

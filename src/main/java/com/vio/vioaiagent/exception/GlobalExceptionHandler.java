@@ -3,6 +3,7 @@ package com.vio.vioaiagent.exception;
 import cn.hutool.core.exceptions.ExceptionUtil;
 import com.vio.vioaiagent.common.Result;
 import com.vio.vioaiagent.common.ResultCode;
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -27,8 +28,10 @@ import java.util.stream.Collectors;
 
 /**
  * 全局异常处理器
+ * <p>@Hidden 防止 springdoc 将异常处理器的返回类型 ResultVoid 注入到所有端点的 OpenAPI 定义中</p>
  */
 @Slf4j
+@Hidden
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

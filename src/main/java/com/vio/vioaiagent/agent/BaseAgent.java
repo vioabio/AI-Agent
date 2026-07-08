@@ -2,6 +2,7 @@ package com.vio.vioaiagent.agent;
 
 import cn.hutool.core.util.StrUtil;
 import com.vio.vioaiagent.agent.model.AgentState;
+import io.swagger.v3.oas.annotations.Hidden;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -36,6 +37,7 @@ import java.util.concurrent.CompletableFuture;
  */
 @Data
 @Slf4j
+@Hidden
 public abstract class BaseAgent {
 
     // ==================== 核心属性 ====================

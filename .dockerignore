@@ -1,0 +1,63 @@
+# 编译输出
+/target
+/build
+
+# 前端项目（独立部署，不打包进后端镜像）
+/vio-ai-agent-frontend
+/http.proxy
+/https.proxy
+
+# MCP Server 子项目（独立部署）
+/vio-image-search-mcp-server
+
+# 开发记录文档
+/开发记录
+
+# Vite 缓存
+**/node_modules
+**/.npm
+**/dist
+**/.vite-storybook
+**/.cache
+
+# Git
+/.git
+/.gitignore
+/.gitattributes
+
+# IDE
+/.idea
+/.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.iml
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 测试覆盖率
+/coverage
+
+# 日志
+logs
+*.log
+
+# 临时文件
+/tmp
+*.tmp
+*.bak
+
+# 环境变量文件（不应提交）
+.env
+.env.local
+.env.*.local
+
+# Maven Wrapper jar（Docker 中直接用 mvn）
+.mvn/wrapper/maven-wrapper.jar
+
+# 测试相关
+src/test
