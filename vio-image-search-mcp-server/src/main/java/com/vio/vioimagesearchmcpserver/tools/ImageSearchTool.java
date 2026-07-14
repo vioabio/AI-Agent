@@ -29,7 +29,7 @@ public class ImageSearchTool {
     /**
      * Pexels API Key（需要在 Pexels 官网注册获取）
      */
-    private static final String API_KEY = System.getenv().getOrDefault("PEXELS_API_KEY", "${PEXELS_API_KEY}");
+    private static final String API_KEY = System.getenv("PEXELS_API_KEY");
 
     /**
      * Pexels 图片搜索 API 地址

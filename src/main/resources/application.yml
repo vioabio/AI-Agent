@@ -2,12 +2,15 @@ spring:
   application:
     name: vio-ai-agent
   profiles:
-    active: local
-# 临时注释掉，便于大家开发调试和部署（实际填写 PgVector 数据库信息）
-#  datasource:
-#    url: xxx
-#    username: root
-#    password: 123456
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  # 默认排除 PGVector 和 JDBC 自动配置（本地开发无需数据库）
+  # 生产环境请在 application-prod.yml 中移除这些排除项并配置数据库连接
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.autoconfigure.vectorstore.pgvector.PgVectorStoreAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration
   ai:
     dashscope:
       # 需要替换为你自己的 key
