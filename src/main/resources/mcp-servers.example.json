@@ -1,5 +1,5 @@
 {
-  "__comment": "📋 MCP Server 配置模板 — 复制为 mcp-servers.json 后填入真实环境变量值。mcp-servers.json 已在 .gitignore 中，不会被提交。",
+  "__comment": "📋 MCP Server 配置模板 — 复制为 mcp-servers.json 后替换 your-xxx-key-here 为真实 Key。mcp-servers.json 已在 .gitignore 中，不会被提交。",
   "mcpServers": {
     "amap-maps": {
       "command": "npx.cmd",
@@ -8,7 +8,7 @@
         "@amap/amap-maps-mcp-server"
       ],
       "env": {
-        "AMAP_MAPS_API_KEY": "${AMAP_MAPS_API_KEY}"
+        "AMAP_MAPS_API_KEY": "your-amap-api-key-here"
       }
     },
     "vio-image-search-mcp-server": {
@@ -21,7 +21,7 @@
         "vio-image-search-mcp-server/target/vio-image-search-mcp-server-0.0.1-SNAPSHOT.jar"
       ],
       "env": {
-        "PEXELS_API_KEY": "${PEXELS_API_KEY}"
+        "PEXELS_API_KEY": "your-pexels-api-key-here"
       }
     }
   }

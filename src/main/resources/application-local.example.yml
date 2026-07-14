@@ -4,8 +4,7 @@
 # 使用方法：
 #   1. 复制此文件为 application-local.yml
 #      cp application-local.example.yml application-local.yml
-#   2. 设置环境变量 AI_DASHSCOPE_API_KEY=你的Key
-#      或在 IDE 运行配置中设置
+#   2. 将 your-xxx-key-here 替换为你的真实 API Key
 #   3. application-local.yml 已在 .gitignore 中，不会被提交
 # ============================================================
 # 本地开发环境配置（spring.profiles.active: local）
@@ -23,13 +22,17 @@ spring:
       - org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration
   ai:
     dashscope:
-      # 从环境变量读取，不要硬编码在配置文件中
-      api-key: ${AI_DASHSCOPE_API_KEY}
+      # 替换为你的阿里云百炼 API Key
+      api-key: your-dashscope-api-key-here
     mcp:
       client:
         # 本地开发时 MCP Server 未启动，禁用 MCP 客户端
         # 需要 MCP 功能时改为 true 并先启动 MCP Server
         enabled: false
+
+# 替换为你的 SearchAPI Key（用于联网搜索工具）
+search-api:
+  api-key: your-searchapi-key-here
 
 logging:
   level:

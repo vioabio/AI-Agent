@@ -13,8 +13,9 @@ spring:
       - org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration
   ai:
     dashscope:
-      # 需要替换为你自己的 key
-      api-key: ${AI_DASHSCOPE_API_KEY}
+      # 🔒 API Key 请在 application-local.yml 中配置（该文件已被 .gitignore 忽略）
+      # 如果没有 application-local.yml，请复制 application-local.example.yml 并填入你的 Key
+      # api-key: your-dashscope-api-key-here
       chat:
         options:
           model: qwen-plus
@@ -55,10 +56,9 @@ springdoc:
       packages-to-scan: com.vio.vioaiagent.controller
 
 # knife4j 因与 Spring Boot 3.5 不兼容暂时移除，改用 Swagger UI
-# searchAPI
+# 🔒 SearchAPI Key 请在 application-local.yml 中配置（该文件已被 .gitignore 忽略）
 search-api:
-  # 需要替换为你自己的 key
-  api-key: ${SEARCH_API_KEY}
+  # api-key: your-searchapi-key-here
 # 修改日志级别，查看 Spring AI 更多调用细节
 logging:
   level:
