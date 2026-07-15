@@ -18,13 +18,20 @@ const API_BASE_URL = import.meta.env.MODE === 'production'
  * @param {function} onError   - 出错回调 (error: Event) => void
  * @returns {EventSource} 可手动关闭连接
  */
-function connectSSE(url, params, onMessage, onError) {
+function connectSSE(url, params, onMessage, onError, onAuthError) {
   const queryString = Object.entries(params)
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
     .join('&')
   const fullUrl = `${API_BASE_URL}${url}?${queryString}`
 
-  const eventSource = new EventSource(fullUrl)
+  // 注入 API Key（从 localStorage 读取，支持认证）
+  const apiKey = localStorage.getItem('vio-api-key')
+  // SSE 不支持自定义 Header，通过 URL 参数传递
+  const urlWithAuth = apiKey
+    ? fullUrl + '&_apiKey=' + encodeURIComponent(apiKey)
+    : fullUrl
+
+  const eventSource = new EventSource(urlWithAuth)
 
   eventSource.onmessage = (event) => {
     if (event.data === '[DONE]') {
@@ -36,10 +43,33 @@ function connectSSE(url, params, onMessage, onError) {
 
   eventSource.onerror = (error) => {
     eventSource.close()
-    if (onError) onError(error)
+    // SSE 无法获取 HTTP 状态码，通过 eventSource.readyState 判断
+    if (eventSource.readyState === EventSource.CLOSED) {
+      if (onAuthError && !apiKey) {
+        onAuthError('未配置 API Key，请在设置中配置。')
+      } else if (onError) {
+        onError(error)
+      }
+    } else if (onError) {
+      onError(error)
+    }
   }
 
   return eventSource
+}
+
+/**
+ * 设置 API Key（存储到 localStorage）
+ */
+export function setApiKey(key) {
+  localStorage.setItem('vio-api-key', key)
+}
+
+/**
+ * 获取 API Key
+ */
+export function getApiKey() {
+  return localStorage.getItem('vio-api-key') || ''
 }
 
 /**

@@ -1,0 +1,42 @@
+{
+  "title": "VIO AI Agent Dashboard",
+  "uid": "vio-ai-agent",
+  "panels": [
+    {
+      "title": "Agent Execution Rate",
+      "type": "stat",
+      "targets": [{"expr": "rate(agent_execution_count_total[5m])"}]
+    },
+    {
+      "title": "Tool Call Success Rate",
+      "type": "gauge",
+      "targets": [{"expr": "tool_call_success_total / tool_call_count_total * 100"}],
+      "fieldConfig": {"defaults": {"max": 100, "min": 0, "thresholds": {"steps": [{"value": 90, "color": "green"}, {"value": 70, "color": "yellow"}, {"value": 0, "color": "red"}]}}}
+    },
+    {
+      "title": "Active Agent Count",
+      "type": "stat",
+      "targets": [{"expr": "agent_active_count"}]
+    },
+    {
+      "title": "Agent Execution Duration (P99)",
+      "type": "timeseries",
+      "targets": [{"expr": "histogram_quantile(0.99, rate(agent_execution_duration_bucket[5m]))"}]
+    },
+    {
+      "title": "Token Consumption Rate",
+      "type": "timeseries",
+      "targets": [{"expr": "rate(tokens_consumed_total[5m])"}]
+    },
+    {
+      "title": "Error Count by Type",
+      "type": "timeseries",
+      "targets": [{"expr": "rate(error_count_total[5m])"}]
+    },
+    {
+      "title": "SSE Connection Count",
+      "type": "stat",
+      "targets": [{"expr": "sse_connections_total"}]
+    }
+  ]
+}

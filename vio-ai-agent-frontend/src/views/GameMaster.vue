@@ -96,7 +96,7 @@ onBeforeUnmount(() => {
 .chat-header h1 {
   font-size: 18px;
   font-weight: 600;
-  background: linear-gradient(135deg, #ff6b9d, #c44dff);
+  background: linear-gradient(135deg, #ffcb05, #3b5ba7);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

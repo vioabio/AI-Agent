@@ -46,5 +46,28 @@ services:
       interval: 30s
       retries: 3
 
+  # 监控（可选，通过 profiles 启用）
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    profiles: [monitoring]
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    profiles: [monitoring]
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alert-rules.yml:/etc/alertmanager/alert-rules.yml
+    profiles: [monitoring]
+
 volumes:
   pgdata:

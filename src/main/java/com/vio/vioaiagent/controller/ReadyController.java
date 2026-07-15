@@ -7,14 +7,20 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 就绪检查 — Kubernetes Readiness Probe 端点。
+ * <p>返回 ready 表示应用已完成启动，可以接收流量。
+ *
+ * @author vio
+ */
 @Tag(name = "健康检查")
 @RestController
-@RequestMapping("/health")
-public class HealthController {
+@RequestMapping("/ready")
+public class ReadyController {
 
-    @Operation(summary = "应用存活检查 (Liveness)")
+    @Operation(summary = "就绪检查 (Readiness)")
     @GetMapping
-    public Result<String> healthCheck() {
-        return Result.success("ok");
+    public Result<String> ready() {
+        return Result.success("ready");
     }
 }

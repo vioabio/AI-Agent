@@ -136,7 +136,7 @@ public class GameApp {
     private VectorStore gameAppVectorStore;
 
     @Autowired(required = false)
-    private Advisor loveAppRagCloudAdvisor;
+    private Advisor gameAppRagCloudAdvisor;
 
     @Autowired(required = false)
     private VectorStore pgVectorVectorStore;
@@ -164,14 +164,13 @@ public class GameApp {
                 // 应用 RAG 知识库问答
                 .advisors(new QuestionAnswerAdvisor(gameAppVectorStore))
                 // 应用 RAG 检索增强服务（基于云知识库服务）
-//                .advisors(loveAppRagCloudAdvisor)
+//                .advisors(gameAppRagCloudAdvisor)
                 // 应用 RAG 检索增强服务（基于 PgVector 向量存储）
 //                .advisors(new QuestionAnswerAdvisor(pgVectorVectorStore))
                 // 应用自定义的 RAG 检索增强服务（文档查询器 + 上下文增强器）
 //                .advisors(
 //                        GameAppRagCustomAdvisorFactory.createGameAppRagCustomAdvisor(
-//                                gameAppVectorStore, "单身"
-//                        )
+//                                gameAppVectorStore, "宝可梦"
 //                )
                 .call()
                 .chatResponse();

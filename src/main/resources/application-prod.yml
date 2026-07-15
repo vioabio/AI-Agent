@@ -14,15 +14,33 @@ spring:
       - org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration
   ai:
     dashscope:
-      # 从环境变量 AI_DASHSCOPE_API_KEY 读取，不要硬编码
       api-key: ${AI_DASHSCOPE_API_KEY}
-    # 生产环境关闭 MCP（简化部署，需要时开启并配置 MCP Server 地址）
     mcp:
       client:
-        enabled: false
+        enabled: ${MCP_ENABLED:false}
 
-# 生产环境日志级别（减少日志输出，节约存储）
+# 生产环境日志级别
 logging:
   level:
     org.springframework.ai: INFO
     com.vio.vioaiagent: INFO
+
+# ==================== 企业级功能：生产环境全部启用 ====================
+vio:
+  security:
+    enabled: true
+    api-keys:
+      "${VIO_API_KEY:sk-prod-change-me}": "生产环境令牌:default"
+    allowed-paths:
+      - ${user.dir}/tmp
+    blocked-commands: []
+  orchestration:
+    session-state:
+      enabled: true
+    max-concurrent-agents: 10
+    agent-timeout-minutes: 10
+    max-retries: 3
+  memory:
+    enabled: true
+    short-term-max-tokens: 4000
+    recall-top-k: 5
