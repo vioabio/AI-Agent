@@ -1,0 +1,50 @@
+version: '3.8'
+services:
+  # PostgreSQL + PGVector
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: vio_agent
+      POSTGRES_USER: vio
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-vio123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vio"]
+      interval: 10s
+      retries: 5
+
+  # 后端主应用
+  vio-ai-agent:
+    build: .
+    ports:
+      - "8123:8123"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_PASSWORD: ${DB_PASSWORD:-vio123}
+      AI_DASHSCOPE_API_KEY: ${AI_DASHSCOPE_API_KEY}
+      SEARCH_API_KEY: ${SEARCH_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8123/api/health"]
+      interval: 30s
+      retries: 3
+
+  # 前端 Nginx
+  frontend:
+    build: ./vio-ai-agent-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - vio-ai-agent
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      retries: 3
+
+volumes:
+  pgdata:

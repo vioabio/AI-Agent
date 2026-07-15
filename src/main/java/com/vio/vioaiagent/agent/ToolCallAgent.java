@@ -158,6 +158,9 @@ public class ToolCallAgent extends ReActAgent {
             return "没有工具需要调用";
         }
 
+        // 0. 注入工具调用 span 到 MDC
+        org.slf4j.MDC.put("stepType", "act");
+
         // 1. 执行工具调用
         Prompt prompt = new Prompt(getMessageList(), this.chatOptions);
         ToolExecutionResult toolExecutionResult =

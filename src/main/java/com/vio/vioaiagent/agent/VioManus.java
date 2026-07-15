@@ -1,6 +1,7 @@
 package com.vio.vioaiagent.agent;
 
 import com.vio.vioaiagent.advisor.MyLoggerAdvisor;
+import com.vio.vioaiagent.memory.TieredMemorySystem;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
@@ -83,6 +84,13 @@ public class VioManus extends ToolCallAgent {
      * @param allTools           所有注册的本地工具（来自 ToolRegistration）
      * @param dashscopeChatModel DashScope AI 大模型
      */
+    /** 三层记忆系统（可选注入） */
+    private TieredMemorySystem memorySystem;
+
+    public void setMemorySystem(TieredMemorySystem memorySystem) {
+        this.memorySystem = memorySystem;
+    }
+
     public VioManus(ToolCallback[] allTools, ChatModel dashscopeChatModel) {
         this(allTools, null, dashscopeChatModel);
     }
@@ -103,7 +111,16 @@ public class VioManus extends ToolCallAgent {
 
         // 基本信息
         this.setName("VioManus");
-        this.setSystemPrompt(SYSTEM_PROMPT);
+
+        // 增强系统提示词：追加记忆上下文
+        String augmentedPrompt = SYSTEM_PROMPT;
+        if (memorySystem != null) {
+            String memoryContext = memorySystem.buildContext("");
+            if (!memoryContext.isEmpty()) {
+                augmentedPrompt = SYSTEM_PROMPT + "\n\n[Memory Context]\n" + memoryContext;
+            }
+        }
+        this.setSystemPrompt(augmentedPrompt);
         this.setNextStepPrompt(NEXT_STEP_PROMPT);
 
         // 最大执行步数（复杂任务可能需要更多步骤）

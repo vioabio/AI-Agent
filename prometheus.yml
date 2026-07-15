@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'vio-ai-agent'
+    metrics_path: '/api/metrics'
+    static_configs:
+      - targets: ['vio-ai-agent:8123']

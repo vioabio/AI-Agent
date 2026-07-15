@@ -113,9 +113,15 @@ public abstract class BaseAgent {
             throw new RuntimeException("不能使用空的用户提示词运行智能体");
         }
 
-        // 2. 状态切换 + 记录用户消息
+        // 2. 状态切换 + 记录用户消息 + 注入可观测性上下文
         this.state = AgentState.RUNNING;
         messageList.add(new UserMessage(userPrompt));
+
+        com.vio.vioaiagent.observability.AgentLogContext logCtx =
+                new com.vio.vioaiagent.observability.AgentLogContext();
+        logCtx.sessionId(this.getName());
+        logCtx.agentType(this.getName() != null ? this.getName() : "Agent");
+        logCtx.injectMdc();
 
         // 3. Agent Loop：循环执行直到完成或超步数
         List<String> results = new ArrayList<>();
@@ -165,10 +171,44 @@ public abstract class BaseAgent {
     }
 
     /**
-     * SSE 流式运行智能体（写入已有 emitter，用于外部管理生命周期）
+     * SSE 流式运行智能体（创建新的 SseEmitter, 使用专用线程池）.
+     *
+     * @param userPrompt 用户消息
+     * @param executor   专用线程池（null 则使用默认 ForkJoinPool）
+     */
+    public SseEmitter runStream(String userPrompt,
+                                 java.util.concurrent.Executor executor) {
+        SseEmitter sseEmitter = new SseEmitter(300000L);
+        if (executor != null) {
+            CompletableFuture.runAsync(() -> doRunStream(userPrompt, sseEmitter), executor);
+        } else {
+            CompletableFuture.runAsync(() -> doRunStream(userPrompt, sseEmitter));
+        }
+        sseEmitter.onTimeout(() -> { this.state = AgentState.ERROR; this.cleanup(); });
+        sseEmitter.onCompletion(() -> {
+            if (this.state == AgentState.RUNNING) this.state = AgentState.FINISHED;
+            this.cleanup();
+        });
+        return sseEmitter;
+    }
+
+    /**
+     * SSE 流式运行智能体（写入已有 emitter, 用于外部管理生命周期）
      */
     public void runStream(String userPrompt, SseEmitter sseEmitter) {
         CompletableFuture.runAsync(() -> doRunStream(userPrompt, sseEmitter));
+    }
+
+    /**
+     * SSE 流式运行智能体（写入已有 emitter, 使用专用线程池）.
+     */
+    public void runStream(String userPrompt, SseEmitter sseEmitter,
+                           java.util.concurrent.Executor executor) {
+        if (executor != null) {
+            CompletableFuture.runAsync(() -> doRunStream(userPrompt, sseEmitter), executor);
+        } else {
+            CompletableFuture.runAsync(() -> doRunStream(userPrompt, sseEmitter));
+        }
     }
 
     /**
@@ -192,9 +232,16 @@ public abstract class BaseAgent {
             return;
         }
 
-        // 2. 状态切换 + 记录用户消息
+        // 2. 状态切换 + 记录用户消息 + 注入可观测性上下文
         this.state = AgentState.RUNNING;
         messageList.add(new UserMessage(userPrompt));
+
+        com.vio.vioaiagent.observability.AgentLogContext sseLogCtx =
+                new com.vio.vioaiagent.observability.AgentLogContext();
+        sseLogCtx.sessionId(com.vio.vioaiagent.common.RequestContext.getTraceId());
+        sseLogCtx.agentType(this.getName() != null ? this.getName() : "Agent");
+        sseLogCtx.stepType("stream");
+        sseLogCtx.injectMdc();
 
         // 3. Agent Loop（SSE 实时推送每步结果）
         try {

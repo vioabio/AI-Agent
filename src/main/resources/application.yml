@@ -72,6 +72,22 @@ vio:
       - ${user.dir}/tmp
     # 额外禁止的命令模式（内建 9 条已包含, 此处追加自定义）
     blocked-commands: []
+  # ==================== 编排配置 ====================
+  orchestration:
+    # 会话状态机（默认关闭）
+    session-state:
+      enabled: false
+    # Agent 并发限制
+    max-concurrent-agents: 10
+    # Agent 全局超时（分钟）
+    agent-timeout-minutes: 10
+    # 最大重试次数
+    max-retries: 3
+  # ==================== 记忆系统配置 ====================
+  memory:
+    enabled: false
+    short-term-max-tokens: 4000
+    recall-top-k: 5
 
 # 修改日志级别，查看 Spring AI 更多调用细节
 logging:

@@ -156,8 +156,14 @@ public class AiController {
     @Autowired(required = false)
     private ToolCallbackProvider toolCallbackProvider;
 
+    @Autowired(required = false)
+    private java.util.concurrent.Executor agentReasoningExecutor;
+
     private final java.util.concurrent.ConcurrentHashMap<String, BaseAgent> activeAgents =
             new java.util.concurrent.ConcurrentHashMap<>();
+
+    private final com.vio.vioaiagent.orchestration.AgentConcurrencyGuard concurrencyGuard =
+            new com.vio.vioaiagent.orchestration.AgentConcurrencyGuard(10);
 
     @Hidden
     @Operation(summary = "SSE 流式调用 VioManus 超级智能体",
@@ -165,6 +171,9 @@ public class AiController {
     @GetMapping(value = "/manus/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter doChatWithManus(
             @Parameter(description = "用户任务描述") String message) {
+        // 并发控制：超限时快速拒绝
+        concurrencyGuard.acquire();
+
         VioManus vioManus = new VioManus(allTools, toolCallbackProvider, dashscopeChatModel);
         String sessionId = java.util.UUID.randomUUID().toString().substring(0, 8);
         activeAgents.put(sessionId, vioManus);
@@ -179,8 +188,9 @@ public class AiController {
                 try { emitter.completeWithError(e); } catch (Exception ignored) {}
             } finally {
                 activeAgents.remove(sessionId);
+                concurrencyGuard.release();
             }
-        });
+        }, agentReasoningExecutor != null ? agentReasoningExecutor : Runnable::run);
         emitter.onCompletion(() -> activeAgents.remove(sessionId));
         emitter.onTimeout(() -> { activeAgents.remove(sessionId); vioManus.stop(); });
         return emitter;
