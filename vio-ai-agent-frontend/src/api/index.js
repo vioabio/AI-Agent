@@ -12,7 +12,7 @@ const API_BASE_URL = import.meta.env.MODE === 'production'
 /**
  * 通用 SSE 连接函数
  *
- * @param {string} url    - API 路径（如 /ai/love_app/chat/sse）
+ * @param {string} url    - API 路径（如 /ai/game_app/chat/sse）
  * @param {object} params - URL 查询参数
  * @param {function} onMessage - 收到消息回调 (data: string) => void
  * @param {function} onError   - 出错回调 (error: Event) => void
@@ -43,7 +43,7 @@ function connectSSE(url, params, onMessage, onError) {
 }
 
 /**
- * 连接 AI 恋爱大师（SSE 流式对话）
+ * 连接 AI 宝可梦大师（SSE 流式对话）
  *
  * @param {string} message - 用户消息
  * @param {string} chatId  - 会话 ID
@@ -51,9 +51,9 @@ function connectSSE(url, params, onMessage, onError) {
  * @param {function} onError   - 出错回调
  * @returns {EventSource}
  */
-export function chatWithLoveApp(message, chatId, onMessage, onError) {
+export function chatWithGameApp(message, chatId, onMessage, onError) {
   return connectSSE(
-    '/ai/love_app/chat/sse_emitter',
+    '/ai/game_app/chat/sse_emitter',
     { message, chatId },
     onMessage,
     onError

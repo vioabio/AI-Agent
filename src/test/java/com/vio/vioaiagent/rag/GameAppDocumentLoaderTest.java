@@ -12,14 +12,14 @@ import java.util.List;
  * 文档加载器测试
  */
 @SpringBootTest
-class LoveAppDocumentLoaderTest {
+class GameAppDocumentLoaderTest {
 
     @Resource
-    private LoveAppDocumentLoader loveAppDocumentLoader;
+    private GameAppDocumentLoader gameAppDocumentLoader;
 
     @Test
     void loadMarkdowns() {
-        List<Document> documents = loveAppDocumentLoader.loadMarkdowns();
+        List<Document> documents = gameAppDocumentLoader.loadMarkdowns();
         Assertions.assertNotNull(documents);
         Assertions.assertFalse(documents.isEmpty(), "应至少加载 1 篇文档");
 

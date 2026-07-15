@@ -1,15 +1,15 @@
 <template>
-  <div class="love-master-page">
+  <div class="game-master-page">
     <header class="chat-header">
       <button class="back-btn" @click="$router.push('/')">← 返回</button>
-      <h1>💕 AI 恋爱大师</h1>
+      <h1>🎮 AI 宝可梦大师</h1>
       <span class="chat-id-badge">{{ chatId }}</span>
     </header>
 
     <ChatRoom
       :messages="messages"
       :connectionStatus="connectionStatus"
-      aiType="love"
+      aiType="game"
       @send-message="handleSend"
     />
   </div>
@@ -18,9 +18,9 @@
 <script setup>
 import { ref, onBeforeUnmount } from 'vue'
 import ChatRoom from '@/components/ChatRoom.vue'
-import { chatWithLoveApp } from '@/api'
+import { chatWithGameApp } from '@/api'
 
-const chatId = ref('love_' + Math.random().toString(36).slice(2, 10))
+const chatId = ref('game_' + Math.random().toString(36).slice(2, 10))
 const messages = ref([])
 const connectionStatus = ref('idle') // 'idle' | 'connecting' | 'done'
 let currentEventSource = null
@@ -28,7 +28,7 @@ let currentEventSource = null
 // 欢迎消息
 messages.value.push({
   role: 'assistant',
-  content: '你好！我是 AI 恋爱大师 💕，深耕恋爱心理领域。请告诉我你的恋爱状态（单身/恋爱中/已婚），以及你遇到的困惑，我会为你提供专属建议~'
+  content: '你好！我是 AI 宝可梦大师 🎮，深耕宝可梦对战与养成。请告诉我你想了解的宝可梦、版本或对战策略～'
 })
 
 function handleSend(message) {
@@ -41,7 +41,7 @@ function handleSend(message) {
 
   connectionStatus.value = 'connecting'
 
-  currentEventSource = chatWithLoveApp(
+  currentEventSource = chatWithGameApp(
     message,
     chatId.value,
     // onMessage — 增量追加到同一个气泡
@@ -76,7 +76,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.love-master-page {
+.game-master-page {
   height: 100vh;
   display: flex;
   flex-direction: column;

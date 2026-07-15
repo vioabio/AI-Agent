@@ -40,7 +40,7 @@ let lastBubbleTime = 0
 // 欢迎消息
 messages.value.push({
   role: 'assistant',
-  content: '你好！我是 VioManus 🤖，一个拥有自主规划能力的 AI 超级智能体。\n\n我可以搜索网络、读写文件、抓取网页、生成 PDF、执行终端命令——将复杂任务分解为多步骤并逐步完成。\n\n例如你可以让我：「搜索上海的约会地点，保存为文件，并生成一份 PDF 报告」'
+  content: '你好！我是 VioManus 🤖，一个拥有自主规划能力的 AI 超级智能体。\n\n我可以搜索网络、读写文件、抓取网页、生成 PDF、执行终端命令——将复杂任务分解为多步骤并逐步完成。\n\n例如你可以让我：「搜索烈空坐Mega配招，保存为对战笔记，并生成一份 PDF 攻略」'
 })
 
 function splitBubble(chunk) {

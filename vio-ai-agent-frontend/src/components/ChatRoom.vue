@@ -65,7 +65,7 @@ import AiAvatarFallback from '@/components/AiAvatarFallback.vue'
 const props = defineProps({
   messages: { type: Array, required: true },
   connectionStatus: { type: String, default: 'idle' },
-  aiType: { type: String, default: 'love' } // 'love' | 'super'
+  aiType: { type: String, default: 'game' } // 'game' | 'super'
 })
 
 const emit = defineEmits(['send-message'])

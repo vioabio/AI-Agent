@@ -48,7 +48,7 @@ class VioManusTest {
     @Test
     void testSingleToolCall() {
         VioManus vioManus = new VioManus(allTools, dashscopeChatModel);
-        String message = "帮我搜索一下2024年最受欢迎的约会方式";
+        String message = "搜索宝可梦朱紫最受欢迎的双打队伍配置";
         String result = vioManus.run(message);
         Assertions.assertNotNull(result);
         System.out.println("单步工具调用结果：\n" + result);
@@ -60,7 +60,7 @@ class VioManusTest {
     @Test
     void testMultiStepPlanning() {
         VioManus vioManus = new VioManus(allTools, dashscopeChatModel);
-        String message = "搜索3个适合情侣约会的浪漫创意，然后保存到文件 love_ideas.txt 中";
+        String message = "搜索3个适合新手的宝可梦推荐，然后保存到文件 pokemon_guide.txt 中";
         String result = vioManus.run(message);
         Assertions.assertNotNull(result);
         System.out.println("多步规划结果：\n" + result);
@@ -72,7 +72,7 @@ class VioManusTest {
     @Test
     void testFileAndPdfTask() {
         VioManus vioManus = new VioManus(allTools, dashscopeChatModel);
-        String message = "帮我生成一份名为 date_plan.pdf 的约会计划PDF文档，内容包括3个约会创意";
+        String message = "帮我生成一份名为 pokemon_guide.pdf 的宝可梦GBA绿宝石通关攻略PDF，内容包括3个攻略要点";
         String result = vioManus.run(message);
         Assertions.assertNotNull(result);
         System.out.println("文件+PDF任务结果：\n" + result);
@@ -85,7 +85,7 @@ class VioManusTest {
     void testCannotRunFromNonIdleState() {
         VioManus vioManus = new VioManus(allTools, dashscopeChatModel);
         // 第一次运行
-        vioManus.run("搜索一下天气");
+        vioManus.run("搜索一下宝可梦最新游戏资讯");
         // 第二次运行应从 IDLE 开始，但 Agent 已经处于 FINISHED/ERROR 状态
         Assertions.assertThrows(RuntimeException.class, () -> {
             vioManus.run("再搜索一次");
@@ -112,7 +112,7 @@ class VioManusTest {
     @Test
     void testStreamExecution() throws Exception {
         VioManus vioManus = new VioManus(allTools, dashscopeChatModel);
-        String message = "搜索一下上海的约会地点推荐";
+        String message = "搜索一下宝可梦剑盾和朱紫的版本差异对比";
         // SSE 流式执行是异步的，这里只验证不会抛异常
         var sseEmitter = vioManus.runStream(message);
         Assertions.assertNotNull(sseEmitter);

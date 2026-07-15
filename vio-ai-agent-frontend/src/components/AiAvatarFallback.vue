@@ -8,10 +8,10 @@
 import { computed } from 'vue'
 
 const props = defineProps({
-  aiType: { type: String, default: 'love' } // 'love' | 'super'
+  aiType: { type: String, default: 'game' } // 'game' | 'super'
 })
 
-const emoji = computed(() => (props.aiType === 'love' ? '💕' : '🤖'))
+const emoji = computed(() => (props.aiType === 'game' ? '🎮' : '🤖'))
 </script>
 
 <style scoped>
@@ -26,7 +26,7 @@ const emoji = computed(() => (props.aiType === 'love' ? '💕' : '🤖'))
   flex-shrink: 0;
 }
 
-.ai-avatar.love {
+.ai-avatar.game {
   background: linear-gradient(135deg, rgba(255, 107, 157, 0.25), rgba(196, 77, 255, 0.2));
 }
 

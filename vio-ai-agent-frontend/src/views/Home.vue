@@ -2,16 +2,16 @@
   <div class="home">
     <header class="home-header">
       <h1 class="home-title">VIO AI Agent</h1>
-      <p class="home-subtitle">AI 恋爱大师 & AI 超级智能体应用平台</p>
+      <p class="home-subtitle">AI 宝可梦大师 & AI 超级智能体应用平台</p>
     </header>
 
     <div class="home-cards">
-      <!-- 恋爱大师卡片 -->
-      <div class="home-card love-card" @click="$router.push('/love-master')">
-        <div class="card-icon">💕</div>
-        <h2 class="card-title">AI 恋爱大师</h2>
+      <!-- 宝可梦大师卡片 -->
+      <div class="home-card game-card" @click="$router.push('/game-master')">
+        <div class="card-icon">🎮</div>
+        <h2 class="card-title">AI 宝可梦大师</h2>
         <p class="card-desc">
-          智能恋爱顾问，基于专业知识库为你提供恋爱建议。支持多轮对话、流式输出，让你感受最贴心的情感陪伴。
+          全世代宝可梦智能顾问，从GBA红蓝宝石到Switch朱紫/ZA，图鉴查询/对战配招/版本入坑/养成攻略一站式解答。
         </p>
         <span class="card-link">开始对话 →</span>
       </div>
@@ -38,7 +38,7 @@ import { useHead } from '@vueuse/head'
 useHead({
   title: 'VIO AI Agent',
   meta: [
-    { name: 'description', content: 'AI 恋爱大师 & AI 超级智能体应用平台' }
+    { name: 'description', content: 'AI 宝可梦大师 & AI 超级智能体应用平台' }
   ]
 })
 </script>
@@ -109,11 +109,11 @@ useHead({
   transition: opacity 0.3s ease;
 }
 
-.love-card {
+.game-card {
   background: linear-gradient(135deg, rgba(255, 107, 157, 0.1), rgba(196, 77, 255, 0.05));
 }
 
-.love-card::before {
+.game-card::before {
   background: linear-gradient(135deg, rgba(255, 107, 157, 0.15), rgba(196, 77, 255, 0.1));
 }
 

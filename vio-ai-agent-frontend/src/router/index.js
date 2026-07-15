@@ -8,10 +8,10 @@ const routes = [
     meta: { title: 'VIO AI Agent' }
   },
   {
-    path: '/love-master',
-    name: 'LoveMaster',
-    component: () => import('@/views/LoveMaster.vue'),
-    meta: { title: 'AI 恋爱大师' }
+    path: '/game-master',
+    name: 'GameMaster',
+    component: () => import('@/views/GameMaster.vue'),
+    meta: { title: 'AI 宝可梦大师' }
   },
   {
     path: '/super-agent',

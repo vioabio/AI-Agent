@@ -25,7 +25,7 @@ import org.springframework.ai.tool.ToolCallbackProvider;
  * 使用方式：
  * <pre>
  *   VioManus vioManus = new VioManus(allTools, dashscopeChatModel);
- *   SseEmitter emitter = vioManus.runStream("帮我搜索上海的约会地点并生成PDF报告");
+ *   SseEmitter emitter = vioManus.runStream("帮我搜索宝可梦朱紫的6星太晶坑单刷攻略并生成PDF报告");
  * </pre>
  * <p>
  * 注意：每次请求应创建新的 VioManus 实例，因为智能体维护内部状态，不能跨请求共享。

@@ -23,7 +23,7 @@ import static org.springframework.ai.vectorstore.pgvector.PgVectorStore.PgIndexT
 public class PgVectorVectorStoreConfig {
 
     @Resource
-    private LoveAppDocumentLoader loveAppDocumentLoader;
+    private GameAppDocumentLoader gameAppDocumentLoader;
 
     @Resource
     private MyTokenTextSplitter myTokenTextSplitter;
@@ -43,7 +43,7 @@ public class PgVectorVectorStoreConfig {
                 .maxDocumentBatchSize(10000)
                 .build();
         // ETL 完整流程：加载 -> 切割 -> 增强 -> 写入 PGVector
-        List<Document> documents = loveAppDocumentLoader.loadMarkdowns();
+        List<Document> documents = gameAppDocumentLoader.loadMarkdowns();
         List<Document> splitDocuments = myTokenTextSplitter.splitCustomized(documents);
         List<Document> enrichedDocuments = myKeywordEnricher.enrichDocuments(splitDocuments);
         vectorStore.add(enrichedDocuments);
