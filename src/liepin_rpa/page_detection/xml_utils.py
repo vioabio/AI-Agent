@@ -13,6 +13,10 @@ def load_xml_root(path: Path) -> ElementTree.Element:
     return ElementTree.fromstring(load_xml_text(path))
 
 
+def load_xml_root_from_text(xml_text: str) -> ElementTree.Element:
+    return ElementTree.fromstring(xml_text)
+
+
 def iter_nodes(root: ElementTree.Element) -> Iterable[ElementTree.Element]:
     return root.iter("node")
 

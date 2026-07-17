@@ -38,6 +38,14 @@ IGNORED_LINES = {
     "展开全部",
 }
 DEGREE_HINTS = ("本科", "大专", "硕士", "博士", "MBA", "EMBA", "统招")
+INVALID_CANDIDATE_NAME_TOKENS = (
+    "活跃",
+    "回复快",
+    "赶快聊聊",
+    "今日活跃",
+    "今天活跃",
+    "聊聊吧",
+)
 
 
 def build_candidate_resume_schema(
@@ -120,7 +128,7 @@ def parse_basic_info(sections: dict[str, list[str]]) -> dict[str, Any]:
     company, position = split_company_and_position(second_line)
 
     return {
-        "name": value_or_none(header[0] if len(header) > 0 else None),
+        "name": sanitize_candidate_name(value_or_none(header[0] if len(header) > 0 else None)),
         "current_company": company,
         "current_position": position,
         "city": value_or_none(header[2] if len(header) > 2 else None),
@@ -130,6 +138,17 @@ def parse_basic_info(sections: dict[str, list[str]]) -> dict[str, Any]:
         "expected_position": value_or_none(intent[0] if intent else None),
         "self_description": value_or_none(" ".join(header[7:]) if len(header) > 7 else None),
     }
+
+
+def sanitize_candidate_name(value: str | None) -> str | None:
+    normalized = value_or_none(value)
+    if not normalized:
+        return None
+    if any(token in normalized for token in INVALID_CANDIDATE_NAME_TOKENS):
+        return None
+    if len(normalized) > 20:
+        return None
+    return normalized
 
 
 def parse_work_experiences(

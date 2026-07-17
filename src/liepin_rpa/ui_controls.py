@@ -189,6 +189,90 @@ def find_clickable_labeled_center(
     return candidates[0][1].center
 
 
+def find_profile_communication_action(
+    root: ElementTree.Element,
+) -> tuple[str, tuple[int, int]] | None:
+    candidates: list[tuple[int, str, BoundsBox]] = []
+    expected_labels = ("继续沟通", "立即沟通")
+    for node in iter_app_nodes(root):
+        if node.attrib.get("clickable") != "true":
+            continue
+        bounds = parse_bounds(node.attrib.get("bounds", ""))
+        if bounds is None:
+            continue
+        label = node_label(node)
+        if label in expected_labels:
+            candidates.append((1000 + bounds.y1, label, bounds))
+            continue
+        for child in list(node):
+            child_label = node_label(child)
+            if child_label in expected_labels:
+                candidates.append((1000 + bounds.y1, child_label, bounds))
+                break
+    if not candidates:
+        return None
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    _, label, bounds = candidates[0]
+    return label, bounds.center
+
+
+def find_profile_communication_button(root: ElementTree.Element) -> tuple[int, int] | None:
+    action = find_profile_communication_action(root)
+    if action is None:
+        return None
+    return action[1]
+
+
+def find_chat_input_center(root: ElementTree.Element) -> tuple[int, int] | None:
+    candidates: list[tuple[int, BoundsBox]] = []
+    for node in iter_app_nodes(root):
+        bounds = parse_bounds(node.attrib.get("bounds", ""))
+        if bounds is None:
+            continue
+        if bounds.y1 < 1800:
+            continue
+        label = node_label(node)
+        class_name = node.attrib.get("class", "")
+        score = 0
+        if class_name == "android.widget.EditText":
+            score += 1000
+        if "请输入" in label or "发消息" in label or "消息" in label:
+            score += 500
+        if bounds.width >= 500 and bounds.height >= 80:
+            score += 100
+        if score <= 0:
+            continue
+        candidates.append((score, bounds))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    return candidates[0][1].center
+
+
+def find_chat_send_button(root: ElementTree.Element) -> tuple[int, int] | None:
+    labeled = find_clickable_labeled_center(root, ("发送",))
+    if labeled is not None:
+        return labeled
+
+    candidates: list[tuple[int, BoundsBox]] = []
+    for node in iter_app_nodes(root):
+        if node.attrib.get("clickable") != "true":
+            continue
+        bounds = parse_bounds(node.attrib.get("bounds", ""))
+        if bounds is None:
+            continue
+        if bounds.y1 < 1800 or bounds.x1 < 820:
+            continue
+        if bounds.width > 220 or bounds.height > 180:
+            continue
+        score = bounds.x1 + bounds.y1
+        candidates.append((score, bounds))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    return candidates[0][1].center
+
+
 def has_result_filter_bar(root: ElementTree.Element) -> bool:
     return all(any_label(root, label) for label in RESULT_FILTER_LABELS)
 

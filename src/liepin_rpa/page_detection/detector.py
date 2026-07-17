@@ -5,7 +5,7 @@ from pathlib import Path
 from liepin_rpa.page_detection.enums import PageState
 from liepin_rpa.page_detection.models import DetectionResult, SignatureRule
 from liepin_rpa.page_detection.selectors import SelectorRepository
-from liepin_rpa.page_detection.xml_utils import any_node_matches, load_xml_root
+from liepin_rpa.page_detection.xml_utils import any_node_matches, load_xml_root, load_xml_root_from_text
 from liepin_rpa.ui_controls import (
     is_candidate_profile,
     is_empty_result,
@@ -29,8 +29,12 @@ class PageDetector:
         ]
 
     def detect_from_xml(self, xml_path: Path) -> DetectionResult:
-        root = load_xml_root(xml_path)
+        return self.detect_from_root(load_xml_root(xml_path))
 
+    def detect_from_xml_text(self, xml_text: str) -> DetectionResult:
+        return self.detect_from_root(load_xml_root_from_text(xml_text))
+
+    def detect_from_root(self, root) -> DetectionResult:
         for state, signature_name in self.selector_signature_order:
             rule = self.selector_repository.get_signature(signature_name)
             if self._matches(root, rule):

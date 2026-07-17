@@ -23,18 +23,34 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload, ensure_ascii=False)
 
 
+class ConsoleFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        parts = [record.levelname, record.getMessage()]
+        if hasattr(record, "context") and isinstance(record.context, dict) and record.context:
+            context_text = " | ".join(
+                f"{key}={value}" for key, value in record.context.items() if value is not None
+            )
+            if context_text:
+                parts.append(context_text)
+        if record.exc_info:
+            parts.append(self.formatException(record.exc_info))
+        return " | ".join(parts)
+
+
 def configure_logging(log_level: str, logs_dir: Path) -> None:
     logs_dir.mkdir(parents=True, exist_ok=True)
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level.upper())
     root_logger.handlers.clear()
 
-    formatter = JsonFormatter()
+    console_formatter = ConsoleFormatter()
+    file_formatter = JsonFormatter()
     stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
+    stream_handler.setFormatter(console_formatter)
+    stream_handler.setLevel(logging.WARNING)
 
     file_handler = logging.FileHandler(logs_dir / "app.log", encoding="utf-8")
-    file_handler.setFormatter(formatter)
+    file_handler.setFormatter(file_formatter)
 
     root_logger.addHandler(stream_handler)
     root_logger.addHandler(file_handler)

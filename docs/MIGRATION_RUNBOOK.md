@@ -108,10 +108,10 @@ The project now also performs stronger built-in cleanup before reconnecting, inc
 
 ### 6. Run live workflow regression
 
-Readonly search:
+Batch keyword workflow:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\run_single_search_readonly.py --brand 珀莱雅 --role 达播总监 --output-dir outputs\migration_selfcheck\readonly_search
+.\.venv\Scripts\python.exe scripts\run_search_workflow.py --brand 珀莱雅 --role 达播总监 --output-dir outputs\migration_selfcheck\search_workflow
 ```
 
 Result filtering:
@@ -142,7 +142,7 @@ What it validates:
 - required project structure
 - ADB and `uiautomator2`
 - current-page capture and detection
-- readonly search
+- batch keyword workflow
 - result-page filtering
 - profile collection
 
@@ -182,7 +182,7 @@ Fix:
 
 Symptom:
 
-- readonly search starts from `unknown`
+- keyword workflow starts from `unknown`
 - popup text resembles `开启微信通知服务`
 
 Status:

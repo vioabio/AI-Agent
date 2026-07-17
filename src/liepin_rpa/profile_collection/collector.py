@@ -1,23 +1,27 @@
 from __future__ import annotations
 
-import json
+import random
 import time
 from collections import OrderedDict
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from xml.etree import ElementTree
 
-from liepin_rpa.device.client import DeviceClient
+from liepin_rpa.device.adb import AdbCommandError
+from liepin_rpa.device.client import DeviceClient, DeviceConnectionError
 from liepin_rpa.logging_utils import get_logger
 from liepin_rpa.page_detection.enums import PageState
 from liepin_rpa.page_detection.runtime import build_page_detector
-from liepin_rpa.ui_controls import iter_app_nodes, node_label, parse_bounds
 from liepin_rpa.profile_collection.resume_schema import build_candidate_resume_schema
+from liepin_rpa.ui_controls import iter_app_nodes, node_label, parse_bounds
 
 from .models import ProfileCollectionIteration, ProfileCollectionReport
 
 LOGGER = get_logger(__name__)
 PROFILE_HEADER_SECTION = "_profile_header"
+PROFILE_SWIPE_X = 540
+PROFILE_SWIPE_START_Y = 1650
+PROFILE_SWIPE_END_Y = 620
 EXPAND_LABEL_PREFIX = "展开全部"
 ACTION_LABELS = {
     "获取电话",
@@ -63,12 +67,16 @@ class VisibleTextNode:
     left: int
 
 
+class ProfileCollectionRecoverableError(RuntimeError):
+    """Raised when profile collection should skip only the current candidate."""
+
+
 class CandidateProfileCollector:
     def __init__(
         self,
         device: DeviceClient,
         *,
-        settle_seconds: float = 0.8,
+        settle_seconds: float = 3.0,
         swipe_duration_seconds: float = 0.22,
         max_stagnant_swipes: int = 3,
         max_iterations: int = 80,
@@ -80,9 +88,7 @@ class CandidateProfileCollector:
         self.max_stagnant_swipes = max_stagnant_swipes
         self.max_iterations = max_iterations
 
-    def collect_current_profile(self, output_dir: Path) -> ProfileCollectionReport:
-        output_dir.mkdir(parents=True, exist_ok=True)
-
+    def collect_current_profile(self, output_dir: Path | None = None) -> ProfileCollectionReport:
         seen_texts: set[str] = set()
         collected_text_lines: list[str] = []
         sections: OrderedDict[str, list[str]] = OrderedDict()
@@ -96,19 +102,15 @@ class CandidateProfileCollector:
         reached_bottom = False
 
         for iteration_index in range(1, self.max_iterations + 1):
-            iteration_dir = output_dir / f"iteration_{iteration_index:02d}"
-            iteration_dir.mkdir(parents=True, exist_ok=True)
-
-            screenshot_path = self.device.screenshot(iteration_dir / "screen.png")
-            hierarchy_path = self.device.dump_hierarchy(iteration_dir / "hierarchy.xml")
-            detection = self.detector.detect_from_xml(hierarchy_path)
+            hierarchy_text = self.device.dump_hierarchy_text()
+            detection = self.detector.detect_from_xml_text(hierarchy_text)
             if detection.state != PageState.CANDIDATE_PROFILE:
                 raise RuntimeError(
                     "Current page is not candidate profile. "
                     f"Detected {detection.state.value} ({detection.matched_signature})."
                 )
 
-            root = ElementTree.fromstring(hierarchy_path.read_text(encoding="utf-8"))
+            root = ElementTree.fromstring(hierarchy_text)
             visible_nodes = extract_visible_profile_text_nodes(root)
             visible_text_lines = [node.label for node in visible_nodes]
             new_text_count = merge_unique_lines(
@@ -135,7 +137,7 @@ class CandidateProfileCollector:
                     clicked_expand_controls.add(control_signature(control))
                     total_expand_clicks += 1
                     self.device.tap(control.tap_x, control.tap_y)
-                    time.sleep(self.settle_seconds)
+                    self._settle_wait()
                 stagnant_swipe_count = 0
                 last_swipe_fingerprint = None
             else:
@@ -149,8 +151,6 @@ class CandidateProfileCollector:
                     iterations.append(
                         ProfileCollectionIteration(
                             iteration=iteration_index,
-                            screenshot_path=str(screenshot_path),
-                            hierarchy_path=str(hierarchy_path),
                             detection_state=detection.state.value,
                             matched_signature=detection.matched_signature,
                             clicked_expand_labels=clicked_expand_labels,
@@ -168,13 +168,11 @@ class CandidateProfileCollector:
                 swipe_performed = True
                 total_swipes += 1
                 last_swipe_fingerprint = fingerprint
-                time.sleep(self.settle_seconds)
+                self._settle_wait()
 
             iterations.append(
                 ProfileCollectionIteration(
                     iteration=iteration_index,
-                    screenshot_path=str(screenshot_path),
-                    hierarchy_path=str(hierarchy_path),
                     detection_state=detection.state.value,
                     matched_signature=detection.matched_signature,
                     clicked_expand_labels=clicked_expand_labels,
@@ -191,13 +189,7 @@ class CandidateProfileCollector:
                 f"Profile collection exceeded max iterations ({self.max_iterations})."
             )
 
-        raw_text_path = output_dir / "resume_text.txt"
-        raw_text_path.write_text("\n".join(collected_text_lines) + "\n", encoding="utf-8")
-
         debug_report_payload = {
-            "report_path": str(output_dir / "report.json"),
-            "raw_text_path": str(raw_text_path),
-            "markdown_path": str(output_dir / "report.md"),
             "total_iterations": len(iterations),
             "total_swipes": total_swipes,
             "total_expand_clicks": total_expand_clicks,
@@ -207,42 +199,12 @@ class CandidateProfileCollector:
             "sections": dict(sections),
             "iterations": [asdict(item) for item in iterations],
         }
-
-        debug_report_path = output_dir / "collection_debug.json"
-        debug_report_path.write_text(
-            json.dumps(debug_report_payload, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-
         structured_resume = build_candidate_resume_schema(
             debug_payload=debug_report_payload,
-            output_dir=output_dir,
-        )
-        report_path = output_dir / "report.json"
-        report_path.write_text(
-            json.dumps(structured_resume, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-
-        markdown_path = output_dir / "report.md"
-        markdown_path.write_text(
-            build_markdown_report(
-                total_swipes=total_swipes,
-                total_expand_clicks=total_expand_clicks,
-                stagnant_swipe_limit=self.max_stagnant_swipes,
-                reached_bottom=reached_bottom,
-                collected_text_lines=collected_text_lines,
-                sections=dict(sections),
-                iterations=iterations,
-            ),
-            encoding="utf-8",
+            output_dir=output_dir or Path("."),
         )
 
         return ProfileCollectionReport(
-            report_path=str(report_path),
-            debug_report_path=str(debug_report_path),
-            raw_text_path=str(raw_text_path),
-            markdown_path=str(markdown_path),
             total_iterations=len(iterations),
             total_swipes=total_swipes,
             total_expand_clicks=total_expand_clicks,
@@ -251,14 +213,50 @@ class CandidateProfileCollector:
             collected_text_lines=collected_text_lines,
             sections=dict(sections),
             iterations=iterations,
+            structured_resume=structured_resume,
         )
 
     def _swipe_profile_page(self) -> None:
-        LOGGER.info(
-            "Swiping candidate profile page",
-            extra={"event": "candidate_profile_swipe"},
-        )
-        self.device.swipe(540, 1980, 540, 420, duration=self.swipe_duration_seconds)
+        # Keep profile swipes in the content area to avoid bottom action buttons.
+        try:
+            self.device.swipe(
+                PROFILE_SWIPE_X,
+                PROFILE_SWIPE_START_Y,
+                PROFILE_SWIPE_X,
+                PROFILE_SWIPE_END_Y,
+                duration=self.swipe_duration_seconds,
+            )
+            return
+        except (AdbCommandError, DeviceConnectionError) as exc:
+            LOGGER.warning(
+                "Profile swipe failed, attempting device recovery before skipping candidate",
+                extra={
+                    "event": "candidate_profile_swipe_retry",
+                    "context": {"error": str(exc)},
+                },
+            )
+
+        try:
+            self.device.wake_up()
+            self.device.ensure_unlocked()
+            self.device.ensure_healthy(max_age_seconds=0.0)
+            self._settle_wait(3.0)
+            self.device.swipe(
+                PROFILE_SWIPE_X,
+                PROFILE_SWIPE_START_Y,
+                PROFILE_SWIPE_X,
+                PROFILE_SWIPE_END_Y,
+                duration=self.swipe_duration_seconds,
+            )
+        except (AdbCommandError, DeviceConnectionError) as exc:
+            raise ProfileCollectionRecoverableError(
+                f"Profile swipe failed after recovery attempt: {exc}"
+            ) from exc
+
+    def _settle_wait(self, minimum_seconds: float | None = None) -> None:
+        base_seconds = random.uniform(self.settle_seconds, 5.0)
+        target_seconds = base_seconds if minimum_seconds is None else max(base_seconds, minimum_seconds)
+        time.sleep(target_seconds)
 
 
 def find_expand_all_controls(root: ElementTree.Element) -> list[ProfileControl]:
@@ -348,7 +346,6 @@ def merge_unique_lines(lines: list[str], *, seen: set[str], target: list[str]) -
 
 
 def expand_control_tap_x(left: int, width: int) -> int:
-    # "展开全部工作经历" 这类控件虽然 bounds 很宽，但真正热区在左侧文案和箭头附近。
     if width >= 600:
         return left + min(290, max(150, width // 3))
     return left + max(48, width // 3)
@@ -381,48 +378,3 @@ def build_swipe_fingerprint(visible_text_lines: list[str]) -> tuple[str, ...]:
 
 def control_signature(control: ProfileControl) -> str:
     return f"{control.label}|{control.bounds}"
-
-
-def build_markdown_report(
-    *,
-    total_swipes: int,
-    total_expand_clicks: int,
-    stagnant_swipe_limit: int,
-    reached_bottom: bool,
-    collected_text_lines: list[str],
-    sections: dict[str, list[str]],
-    iterations: list[ProfileCollectionIteration],
-) -> str:
-    lines = [
-        "# Candidate Profile Collection Report",
-        "",
-        f"- reached_bottom: `{reached_bottom}`",
-        f"- total_iterations: `{len(iterations)}`",
-        f"- total_swipes: `{total_swipes}`",
-        f"- total_expand_clicks: `{total_expand_clicks}`",
-        f"- stagnant_swipe_limit: `{stagnant_swipe_limit}`",
-        f"- collected_text_lines: `{len(collected_text_lines)}`",
-        "",
-        "## Sections",
-        "",
-    ]
-
-    for section_name, section_lines in sections.items():
-        title = "Profile Header" if section_name == PROFILE_HEADER_SECTION else section_name
-        lines.append(f"### {title}")
-        if not section_lines:
-            lines.append("- (empty)")
-        else:
-            for line in section_lines:
-                lines.append(f"- {line}")
-        lines.append("")
-
-    lines.extend(["## Iterations", ""])
-    for item in iterations:
-        lines.append(
-            f"- iteration={item.iteration} visible={item.visible_text_count} "
-            f"new={item.new_text_count} expand={item.clicked_expand_labels!r} "
-            f"swipe={item.swipe_performed} stagnant={item.stagnant_swipe_count}"
-        )
-
-    return "\n".join(lines) + "\n"

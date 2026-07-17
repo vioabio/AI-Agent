@@ -42,13 +42,13 @@ def main() -> int:
     )
     catalog.validate_seed(seed)
 
-    adb_runner = AdbRunner(settings.adb_executable)
+    adb_runner = AdbRunner(settings.adb_executable, device_id=settings.device_id)
     adb_runner.clear_uiautomator_sessions()
     device = DeviceClient(adb_runner=adb_runner, device_id=settings.device_id)
     device.connect()
     ensure_liepin_started(device, resolve_liepin_package(settings.liepin_package))
 
-    report = ResultPageFilter(device=device).run_current_result_page(
+    report = ResultPageFilter(device=device).search_and_filter_seed(
         seed=seed,
         output_dir=Path(args.output_dir),
     )
@@ -61,6 +61,8 @@ def main() -> int:
                 "junior_college_rejected": report.junior_college_rejected,
                 "matched": report.matched,
                 "matched_candidate": report.matched_candidate,
+                "matched_candidates": report.matched_candidates,
+                "profiles_collected": report.profiles_collected,
                 "end_reason": report.end_reason,
                 "iterations": len(report.iterations),
                 "report_path": str(Path(args.output_dir) / "report.json"),

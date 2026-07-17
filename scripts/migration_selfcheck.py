@@ -16,8 +16,9 @@ from liepin_rpa.device.client import DeviceClient
 from liepin_rpa.device.diagnose import run_device_diagnosis
 from liepin_rpa.page_detection.runtime import build_page_detector
 from liepin_rpa.profile_collection import CandidateProfileCollector
-from liepin_rpa.search_execution import FrozenKeywordCatalog, ReadonlySearchExecutor
+from liepin_rpa.search_execution import FrozenKeywordCatalog
 from liepin_rpa.search_execution.result_filter import ResultPageFilter
+from liepin_rpa.search_execution.workflow import SearchWorkflowRunner
 from liepin_rpa.task_generation.models import SearchTaskSeed
 from liepin_rpa.ui_controls import find_candidate_card_centers
 
@@ -91,7 +92,7 @@ def main() -> int:
 
     settings = get_settings()
     detector = build_page_detector()
-    adb_runner = AdbRunner(settings.adb_executable)
+    adb_runner = AdbRunner(settings.adb_executable, device_id=settings.device_id)
 
     results: list[StageResult] = []
 
@@ -174,7 +175,7 @@ def main() -> int:
             },
         )
 
-    def readonly_search_stage() -> tuple[str, dict[str, object]]:
+    def workflow_stage() -> tuple[str, dict[str, object]]:
         catalog = FrozenKeywordCatalog(
             brands_path=Path("config/brands.yaml"),
             roles_path=Path("config/roles.yaml"),
@@ -183,17 +184,18 @@ def main() -> int:
         catalog.validate_seed(seed)
         device = DeviceClient(adb_runner=adb_runner, device_id=settings.device_id)
         device.connect()
-        report = ReadonlySearchExecutor(device=device).run(
-            seed=seed,
-            query_text=catalog.format_exact_query(seed),
-            output_dir=output_root / "readonly_search",
+        report = SearchWorkflowRunner(ResultPageFilter(device=device)).run(
+            seeds=[seed],
+            output_dir=output_root / "search_workflow",
         )
         adb_runner.clear_uiautomator_sessions()
         return (
-            "Readonly search completed through search page, result page, candidate detail, and back navigation.",
+            "Keyword workflow completed through search, result filtering, candidate detail collection, and result-page continuation.",
             {
                 "report_path": report.report_path,
-                "steps": [step.step_name for step in report.steps],
+                "total_keywords": report.total_keywords,
+                "matched_keywords": report.matched_keywords,
+                "profiles_collected": report.profiles_collected,
             },
         )
 
@@ -201,7 +203,7 @@ def main() -> int:
         seed = SearchTaskSeed(brand_keyword=args.brand, role_keyword=args.role)
         device = DeviceClient(adb_runner=adb_runner, device_id=settings.device_id)
         device.connect()
-        report = ResultPageFilter(device=device).run_current_result_page(
+        report = ResultPageFilter(device=device).search_and_filter_seed(
             seed=seed,
             output_dir=output_root / "result_filter",
         )
@@ -250,7 +252,7 @@ def main() -> int:
     results.append(run_stage("project_structure", structure_stage))
     results.append(run_stage("device_diagnosis", diagnosis_stage))
     results.append(run_stage("controls_capture", controls_stage))
-    results.append(run_stage("readonly_search", readonly_search_stage))
+    results.append(run_stage("search_workflow", workflow_stage))
     results.append(run_stage("result_filter", result_filter_stage))
     if not args.skip_live_profile:
         results.append(run_stage("profile_collection", profile_stage))

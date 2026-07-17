@@ -6,10 +6,16 @@ import sys
 from pathlib import Path
 
 from liepin_rpa.config import get_settings
+from liepin_rpa.db import (
+    build_candidate_experience_text,
+    build_candidate_fingerprint,
+    upsert_contacted_candidate_record,
+)
 from liepin_rpa.device.adb import AdbRunner
 from liepin_rpa.device.client import DeviceClient
 from liepin_rpa.logging_utils import configure_logging
 from liepin_rpa.profile_collection import CandidateProfileCollector
+from liepin_rpa.profile_collection.resume_schema import build_candidate_resume_from_debug_path
 
 
 def parse_args() -> argparse.Namespace:
@@ -45,7 +51,7 @@ def main() -> int:
     settings = get_settings()
     configure_logging(settings.log_level, settings.logs_dir)
 
-    adb_runner = AdbRunner(settings.adb_executable)
+    adb_runner = AdbRunner(settings.adb_executable, device_id=settings.device_id)
     device = DeviceClient(adb_runner=adb_runner, device_id=settings.device_id)
     device.connect()
     device.ensure_unlocked()
@@ -57,19 +63,34 @@ def main() -> int:
     )
     report = collector.collect_current_profile(Path(args.output_dir))
 
-    if any([args.brand, args.role, args.search_task_id]):
-        from liepin_rpa.profile_collection.resume_schema import build_candidate_resume_from_debug_path
+    structured_resume = build_candidate_resume_from_debug_path(
+        Path(report.debug_report_path),
+        search_brand_keyword=args.brand,
+        search_role_keyword=args.role,
+        search_task_id=args.search_task_id,
+    )
+    Path(report.report_path).write_text(
+        json.dumps(structured_resume, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
-        structured_resume = build_candidate_resume_from_debug_path(
-            Path(report.debug_report_path),
-            search_brand_keyword=args.brand,
-            search_role_keyword=args.role,
-            search_task_id=args.search_task_id,
-        )
-        Path(report.report_path).write_text(
-            json.dumps(structured_resume, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+    experience = build_candidate_experience_text(
+        sections=report.sections,
+        structured_resume=structured_resume,
+    )
+
+    db_record_id = upsert_contacted_candidate_record(
+        settings,
+        candidate_fingerprint=build_candidate_fingerprint(
+            candidate_name=structured_resume.get("basic_info", {}).get("name"),
+            structured_resume=structured_resume,
+            experience=experience,
+        ),
+        candidate_name=structured_resume.get("basic_info", {}).get("name"),
+        search_keyword=build_search_keyword(args.brand, args.role),
+        experience=experience,
+        analysis_status="未执行",
+    )
 
     print(
         json.dumps(
@@ -83,12 +104,21 @@ def main() -> int:
                 "total_expand_clicks": report.total_expand_clicks,
                 "reached_bottom": report.reached_bottom,
                 "collected_text_lines": len(report.collected_text_lines),
+                "db_record_id": db_record_id,
+                "experience_length": len(experience or ""),
             },
             ensure_ascii=False,
             indent=2,
         )
     )
     return 0
+
+
+def build_search_keyword(brand: str | None, role: str | None) -> str | None:
+    values = [item.strip() for item in (brand, role) if item and item.strip()]
+    if not values:
+        return None
+    return "，".join(values)
 
 
 if __name__ == "__main__":

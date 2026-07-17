@@ -59,7 +59,7 @@ def run_device_diagnosis(settings: Settings) -> DiagnosisArtifacts:
     diagnose_dir = settings.device_diagnose_dir
     diagnose_dir.mkdir(parents=True, exist_ok=True)
 
-    adb_runner = AdbRunner(settings.adb_executable)
+    adb_runner = AdbRunner(settings.adb_executable, device_id=settings.device_id)
     adb_version = adb_runner.version()
     adb_devices = adb_runner.devices()
 

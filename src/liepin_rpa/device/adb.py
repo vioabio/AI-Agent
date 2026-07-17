@@ -14,6 +14,7 @@ class AdbCommandError(RuntimeError):
 @dataclass(slots=True)
 class AdbRunner:
     executable: str = "adb"
+    device_id: str | None = None
 
     def resolved_executable(self) -> str:
         if self.executable.lower() == "adb":
@@ -25,9 +26,10 @@ class AdbRunner:
 
     def run(self, *args: str) -> str:
         executable = self.resolved_executable()
+        command = [executable, *self._target_args(*args)]
         try:
             result = subprocess.run(
-                [executable, *args],
+                command,
                 check=True,
                 capture_output=True,
                 text=True,
@@ -52,8 +54,41 @@ class AdbRunner:
     def devices(self) -> str:
         return self.run("devices", "-l")
 
+    def wait_for_device(self, timeout_seconds: int = 15) -> None:
+        executable = self.resolved_executable()
+        command = [
+            executable,
+            *self._target_args("wait-for-device"),
+        ]
+        try:
+            subprocess.run(
+                command,
+                check=True,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=timeout_seconds,
+            )
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+            raise AdbCommandError(f"ADB wait-for-device failed: {exc}") from exc
+
     def shell(self, *args: str) -> str:
         return self.run("shell", *args)
+
+    def start_app(self, package: str) -> str:
+        return self.shell(
+            "monkey",
+            "-p",
+            package,
+            "-c",
+            "android.intent.category.LAUNCHER",
+            "1",
+        )
+
+    def start_activity(self, package: str, activity: str) -> str:
+        component = f"{package}/{activity}"
+        return self.shell("am", "start", "-n", component)
 
     def clear_uiautomator_sessions(self) -> None:
         cleanup_commands = [
@@ -70,3 +105,27 @@ class AdbRunner:
             except AdbCommandError:
                 continue
         time.sleep(1.0)
+
+    def recover_device_transport(self) -> None:
+        try:
+            self.run("start-server")
+        except AdbCommandError:
+            pass
+        try:
+            self.clear_uiautomator_sessions()
+        except AdbCommandError:
+            pass
+        try:
+            self.wait_for_device(timeout_seconds=15)
+        except AdbCommandError:
+            pass
+        time.sleep(1.0)
+
+    def _target_args(self, *args: str) -> tuple[str, ...]:
+        if not self.device_id:
+            return args
+        if not args:
+            return args
+        if args[0] in {"devices", "version"}:
+            return args
+        return ("-s", self.device_id, *args)

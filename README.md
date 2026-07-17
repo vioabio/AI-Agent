@@ -178,7 +178,7 @@ config/roles.yaml
 只读搜索流程：
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\run_single_search_readonly.py --brand 珀莱雅 --role 达播总监 --output-dir outputs\readonly_search
+.\.venv\Scripts\python.exe scripts\run_search_workflow.py --brand 珀莱雅 --role 达播总监 --output-dir outputs\search_workflow
 ```
 
 结果页筛选流程：
