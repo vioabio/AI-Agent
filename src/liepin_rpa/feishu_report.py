@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
 from urllib import error, request
 
@@ -13,8 +14,9 @@ from liepin_rpa.search_execution.result_filter import CandidateProcessOutcome
 from liepin_rpa.search_execution.workflow import SearchWorkflowReport
 
 LOGGER = get_logger(__name__)
-MIN_DISPLAY_SCORE = 75
+MIN_DISPLAY_SCORE = 90
 FEISHU_DISPLAY_LIMIT = 3
+FEISHU_REVIEW_DISPLAY_LIMIT = 5
 MIN_REPORT_AGE = 32
 MAX_REPORT_AGE = 44
 
@@ -46,14 +48,51 @@ class ReportCandidate:
 
 @dataclass(slots=True)
 class FeishuReportSummary:
+    total_candidates_seen: int | None
+    cumulative_screened_candidate_views: int | None
+    cumulative_relevant_count: int | None
+    cumulative_needs_review_count: int | None
+    cumulative_not_relevant_count: int | None
+    cumulative_greeted_count: int | None
+    screened_candidate_views: int | None
     total_keywords: int
+    hit_keywords: int
     profiles_collected: int
     unique_candidates: int
     greeted_count: int
     contacted_relevant_count: int
     skipped_recent_count: int
     relevant_count: int
+    needs_review_count: int
+    recollection_count: int
     not_relevant_count: int
+
+
+@dataclass(slots=True)
+class RoleReportSummary:
+    role_keyword: str
+    executed_keywords: int = 0
+    profiles_collected: int = 0
+    relevant_count: int = 0
+    needs_review_count: int = 0
+    recollection_count: int = 0
+    not_relevant_count: int = 0
+
+
+@dataclass(slots=True)
+class JobReportSummary:
+    job_name: str
+    search_directions: set[str] = field(default_factory=set)
+    executed_keywords: int = 0
+    screened_candidate_views: int = 0
+    profiles_collected: int = 0
+    relevant_count: int = 0
+    needs_review_count: int = 0
+    greeted_count: int = 0
+    cumulative_screened_candidate_views: int = 0
+    cumulative_relevant_count: int = 0
+    cumulative_needs_review_count: int = 0
+    cumulative_greeted_count: int = 0
 
 
 def send_feishu_daily_report(
@@ -62,8 +101,22 @@ def send_feishu_daily_report(
     *,
     detail_pdf_name: str | None = None,
     detail_pdf_url: str | None = None,
+    detail_pdf_urls_by_job: dict[str, str | None] | None = None,
     window_start_at: datetime | None = None,
     window_end_at: datetime | None = None,
+    total_candidates_seen: int | None = None,
+    executed_keywords: int | None = None,
+    executed_keywords_by_role: dict[str, int] | None = None,
+    screened_candidate_views: int | None = None,
+    screened_candidate_views_by_role: dict[str, int] | None = None,
+    cumulative_screened_candidate_views: int | None = None,
+    cumulative_relevant_count: int | None = None,
+    cumulative_needs_review_count: int | None = None,
+    cumulative_not_relevant_count: int | None = None,
+    cumulative_greeted_count: int | None = None,
+    cumulative_start_at: datetime | None = None,
+    cumulative_end_at: datetime | None = None,
+    cumulative_metrics_by_job: dict[str, dict[str, int]] | None = None,
 ) -> bool:
     if not settings.feishu_bot_webhook:
         LOGGER.info(
@@ -78,25 +131,55 @@ def send_feishu_daily_report(
         aggregated_candidates,
         detail_pdf_name=detail_pdf_name,
         detail_pdf_url=detail_pdf_url,
+        detail_pdf_urls_by_job=detail_pdf_urls_by_job,
         window_start_at=window_start_at,
         window_end_at=window_end_at,
+        total_candidates_seen=total_candidates_seen,
+        executed_keywords=executed_keywords,
+        executed_keywords_by_role=executed_keywords_by_role,
+        screened_candidate_views=screened_candidate_views,
+        screened_candidate_views_by_role=screened_candidate_views_by_role,
+        cumulative_screened_candidate_views=cumulative_screened_candidate_views,
+        cumulative_relevant_count=cumulative_relevant_count,
+        cumulative_needs_review_count=cumulative_needs_review_count,
+        cumulative_not_relevant_count=cumulative_not_relevant_count,
+        cumulative_greeted_count=cumulative_greeted_count,
+        cumulative_start_at=cumulative_start_at,
+        cumulative_end_at=cumulative_end_at,
+        cumulative_metrics_by_job=cumulative_metrics_by_job,
     )
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    req = request.Request(
-        settings.feishu_bot_webhook,
-        data=body,
-        headers={"Content-Type": "application/json; charset=utf-8"},
-        method="POST",
-    )
-    try:
-        with request.urlopen(req, timeout=15) as resp:
-            raw = resp.read().decode("utf-8", errors="replace")
-    except error.URLError:
-        LOGGER.exception(
-            "Failed to send Feishu daily report",
-            extra={"event": "feishu_report_failed", "context": {}},
+    opener = request.build_opener(request.ProxyHandler({}))
+    raw = ""
+    for attempt in range(1, 4):
+        req = request.Request(
+            settings.feishu_bot_webhook,
+            data=body,
+            headers={"Content-Type": "application/json; charset=utf-8"},
+            method="POST",
         )
-        return False
+        try:
+            with opener.open(req, timeout=20) as resp:
+                raw = resp.read().decode("utf-8", errors="replace")
+            break
+        except error.URLError:
+            if attempt >= 3:
+                LOGGER.exception(
+                    "Failed to send Feishu daily report",
+                    extra={
+                        "event": "feishu_report_failed",
+                        "context": {"attempt": attempt},
+                    },
+                )
+                return False
+            LOGGER.warning(
+                "Feishu daily report request failed and will be retried",
+                extra={
+                    "event": "feishu_report_retry",
+                    "context": {"attempt": attempt},
+                },
+            )
+            time.sleep(3 * attempt)
 
     try:
         response_payload = json.loads(raw) if raw else {}
@@ -131,25 +214,66 @@ def _build_feishu_payload(
     *,
     detail_pdf_name: str | None = None,
     detail_pdf_url: str | None = None,
+    detail_pdf_urls_by_job: dict[str, str | None] | None = None,
     window_start_at: datetime | None = None,
     window_end_at: datetime | None = None,
+    total_candidates_seen: int | None = None,
+    executed_keywords: int | None = None,
+    executed_keywords_by_role: dict[str, int] | None = None,
+    screened_candidate_views: int | None = None,
+    screened_candidate_views_by_role: dict[str, int] | None = None,
+    cumulative_screened_candidate_views: int | None = None,
+    cumulative_relevant_count: int | None = None,
+    cumulative_needs_review_count: int | None = None,
+    cumulative_not_relevant_count: int | None = None,
+    cumulative_greeted_count: int | None = None,
+    cumulative_start_at: datetime | None = None,
+    cumulative_end_at: datetime | None = None,
+    cumulative_metrics_by_job: dict[str, dict[str, int]] | None = None,
 ) -> dict[str, Any]:
-    summary = _build_summary(report, aggregated_candidates)
-    ranked_candidates = select_featured_candidates(aggregated_candidates)
-    displayed_candidates = ranked_candidates[:FEISHU_DISPLAY_LIMIT]
-    today = datetime.now().strftime("%Y-%m-%d")
+    summary = _build_summary(
+        report,
+        aggregated_candidates,
+        total_candidates_seen=total_candidates_seen,
+        executed_keywords=executed_keywords,
+        screened_candidate_views=screened_candidate_views,
+        cumulative_screened_candidate_views=cumulative_screened_candidate_views,
+        cumulative_relevant_count=cumulative_relevant_count,
+        cumulative_needs_review_count=cumulative_needs_review_count,
+        cumulative_not_relevant_count=cumulative_not_relevant_count,
+        cumulative_greeted_count=cumulative_greeted_count,
+    )
+    role_summaries = _build_role_summaries(
+        aggregated_candidates,
+        executed_keywords_by_role=executed_keywords_by_role or {},
+    )
+    job_summaries = _build_job_summaries(
+        aggregated_candidates,
+        executed_keywords_by_role=executed_keywords_by_role or {},
+        screened_candidate_views_by_role=screened_candidate_views_by_role or {},
+        cumulative_screened_candidate_views_by_role=(
+            (cumulative_metrics_by_job or {}).get("screened_views_by_role", {})
+        ),
+        cumulative_metrics_by_job=cumulative_metrics_by_job or {},
+    )
+    report_date = datetime.now().strftime("%Y-%m-%d")
     elements: list[dict[str, Any]] = [
-        _markdown_block(_build_overview_markdown(summary, window_start_at, window_end_at)),
-        *([_markdown_block(f"完整简历PDF：[点击下载]({detail_pdf_url})")] if detail_pdf_url else []),
-        _markdown_block(
-            f"日报仅展示当前统计窗口内分数最高的 {FEISHU_DISPLAY_LIMIT} 位；PDF包含当前统计窗口内全部"
-            f"“{MIN_DISPLAY_SCORE}分以上、已打招呼且匹配”的候选人。"
+        *_build_management_summary_elements(
+            summary,
+            role_summaries,
+            job_summaries=job_summaries,
+            window_start_at=window_start_at,
+            window_end_at=window_end_at,
+            cumulative_start_at=cumulative_start_at,
+            cumulative_end_at=cumulative_end_at,
         ),
         {"tag": "hr"},
-        _section_header(
-            f"75分以上已打招呼且匹配候选人：展示前{len(displayed_candidates)}位 / 共{len(ranked_candidates)}位"
+        _markdown_block(
+            _build_detail_documents_markdown(
+                detail_pdf_urls_by_job
+                or {"达人营销总监": detail_pdf_url, "财务共享与管理经理": None}
+            )
         ),
-        _markdown_block(_build_candidate_section(displayed_candidates)),
     ]
     return {
         "msg_type": "interactive",
@@ -157,7 +281,7 @@ def _build_feishu_payload(
             "config": {"wide_screen_mode": True},
             "header": {
                 "template": "blue",
-                "title": {"tag": "plain_text", "content": f"猎聘美妆招聘自动日报｜{today}"},
+                "title": {"tag": "plain_text", "content": f"重点岗位招聘日报｜{report_date}"},
             },
             "elements": elements,
         },
@@ -210,12 +334,22 @@ def select_featured_candidates(candidates: list[ReportCandidate]) -> list[Report
     return _select_candidates(candidates, _is_featured_candidate)
 
 
+def select_review_candidates(candidates: list[ReportCandidate]) -> list[ReportCandidate]:
+    return _select_candidates(
+        candidates,
+        lambda item: _is_needs_review_candidate(item) and not _requires_recollection(item),
+    )
+
+
+def select_recollection_candidates(candidates: list[ReportCandidate]) -> list[ReportCandidate]:
+    return _select_candidates(candidates, _requires_recollection)
+
+
 def _normalize_candidate_name(value: str | None) -> str:
     normalized = sanitize_candidate_name(value)
     if normalized is None:
         return "未命名候选人"
-    cleaned = normalized.replace("*", "").strip()
-    return cleaned or "未命名候选人"
+    return normalized
 
 
 def _should_apply_outcome(outcome: CandidateProcessOutcome, candidate: ReportCandidate) -> bool:
@@ -237,10 +371,12 @@ def _is_better_outcome(outcome: CandidateProcessOutcome, candidate: ReportCandid
 
 
 def _hit_status_priority(hit_status: str) -> int:
-    if hit_status in {"sent", "immediate_job_confirmed"}:
+    if hit_status == "sent":
         return 5
-    if hit_status == "skipped_recent_continue":
+    if hit_status == "immediate_job_confirmed":
         return 4
+    if hit_status == "skipped_recent_continue":
+        return 3
     if hit_status.startswith("send_failed:"):
         return 3
     if hit_status == "continue_without_db_record":
@@ -257,20 +393,37 @@ def _candidate_sort_priority(candidate: ReportCandidate) -> int:
 def _build_summary(
     report: SearchWorkflowReport,
     aggregated_candidates: list[ReportCandidate],
+    *,
+    total_candidates_seen: int | None = None,
+    executed_keywords: int | None = None,
+    screened_candidate_views: int | None = None,
+    cumulative_screened_candidate_views: int | None = None,
+    cumulative_relevant_count: int | None = None,
+    cumulative_needs_review_count: int | None = None,
+    cumulative_not_relevant_count: int | None = None,
+    cumulative_greeted_count: int | None = None,
 ) -> FeishuReportSummary:
     return FeishuReportSummary(
-        total_keywords=report.total_keywords,
+        total_candidates_seen=total_candidates_seen,
+        cumulative_screened_candidate_views=cumulative_screened_candidate_views,
+        cumulative_relevant_count=cumulative_relevant_count,
+        cumulative_needs_review_count=cumulative_needs_review_count,
+        cumulative_not_relevant_count=cumulative_not_relevant_count,
+        cumulative_greeted_count=cumulative_greeted_count,
+        screened_candidate_views=screened_candidate_views,
+        total_keywords=executed_keywords if executed_keywords is not None else report.total_keywords,
+        hit_keywords=report.total_keywords,
         profiles_collected=report.profiles_collected,
         unique_candidates=len(aggregated_candidates),
         greeted_count=sum(
             1
             for item in aggregated_candidates
-            if item.hit_status in {"sent", "immediate_job_confirmed"}
+            if item.hit_status == "sent"
         ),
         contacted_relevant_count=sum(
             1
             for item in aggregated_candidates
-            if item.hit_status in {"sent", "immediate_job_confirmed"}
+            if item.hit_status == "sent"
             and (item.analysis_status == "匹配" or item.match_result == "relevant")
         ),
         skipped_recent_count=sum(
@@ -279,18 +432,28 @@ def _build_summary(
         relevant_count=sum(
             1
             for item in aggregated_candidates
-            if item.analysis_status == "匹配" or item.match_result == "relevant"
+            if _is_relevant_candidate(item)
+            and item.match_score is not None
+            and item.match_score >= MIN_DISPLAY_SCORE
         ),
+        needs_review_count=sum(
+            1
+            for item in aggregated_candidates
+            if _is_needs_review_candidate(item)
+            and not _requires_recollection(item)
+            and item.match_score is not None
+            and item.match_score >= MIN_DISPLAY_SCORE
+        ),
+        recollection_count=sum(1 for item in aggregated_candidates if _requires_recollection(item)),
         not_relevant_count=sum(
             1
             for item in aggregated_candidates
-            if item.match_result in {"needs_review", "not_relevant"}
-            or item.analysis_status in {"待复核", "不匹配"}
+            if _is_not_relevant_candidate(item)
         ),
     )
 
 
-def _build_overview_markdown(
+def _build_process_overview_markdown(
     summary: FeishuReportSummary,
     window_start_at: datetime | None,
     window_end_at: datetime | None,
@@ -298,32 +461,471 @@ def _build_overview_markdown(
     window_text = _format_report_window(window_start_at, window_end_at)
     return "\n".join(
         [
-            "**今日概览**",
+            "**搜索执行过程**",
             f"- 统计窗口：{window_text}",
-            f"- 执行关键词：{summary.total_keywords}",
-            f"- 进入详情页：{summary.profiles_collected}",
-            f"- 去重候选人：{summary.unique_candidates}",
+            f"- 执行搜索组合：{summary.total_keywords} 组",
+            f"- 有候选人进入详情的组合：{summary.hit_keywords} 组",
+            f"- 查看候选人详情：{summary.profiles_collected} 位",
             f"- 打招呼成功：{summary.greeted_count}",
             f"- 已打招呼且匹配：{summary.contacted_relevant_count}",
             f"- 7天内跳过：{summary.skipped_recent_count}",
-            f"- 匹配：{summary.relevant_count}｜不匹配（含待复核）：{summary.not_relevant_count}",
         ]
     )
 
 
+def _build_role_summaries(
+    candidates: list[ReportCandidate],
+    *,
+    executed_keywords_by_role: dict[str, int],
+) -> list[RoleReportSummary]:
+    summaries = {
+        role: RoleReportSummary(role_keyword=role, executed_keywords=count)
+        for role, count in executed_keywords_by_role.items()
+        if role
+    }
+    for candidate in candidates:
+        roles = candidate.role_keywords or {"未识别岗位"}
+        for role in roles:
+            summary = summaries.setdefault(role, RoleReportSummary(role_keyword=role))
+            summary.profiles_collected += 1
+            if _is_relevant_candidate(candidate):
+                summary.relevant_count += 1
+            elif _requires_recollection(candidate):
+                summary.recollection_count += 1
+            elif _is_needs_review_candidate(candidate):
+                summary.needs_review_count += 1
+            elif _is_not_relevant_candidate(candidate):
+                summary.not_relevant_count += 1
+    return sorted(
+        summaries.values(),
+        key=lambda item: (-item.executed_keywords, item.role_keyword),
+    )
+
+
+def _build_role_overview_markdown(
+    summary: FeishuReportSummary,
+    role_summaries: list[RoleReportSummary],
+) -> str:
+    if not role_summaries:
+        return "**重点岗位招聘结果**\n- 本统计窗口暂无招聘结果。"
+    search_terms = "、".join(item.role_keyword for item in role_summaries)
+    cumulative_text = (
+        f" · 累计跑过候选人 {summary.total_candidates_seen} 位"
+        if summary.total_candidates_seen is not None
+        else ""
+    )
+    lines = [
+        "**🎯 达人营销总监招聘成果**",
+        f"搜索覆盖｜{search_terms}",
+        "",
+        f"搜索执行｜{summary.total_keywords} 种组合{cumulative_text}",
+        f"筛选结果｜匹配 {summary.relevant_count} 份 · 待复核 {summary.needs_review_count} 份",
+        f"沟通进展｜已打招呼 {summary.greeted_count} 份",
+    ]
+    return "\n".join(lines)
+
+
+def _build_job_summaries(
+    candidates: list[ReportCandidate],
+    *,
+    executed_keywords_by_role: dict[str, int],
+    screened_candidate_views_by_role: dict[str, int],
+    cumulative_screened_candidate_views_by_role: dict[str, int] | None = None,
+    cumulative_metrics_by_job: dict[str, dict[str, int]] | None = None,
+) -> list[JobReportSummary]:
+    summaries = {
+        "达人营销总监": JobReportSummary(job_name="达人营销总监"),
+        "财务共享与管理经理": JobReportSummary(job_name="财务共享与管理经理"),
+    }
+    for role, count in executed_keywords_by_role.items():
+        job = summaries[_job_name_for_search_direction(role)]
+        job.search_directions.add(role)
+        job.executed_keywords += count
+    for role, count in screened_candidate_views_by_role.items():
+        job = summaries[_job_name_for_search_direction(role)]
+        job.search_directions.add(role)
+        job.screened_candidate_views += count
+    for role, count in (cumulative_screened_candidate_views_by_role or {}).items():
+        job = summaries[_job_name_for_search_direction(role)]
+        job.cumulative_screened_candidate_views += count
+
+    fingerprints_by_job: dict[str, set[str]] = {name: set() for name in summaries}
+    for candidate in candidates:
+        job_names = {
+            _job_name_for_search_direction(role)
+            for role in (candidate.role_keywords or {"未识别岗位"})
+        }
+        for job_name in job_names:
+            job = summaries[job_name]
+            if candidate.candidate_fingerprint in fingerprints_by_job[job_name]:
+                continue
+            fingerprints_by_job[job_name].add(candidate.candidate_fingerprint)
+            job.profiles_collected += 1
+            if (
+                _is_relevant_candidate(candidate)
+                and candidate.match_score is not None
+                and candidate.match_score >= MIN_DISPLAY_SCORE
+            ):
+                job.relevant_count += 1
+            elif (
+                _is_needs_review_candidate(candidate)
+                and not _requires_recollection(candidate)
+                and candidate.match_score is not None
+                and candidate.match_score >= MIN_DISPLAY_SCORE
+            ):
+                job.needs_review_count += 1
+            if candidate.hit_status == "sent":
+                job.greeted_count += 1
+    for job_name, job in summaries.items():
+        cumulative = (cumulative_metrics_by_job or {}).get(job_name, {})
+        job.cumulative_relevant_count = int(cumulative.get("relevant", 0))
+        job.cumulative_needs_review_count = int(cumulative.get("needs_review", 0))
+        job.cumulative_greeted_count = int(cumulative.get("greeted", 0))
+    return [summaries["达人营销总监"], summaries["财务共享与管理经理"]]
+
+
+def _job_name_for_search_direction(role_keyword: str) -> str:
+    if "财务共享" in role_keyword or "财务" in role_keyword:
+        return "财务共享与管理经理"
+    return "达人营销总监"
+
+
+def _job_summaries_from_role_summaries(
+    role_summaries: list[RoleReportSummary],
+) -> list[JobReportSummary]:
+    jobs = {
+        "达人营销总监": JobReportSummary(job_name="达人营销总监"),
+        "财务共享与管理经理": JobReportSummary(job_name="财务共享与管理经理"),
+    }
+    for role in role_summaries:
+        job = jobs[_job_name_for_search_direction(role.role_keyword)]
+        job.search_directions.add(role.role_keyword)
+        job.executed_keywords += role.executed_keywords
+        job.profiles_collected += role.profiles_collected
+        job.relevant_count += role.relevant_count
+        job.needs_review_count += role.needs_review_count
+    return [jobs["达人营销总监"], jobs["财务共享与管理经理"]]
+
+
+def _build_management_summary_markdown(
+    summary: FeishuReportSummary,
+    role_summaries: list[RoleReportSummary],
+) -> str:
+    search_terms = "、".join(item.role_keyword for item in role_summaries) or "达人营销总监"
+    return "\n".join(
+        [
+            "**招聘进展**",
+            f"- 跑过候选人｜当天 {summary.unique_candidates} 份｜累计 {_metric_text(summary.total_candidates_seen)} 份",
+            f"- 匹配｜当天 {summary.relevant_count} 份｜累计 {_metric_text(summary.cumulative_relevant_count)} 份",
+            f"- 待人工复核｜当天 {summary.needs_review_count} 份｜累计 {_metric_text(summary.cumulative_needs_review_count)} 份",
+            f"- 已打招呼｜当天 {summary.greeted_count} 份｜累计 {_metric_text(summary.cumulative_greeted_count)} 份",
+            "",
+            "**其他工作量**",
+            f"- 当天执行搜索组合：{summary.total_keywords} 种",
+            f"- 搜索覆盖：{search_terms}",
+        ]
+    )
+
+
+def _build_management_summary_elements(
+    summary: FeishuReportSummary,
+    role_summaries: list[RoleReportSummary],
+    *,
+    job_summaries: list[JobReportSummary] | None = None,
+    window_start_at: datetime | None = None,
+    window_end_at: datetime | None = None,
+    cumulative_start_at: datetime | None = None,
+    cumulative_end_at: datetime | None = None,
+) -> list[dict[str, Any]]:
+    jobs = job_summaries or _job_summaries_from_role_summaries(role_summaries)
+    period_lines = [
+        f"累计区间｜{_format_cumulative_interval(cumulative_start_at, cumulative_end_at)}",
+    ]
+    elements: list[dict[str, Any]] = [
+        _markdown_block(
+            "\n".join(
+                [
+                    "**🎯 重点岗位招聘进展**",
+                    "",
+                    *period_lines,
+                ]
+            )
+        )
+    ]
+    for index, job in enumerate(jobs):
+        if index:
+            elements.append({"tag": "hr"})
+        elements.extend(_build_job_progress_elements(job))
+    return elements
+
+
+def _build_job_progress_elements(job: JobReportSummary) -> list[dict[str, Any]]:
+    progress_table = {
+        "tag": "column_set",
+        "flex_mode": "none",
+        "columns": [
+            _metric_column(
+                2,
+                "**招聘进展明细**\n简历卡片浏览人次\n岗位匹配\n待人工复核\n已打招呼",
+                text_align="left",
+            ),
+            _metric_column(
+                1,
+                "**今日**\n"
+                f"{_formatted_metric_text(job.screened_candidate_views)}\n"
+                f"{job.relevant_count} 份\n"
+                f"{job.needs_review_count} 份\n"
+                f"{job.greeted_count} 份",
+            ),
+            _metric_column(
+                1,
+                "**累计**\n"
+                f"{_formatted_metric_text(job.cumulative_screened_candidate_views)}\n"
+                f"{job.cumulative_relevant_count} 份\n"
+                f"{job.cumulative_needs_review_count} 份\n"
+                f"{job.cumulative_greeted_count} 份",
+            ),
+        ],
+    }
+    return [
+        _markdown_block(f"**{job.job_name}**"),
+        progress_table,
+        _markdown_block(_build_single_job_strategy_markdown(job)),
+    ]
+
+
+def _build_single_job_strategy_markdown(job: JobReportSummary) -> str:
+    lines = ["**下一步建议**"]
+    if job.relevant_count:
+        lines.append(f"- 已有 {job.relevant_count} 位90分以上明确匹配候选人，建议优先推进沟通。")
+    if job.needs_review_count:
+        lines.append(
+            f"- 完成 {job.needs_review_count} 位90分以上待复核候选人的人工判断，确认是否进入沟通名单。"
+        )
+    if not job.relevant_count and not job.needs_review_count:
+        lines.append("- 本次暂无90分以上候选人，建议扩大搜索范围或调整搜索词与筛选条件。")
+    return "\n".join(lines)
+
+
+def _metric_column(
+    weight: int,
+    content: str,
+    *,
+    text_align: str = "center",
+) -> dict[str, Any]:
+    return {
+        "tag": "column",
+        "width": "weighted",
+        "weight": weight,
+        "horizontal_align": text_align,
+        "vertical_align": "top",
+        "elements": [_markdown_block(content, text_align=text_align)],
+    }
+
+
+def _format_report_interval(
+    start_at: datetime | None,
+    end_at: datetime | None,
+) -> str:
+    if start_at is None:
+        return "-"
+    end_date = (end_at - timedelta(microseconds=1)).date() if end_at is not None else start_at.date()
+    if start_at.date() == end_date:
+        return start_at.strftime("%Y-%m-%d")
+    return f"{start_at:%Y-%m-%d} 至 {end_date:%Y-%m-%d}"
+
+
+def _format_cumulative_interval(
+    start_at: datetime | None,
+    end_at: datetime | None,
+) -> str:
+    if start_at is None or end_at is None:
+        return "-"
+    return f"{start_at:%Y-%m-%d} 至 {end_at:%Y-%m-%d}"
+
+
+def _build_detail_document_markdown(detail_pdf_url: str | None) -> str:
+    if detail_pdf_url:
+        return f"**今日候选人明细**\n[查看完整候选人明细及判断依据]({detail_pdf_url})"
+    return "**今日候选人明细**\n完整候选人明细文档暂时无法下载，请稍后重试。"
+
+
+def _build_detail_documents_markdown(
+    detail_pdf_urls_by_job: dict[str, str | None],
+) -> str:
+    lines = ["**今日候选人明细**"]
+    for job_name in ("达人营销总监", "财务共享与管理经理"):
+        detail_pdf_url = detail_pdf_urls_by_job.get(job_name)
+        if detail_pdf_url:
+            lines.append(f"- {job_name}：[查看候选人明细及判断依据]({detail_pdf_url})")
+        else:
+            lines.append(f"- {job_name}：暂无90分以上候选人")
+    return "\n".join(lines)
+
+
+def _metric_text(value: int | None) -> str:
+    return str(value) if value is not None else "-"
+
+
+def _formatted_metric_text(value: int | None) -> str:
+    return f"{value:,}" if value is not None else "-"
+
+
+def _build_strategy_markdown(role_summaries: list[RoleReportSummary]) -> str:
+    if not role_summaries:
+        return "**策略提示**\n- 暂无足够数据形成调整建议。"
+    relevant_count = sum(item.relevant_count for item in role_summaries)
+    review_count = sum(item.needs_review_count for item in role_summaries)
+    executed_count = sum(item.executed_keywords for item in role_summaries)
+    lines = ["**💡 下一步建议**"]
+    if relevant_count:
+        lines.append(
+            f"- 达人营销总监：本轮已有 {relevant_count} 位明确匹配，建议优先推进沟通。"
+        )
+    if review_count:
+        lines.append(f"- 完成 {review_count} 位待复核候选人的人工判断，确认是否进入沟通名单。")
+    if executed_count and not relevant_count and not review_count:
+        lines.append("- 本轮暂无可推进候选人，建议调整品牌池、搜索覆盖词或前置筛选条件。")
+    return "\n".join(lines)
+
+
+def _build_daily_strategy_markdown(summary: FeishuReportSummary) -> str:
+    lines = ["**💡 下一步建议**"]
+    if summary.relevant_count:
+        lines.append(
+            f"- 达人营销总监：已有 {summary.relevant_count} 位90分以上明确匹配候选人，建议优先推进沟通。"
+        )
+    if summary.needs_review_count:
+        lines.append(
+            f"- 达人营销总监：完成 {summary.needs_review_count} 位90分以上待复核候选人的人工判断，确认是否进入沟通名单。"
+        )
+    if not summary.relevant_count and not summary.needs_review_count:
+        lines.append(
+            "- 达人营销总监：本次暂无90分以上候选人，建议扩大搜索范围或调整搜索词与筛选条件。"
+        )
+    lines.append(
+        "- 财务共享与管理经理：本次暂无90分以上候选人，建议扩大搜索范围或调整搜索词与筛选条件。"
+    )
+    return "\n".join(lines)
+
+
+def _build_job_strategy_markdown(job_summaries: list[JobReportSummary]) -> str:
+    lines = ["**💡 下一步建议**"]
+    for job in job_summaries:
+        if job.relevant_count:
+            lines.append(
+                f"- {job.job_name}：已有 {job.relevant_count} 位明确匹配，建议优先推进沟通。"
+            )
+        if job.needs_review_count:
+            lines.append(
+                f"- {job.job_name}：完成 {job.needs_review_count} 位待复核候选人的人工判断，确认是否进入沟通名单。"
+            )
+        if not job.relevant_count and not job.needs_review_count and job.executed_keywords:
+            lines.append(
+                f"- {job.job_name}：本轮暂无匹配或待复核候选人，建议继续扩大搜索或调整搜索条件。"
+            )
+    if len(lines) == 1:
+        lines.append("- 当前统计窗口暂无岗位执行数据。")
+    return "\n".join(lines)
+
+
+def _format_rate(numerator: int, denominator: int) -> str:
+    if denominator <= 0:
+        return "-"
+    rate = numerator / denominator
+    if numerator > 0 and rate < 0.001:
+        return "<0.1%"
+    return f"{rate:.1%}"
+
+
+def _build_pdf_markdown(
+    detail_pdf_url: str | None,
+    *,
+    ranked_count: int,
+    review_count: int,
+) -> str:
+    total_count = ranked_count + review_count
+    lines = [
+        "**PDF**",
+        (
+            f"- PDF 分为“明确匹配”和“待人工复核”两部分：匹配 {ranked_count} 位，"
+            f"待复核 {review_count} 位，共 {total_count} 位。"
+        ),
+    ]
+    if detail_pdf_url:
+        lines.append(f"- 完整简历PDF：[点击下载]({detail_pdf_url})")
+    elif total_count:
+        lines.append("- 完整简历PDF已生成，但附件上传失败，当前暂不可下载；候选人摘要已在下方展示。")
+    else:
+        lines.append("- 当前没有生成PDF：本窗口内暂无符合PDF条件的候选人。")
+    return "\n".join(lines)
+
+
 def _build_candidate_section(candidates: list[ReportCandidate]) -> str:
     if not candidates:
-        return "今日无符合“75分以上、已打招呼且匹配”条件的候选人。"
+        return "今日无符合“75分以上且匹配”条件的命中简历。"
     blocks = [_format_candidate_block(candidate) for candidate in candidates]
     return "\n\n".join(blocks)
+
+
+def _build_review_candidate_section(candidates: list[ReportCandidate]) -> str:
+    if not candidates:
+        return "今日没有需要人工复核的简历。"
+    return "\n\n".join(_format_review_candidate_block(candidate) for candidate in candidates)
+
+
+def _build_recollection_candidate_section(candidates: list[ReportCandidate]) -> str:
+    if not candidates:
+        return "今日没有需要重新采集的简历。"
+    blocks: list[str] = []
+    for candidate in candidates:
+        role_text = " / ".join(sorted(filter(None, candidate.role_keywords))) or "无"
+        keywords_text = " / ".join(sorted(filter(None, candidate.search_keywords))) or "无"
+        blocks.append(
+            "\n".join(
+                [
+                    f"姓名：{_escape_markdown(candidate.candidate_name)}｜状态：需重新进入详情采集",
+                    f"岗位：{role_text}｜关键词：{keywords_text}",
+                    "原因：历史采集未保存完整简历正文，AI分析失败；重新采集后将自动复评。",
+                ]
+            )
+        )
+    return "\n\n".join(blocks)
+
+
+def _format_review_candidate_block(candidate: ReportCandidate) -> str:
+    score_text = str(candidate.match_score) if candidate.match_score is not None else "未评分"
+    role_text = " / ".join(sorted(filter(None, candidate.role_keywords))) or "无"
+    keywords_text = " / ".join(sorted(filter(None, candidate.search_keywords))) or "无"
+    reason_text = _format_review_reason(candidate)
+    evidence_text = (
+        candidate.recent_experience_summary
+        or "；".join(candidate.evidence_summary[:3])
+        or "无"
+    )
+    return "\n".join(
+        [
+            f"姓名：{_escape_markdown(candidate.candidate_name)}｜分数：{score_text}｜状态：待人工复核",
+            f"岗位：{role_text}｜关键词：{keywords_text}",
+            f"待复核原因：{reason_text}",
+            f"简历证据：{evidence_text}",
+        ]
+    )
 
 
 def _format_candidate_block(candidate: ReportCandidate) -> str:
     score_text = str(candidate.match_score) if candidate.match_score is not None else "未评分"
     keywords_text = " / ".join(sorted(filter(None, candidate.search_keywords))) or "无"
     role_text = " / ".join(sorted(filter(None, candidate.role_keywords))) or "无"
-    recent_work_text = candidate.recent_experience_summary or "无"
-    matched_work_text = candidate.matched_experience_summary or "无"
+    recent_work_text = (
+        candidate.recent_experience_summary
+        or (candidate.evidence_summary[0] if candidate.evidence_summary else "无")
+    )
+    matched_work_text = (
+        candidate.matched_experience_summary
+        or "；".join(candidate.evidence_summary[:3])
+        or "无"
+    )
     age_text = f"{candidate.candidate_age}岁" if candidate.candidate_age is not None else "无"
     display_name = _escape_markdown(candidate.candidate_name)
     return "\n".join(
@@ -357,12 +959,14 @@ def _format_status(candidate: ReportCandidate) -> str:
         return "已确认打招呼岗位"
     if candidate.hit_status == "skipped_recent_continue":
         return "7天内已打过招呼"
+    if candidate.hit_status == "send_failed:message_sending_disabled":
+        return "待沟通"
     if candidate.hit_status.startswith("send_failed:"):
         return "打招呼失败"
     if candidate.analysis_status == "匹配":
         return "匹配未打招呼"
     if candidate.match_result == "needs_review" or candidate.analysis_status == "待复核":
-        return "不匹配（待复核）"
+        return "待人工复核"
     if candidate.analysis_status == "不匹配" or candidate.match_result == "not_relevant":
         return "不匹配"
     return candidate.hit_status
@@ -384,12 +988,45 @@ def _select_candidates(
 
 def _is_featured_candidate(item: ReportCandidate) -> bool:
     return (
-        item.hit_status in {"sent", "immediate_job_confirmed"}
-        and (item.analysis_status == "匹配" or item.match_result == "relevant")
+        _is_relevant_candidate(item)
         and item.match_score is not None
         and item.match_score >= MIN_DISPLAY_SCORE
         and _is_report_age_allowed(item.candidate_age)
     )
+
+
+def _is_relevant_candidate(item: ReportCandidate) -> bool:
+    return item.match_result == "relevant" or (
+        item.match_result is None and item.analysis_status == "匹配"
+    )
+
+
+def _is_needs_review_candidate(item: ReportCandidate) -> bool:
+    return item.match_result == "needs_review" or item.analysis_status == "待复核"
+
+
+def _requires_recollection(item: ReportCandidate) -> bool:
+    return (
+        _is_needs_review_candidate(item)
+        and "Coze API" in (item.analysis_reason or "")
+        and not item.recent_experience_summary
+        and not item.evidence_summary
+    )
+
+
+def _format_review_reason(item: ReportCandidate) -> str:
+    if _requires_recollection(item):
+        return "历史采集未保存完整简历正文，需重新进入详情采集后自动复评。"
+    reason = _normalize_text(item.analysis_reason or "未提供复核原因")
+    if "Coze API" in reason:
+        return "AI分析暂时失败，系统将在日报生成时自动复评；本次暂需人工复核。"
+    return reason
+
+
+def _is_not_relevant_candidate(item: ReportCandidate) -> bool:
+    if _is_needs_review_candidate(item) or _is_relevant_candidate(item):
+        return False
+    return item.match_result == "not_relevant" or item.analysis_status == "不匹配"
 
 
 def _is_report_age_allowed(age: int | None) -> bool:
@@ -413,5 +1050,8 @@ def _section_header(title: str) -> dict[str, Any]:
     return {"tag": "div", "text": {"tag": "plain_text", "content": title}}
 
 
-def _markdown_block(content: str) -> dict[str, Any]:
-    return {"tag": "div", "text": {"tag": "lark_md", "content": content}}
+def _markdown_block(content: str, *, text_align: str | None = None) -> dict[str, Any]:
+    text: dict[str, Any] = {"tag": "lark_md", "content": content}
+    if text_align is not None:
+        text["text_align"] = text_align
+    return {"tag": "div", "text": text}
