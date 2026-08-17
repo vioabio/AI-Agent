@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import random
 import sys
 import time
@@ -34,15 +35,21 @@ LOGGER = get_logger(__name__)
 class WorkflowCheckpointStore:
     path: Path
 
-    def load_completed_keys(self) -> set[str]:
+    def load_completed_keys(self, *, catalog_key: str) -> set[str]:
         payload = self._load_payload()
+        stored_catalog_key = payload.get("catalog_key")
+        if stored_catalog_key and stored_catalog_key != catalog_key:
+            return set()
         raw_items = payload.get("completed_keyword_keys")
         if not isinstance(raw_items, list):
             return set()
         return {str(item) for item in raw_items if isinstance(item, str) and item.strip()}
 
-    def load_in_progress_keyword(self) -> dict[str, object] | None:
+    def load_in_progress_keyword(self, *, catalog_key: str) -> dict[str, object] | None:
         payload = self._load_payload()
+        stored_catalog_key = payload.get("catalog_key")
+        if stored_catalog_key and stored_catalog_key != catalog_key:
+            return None
         item = payload.get("in_progress_keyword")
         return dict(item) if isinstance(item, dict) else None
 
@@ -52,14 +59,19 @@ class WorkflowCheckpointStore:
         seed: SearchTaskSeed,
         index: int,
         total_keywords: int,
+        catalog_key: str,
     ) -> None:
         payload = self._load_payload()
+        self._adopt_or_reset_catalog(payload, catalog_key)
         payload["in_progress_keyword"] = {
             "key": build_seed_key(seed),
             "index": index,
             "total_keywords": total_keywords,
             "brand_keyword": seed.brand_keyword,
             "role_keyword": seed.role_keyword,
+            "query_text": seed.effective_query,
+            "strategy": seed.strategy,
+            "search_pack_id": seed.search_pack_id,
             "started_at": int(time.time()),
         }
         payload["updated_at"] = int(time.time())
@@ -72,8 +84,10 @@ class WorkflowCheckpointStore:
         index: int,
         total_keywords: int,
         end_reason: str,
+        catalog_key: str,
     ) -> None:
         payload = self._load_payload()
+        self._adopt_or_reset_catalog(payload, catalog_key)
         completed = {
             str(item)
             for item in payload.get("completed_keyword_keys", [])
@@ -86,9 +100,45 @@ class WorkflowCheckpointStore:
             "total_keywords": total_keywords,
             "brand_keyword": seed.brand_keyword,
             "role_keyword": seed.role_keyword,
+            "query_text": seed.effective_query,
+            "strategy": seed.strategy,
+            "search_pack_id": seed.search_pack_id,
             "end_reason": end_reason,
             "completed_at": int(time.time()),
         }
+        payload.pop("in_progress_keyword", None)
+        payload["updated_at"] = int(time.time())
+        self._save_payload(payload)
+
+    def mark_failed(
+        self,
+        *,
+        seed: SearchTaskSeed,
+        index: int,
+        total_keywords: int,
+        error_message: str,
+        catalog_key: str,
+    ) -> None:
+        payload = self._load_payload()
+        self._adopt_or_reset_catalog(payload, catalog_key)
+        key = build_seed_key(seed)
+        failures = payload.get("failed_keyword_attempts")
+        failures = dict(failures) if isinstance(failures, dict) else {}
+        previous = failures.get(key)
+        previous_count = int(previous.get("attempts") or 0) if isinstance(previous, dict) else 0
+        failures[key] = {
+            "attempts": previous_count + 1,
+            "index": index,
+            "total_keywords": total_keywords,
+            "brand_keyword": seed.brand_keyword,
+            "role_keyword": seed.role_keyword,
+            "query_text": seed.effective_query,
+            "strategy": seed.strategy,
+            "search_pack_id": seed.search_pack_id,
+            "error_message": error_message[:500],
+            "failed_at": int(time.time()),
+        }
+        payload["failed_keyword_attempts"] = failures
         payload.pop("in_progress_keyword", None)
         payload["updated_at"] = int(time.time())
         self._save_payload(payload)
@@ -101,20 +151,39 @@ class WorkflowCheckpointStore:
         if not self.path.exists():
             return {}
         try:
-            return json.loads(self.path.read_text(encoding="utf-8"))
-        except Exception:
+            payload = json.loads(self.path.read_text(encoding="utf-8"))
+            return dict(payload) if isinstance(payload, dict) else {}
+        except (OSError, json.JSONDecodeError):
+            corrupt_path = self.path.with_suffix(self.path.suffix + f".corrupt.{int(time.time())}")
+            try:
+                os.replace(self.path, corrupt_path)
+            except OSError:
+                pass
             return {}
 
     def _save_payload(self, payload: dict[str, object]) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(
+        temporary_path = self.path.with_suffix(self.path.suffix + ".tmp")
+        temporary_path.write_text(
             json.dumps(payload, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+        os.replace(temporary_path, self.path)
+
+    @staticmethod
+    def _adopt_or_reset_catalog(payload: dict[str, object], catalog_key: str) -> None:
+        stored_catalog_key = payload.get("catalog_key")
+        if stored_catalog_key and stored_catalog_key != catalog_key:
+            payload.clear()
+        payload["catalog_key"] = catalog_key
 
 
 def build_seed_key(seed: SearchTaskSeed) -> str:
-    return f"{seed.brand_keyword}|||{seed.role_keyword}"
+    if seed.strategy == "legacy" and not seed.query_text:
+        return f"{seed.brand_keyword}|||{seed.role_keyword}"
+    return "|||".join(
+        (seed.strategy, seed.job_profile_id or "", seed.search_pack_id or "", seed.effective_query)
+    )
 
 
 @dataclass(slots=True)
@@ -146,9 +215,11 @@ class SearchWorkflowRunner:
         result_filter: ResultPageFilter,
         *,
         checkpoint_store: WorkflowCheckpointStore | None = None,
+        checkpoint_catalog_key: str = "",
     ) -> None:
         self.result_filter = result_filter
         self.checkpoint_store = checkpoint_store
+        self.checkpoint_catalog_key = checkpoint_catalog_key
 
     def run(self, seeds: list[SearchTaskSeed], output_dir=None) -> SearchWorkflowReport:
         settings = get_settings()
@@ -181,11 +252,11 @@ class SearchWorkflowRunner:
                 )
                 failed_result = self._build_failed_keyword_result(index, seed, error_message)
                 keyword_runs.append(failed_result)
-                self._mark_checkpoint(
+                self._mark_checkpoint_failure(
                     seed=seed,
                     index=index,
                     total_keywords=total_keywords,
-                    end_reason=failed_result.end_reason,
+                    error_message=error_message,
                 )
                 if consecutive_errors >= max(1, settings.workflow_max_consecutive_keyword_errors):
                     LOGGER.error(
@@ -219,11 +290,14 @@ class SearchWorkflowRunner:
                         "total_keywords": total_keywords,
                         "brand_keyword": seed.brand_keyword,
                         "role_keyword": seed.role_keyword,
+                        "query_text": seed.effective_query,
+                        "strategy": seed.strategy,
+                        "search_pack_id": seed.search_pack_id,
                     },
                 },
             )
             self._print_progress(
-                f"[{index}/{total_keywords}] 开始执行：{seed.brand_keyword} | {seed.role_keyword}"
+                f"[{index}/{total_keywords}] 开始执行：{seed.effective_query}"
             )
             run_report: FilterRunReport | None = None
             error_message: str | None = None
@@ -280,11 +354,11 @@ class SearchWorkflowRunner:
                     error_message or "unknown_error",
                 )
                 keyword_runs.append(failed_result)
-                self._mark_checkpoint(
+                self._mark_checkpoint_failure(
                     seed=seed,
                     index=index,
                     total_keywords=total_keywords,
-                    end_reason=failed_result.end_reason,
+                    error_message=error_message or "unknown_error",
                 )
                 if consecutive_errors >= max(1, settings.workflow_max_consecutive_keyword_errors):
                     LOGGER.error(
@@ -323,7 +397,11 @@ class SearchWorkflowRunner:
                         "total_keywords": total_keywords,
                         "brand_keyword": seed.brand_keyword,
                         "role_keyword": seed.role_keyword,
+                        "query_text": seed.effective_query,
+                        "strategy": seed.strategy,
+                        "search_pack_id": seed.search_pack_id,
                         "matched": run_report.matched,
+                        "screened_candidates": run_report.screened_candidates,
                         "profiles_collected": run_report.profiles_collected,
                         "end_reason": run_report.end_reason,
                     },
@@ -399,13 +477,14 @@ class SearchWorkflowRunner:
             return
         self.result_filter.device.ensure_healthy()
 
-    def _ensure_target_app_foreground(self) -> None:
+    def _ensure_target_app_foreground(self, *, force_restart: bool = False) -> None:
         settings = get_settings()
         ensure_liepin_started(
             self.result_filter.device,
             resolve_liepin_package(settings.liepin_package),
             resolve_liepin_main_activity(settings.liepin_main_activity),
             settle_seconds=3.0,
+            force_restart=force_restart,
         )
 
     def _mark_checkpoint(
@@ -423,6 +502,7 @@ class SearchWorkflowRunner:
             index=index,
             total_keywords=total_keywords,
             end_reason=end_reason,
+            catalog_key=self.checkpoint_catalog_key,
         )
 
     def _mark_started_checkpoint(
@@ -438,15 +518,66 @@ class SearchWorkflowRunner:
             seed=seed,
             index=index,
             total_keywords=total_keywords,
+            catalog_key=self.checkpoint_catalog_key,
+        )
+
+    def _mark_checkpoint_failure(
+        self,
+        *,
+        seed: SearchTaskSeed,
+        index: int,
+        total_keywords: int,
+        error_message: str,
+    ) -> None:
+        if self.checkpoint_store is None:
+            return
+        self.checkpoint_store.mark_failed(
+            seed=seed,
+            index=index,
+            total_keywords=total_keywords,
+            error_message=error_message,
+            catalog_key=self.checkpoint_catalog_key,
         )
 
     def _recover_to_search_surface_for_retry(self, *, seed: SearchTaskSeed) -> bool:
+        settings = get_settings()
+        target_package = resolve_liepin_package(settings.liepin_package)
         detector = build_page_detector()
         try:
-            self._ensure_target_app_foreground()
+            self._ensure_target_app_foreground(force_restart=True)
         except Exception:
             pass
         for attempt in range(1, 9):
+            try:
+                current_app = self.result_filter.device.current_app()
+            except DeviceConnectionError:
+                return False
+            except Exception:
+                current_app = {}
+            current_package = str(current_app.get("package") or "")
+            if current_package and current_package != target_package:
+                LOGGER.info(
+                    "Target app is not foreground during keyword retry recovery, restarting it",
+                    extra={
+                        "event": "keyword_retry_foreground_recovery",
+                        "context": {
+                            "brand_keyword": seed.brand_keyword,
+                            "role_keyword": seed.role_keyword,
+                            "attempt": attempt,
+                            "current_package": current_package,
+                            "target_package": target_package,
+                        },
+                    },
+                )
+                try:
+                    self._ensure_target_app_foreground(force_restart=True)
+                except DeviceConnectionError:
+                    return False
+                except Exception:
+                    pass
+                time.sleep(random.uniform(3.0, 5.0))
+                continue
+
             try:
                 hierarchy_text = self.result_filter.device.dump_hierarchy_text()
                 root = ElementTree.fromstring(hierarchy_text)
@@ -474,6 +605,27 @@ class SearchWorkflowRunner:
                 PageState.SEARCH_CONDITION,
             ):
                 return True
+            if page_state in (PageState.RISK_CONTROL, PageState.NETWORK_ERROR):
+                LOGGER.info(
+                    "Restarting target app after recoverable blocking page during keyword retry",
+                    extra={
+                        "event": "keyword_retry_blocking_page_restart",
+                        "context": {
+                            "brand_keyword": seed.brand_keyword,
+                            "role_keyword": seed.role_keyword,
+                            "attempt": attempt,
+                            "page_state": page_state.value,
+                        },
+                    },
+                )
+                try:
+                    self._ensure_target_app_foreground(force_restart=True)
+                except DeviceConnectionError:
+                    return False
+                except Exception:
+                    pass
+                time.sleep(random.uniform(3.0, 5.0))
+                continue
             if root is not None:
                 if self.result_filter.navigator.dismiss_interruption_if_present(root):
                     time.sleep(random.uniform(3.0, 5.0))

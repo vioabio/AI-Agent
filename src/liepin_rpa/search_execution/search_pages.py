@@ -26,6 +26,8 @@ SEARCH_INTERRUPTION_DISMISS_LABELS = (
     "跳过",
 )
 LOGGER = get_logger(__name__)
+UNKNOWN_RESET_PROBE_LIMIT = 3
+UNKNOWN_NAVIGATION_PROBE_LIMIT = 4
 
 
 class SearchFlowError(RuntimeError):
@@ -51,6 +53,7 @@ class SearchPageNavigator:
             role_keyword=seed.role_keyword,
         )
         self._reset_to_search_surface()
+        unknown_probe_count = 0
         for _ in range(10):
             hierarchy_text = self.device.dump_hierarchy_text()
             detection = self.detector.detect_from_xml_text(hierarchy_text)
@@ -74,17 +77,27 @@ class SearchPageNavigator:
                 self._wait()
                 continue
             if detection.state == PageState.UNKNOWN:
+                unknown_probe_count += 1
+                if unknown_probe_count >= UNKNOWN_NAVIGATION_PROBE_LIMIT:
+                    break
                 self._wait()
                 continue
+            if detection.state in (PageState.RISK_CONTROL, PageState.NETWORK_ERROR):
+                raise SearchFlowError(
+                    "Unable to reach search result page because a blocking page appeared, "
+                    f"current state: {detection.state.value}"
+                )
             if detection.state in (
                 PageState.HOME_RECOMMEND,
                 PageState.RESULT_LIST,
                 PageState.EMPTY_RESULT,
             ):
+                unknown_probe_count = 0
                 self.tap_search_entry(root)
                 self._wait()
                 continue
             if detection.state in (PageState.SEARCH_ENTRY, PageState.SEARCH_CONDITION):
+                unknown_probe_count = 0
                 self.submit_exact_search(seed, root)
                 continue
             raise SearchFlowError(
@@ -104,11 +117,12 @@ class SearchPageNavigator:
             )
             return detection.state
         raise SearchFlowError(
-            f"Unable to reach search result page for keyword `{seed.role_keyword} {seed.brand_keyword}`. "
+            f"Unable to reach search result page for keyword `{seed.effective_query}`. "
             f"Current state: {detection.state.value}"
         )
 
     def _reset_to_search_surface(self) -> None:
+        unknown_probe_count = 0
         for _ in range(10):
             hierarchy_text = self.device.dump_hierarchy_text()
             detection = self.detector.detect_from_xml_text(hierarchy_text)
@@ -151,8 +165,19 @@ class SearchPageNavigator:
                 self._wait()
                 continue
             if detection.state == PageState.UNKNOWN:
+                unknown_probe_count += 1
+                if unknown_probe_count >= UNKNOWN_RESET_PROBE_LIMIT:
+                    raise SearchFlowError(
+                        "Unable to reset to search surface before next keyword, "
+                        "current state: unknown"
+                    )
                 self._wait()
                 continue
+            if detection.state in (PageState.RISK_CONTROL, PageState.NETWORK_ERROR):
+                raise SearchFlowError(
+                    "Unable to reset to search surface before next keyword, "
+                    f"current state: {detection.state.value}"
+                )
             raise SearchFlowError(
                 "Unable to reset to search surface before next keyword, "
                 f"current state: {detection.state.value}"
@@ -240,7 +265,7 @@ class SearchPageNavigator:
         seed: SearchTaskSeed,
         root: ElementTree.Element,
     ) -> None:
-        query_text = f"{seed.role_keyword} {seed.brand_keyword}"
+        query_text = seed.effective_query
         search_box_center = find_search_box(root)
         if search_box_center is None:
             raise SearchFlowError("Search box control not found on search page")

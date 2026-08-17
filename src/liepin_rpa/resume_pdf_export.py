@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from html import escape as html_escape
 from pathlib import Path
 from typing import Iterable
 
@@ -19,7 +20,7 @@ from reportlab.platypus import (
     Spacer,
 )
 
-from liepin_rpa.feishu_report import ReportCandidate
+from liepin_rpa.feishu_report import MIN_DISPLAY_SCORE, ReportCandidate
 
 PDF_FONT_NAME = "MicrosoftYaHei"
 PDF_BOLD_FONT_NAME = "MicrosoftYaHeiBold"
@@ -36,10 +37,31 @@ def export_featured_resume_pdf(
     *,
     output_path: Path,
     candidates: Iterable[ReportCandidate],
+    review_candidates: Iterable[ReportCandidate] = (),
+    cumulative_review_candidates: Iterable[ReportCandidate] = (),
+    other_candidates: Iterable[ReportCandidate] = (),
+    recollection_candidates: Iterable[ReportCandidate] = (),
     experience_by_fingerprint: dict[str, str],
+    resume_link_by_fingerprint: dict[str, str] | None = None,
+    interaction_note_by_fingerprint: dict[str, str] | None = None,
+    job_name: str | None = None,
 ) -> Path | None:
     candidate_list = list(candidates)
-    if not candidate_list:
+    review_candidate_list = list(review_candidates)
+    cumulative_review_candidate_list = list(cumulative_review_candidates)
+    other_candidate_list = list(other_candidates)
+    recollection_candidate_list = list(recollection_candidates)
+    resume_links = resume_link_by_fingerprint or {}
+    interaction_notes = interaction_note_by_fingerprint or {}
+    if not any(
+        (
+            candidate_list,
+            review_candidate_list,
+            cumulative_review_candidate_list,
+            other_candidate_list,
+            recollection_candidate_list,
+        )
+    ):
         return None
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -52,16 +74,45 @@ def export_featured_resume_pdf(
         rightMargin=14 * mm,
         topMargin=14 * mm,
         bottomMargin=14 * mm,
-        title="匹配候选人简历",
+        title=f"{job_name}候选人简历" if job_name else "匹配候选人简历",
         author="Liepin RPA",
     )
 
     story: list[object] = []
-    total = len(candidate_list)
-    for index, candidate in enumerate(candidate_list, start=1):
-        experience = (experience_by_fingerprint.get(candidate.candidate_fingerprint) or "").strip()
-        story.extend(_build_candidate_story(candidate, experience, styles, index=index, total=total))
-        if index < total:
+    sections = [
+        ("明确匹配简历", candidate_list),
+        ("本批次待人工复核简历", review_candidate_list),
+        ("历史累计待人工复核简历", cumulative_review_candidate_list),
+        ("其他已分析简历", other_candidate_list),
+        ("需重新采集简历", recollection_candidate_list),
+    ]
+    nonempty_sections = [(title, items) for title, items in sections if items]
+    for section_index, (section_title, section_candidates) in enumerate(nonempty_sections):
+        displayed_section_title = (
+            f"{job_name}｜{section_title}" if job_name else section_title
+        )
+        story.append(Paragraph(displayed_section_title, styles["section_title"]))
+        story.append(Spacer(1, 5))
+        total = len(section_candidates)
+        for index, candidate in enumerate(section_candidates, start=1):
+            experience = (
+                experience_by_fingerprint.get(candidate.candidate_fingerprint) or ""
+            ).strip()
+            resume_link = resume_links.get(candidate.candidate_fingerprint)
+            story.extend(
+                _build_candidate_story(
+                    candidate,
+                    experience,
+                    styles,
+                    index=index,
+                    total=total,
+                    resume_link=resume_link,
+                    interaction_note=interaction_notes.get(candidate.candidate_fingerprint),
+                )
+            )
+            if index < total:
+                story.append(PageBreak())
+        if section_index < len(nonempty_sections) - 1:
             story.append(PageBreak())
 
     doc.build(story)
@@ -78,6 +129,16 @@ def _register_pdf_fonts() -> None:
 def _build_styles() -> dict[str, ParagraphStyle]:
     sample = getSampleStyleSheet()
     return {
+        "section_title": ParagraphStyle(
+            "ResumePdfSectionTitle",
+            parent=sample["Title"],
+            fontName=PDF_BOLD_FONT_NAME,
+            fontSize=20,
+            leading=28,
+            alignment=0,
+            textColor=colors.HexColor("#1D4ED8"),
+            spaceAfter=10,
+        ),
         "title": ParagraphStyle(
             "ResumePdfTitle",
             parent=sample["Title"],
@@ -96,6 +157,16 @@ def _build_styles() -> dict[str, ParagraphStyle]:
             leading=14,
             textColor=colors.HexColor("#374151"),
             spaceAfter=2,
+        ),
+        "resume_link": ParagraphStyle(
+            "ResumePdfLink",
+            parent=sample["Normal"],
+            fontName=PDF_FONT_NAME,
+            fontSize=10,
+            leading=15,
+            textColor=colors.HexColor("#2563EB"),
+            spaceBefore=3,
+            spaceAfter=5,
         ),
         "section": ParagraphStyle(
             "ResumePdfSection",
@@ -138,32 +209,73 @@ def _build_candidate_story(
     *,
     index: int,
     total: int,
+    resume_link: str | None = None,
+    interaction_note: str | None = None,
 ) -> list[object]:
     score_text = str(candidate.match_score) if candidate.match_score is not None else "未评分"
     age_text = f"{candidate.candidate_age}岁" if candidate.candidate_age is not None else "无"
     keywords_text = " / ".join(sorted(filter(None, candidate.search_keywords))) or "无"
     role_text = " / ".join(sorted(filter(None, candidate.role_keywords))) or "无"
-    recent_work = candidate.recent_experience_summary or "无"
-    matched_work = candidate.matched_experience_summary or "无"
+    recent_work = (
+        candidate.recent_experience_summary
+        or (candidate.evidence_summary[0] if candidate.evidence_summary else "无")
+    )
+    matched_work = (
+        candidate.matched_experience_summary
+        or "；".join(candidate.evidence_summary[:3])
+        or "无"
+    )
     reason_text = " ".join((candidate.analysis_reason or "无").split())
 
     story: list[object] = [
         Paragraph(f"{index}/{total}  {candidate.candidate_name}", styles["title"]),
         Paragraph(
-            f"年龄：{age_text}　分数：{score_text}　状态：{_format_hit_status(candidate.hit_status)}",
+            f"年龄：{age_text}　分数：{score_text}　状态：{_format_candidate_status(candidate)}",
             styles["meta"],
         ),
         Paragraph(f"关键词：{keywords_text}", styles["meta"]),
         Paragraph(f"岗位：{role_text}", styles["meta"]),
         Paragraph(f"最近一段经历：{recent_work}", styles["meta"]),
         Paragraph(f"匹配经历：{matched_work}", styles["meta"]),
-        Spacer(1, 3),
-        HRFlowable(width="100%", thickness=0.6, color=colors.HexColor("#D1D5DB"), spaceAfter=7),
-        Paragraph("分析结论", styles["section"]),
-        Paragraph(_escape(reason_text), styles["body"]),
-        Paragraph("简历原文", styles["section"]),
     ]
-    story.extend(_build_resume_body(experience, styles))
+    if interaction_note:
+        story.append(
+            Paragraph(
+                f"猎聘互动提示（非姓名）：{_escape(interaction_note)}",
+                styles["meta"],
+            )
+        )
+    if resume_link:
+        safe_link = html_escape(resume_link, quote=True)
+        story.append(
+            Paragraph(
+                f'猎聘简历：<link href="{safe_link}" color="#2563EB"><u>点击查看猎聘原始简历</u></link>',
+                styles["resume_link"],
+            )
+        )
+    story.extend(
+        [
+            Spacer(1, 3),
+            HRFlowable(
+                width="100%",
+                thickness=0.6,
+                color=colors.HexColor("#D1D5DB"),
+                spaceAfter=7,
+            ),
+            Paragraph("分析结论", styles["section"]),
+            Paragraph(_escape(reason_text), styles["body"]),
+            Paragraph("简历原文", styles["section"]),
+        ]
+    )
+    if experience.strip():
+        story.extend(_build_resume_body(experience, styles))
+    else:
+        story.append(
+            Paragraph(
+                "本次历史采集未留存完整简历正文；请依据上方分析结论和证据摘要进行人工复核。",
+                styles["body"],
+            )
+        )
     return story
 
 
@@ -247,7 +359,46 @@ def _format_hit_status(hit_status: str) -> str:
         return "已打招呼"
     if hit_status == "immediate_job_confirmed":
         return "已确认打招呼岗位"
+    if hit_status == "send_failed:message_sending_disabled":
+        return "待沟通"
+    if hit_status.startswith("send_failed:"):
+        return "未打招呼"
     return hit_status or "未知"
+
+
+def _format_candidate_status(candidate: ReportCandidate) -> str:
+    if _requires_recollection(candidate):
+        return "需重新采集"
+    if _requires_analysis_retry(candidate):
+        return "AI分析重试"
+    if (
+        candidate.match_result == "needs_review" or candidate.analysis_status == "待复核"
+    ) and candidate.match_score is not None and candidate.match_score >= MIN_DISPLAY_SCORE:
+        return "待人工复核"
+    if candidate.match_result == "needs_review" or candidate.analysis_status == "待复核":
+        return f"不匹配（未达{MIN_DISPLAY_SCORE}分待复核线）"
+    if candidate.match_result == "not_relevant" or candidate.analysis_status == "不匹配":
+        return "不匹配"
+    return _format_hit_status(candidate.hit_status)
+
+
+def _requires_recollection(candidate: ReportCandidate) -> bool:
+    return (
+        _is_coze_api_failure(candidate)
+        and not candidate.recent_experience_summary
+        and not candidate.evidence_summary
+    )
+
+
+def _requires_analysis_retry(candidate: ReportCandidate) -> bool:
+    return _is_coze_api_failure(candidate) and not _requires_recollection(candidate)
+
+
+def _is_coze_api_failure(candidate: ReportCandidate) -> bool:
+    return bool(
+        (candidate.match_result == "needs_review" or candidate.analysis_status == "待复核")
+        and "Coze API" in (candidate.analysis_reason or "")
+    )
 
 
 def _escape(text: str) -> str:

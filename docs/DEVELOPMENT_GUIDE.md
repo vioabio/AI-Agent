@@ -43,13 +43,23 @@
 
 日报与 PDF 展示也应用同一年龄口径：已知年龄不在 `32-44` 范围内的候选人，不进入高分候选展示与 PDF。
 
-### 0.4 飞书日报窗口与水位
+### 0.3.1 JD 智能模式的上海求职意向硬门槛
 
-日报默认不再只看“昨天”，而是使用发送水位：`上次成功发送日报时间 -> 本次发送时间`。
+两个当前 JD 岗位（达人营销与达播负责人、财务共享与管理经理）都在各自岗位配置中设置：
 
-如果周末电脑没开机、定时任务没有执行，下次发送会自动覆盖上次成功发送之后到当前时间之间的数据，不会漏掉中间日期。
+```yaml
+required_job_intent_city: "上海"
+```
 
-只有飞书日报真正发送成功后，才会写入日报发送记录表 `candidate_resume_daily_report_runs` 并推进水位。测试发送或 dry-run 不会推进水位。
+流程进入详情并采集完整简历后，只读取“求职意向”区的原文。该区域必须明确包含“上海”才会继续调用 Coze 并进入沟通流程。当前所在地为上海、搜索城市为上海、曾在上海工作，均不能替代求职意向证据；未填写、未采集到、填写其他城市，或明确排除上海，统一记录为 `job_intent_city_rejected` 并跳过。
+
+### 0.4 飞书日报批次窗口
+
+日报默认不按“昨天”或发送水位取数，而是读取最近一个正常完成的双岗位搜索批次。
+
+批次从达人营销岗位第一次开始搜索的上海本地时间开始，到财务共享与管理经理岗位正常完成的上海本地时间结束。中途暂停、进程重启和断点续跑都沿用同一批次；第二个岗位未正常完成时，日报拒绝取数。
+
+批次信息持久化在 `artifacts/search_workflow_batches.json`。数据库 `created_at` 按上海本地时间直接比较，不减 8 小时；日志文件中的 UTC 时间仅在日志统计时转换。
 
 ### 0.5 飞书日报展示规则
 
@@ -464,19 +474,18 @@ Coze 已增加以下保护：
 
 ### 13.1 默认统计窗口
 
-默认统计窗口不是固定“昨天”，而是：
+默认统计窗口为最近一个正常完成的双岗位搜索批次：
 
 ```text
-上次成功发送日报时间 -> 本次发送时间
+达人营销岗位第一次开始搜索 -> 财务共享与管理经理岗位正常结束
 ```
 
-这样即使周末电脑没开机，下一次发送也会自动补上中间未发送的数据。
+暂停、失败重启和断点续跑不会生成新批次。当前批次未完成时，即使两个岗位之间暂时没有搜索进程，日报也不会退回上一批次或自然日数据。
 
-只有飞书发送成功后，才会写入 `candidate_resume_daily_report_runs` 并推进水位。dry-run 和测试发送不推进水位。
-
-如果需要手动查看固定日期，仍可使用：
+默认命令直接读取最近完成批次；固定日期参数仅用于排障：
 
 ```powershell
+.\.venv\Scripts\python.exe scripts\send_db_daily_report.py --use-cache
 .\.venv\Scripts\python.exe scripts\send_db_daily_report.py --use-cache --report-date 2026-07-14
 .\.venv\Scripts\python.exe scripts\send_db_daily_report.py --use-cache --yesterday
 ```
@@ -565,3 +574,68 @@ PDF 会上传到云服务器，并在飞书日报中提供下载链接。
 - 候选人同名、同公司、同岗位时，仍存在小概率误合并。
 - 平台长时间高频搜索仍有触发风控的风险。
 - USB 或 uiautomator2 链路不稳定时，虽然已增加重试，但不能完全消除外部设备故障。
+
+
+
+### 0.2.1 ????????????
+
+??????????????????????????? `120-150` ?????????????????????????????? checkpoint ??????
+
+???
+
+- ???? `--brand`?`--role`?`--limit` ???????????????
+- ?????? `WORKFLOW_DAILY_KEYWORD_MIN` ? `WORKFLOW_DAILY_KEYWORD_MAX` ??????????????
+- ???????? `artifacts/search_workflow_checkpoint.json` ?????
+- ????????/??????? `--limit` ?????????????
+
+?????
+
+```env
+WORKFLOW_DAILY_KEYWORD_MIN=120
+WORKFLOW_DAILY_KEYWORD_MAX=150
+```
+
+?????????
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install_daily_search_task.ps1
+```
+
+??????? 08:00 ?? `scripts/run_daily_search.ps1`?runner ?????? 08:00-09:00 ?????????????????
+
+## 17. Reliability and Delivery Guarantees
+
+### Candidate identity and analysis cache
+
+- Candidate experience identity uses the complete normalized `experience` text and an `xxhash` digest. It is no longer truncated before hashing.
+- `experience_hash_version=2` identifies records built with the full-text algorithm. Existing records are migrated when the schema is initialized.
+- Coze analysis cache keys include candidate fingerprint, experience hash, and `COZE_ANALYSIS_VERSION`. Change the version whenever the Coze workflow or scoring prompt changes to force a safe re-analysis.
+- Coze output is accepted only when `match_score` is an integer from 0 to 100 and `score_breakdown` contains exactly `beauty_continuity`, `industry_depth`, and `role_evidence`; the three values must sum to the score.
+
+### Batch continuation and mutual exclusion
+
+- Search checkpoints are written atomically. A keyword is marked complete only after its workflow succeeds.
+- Failed keywords are stored as failed attempts and are retried on the next run instead of being silently skipped.
+- Each checkpoint is bound to a digest of the active keyword catalog. Changing the catalog starts a fresh checkpoint scope and prevents an old checkpoint from skipping unrelated keywords.
+- `artifacts/search_workflow.lock` prevents overlapping search runs. `artifacts/daily_report.lock` prevents overlapping report runs.
+- The daily report command can wait for an active search lock to clear before reading the database. Configure the limits with `WORKFLOW_LOCK_STALE_SECONDS` and `DAILY_REPORT_WAIT_FOR_SEARCH_SECONDS`.
+
+### Report delivery and external services
+
+- Each daily report snapshot has a deterministic `report_key`. Feishu delivery is skipped when the same snapshot was already recorded as sent.
+- Delivery status is persisted as pending, uploaded, sent, upload_failed, or feishu_failed so that retries do not advance the reporting watermark prematurely.
+- If a PDF upload is configured but fails, Feishu is not sent without the required attachment link.
+- SSH/SCP PDF upload uses strict host-key verification through `PDF_UPLOAD_KNOWN_HOSTS`; unknown hosts fail safely instead of being accepted automatically.
+
+### Operations and privacy
+
+- Runtime logs rotate daily and are retained for `LOG_RETENTION_DAYS` days. Candidate names and resume-like fields are masked unless `LOG_PII=true` is explicitly configured.
+- Regression fixtures live under `tests/fixtures`; runtime output directories are not test dependencies.
+- Before a production batch, run `pytest` and confirm the device, database, Coze authentication, and SSH host key are available.
+
+### Cache and generated artifacts
+
+- Safe-to-remove local caches are Python `__pycache__` directories, `*.pyc` files, `.pytest_cache`, `.pytest-tmp`, `.mypy_cache`, and `.ruff_cache`. They are recreated automatically and must not be committed.
+- Do not delete `artifacts/search_workflow_checkpoint.json`; it is the keyword continuation checkpoint. Do not delete an active `artifacts/*.lock` file while its owning workflow is still running.
+- Do not treat `artifacts/daily_reports`, `logs`, generated PDFs, or database records as cache. These are operational outputs and may be required for report delivery, audit, or recovery.
+- Cache cleanup must exclude `.venv`, `.env`, configuration files, the database, and all `artifacts` contents unless a specific recovery procedure explicitly requires otherwise.

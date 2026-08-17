@@ -32,7 +32,7 @@
 1. 创建并激活虚拟环境
 
 ```powershell
-C:\Users\MCsir\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m venv .venv
+.\scripts\rebuild_venv.ps1
 .\.venv\Scripts\Activate.ps1
 ```
 
@@ -161,11 +161,10 @@ config/roles.yaml
 
 当前约束：
 
-- 只使用 53 个品牌关键词
-- 只使用 12 个岗位关键词
+- 只使用 `config/brands.yaml` 与 `config/roles.yaml` 中启用的关键词
 - 不自动扩词
 - 默认任职范围是 `CURRENT_AND_FORMER`
-- 当前组合总数为 `53 x 12 = 636`
+- 组合总数随 YAML 配置自动计算，修改配置后断点会自动切换到新的关键词目录
 
 预览搜索任务：
 
@@ -180,6 +179,17 @@ config/roles.yaml
 ```powershell
 .\.venv\Scripts\python.exe scripts\run_search_workflow.py --brand 珀莱雅 --role 达播总监 --output-dir outputs\search_workflow
 ```
+
+只采集、分析并写入数据库，不发起候选人沟通：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\run_search_workflow.py --collect-only
+```
+
+默认使用旧版前置规则：结果卡片必须同时精确命中品牌词与岗位词，且通过年龄、
+学历和去重检查后才进入详情，再由 Coze 判断岗位匹配。AI 前置筛选版本仍保留；
+设置 `WORKFLOW_AI_FIRST_SELECTION=true` 后，会让基础过滤通过的候选人直接进入
+详情和 AI 分析，并按 `WORKFLOW_MAX_PROFILES_PER_KEYWORD` 限制每个关键词的数量。
 
 结果页筛选流程：
 
@@ -269,6 +279,40 @@ config/roles.yaml
 - 结果页候选卡片抽取
 - 详情页文本/展开控件解析
 - 候选人简历 schema 构建
+- 跨账号候选人来源索引提取、持久化和回查策略
+
+## 跨账号候选人回查
+
+详情采集会写入 `candidate_resume_source_locators`：保存账号别名、设备、岗位配置、
+搜索词、结果轮次和排名、候选卡片快照、详情 Activity/截图，以及授权 UI 明确暴露的
+候选人 ID、简历 ID 或猎聘深链。平台定位信息不保证跨账号可见，因此打开或重搜后仍以
+`experience_hash` 确认是否为同一份简历。
+
+分享链接采用稀缺额度保护策略：进入详情页时只记录普通定位证据；AI 判定为
+`relevant`，或 `needs_review` 且评分不低于 85 时，才尝试保存官方分享链接。已有链接会
+直接复用，不重复消耗额度；猎聘提示当日分享额度耗尽（或复制后剪贴板没有变化）时，
+程序按账号记录当日额度状态，并对后续高价值候选人改用“收藏”。次日自动恢复首次分享尝试。
+
+财务共享岗位使用三组交错搜索目录：共享中心管理、集团核算/多主体管理、财务流程变革。
+结果卡片必须同时具备一个目标方向和管理职级，普通财务经理、纯审计、纯财务 BP、纯资金或
+税务岗位，以及仅出现 ERP/BI 等系统词的候选人不会进入详情页。卡片未展示年龄时仍允许进入
+详情核验；详情明确超过 35 岁则在 Coze 分析和沟通前跳过。
+
+先在 `.env` 给当前猎聘账号配置一个不含密码的稳定标签：
+
+```dotenv
+LIEPIN_ACCOUNT_ALIAS=recruiter_a
+```
+
+按候选人指纹或简历正文哈希查看历史定位记录：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\find_candidate_locator.py --candidate-fingerprint <fingerprint>
+.\.venv\Scripts\python.exe scripts\find_candidate_locator.py --experience-hash <experience_hash>
+```
+
+输出策略分为：有平台 ID/深链时先尝试平台定位再核验正文；没有时按账号、搜索词和卡片
+特征重新搜索，再以正文哈希确认。系统不会绕过账号权限或猎聘可见范围。
 
 ## 目录结构
 

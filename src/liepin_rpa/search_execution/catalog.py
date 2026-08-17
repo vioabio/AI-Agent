@@ -12,6 +12,10 @@ class FrozenKeywordCatalog:
         self._role_keywords = {item.raw_title for item in load_role_keywords(roles_path)}
 
     def validate_seed(self, seed: SearchTaskSeed) -> None:
+        if seed.strategy == "jd_smart":
+            if not seed.effective_query:
+                raise ValueError("JD smart seed query cannot be empty")
+            return
         if seed.brand_keyword not in self._brand_keywords:
             raise ValueError(f"Brand keyword is not in the frozen catalog: {seed.brand_keyword}")
         if seed.role_keyword not in self._role_keywords:
@@ -19,4 +23,4 @@ class FrozenKeywordCatalog:
 
     @staticmethod
     def format_exact_query(seed: SearchTaskSeed) -> str:
-        return f"{seed.role_keyword} {seed.brand_keyword}"
+        return seed.effective_query

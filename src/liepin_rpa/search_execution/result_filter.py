@@ -9,16 +9,33 @@ from pathlib import Path
 from typing import Iterable
 from xml.etree import ElementTree
 
+from PIL import Image
 from rapidfuzz import fuzz
-from liepin_rpa.coze_workflow import CozeMatchResult, analyze_resume_record_with_coze
+import xxhash
+from liepin_rpa.coze_workflow import (
+    CozeMatchResult,
+    analyze_resume_record_with_coze,
+    is_transient_coze_api_review,
+    transient_coze_cache_retry_due,
+)
+from liepin_rpa.candidate_locator import (
+    extract_platform_locator_evidence,
+    is_official_resume_share_link,
+)
 from liepin_rpa.config import get_settings
 from liepin_rpa.db import (
     build_candidate_fingerprint,
     build_candidate_experience_text,
     build_experience_hash,
+    get_candidate_record_by_experience_hash,
     get_candidate_record_by_fingerprint,
     get_analysis_cache_record,
+    list_candidate_source_locators,
     record_candidate_search_hit,
+    record_candidate_source_locator,
+    update_candidate_source_locator_favorite,
+    update_candidate_source_locator_identity,
+    update_candidate_source_locator_share_link,
     upsert_analysis_cache_record,
     upsert_contacted_candidate_record,
     was_contacted_within_days,
@@ -28,10 +45,18 @@ from liepin_rpa.logging_utils import get_logger
 from liepin_rpa.page_detection.enums import PageState
 from liepin_rpa.page_detection.runtime import build_page_detector
 from liepin_rpa.profile_collection import CandidateProfileCollector
-from liepin_rpa.profile_collection.collector import ProfileCollectionRecoverableError
-from liepin_rpa.profile_collection.resume_schema import sanitize_candidate_name
+from liepin_rpa.profile_collection.collector import (
+    ProfileCollectionRecoverableError,
+    extract_candidate_interaction_note,
+)
+from liepin_rpa.profile_collection.resume_schema import (
+    has_explicit_job_intent_city,
+    sanitize_candidate_name,
+)
+from liepin_rpa.share_quota import DailyShareQuotaStateStore
 from liepin_rpa.search_execution.job_selection import choose_job_before_chat_if_present
 from liepin_rpa.search_execution.search_pages import SearchFlowError, SearchPageNavigator
+from liepin_rpa.task_generation.config_loader import load_job_profile
 from liepin_rpa.task_generation.models import SearchTaskSeed
 from liepin_rpa.ui_controls import (
     any_label,
@@ -39,7 +64,9 @@ from liepin_rpa.ui_controls import (
     find_back_button,
     find_chat_input_center,
     find_chat_send_button,
+    find_clickable_labeled_center,
     find_profile_communication_action,
+    node_label,
     parse_bounds,
 )
 
@@ -61,6 +88,16 @@ CHAT_MESSAGE_TEMPLATE = (
     "如果方便的话，期待您发一份简历过来，我们安排后续沟通。"
 )
 LOGGER = get_logger(__name__)
+HIGH_VALUE_REVIEW_SCORE = 85
+SHARE_QUOTA_EXHAUSTED_LABELS = (
+    "分享次数已用完",
+    "今日分享次数已用完",
+    "今日分享次数已达上限",
+    "分享次数达到上限",
+    "分享次数已达上限",
+    "分享额度已用完",
+    "明日再来分享",
+)
 
 
 @dataclass(slots=True)
@@ -68,6 +105,17 @@ class CandidateCard:
     fingerprint: str
     raw_text: str
     bounds: str
+    result_iteration: int | None = None
+    result_rank: int | None = None
+
+
+@dataclass(slots=True)
+class CardScreeningResult:
+    selected: bool
+    score: int
+    positive_groups: list[str]
+    negative_groups: list[str]
+    reasons: list[str]
 
 
 @dataclass(slots=True)
@@ -140,12 +188,46 @@ class ResultPageFilter:
         settle_seconds: float = 3.0,
         max_stagnant_swipes: int = 3,
         write_to_db: bool = True,
+        send_messages: bool = True,
+        max_profiles_per_keyword: int = 5,
+        ai_first_selection: bool = False,
+        target_candidate_fingerprints: set[str] | None = None,
+        selection_mode: str | None = None,
+        job_profile_path: Path | None = None,
+        jd_card_min_score: int | None = None,
     ) -> None:
         self.device = device
         self.detector = detector or build_page_detector()
         self.settle_seconds = settle_seconds
         self.max_stagnant_swipes = max_stagnant_swipes
         self.write_to_db = write_to_db
+        self.send_messages = send_messages
+        self.max_profiles_per_keyword = max(1, int(max_profiles_per_keyword))
+        resolved_mode = (selection_mode or ("ai_first" if ai_first_selection else "legacy")).strip().lower()
+        if resolved_mode not in {"legacy", "ai_first", "jd_smart"}:
+            raise ValueError("selection_mode must be legacy, ai_first, or jd_smart")
+        self.selection_mode = resolved_mode
+        self.ai_first_selection = resolved_mode == "ai_first"
+        self.target_candidate_fingerprints = {
+            item.strip() for item in (target_candidate_fingerprints or set()) if item.strip()
+        }
+        self.job_profile_path = job_profile_path
+        self.job_profile = (
+            load_job_profile(job_profile_path)
+            if resolved_mode == "jd_smart" and job_profile_path
+            else None
+        )
+        configured_min_score = None
+        if isinstance(self.job_profile, dict):
+            card_config = self.job_profile.get("card_screening")
+            if isinstance(card_config, dict):
+                configured_min_score = card_config.get("minimum_score")
+        self.jd_card_min_score = int(
+            jd_card_min_score
+            if jd_card_min_score is not None
+            else (configured_min_score if configured_min_score is not None else 3)
+        )
+        self.session_card_fingerprints: set[str] = set()
         self.navigator = SearchPageNavigator(
             device=device,
             detector=self.detector,
@@ -218,6 +300,22 @@ class ResultPageFilter:
         for iteration_index in range(1, 200):
             root = self._capture_result_list_root(seed)
             visible_cards = self.extract_visible_candidate_cards(root)
+            for rank, visible_card in enumerate(visible_cards, start=1):
+                visible_card.result_iteration = iteration_index
+                visible_card.result_rank = rank
+            card_screenings: dict[str, CardScreeningResult] = {}
+            if self.selection_mode == "jd_smart":
+                card_screenings = {
+                    card.fingerprint: self.score_jd_candidate_card(card.raw_text, seed)
+                    for card in visible_cards
+                }
+                visible_cards = sorted(
+                    visible_cards,
+                    key=lambda card: (
+                        -card_screenings[card.fingerprint].score,
+                        card.result_rank or 0,
+                    ),
+                )
             visible_fingerprints = tuple(card.fingerprint for card in visible_cards)
             newly_screened = 0
             matched_card: CandidateCard | None = None
@@ -237,43 +335,72 @@ class ResultPageFilter:
                     newly_screened += 1
                 if card.fingerprint in collected_profile_fingerprints:
                     continue
+                if card.fingerprint in self.session_card_fingerprints:
+                    continue
                 if self.is_rejected_education_candidate(card.raw_text):
                     if card.fingerprint not in rejected_fingerprints:
                         rejected_fingerprints.add(card.fingerprint)
                         junior_college_rejected += 1
                     continue
-                if self.is_exact_candidate_match(card.raw_text, seed):
-                    if self.has_known_education(card.raw_text) and not self.is_allowed_education_candidate(
-                        card.raw_text
-                    ):
-                        self._log(
-                            "result_candidate_education_rejected",
-                            "Skipped candidate before profile entry because education is below requirement",
-                            brand_keyword=seed.brand_keyword,
-                            role_keyword=seed.role_keyword,
-                            candidate_card=card.raw_text,
-                        )
+                card_screening: CardScreeningResult | None = None
+                if self.selection_mode == "legacy":
+                    if not self.is_exact_candidate_match(card.raw_text, seed):
                         continue
-                    candidate_age = self.extract_candidate_age_from_card(card.raw_text)
-                    if candidate_age is not None and not self.is_candidate_age_allowed(candidate_age):
-                        self._log(
-                            "result_candidate_age_rejected",
-                            "Skipped candidate before profile entry because age is out of range",
-                            brand_keyword=seed.brand_keyword,
-                            role_keyword=seed.role_keyword,
-                            candidate_age=candidate_age,
-                            candidate_card=card.raw_text,
-                        )
+                elif self.selection_mode == "jd_smart":
+                    card_screening = card_screenings[card.fingerprint]
+                    if not card_screening.selected:
                         continue
+                if self.has_known_education(card.raw_text) and not self.is_allowed_education_candidate(
+                    card.raw_text
+                ):
                     self._log(
-                        "result_candidate_keyword_match",
-                        "Found candidate card matching exact keyword on result page",
+                        "result_candidate_education_rejected",
+                        "Skipped candidate before profile entry because education is below requirement",
                         brand_keyword=seed.brand_keyword,
                         role_keyword=seed.role_keyword,
                         candidate_card=card.raw_text,
                     )
-                    matched_card = card
-                    break
+                    continue
+                candidate_age = self.extract_candidate_age_from_card(card.raw_text)
+                if (
+                    candidate_age is not None
+                    and self._should_enforce_age_range()
+                    and not self.is_candidate_age_allowed(candidate_age)
+                ):
+                    self._log(
+                        "result_candidate_age_rejected",
+                        "Skipped candidate before profile entry because age is out of range",
+                        brand_keyword=seed.brand_keyword,
+                        role_keyword=seed.role_keyword,
+                        candidate_age=candidate_age,
+                        candidate_card=card.raw_text,
+                    )
+                    continue
+                self._log(
+                    (
+                        "result_candidate_selected_for_ai"
+                        if self.selection_mode == "ai_first"
+                        else (
+                            "result_candidate_jd_smart_match"
+                            if self.selection_mode == "jd_smart"
+                            else "result_candidate_keyword_match"
+                        )
+                    ),
+                    (
+                        "Selected candidate for profile collection and AI analysis"
+                        if self.ai_first_selection
+                        else "Found candidate card matching exact keyword on result page"
+                    ),
+                    brand_keyword=seed.brand_keyword,
+                    role_keyword=seed.role_keyword,
+                    selection_mode=self.selection_mode,
+                    search_pack_id=seed.search_pack_id,
+                    card_score=card_screening.score if card_screening else None,
+                    card_score_reasons=card_screening.reasons if card_screening else [],
+                    candidate_card=card.raw_text,
+                )
+                matched_card = card
+                break
 
             iterations.append(
                 FilterIteration(
@@ -287,10 +414,32 @@ class ResultPageFilter:
             )
 
             if matched_card is not None:
+                self.session_card_fingerprints.add(matched_card.fingerprint)
                 candidate_outcome = self._collect_profile_for_candidate(seed=seed, card=matched_card)
                 collected_profile_fingerprints.add(matched_card.fingerprint)
                 matched_candidates.append(matched_card.raw_text)
                 candidate_outcomes.append(candidate_outcome)
+                if (
+                    self.selection_mode in {"ai_first", "jd_smart"}
+                    and len(collected_profile_fingerprints) >= self.max_profiles_per_keyword
+                ):
+                    self._log(
+                        "result_profile_limit_reached",
+                        "Stopped result scan after reaching per-keyword profile limit",
+                        brand_keyword=seed.brand_keyword,
+                        role_keyword=seed.role_keyword,
+                        profiles_collected=len(collected_profile_fingerprints),
+                        max_profiles_per_keyword=self.max_profiles_per_keyword,
+                    )
+                    return self._build_report(
+                        seed=seed,
+                        screened_candidates=len(screened_fingerprints),
+                        junior_college_rejected=junior_college_rejected,
+                        matched_candidates=matched_candidates,
+                        end_reason="profile_limit_reached",
+                        iterations=iterations,
+                        candidate_outcomes=candidate_outcomes,
+                    )
                 previous_visible_fingerprints = visible_fingerprints
                 stagnant_swipes = 0
                 continue
@@ -374,13 +523,127 @@ class ResultPageFilter:
     def build_card_fingerprint(raw_text: str) -> str:
         normalized = " ".join(raw_text.split())
         first_line = normalized.split(" ")[0] if normalized else ""
-        head = normalized[:160]
-        return f"{first_line}|{head}"
+        digest = xxhash.xxh3_128_hexdigest(normalized.encode("utf-8"))
+        return f"{first_line}|{digest}"
 
     @staticmethod
     def is_exact_candidate_match(raw_text: str, seed: SearchTaskSeed) -> bool:
         normalized = " ".join(raw_text.split())
         return seed.brand_keyword in normalized and seed.role_keyword in normalized
+
+    def score_jd_candidate_card(
+        self,
+        raw_text: str,
+        seed: SearchTaskSeed,
+    ) -> CardScreeningResult:
+        normalized = " ".join(raw_text.split())
+        folded = normalized.casefold()
+        card_config = (
+            self.job_profile.get("card_screening", {})
+            if isinstance(self.job_profile, dict)
+            else {}
+        )
+        if not isinstance(card_config, dict):
+            card_config = {}
+        score = 0
+        positive_groups: list[str] = []
+        negative_groups: list[str] = []
+        reasons: list[str] = []
+        for raw_group in card_config.get("positive_groups", []):
+            if not isinstance(raw_group, dict):
+                continue
+            terms = self._normalized_terms(raw_group.get("terms"))
+            matched_terms = [term for term in terms if term.casefold() in folded]
+            if not matched_terms:
+                continue
+            weight = int(raw_group.get("weight") or 0)
+            group_id = str(raw_group.get("id") or "positive")
+            score += weight
+            positive_groups.append(group_id)
+            reasons.append(f"+{weight} {group_id}: {', '.join(matched_terms[:3])}")
+        for raw_group in card_config.get("negative_groups", []):
+            if not isinstance(raw_group, dict):
+                continue
+            terms = self._normalized_terms(raw_group.get("terms"))
+            matched_terms = [term for term in terms if term.casefold() in folded]
+            if not matched_terms:
+                continue
+            weight = int(raw_group.get("weight") or 0)
+            group_id = str(raw_group.get("id") or "negative")
+            score += weight
+            negative_groups.append(group_id)
+            reasons.append(f"{weight:+d} {group_id}: {', '.join(matched_terms[:3])}")
+        if seed.brand_keyword and seed.brand_keyword.casefold() in folded:
+            brand_bonus = int(card_config.get("target_brand_bonus") or 0)
+            score += brand_bonus
+            if brand_bonus:
+                reasons.append(f"+{brand_bonus} target_brand: {seed.brand_keyword}")
+        broad_titles = self._normalized_terms(card_config.get("broad_title_terms"))
+        required_directions = self._normalized_terms(card_config.get("required_direction_terms"))
+        has_broad_title = any(term.casefold() in folded for term in broad_titles)
+        has_direction = any(term.casefold() in folded for term in required_directions)
+        if has_broad_title and not has_direction:
+            reasons.append("broad_title_without_daren_direction")
+            return CardScreeningResult(False, score, positive_groups, negative_groups, reasons)
+        required_primary_groups = set(
+            self._normalized_terms(card_config.get("required_any_positive_groups"))
+        )
+        if required_primary_groups and not required_primary_groups.intersection(positive_groups):
+            reasons.append("missing_required_daren_or_live_direction")
+            return CardScreeningResult(False, score, positive_groups, negative_groups, reasons)
+        required_support_groups = set(
+            self._normalized_terms(card_config.get("required_any_support_groups"))
+        )
+        if required_support_groups and not required_support_groups.intersection(positive_groups):
+            reasons.append("missing_required_leadership_or_target_industry")
+            return CardScreeningResult(False, score, positive_groups, negative_groups, reasons)
+        selection_paths = card_config.get("selection_paths")
+        if isinstance(selection_paths, list) and selection_paths:
+            matched_path = self._match_card_selection_path(
+                selection_paths=selection_paths,
+                positive_groups=set(positive_groups),
+            )
+            if matched_path is None:
+                reasons.append("missing_required_finance_combination")
+                return CardScreeningResult(False, score, positive_groups, negative_groups, reasons)
+            reasons.append(f"selection_path: {matched_path}")
+        selected = score >= self.jd_card_min_score and bool(positive_groups)
+        return CardScreeningResult(selected, score, positive_groups, negative_groups, reasons)
+
+    @staticmethod
+    def _match_card_selection_path(
+        *,
+        selection_paths: list[object],
+        positive_groups: set[str],
+    ) -> str | None:
+        for raw_path in selection_paths:
+            if not isinstance(raw_path, dict):
+                continue
+            path_id = str(raw_path.get("id") or "selection_path")
+            all_of_groups = set(ResultPageFilter._normalized_terms(raw_path.get("all_of_groups")))
+            any_of_groups = set(ResultPageFilter._normalized_terms(raw_path.get("any_of_groups")))
+            if not all_of_groups.issubset(positive_groups):
+                continue
+            if any_of_groups and not any_of_groups.intersection(positive_groups):
+                continue
+            return path_id
+        return None
+
+    @staticmethod
+    def _normalized_terms(value: object) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        return [str(item).strip() for item in value if str(item).strip()]
+
+    def _should_enforce_age_range(self) -> bool:
+        if self.selection_mode != "jd_smart":
+            return True
+        card_config = (
+            self.job_profile.get("card_screening", {})
+            if isinstance(self.job_profile, dict)
+            else {}
+        )
+        return bool(card_config.get("enforce_age_range", False)) if isinstance(card_config, dict) else False
 
     @staticmethod
     def extract_candidate_age_from_card(raw_text: str) -> int | None:
@@ -393,9 +656,15 @@ class ResultPageFilter:
             return age
         return None
 
-    @staticmethod
-    def is_candidate_age_allowed(age: int) -> bool:
-        return MIN_CANDIDATE_AGE <= age <= MAX_CANDIDATE_AGE
+    def is_candidate_age_allowed(self, age: int) -> bool:
+        minimum_age = MIN_CANDIDATE_AGE
+        maximum_age = MAX_CANDIDATE_AGE
+        if isinstance(self.job_profile, dict):
+            card_config = self.job_profile.get("card_screening", {})
+            if isinstance(card_config, dict):
+                minimum_age = int(card_config.get("minimum_age") or minimum_age)
+                maximum_age = int(card_config.get("maximum_age") or maximum_age)
+        return minimum_age <= age <= maximum_age
 
     @staticmethod
     def is_junior_college_candidate(raw_text: str) -> bool:
@@ -511,6 +780,21 @@ class ResultPageFilter:
         self._wait(3.5)
 
         detail_root = ElementTree.fromstring(self.device.dump_hierarchy_text())
+        try:
+            current_app = self.device.current_app()
+        except Exception:
+            current_app = {}
+        platform_locator = extract_platform_locator_evidence(
+            detail_root,
+            current_app=current_app,
+        )
+        platform_interaction_note = extract_candidate_interaction_note(detail_root)
+        locator_record_id = self._record_entered_candidate_detail(
+            seed=seed,
+            card=card,
+            platform_locator=platform_locator,
+            platform_interaction_note=platform_interaction_note,
+        )
         if self._is_intention_communication_page(detail_root):
             return self._handle_intention_communication_candidate(
                 seed=seed,
@@ -571,23 +855,91 @@ class ResultPageFilter:
         )
         if candidate_name is None:
             candidate_name = self._extract_candidate_name_from_card(card.raw_text)
-        search_keyword = f"{seed.brand_keyword}，{seed.role_keyword}"
-        candidate_fingerprint = build_candidate_fingerprint(
+        search_keyword = seed.effective_query
+        calculated_fingerprint = build_candidate_fingerprint(
             candidate_name=candidate_name,
             structured_resume=structured_resume,
             experience=experience,
         )
         experience_hash = build_experience_hash(experience)
-        existing_record = (
-            get_candidate_record_by_fingerprint(settings, candidate_fingerprint)
-            if self.write_to_db
-            else None
-        )
+        candidate_fingerprint = calculated_fingerprint
+        existing_record = None
+        if self.write_to_db:
+            existing_by_fingerprint = get_candidate_record_by_fingerprint(
+                settings,
+                calculated_fingerprint,
+            )
+            existing_by_experience = (
+                get_candidate_record_by_experience_hash(settings, experience_hash)
+                if (experience or "").strip()
+                else None
+            )
+            # The profile may expose a masked name on one run and a full name on
+            # another. Identical normalized resume text must reuse the existing
+            # contacted identity so the 7-day skip and history stay effective.
+            existing_record = existing_by_fingerprint or existing_by_experience
+            if existing_by_experience is not None:
+                canonical_fingerprint = str(
+                    existing_by_experience.get("candidate_fingerprint") or calculated_fingerprint
+                )
+                if canonical_fingerprint != calculated_fingerprint:
+                    self._log(
+                        "candidate_identity_reused_by_experience",
+                        "Reused contacted candidate identity from identical resume text",
+                        candidate_name=candidate_name,
+                        calculated_fingerprint=calculated_fingerprint,
+                        canonical_fingerprint=canonical_fingerprint,
+                    )
+                candidate_fingerprint = canonical_fingerprint
+                existing_record = existing_by_experience
+            if locator_record_id is not None:
+                update_candidate_source_locator_identity(
+                    settings,
+                    locator_id=locator_record_id,
+                    candidate_fingerprint=candidate_fingerprint,
+                    experience_hash=experience_hash,
+                    candidate_name=candidate_name,
+                )
+        required_maximum_age = self._required_candidate_maximum_age()
+        if (
+            required_maximum_age is not None
+            and candidate_age is not None
+            and candidate_age > required_maximum_age
+        ):
+            return self._handle_candidate_age_rejected(
+                seed=seed,
+                card=card,
+                candidate_name=candidate_name,
+                candidate_fingerprint=candidate_fingerprint,
+                communication_label=communication_label,
+                candidate_age=candidate_age,
+                maximum_age=required_maximum_age,
+            )
+        required_job_intent_city = self._required_job_intent_city()
+        if required_job_intent_city and not has_explicit_job_intent_city(
+            report.sections,
+            required_job_intent_city,
+        ):
+            return self._handle_job_intent_city_rejected_candidate(
+                seed=seed,
+                card=card,
+                candidate_name=candidate_name,
+                candidate_fingerprint=candidate_fingerprint,
+                experience_hash=experience_hash,
+                experience=experience,
+                communication_label=communication_label,
+                platform_locator=platform_locator,
+                required_city=required_job_intent_city,
+                intent_lines=report.sections.get("求职意向", []),
+            )
+        analysis_settings = self._analysis_settings(settings)
+        analysis_version = analysis_settings.coze_analysis_version
         analysis_cache_record = (
             get_analysis_cache_record(
                 settings,
                 candidate_fingerprint=candidate_fingerprint,
                 experience_hash=experience_hash,
+                analysis_version=analysis_version,
             )
             if self.write_to_db
             else None
@@ -614,6 +966,15 @@ class ResultPageFilter:
             )
         analysis_status = "未分析"
         analysis_result = self._coze_result_from_cache_record(analysis_cache_record)
+        if transient_coze_cache_retry_due(analysis_result, analysis_cache_record):
+            self._log(
+                "candidate_transient_coze_cache_expired",
+                "Cached transient Coze API failure expired and will be analyzed again",
+                candidate_name=candidate_name,
+                candidate_fingerprint=candidate_fingerprint,
+                analysis_version=analysis_version,
+            )
+            analysis_result = None
         hit_status = "reviewed"
         message_send_result = MessageSendResult(
             success=False,
@@ -657,7 +1018,10 @@ class ResultPageFilter:
         else:
             if analysis_result is not None:
                 analysis_status = str(analysis_cache_record.get("analysis_status") or "未分析")
-                coze_matched = analysis_result.matched
+                # Communication is authorized only by the normalized tri-state result.
+                # Do not let a stale/contradictory boolean field turn needs_review or
+                # not_relevant into an outbound message.
+                coze_matched = analysis_result.match_result == "relevant"
                 self._log(
                     "candidate_analysis_cache_hit",
                     "Reused cached analysis result",
@@ -680,7 +1044,7 @@ class ResultPageFilter:
                     candidate_fingerprint=candidate_fingerprint,
                 )
                 coze_result = analyze_resume_record_with_coze(
-                    settings,
+                    analysis_settings,
                     resume_record=resume_record,
                 )
                 analysis_result = coze_result
@@ -692,13 +1056,19 @@ class ResultPageFilter:
                     matched=coze_result.matched,
                     match_result=coze_result.match_result,
                 )
-                analysis_status = "匹配" if coze_result.matched else "不匹配"
-                coze_matched = coze_result.matched
+                coze_matched = coze_result.match_result == "relevant"
+                analysis_status = (
+                    "待复核"
+                    if is_transient_coze_api_review(coze_result)
+                    else ("匹配" if coze_matched else "不匹配")
+                )
                 if self.write_to_db:
                     upsert_analysis_cache_record(
                         settings,
                         candidate_fingerprint=candidate_fingerprint,
                         experience_hash=experience_hash,
+                        experience=experience,
+                        analysis_version=analysis_version,
                         analysis_status=analysis_status,
                         match_result=coze_result.match_result,
                         match_score=coze_result.match_score,
@@ -707,18 +1077,60 @@ class ResultPageFilter:
                         evidence_summary=coze_result.evidence_summary,
                     )
 
-            if coze_matched and communication_label is not None:
+            self._preserve_high_value_candidate(
+                settings=settings,
+                locator_record_id=locator_record_id,
+                candidate_name=candidate_name,
+                candidate_fingerprint=candidate_fingerprint,
+                experience_hash=experience_hash,
+                analysis_result=analysis_result,
+            )
+
+            target_allowed = (
+                not self.target_candidate_fingerprints
+                or candidate_fingerprint in self.target_candidate_fingerprints
+            )
+            if coze_matched and communication_label is not None and target_allowed:
+                if self.send_messages:
+                    self._log(
+                        "candidate_message_flow_start",
+                        "Candidate matched, starting communication flow",
+                        candidate_name=candidate_name,
+                        role_keyword=self._extract_role_keyword(seed),
+                        communication_label=communication_label,
+                    )
+                    message_send_result = self._tap_continue_communication(
+                        candidate_name=candidate_name,
+                        role_keyword=self._extract_role_keyword(seed),
+                        button_label=communication_label,
+                    )
+                else:
+                    self._log(
+                        "candidate_message_flow_skipped",
+                        "Candidate matched but message sending is disabled for this run",
+                        candidate_name=candidate_name,
+                        role_keyword=self._extract_role_keyword(seed),
+                        communication_label=communication_label,
+                    )
+                    message_send_result = MessageSendResult(
+                        success=False,
+                        attempts=0,
+                        reason="message_sending_disabled",
+                        screenshot_path=None,
+                    )
+            elif coze_matched and communication_label is not None and not target_allowed:
                 self._log(
-                    "candidate_message_flow_start",
-                    "Candidate matched, starting communication flow",
+                    "candidate_message_target_guard_skipped",
+                    "Skipped matched candidate because it is outside the explicit target allowlist",
                     candidate_name=candidate_name,
+                    candidate_fingerprint=candidate_fingerprint,
                     role_keyword=self._extract_role_keyword(seed),
-                    communication_label=communication_label,
                 )
-                message_send_result = self._tap_continue_communication(
-                    candidate_name=candidate_name,
-                    role_keyword=self._extract_role_keyword(seed),
-                    button_label=communication_label,
+                message_send_result = MessageSendResult(
+                    success=False,
+                    attempts=0,
+                    reason="target_candidate_not_allowed",
+                    screenshot_path=None,
                 )
 
             hit_status = self._derive_hit_status(
@@ -755,6 +1167,7 @@ class ResultPageFilter:
                     candidate_name=candidate_name,
                     search_keyword=search_keyword,
                     experience=experience,
+                    experience_hash=experience_hash,
                     match_score=analysis_result.match_score if analysis_result is not None else None,
                     analysis_status=analysis_status,
                 )
@@ -805,7 +1218,7 @@ class ResultPageFilter:
     ) -> CandidateProcessOutcome:
         settings = get_settings()
         candidate_name = self._extract_candidate_name_from_card(card.raw_text)
-        search_keyword = f"{seed.brand_keyword}，{seed.role_keyword}"
+        search_keyword = seed.effective_query
         analysis_status = "意向沟通跳过"
         hit_status = "intention_communication_skipped"
         screenshot_path = self._capture_debug_screenshot(
@@ -851,7 +1264,7 @@ class ResultPageFilter:
         reason: str,
     ) -> CandidateProcessOutcome:
         candidate_name = self._extract_candidate_name_from_card(card.raw_text)
-        search_keyword = f"{seed.brand_keyword}，{seed.role_keyword}"
+        search_keyword = seed.effective_query
         screenshot_path = self._capture_debug_screenshot(
             status="unsupported_communication_skipped",
             seed=seed,
@@ -895,7 +1308,7 @@ class ResultPageFilter:
         reason: str,
     ) -> CandidateProcessOutcome:
         candidate_name = self._extract_candidate_name_from_card(card.raw_text)
-        search_keyword = f"{seed.brand_keyword}，{seed.role_keyword}"
+        search_keyword = seed.effective_query
         screenshot_path = self._capture_debug_screenshot(
             status="profile_collection_skipped",
             seed=seed,
@@ -940,6 +1353,118 @@ class ResultPageFilter:
             message_screenshot_path=screenshot_path,
         )
 
+    def _handle_job_intent_city_rejected_candidate(
+        self,
+        *,
+        seed: SearchTaskSeed,
+        card: CandidateCard,
+        candidate_name: str | None,
+        candidate_fingerprint: str,
+        experience_hash: str,
+        experience: str | None,
+        communication_label: str | None,
+        platform_locator,
+        required_city: str,
+        intent_lines: list[str],
+    ) -> CandidateProcessOutcome:
+        settings = get_settings()
+        search_keyword = seed.effective_query
+        hit_status = "job_intent_city_rejected"
+        intent_text = "；".join(item.strip() for item in intent_lines if item.strip())
+        if self.write_to_db:
+            record_candidate_search_hit(
+                settings,
+                candidate_fingerprint=candidate_fingerprint,
+                candidate_name=candidate_name,
+                search_keyword=search_keyword,
+                hit_status=hit_status,
+            )
+        self._log(
+            "candidate_job_intent_city_rejected",
+            "Skipped candidate because job-intent city does not explicitly match requirement",
+            candidate_name=candidate_name,
+            candidate_fingerprint=candidate_fingerprint,
+            required_city=required_city,
+            job_intent=intent_text,
+            current_city_not_used=True,
+        )
+        self.device.press_back()
+        self._wait(2.0)
+        return CandidateProcessOutcome(
+            candidate_name=candidate_name,
+            candidate_fingerprint=candidate_fingerprint,
+            search_keyword=search_keyword,
+            brand_keyword=seed.brand_keyword,
+            role_keyword=seed.role_keyword,
+            communication_label=communication_label,
+            analysis_status="求职意向城市不符",
+            match_result="not_relevant",
+            match_score=None,
+            score_breakdown={},
+            analysis_reason=f"求职意向未明确包含{required_city}，已在AI分析和沟通前严格跳过。",
+            evidence_summary=[f"求职意向原文：{intent_text or '未填写/未采集到'}"],
+            hit_status=hit_status,
+            continue_without_db_record=False,
+            message_send_success=False,
+            message_send_reason=hit_status,
+            message_send_attempts=0,
+            message_screenshot_path=None,
+        )
+
+    def _handle_candidate_age_rejected(
+        self,
+        *,
+        seed: SearchTaskSeed,
+        card: CandidateCard,
+        candidate_name: str | None,
+        candidate_fingerprint: str,
+        communication_label: str | None,
+        candidate_age: int,
+        maximum_age: int,
+    ) -> CandidateProcessOutcome:
+        settings = get_settings()
+        search_keyword = seed.effective_query
+        hit_status = "candidate_age_rejected"
+        if self.write_to_db:
+            record_candidate_search_hit(
+                settings,
+                candidate_fingerprint=candidate_fingerprint,
+                candidate_name=candidate_name,
+                search_keyword=search_keyword,
+                hit_status=hit_status,
+            )
+        self._log(
+            "candidate_age_rejected_after_profile_collection",
+            "Skipped candidate before AI because profile age exceeds the job requirement",
+            candidate_name=candidate_name,
+            candidate_fingerprint=candidate_fingerprint,
+            candidate_age=candidate_age,
+            maximum_age=maximum_age,
+        )
+        self.device.press_back()
+        self._wait(2.0)
+        return CandidateProcessOutcome(
+            candidate_name=candidate_name,
+            candidate_fingerprint=candidate_fingerprint,
+            search_keyword=search_keyword,
+            brand_keyword=seed.brand_keyword,
+            role_keyword=seed.role_keyword,
+            communication_label=communication_label,
+            analysis_status="年龄不符合",
+            match_result="not_relevant",
+            match_score=None,
+            score_breakdown={},
+            analysis_reason=f"候选人年龄为{candidate_age}岁，超过岗位要求的{maximum_age}岁，已在AI分析和沟通前跳过。",
+            evidence_summary=[f"候选人详情年龄：{candidate_age}岁"],
+            hit_status=hit_status,
+            continue_without_db_record=False,
+            message_send_success=False,
+            message_send_reason=hit_status,
+            message_send_attempts=0,
+            message_screenshot_path=None,
+            candidate_age=candidate_age,
+        )
+
     @staticmethod
     def _coze_result_from_cache_record(record: dict[str, object] | None) -> CozeMatchResult | None:
         if record is None:
@@ -947,11 +1472,7 @@ class ResultPageFilter:
         match_result = ResultPageFilter._normalize_optional_str(record.get("match_result"))
         analysis_status = ResultPageFilter._normalize_optional_str(record.get("analysis_status"))
         return CozeMatchResult(
-            matched=bool(
-                analysis_status == "匹配"
-                or match_result == "relevant"
-                or bool(record.get("beauty_relevant") is True)
-            ),
+            matched=match_result == "relevant",
             match_result=match_result,
             match_score=ResultPageFilter._normalize_optional_int(record.get("match_score")),
             score_breakdown=ResultPageFilter._parse_score_breakdown(record.get("score_breakdown_json")),
@@ -1308,6 +1829,445 @@ class ResultPageFilter:
         )
         return str(screenshot_path)
 
+    def _capture_candidate_locator_screenshot(
+        self,
+        *,
+        seed: SearchTaskSeed,
+        candidate_name: str | None,
+        candidate_fingerprint: str,
+    ) -> str | None:
+        settings = get_settings()
+        screenshot_dir = settings.artifacts_dir / "candidate_locators"
+        screenshot_dir.mkdir(parents=True, exist_ok=True)
+        filename = "_".join(
+            [
+                self._slugify(candidate_name or "unknown_candidate"),
+                self._slugify(candidate_fingerprint[:12]),
+                self._slugify(seed.search_pack_id or "search"),
+                str(int(time.time())),
+            ]
+        ) + ".png"
+        screenshot_path = screenshot_dir / filename
+        try:
+            self.device.screenshot(screenshot_path)
+        except Exception:
+            self._log(
+                "candidate_locator_screenshot_failed",
+                "Failed to capture candidate locator screenshot",
+                candidate_name=candidate_name,
+                candidate_fingerprint=candidate_fingerprint,
+            )
+            return None
+        return str(screenshot_path)
+
+    def _copy_candidate_share_link(self) -> str | None:
+        """Copy the official share URL while keeping the resume detail page open."""
+
+        try:
+            device_info = self.device.device_info()
+            width = int(device_info.get("displayWidth") or device_info.get("width") or 1080)
+            height = int(device_info.get("displayHeight") or device_info.get("height") or 2388)
+            previous_clipboard = self.device.get_clipboard()
+
+            # Second action in the top-right row: share.
+            self.device.tap(int(width * 0.72), int(height * 0.083))
+            self._wait(0.8)
+            share_root = ElementTree.fromstring(self.device.dump_hierarchy_text())
+            if self._share_quota_is_exhausted_on_page(share_root):
+                self._share_quota_store().mark_exhausted(reason="liepin_ui_quota_message")
+                self._dismiss_share_sheet(width, height)
+                self._log(
+                    "candidate_share_quota_exhausted",
+                    "Liepin reported that today's share quota is exhausted",
+                )
+                return None
+            copy_center = self._find_bottom_sheet_action(share_root, "复制链接")
+            if copy_center is None:
+                more_center = self._find_bottom_sheet_action(share_root, "更多")
+                if more_center is not None:
+                    self.device.tap(*more_center)
+                    self._wait(0.8)
+                    share_root = ElementTree.fromstring(self.device.dump_hierarchy_text())
+                    if self._share_quota_is_exhausted_on_page(share_root):
+                        self._share_quota_store().mark_exhausted(
+                            reason="liepin_ui_quota_message"
+                        )
+                        self._dismiss_share_sheet(width, height)
+                        return None
+                    copy_center = self._find_bottom_sheet_action(share_root, "复制链接")
+            if copy_center is None:
+                self._dismiss_share_sheet(width, height)
+                self._log(
+                    "candidate_share_link_copy_failed",
+                    "Share sheet did not expose a copy-link action",
+                    reason="copy_link_action_missing",
+                )
+                return None
+
+            self.device.tap(*copy_center)
+            self._wait(0.6)
+            post_copy_root = ElementTree.fromstring(self.device.dump_hierarchy_text())
+            if self._share_quota_is_exhausted_on_page(post_copy_root):
+                self._share_quota_store().mark_exhausted(reason="liepin_ui_quota_message")
+                self._dismiss_share_sheet(width, height)
+                self._log(
+                    "candidate_share_quota_exhausted",
+                    "Liepin reported that today's share quota is exhausted after Copy Link",
+                )
+                return None
+            share_link = self.device.get_clipboard()
+            self._dismiss_share_sheet(width, height)
+            if not is_official_resume_share_link(share_link):
+                if share_link == previous_clipboard:
+                    self._share_quota_store().mark_exhausted(
+                        reason="copy_link_produced_no_clipboard_change"
+                    )
+                self._log(
+                    "candidate_share_link_copy_failed",
+                    "Clipboard did not contain an official Liepin resume share URL",
+                    reason="invalid_clipboard_url",
+                    clipboard_changed=share_link != previous_clipboard,
+                )
+                return None
+            return share_link
+        except Exception as exc:
+            self._log(
+                "candidate_share_link_copy_failed",
+                "Failed to copy official candidate share link",
+                reason=str(exc),
+            )
+            return None
+
+    def _record_entered_candidate_detail(
+        self,
+        *,
+        seed: SearchTaskSeed,
+        card: CandidateCard,
+        platform_locator,
+        platform_interaction_note: str | None = None,
+    ) -> int | None:
+        """Persist account-specific locator evidence on detail entry."""
+
+        if not self.write_to_db:
+            return None
+        settings = get_settings()
+        candidate_name = self._extract_candidate_name_from_card(card.raw_text)
+        locator_screenshot_path = self._capture_candidate_locator_screenshot(
+            seed=seed,
+            candidate_name=candidate_name,
+            candidate_fingerprint=card.fingerprint,
+        )
+        locator_id = record_candidate_source_locator(
+            settings,
+            candidate_fingerprint=card.fingerprint[:64],
+            experience_hash=None,
+            candidate_name=candidate_name,
+            search_keyword=seed.effective_query,
+            source_account_alias=settings.liepin_account_alias,
+            source_device_id=settings.device_id,
+            job_profile_id=(
+                str(self.job_profile.get("id") or "")
+                if isinstance(self.job_profile, dict)
+                else None
+            ),
+            search_pack_id=seed.search_pack_id,
+            result_iteration=card.result_iteration,
+            result_rank=card.result_rank,
+            candidate_card_fingerprint=card.fingerprint,
+            candidate_card_text=card.raw_text,
+            platform_candidate_id=platform_locator.platform_candidate_id,
+            platform_resume_id=platform_locator.platform_resume_id,
+            detail_deep_link=platform_locator.detail_deep_link,
+            detail_activity=platform_locator.detail_activity,
+            detail_hierarchy_hash=platform_locator.detail_hierarchy_hash,
+            locator_quality=platform_locator.locator_quality,
+            detail_screenshot_path=locator_screenshot_path,
+            platform_interaction_note=platform_interaction_note,
+        )
+        self._log(
+            "candidate_source_locator_recorded",
+            "Recorded candidate locator immediately after detail entry",
+            candidate_name=candidate_name,
+            candidate_card_fingerprint=card.fingerprint,
+            locator_id=locator_id,
+            platform_interaction_note=platform_interaction_note,
+        )
+        return locator_id
+
+    def _preserve_high_value_candidate(
+        self,
+        *,
+        settings,
+        locator_record_id: int | None,
+        candidate_name: str | None,
+        candidate_fingerprint: str,
+        experience_hash: str,
+        analysis_result: CozeMatchResult | None,
+    ) -> None:
+        """Save a scarce share link, or favorite after the daily quota is spent."""
+
+        if (
+            not self.write_to_db
+            or locator_record_id is None
+            or not self._is_high_value_analysis(analysis_result)
+        ):
+            return
+
+        existing_share_link = self._find_existing_official_share_link(
+            settings=settings,
+            candidate_fingerprint=candidate_fingerprint,
+            experience_hash=experience_hash,
+        )
+        if existing_share_link:
+            update_candidate_source_locator_share_link(
+                settings,
+                locator_id=locator_record_id,
+                share_link=existing_share_link,
+            )
+            self._log(
+                "candidate_share_link_reused",
+                "Reused an existing official share link without consuming share quota",
+                candidate_name=candidate_name,
+                candidate_fingerprint=candidate_fingerprint,
+                locator_id=locator_record_id,
+            )
+            return
+
+        quota_store = self._share_quota_store()
+        if not quota_store.is_exhausted():
+            share_link = self._copy_candidate_share_link()
+            if share_link:
+                update_candidate_source_locator_share_link(
+                    settings,
+                    locator_id=locator_record_id,
+                    share_link=share_link,
+                )
+                self._log(
+                    "candidate_share_link_recorded",
+                    "Saved an official share link for a high-value candidate",
+                    candidate_name=candidate_name,
+                    candidate_fingerprint=candidate_fingerprint,
+                    locator_id=locator_record_id,
+                )
+                return
+            if not quota_store.is_exhausted():
+                self._log(
+                    "candidate_share_link_unavailable",
+                    "Share-link capture failed; preserving the candidate through Favorites",
+                    candidate_name=candidate_name,
+                    candidate_fingerprint=candidate_fingerprint,
+                    locator_id=locator_record_id,
+                )
+
+        if self._favorite_current_candidate():
+            update_candidate_source_locator_favorite(
+                settings,
+                locator_id=locator_record_id,
+            )
+            self._log(
+                "candidate_favorite_recorded",
+                "Favorited a high-value candidate because today's share quota is exhausted",
+                candidate_name=candidate_name,
+                candidate_fingerprint=candidate_fingerprint,
+                locator_id=locator_record_id,
+            )
+
+    @staticmethod
+    def _is_high_value_analysis(analysis_result: CozeMatchResult | None) -> bool:
+        if analysis_result is None:
+            return False
+        if analysis_result.match_result == "relevant":
+            return True
+        return bool(
+            analysis_result.match_result == "needs_review"
+            and analysis_result.match_score is not None
+            and analysis_result.match_score >= HIGH_VALUE_REVIEW_SCORE
+        )
+
+    @staticmethod
+    def _share_quota_is_exhausted_on_page(root: ElementTree.Element) -> bool:
+        page_text = " ".join(node_label(node) for node in root.iter("node"))
+        return any(label in page_text for label in SHARE_QUOTA_EXHAUSTED_LABELS)
+
+    @staticmethod
+    def _find_existing_official_share_link(
+        *,
+        settings,
+        candidate_fingerprint: str,
+        experience_hash: str,
+    ) -> str | None:
+        identity_queries = (
+            {"experience_hash": experience_hash},
+            {"candidate_fingerprint": candidate_fingerprint},
+        )
+        for identity in identity_queries:
+            rows = list_candidate_source_locators(settings, limit=50, **identity)
+            for row in rows:
+                share_link = str(row.get("detail_deep_link") or "").strip()
+                if is_official_resume_share_link(share_link):
+                    return share_link
+        return None
+
+    def _share_quota_store(self) -> DailyShareQuotaStateStore:
+        settings = get_settings()
+        return DailyShareQuotaStateStore(
+            settings.artifacts_dir / "share_quota_state.json",
+            account_alias=settings.liepin_account_alias,
+        )
+
+    def _favorite_current_candidate(self) -> bool:
+        """Favorite the current detail page without navigating away from it."""
+
+        try:
+            device_info = self.device.device_info()
+            width = int(device_info.get("displayWidth") or device_info.get("width") or 1080)
+            height = int(device_info.get("displayHeight") or device_info.get("height") or 2388)
+            root = ElementTree.fromstring(self.device.dump_hierarchy_text())
+            if self._page_has_any_label(root, ("已收藏", "取消收藏")) or self._favorite_icon_is_filled(
+                width=width,
+                height=height,
+                stage="before",
+            ):
+                self._log(
+                    "candidate_already_favorited",
+                    "Candidate detail already shows a filled Favorite icon",
+                )
+                return True
+            favorite_center = find_clickable_labeled_center(root, ("收藏",))
+            if favorite_center is None:
+                # The first action in the candidate-detail top-right row is Favorite.
+                favorite_center = (int(width * 0.61), int(height * 0.083))
+            self.device.tap(*favorite_center)
+            self._wait(0.8)
+            confirmation_root = ElementTree.fromstring(self.device.dump_hierarchy_text())
+            confirmed = self._page_has_any_label(
+                confirmation_root,
+                ("已收藏", "取消收藏", "收藏成功"),
+            ) or self._favorite_icon_is_filled(
+                width=width,
+                height=height,
+                stage="after",
+            )
+            if not confirmed:
+                self._log(
+                    "candidate_favorite_unconfirmed",
+                    "Tapped Favorite but could not confirm the resulting UI state",
+                )
+            return confirmed
+        except Exception as exc:
+            self._log(
+                "candidate_favorite_failed",
+                "Failed to favorite the current candidate",
+                reason=str(exc),
+            )
+            return False
+
+    def _favorite_icon_is_filled(
+        self,
+        *,
+        width: int,
+        height: int,
+        stage: str,
+    ) -> bool:
+        """Confirm Liepin's orange filled star when accessibility has no state."""
+
+        settings = get_settings()
+        evidence_dir = settings.artifacts_dir / "favorite_confirmations"
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+        evidence_path = evidence_dir / f"favorite_{stage}_{int(time.time() * 1000)}.png"
+        try:
+            self.device.screenshot(evidence_path)
+            with Image.open(evidence_path) as screenshot:
+                rgb = screenshot.convert("RGB")
+                crop = rgb.crop(
+                    (
+                        int(width * 0.555),
+                        int(height * 0.052),
+                        int(width * 0.655),
+                        int(height * 0.105),
+                    )
+                )
+                orange_pixels = sum(
+                    1
+                    for red, green, blue in crop.getdata()
+                    if red >= 220
+                    and 55 <= green <= 180
+                    and blue <= 80
+                    and red - green >= 70
+                )
+            self._log(
+                "candidate_favorite_visual_check",
+                "Checked the top-right Favorite icon fill color",
+                stage=stage,
+                orange_pixels=orange_pixels,
+                evidence_path=str(evidence_path),
+            )
+            return orange_pixels >= 80
+        except Exception as exc:
+            self._log(
+                "candidate_favorite_visual_check_failed",
+                "Failed to inspect Favorite icon fill color",
+                stage=stage,
+                reason=str(exc),
+            )
+            return False
+
+    @staticmethod
+    def _page_has_any_label(
+        root: ElementTree.Element,
+        expected_labels: tuple[str, ...],
+    ) -> bool:
+        return any(
+            any(expected in node_label(node) for expected in expected_labels)
+            for node in root.iter("node")
+        )
+
+    @staticmethod
+    def _find_bottom_sheet_action(
+        root: ElementTree.Element,
+        label: str,
+    ) -> tuple[int, int] | None:
+        candidates: list[tuple[int, tuple[int, int]]] = []
+        for node in root.iter("node"):
+            if node_label(node) != label or node.attrib.get("clickable") != "true":
+                continue
+            bounds = parse_bounds(node.attrib.get("bounds", ""))
+            if bounds is None:
+                continue
+            candidates.append((bounds.y1, bounds.center))
+        if not candidates:
+            return None
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        return candidates[0][1]
+
+    def _dismiss_share_sheet(self, width: int, height: int) -> None:
+        """Close the share panel through its explicit bottom Cancel action."""
+
+        try:
+            root = ElementTree.fromstring(self.device.dump_hierarchy_text())
+            cancel_center = self._find_bottom_sheet_action(root, "取消")
+            if cancel_center is not None:
+                self.device.tap(*cancel_center)
+                self._wait(0.3)
+                return
+
+            # Copying a link may dismiss the Android/Liepin share sheet
+            # automatically. In that state a Back press would navigate away from
+            # the candidate profile, so absence of the explicit bottom Cancel
+            # action must be treated as "already dismissed".
+            self._log(
+                "candidate_share_sheet_already_dismissed",
+                "Share sheet no longer exposes its bottom Cancel action",
+            )
+        except Exception as exc:
+            # Never use Back as a share-sheet fallback: it is indistinguishable
+            # from leaving the candidate detail page once the sheet has closed.
+            self._log(
+                "candidate_share_sheet_dismiss_check_failed",
+                "Failed to inspect the share sheet after copying the link",
+                reason=str(exc),
+            )
+
     @staticmethod
     def _build_coze_resume_record(
         *,
@@ -1323,6 +2283,45 @@ class ResultPageFilter:
             "experience": experience or "",
             "analysis_status": "未执行",
         }
+
+    def _analysis_settings(self, settings):
+        if self.selection_mode != "jd_smart":
+            return settings
+        workflow_key = "daren"
+        if isinstance(self.job_profile, dict):
+            workflow_key = str(self.job_profile.get("coze_workflow_key") or workflow_key).strip()
+        if workflow_key == "finance":
+            workflow_id = settings.coze_finance_workflow_id
+            analysis_version = settings.coze_finance_analysis_version
+            missing_setting = "COZE_FINANCE_WORKFLOW_ID"
+        else:
+            workflow_id = settings.coze_jd_workflow_id
+            analysis_version = settings.coze_jd_analysis_version
+            missing_setting = "COZE_JD_WORKFLOW_ID"
+        if not workflow_id:
+            raise RuntimeError(
+                f"{missing_setting} is required for JD smart mode."
+            )
+        return settings.model_copy(
+            update={
+                "coze_workflow_id": workflow_id,
+                "coze_analysis_version": analysis_version,
+            }
+        )
+
+    def _required_job_intent_city(self) -> str | None:
+        if self.selection_mode != "jd_smart" or not isinstance(self.job_profile, dict):
+            return None
+        city = str(self.job_profile.get("required_job_intent_city") or "").strip()
+        return city or None
+
+    def _required_candidate_maximum_age(self) -> int | None:
+        if self.selection_mode != "jd_smart" or not isinstance(self.job_profile, dict):
+            return None
+        age_config = self.job_profile.get("age")
+        if not isinstance(age_config, dict):
+            return None
+        return self._normalize_optional_int(age_config.get("maximum"))
 
     @staticmethod
     def _derive_hit_status(

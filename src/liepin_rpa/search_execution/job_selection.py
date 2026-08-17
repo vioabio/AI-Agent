@@ -7,22 +7,25 @@ from xml.etree import ElementTree
 from liepin_rpa.device.client import DeviceClient
 from liepin_rpa.ui_controls import BoundsBox, iter_app_nodes, node_label, parse_bounds
 
-JobRoleGroup = Literal["daren_live", "brand_market"]
+JobRoleGroup = Literal["daren_live", "brand_market", "finance_shared"]
 
 DAREN_LIVE_SEARCH_KEYWORDS = frozenset(
     (
-        "\u8fbe\u64ad\u603b\u76d1",
-        "\u8fbe\u4eba\u8425\u9500\u603b\u76d1",
-        "\u5168\u57df\u8425\u9500\u603b\u76d1",
-        "\u5168\u57df\u589e\u957f\u8d1f\u8d23\u4eba",
-        "\u65b0\u5a92\u4f53\u8425\u9500\u603b\u76d1",
-        "\u7535\u5546\u603b\u76d1",
-        "\u5a92\u4ecb\u603b\u76d1",
-        "\u6574\u5408\u8425\u9500\u603b\u76d1",
-        "\u76f4\u64ad\u4e1a\u52a1\u603b\u76d1",
-        "\u7535\u5546\u8fd0\u8425\u603b\u76d1\uff08\u8fbe\u4eba\u65b9\u5411\uff09",
-        "\u76f4\u64ad\u4e1a\u52a1\u8d1f\u8d23\u4eba",
-        "\u8425\u9500\u8d1f\u8d23\u4eba",
+        "达人营销总监",
+        "媒介总监",
+        "直播电商负责人",
+        "达人运营总监",
+        "达人运营负责人",
+        "KOL商务BD",
+        "内容营销总监",
+        "新媒体营销总监",
+        "电商总经理",
+        "整合营销总监",
+        "直播负责人",
+        "抖音负责人",
+        "直播推广负责人",
+        "BD负责人",
+        "BD总监",
     )
 )
 
@@ -63,6 +66,13 @@ BRAND_MARKET_OPTION_MARKERS = (
     "\u7f8e\u5986\u4e3b\u7406\u4eba",
     "\u5e02\u573a\u8fd0\u8425\u603b\u76d1",
 )
+FINANCE_SHARED_OPTION_MARKERS = (
+    "财务共享与管理经理",
+    "财务共享及管理经理",
+    "财务共享经理",
+    "财务共享中心经理",
+)
+DISABLED_JOB_OPTION_MARKERS = ("\u5b89\u548c\u989c",)
 
 
 def choose_job_before_chat_if_present(
@@ -76,7 +86,11 @@ def choose_job_before_chat_if_present(
         return False
 
     role_group = classify_role_group(role_keyword)
-    option_center = find_role_option_center(root, role_group, allow_position_fallback=True)
+    option_center = find_role_option_center(
+        root,
+        role_group,
+        allow_position_fallback=role_group != "finance_shared",
+    )
     if option_center is None:
         return False
 
@@ -95,6 +109,8 @@ def choose_job_before_chat_if_present(
 
 def classify_role_group(role_keyword: str) -> JobRoleGroup:
     normalized = _normalize_role_keyword(role_keyword)
+    if any(marker in normalized for marker in ("财务共享", "集团财务", "财务管理经理")):
+        return "finance_shared"
     if normalized in DAREN_LIVE_SEARCH_KEYWORDS:
         return "daren_live"
     if normalized in BRAND_MARKET_SEARCH_KEYWORDS:
@@ -117,7 +133,11 @@ def find_role_option_center(
     *,
     allow_position_fallback: bool = False,
 ) -> tuple[int, int] | None:
-    markers = DAREN_LIVE_OPTION_MARKERS if role_group == "daren_live" else BRAND_MARKET_OPTION_MARKERS
+    markers = {
+        "daren_live": DAREN_LIVE_OPTION_MARKERS,
+        "brand_market": BRAND_MARKET_OPTION_MARKERS,
+        "finance_shared": FINANCE_SHARED_OPTION_MARKERS,
+    }[role_group]
     labeled = _find_option_by_markers(root, markers)
     if labeled is not None:
         return labeled.center
@@ -164,8 +184,10 @@ def _find_option_by_markers(
         bounds = parse_bounds(node.attrib.get("bounds", ""))
         if bounds is None or not _looks_like_job_option(bounds):
             continue
-        label = node_label(node)
+        label = _job_option_label(node)
         if not label:
+            continue
+        if _is_disabled_job_option(label):
             continue
         score = sum(1 for marker in markers if marker in label)
         if score <= 0:
@@ -185,6 +207,8 @@ def _visible_job_option_boxes(root: ElementTree.Element) -> list[BoundsBox]:
         bounds = parse_bounds(node.attrib.get("bounds", ""))
         if bounds is None or not _looks_like_job_option(bounds):
             continue
+        if _is_disabled_job_option(_job_option_label(node)):
+            continue
         boxes.append(bounds)
     boxes.sort(key=lambda item: item.y1)
     return boxes
@@ -196,6 +220,15 @@ def _looks_like_job_option(bounds: BoundsBox) -> bool:
     if bounds.width < 900:
         return False
     return 180 <= bounds.height <= 320
+
+
+def _job_option_label(node: ElementTree.Element) -> str:
+    labels = [node_label(item) for item in node.iter("node")]
+    return " ".join(label for label in labels if label)
+
+
+def _is_disabled_job_option(label: str) -> bool:
+    return any(marker in label for marker in DISABLED_JOB_OPTION_MARKERS)
 
 
 def _normalize_role_keyword(role_keyword: str) -> str:

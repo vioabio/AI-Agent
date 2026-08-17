@@ -6,7 +6,7 @@ from xml.etree import ElementTree
 APP_PACKAGE = "com.lietou.mishu"
 RESULT_FILTER_LABELS = ("综合排序", "全国", "经验", "学历", "更多")
 SEARCH_PLACEHOLDER = "搜索职位、公司、行业等"
-EMPTY_RESULT_TEXT = "这里暂无数据"
+EMPTY_RESULT_TEXTS = ("这里暂无数据", "加载失败")
 PROFILE_SECTION_LABELS = ("求职意向", "简历亮点", "工作经历")
 
 
@@ -195,19 +195,24 @@ def find_profile_communication_action(
     candidates: list[tuple[int, str, BoundsBox]] = []
     expected_labels = ("继续沟通", "立即沟通")
     for node in iter_app_nodes(root):
-        if node.attrib.get("clickable") != "true":
-            continue
         bounds = parse_bounds(node.attrib.get("bounds", ""))
         if bounds is None:
             continue
         label = node_label(node)
         if label in expected_labels:
-            candidates.append((1000 + bounds.y1, label, bounds))
+            score = 1000 + bounds.y1 if node.attrib.get("clickable") == "true" else bounds.y1
+            if bounds.y1 >= 1600:
+                score += 700
+            candidates.append((score, label, bounds))
             continue
-        for child in list(node):
-            child_label = node_label(child)
-            if child_label in expected_labels:
-                candidates.append((1000 + bounds.y1, child_label, bounds))
+        if node.attrib.get("clickable") != "true":
+            continue
+        for descendant in node.iter("node"):
+            if descendant is node:
+                continue
+            descendant_label = node_label(descendant)
+            if descendant_label in expected_labels:
+                candidates.append((1000 + bounds.y1, descendant_label, bounds))
                 break
     if not candidates:
         return None
@@ -294,7 +299,7 @@ def find_candidate_card_centers(root: ElementTree.Element) -> list[tuple[int, in
 
 
 def has_empty_result_banner(root: ElementTree.Element) -> bool:
-    return any_label_contains(root, EMPTY_RESULT_TEXT)
+    return any(any_label_contains(root, text) for text in EMPTY_RESULT_TEXTS)
 
 
 def has_home_recommend_nav(root: ElementTree.Element) -> bool:

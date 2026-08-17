@@ -2,7 +2,7 @@
 
 ## Goal
 
-Recover `D:\lx\jianlizhuanqu` into a fully runnable workspace after moving the project to a new Windows directory.
+Recover the migrated project directory into a fully runnable Windows workspace.
 
 This runbook covers:
 
@@ -17,7 +17,7 @@ This runbook covers:
 From the workspace root:
 
 ```powershell
-cd D:\lx\jianlizhuanqu
+cd <project-root>
 .\scripts\rebuild_venv.ps1
 .\.venv\Scripts\python.exe scripts\migration_selfcheck.py
 ```
@@ -40,8 +40,8 @@ If you want to skip the live profile collection stage:
 
 Expected result:
 
-- `python.exe` runs from `D:\lx\jianlizhuanqu\.venv`
-- `pip` resolves inside `D:\lx\jianlizhuanqu\.venv\Lib\site-packages`
+- `python.exe` runs from `<project-root>\.venv`
+- `pip` resolves inside `<project-root>\.venv\Lib\site-packages`
 
 If any launcher still points at the old directory, rebuild:
 
@@ -57,7 +57,7 @@ If any launcher still points at the old directory, rebuild:
 
 Expected result:
 
-- output points into `D:\lx\jianlizhuanqu\src\liepin_rpa`
+- output points into `<project-root>\src\liepin_rpa`
 
 ### 3. Verify required project structure
 
@@ -71,7 +71,7 @@ These paths must exist:
 - `logs`
 - `pyproject.toml`
 
-Historical sample XML files under `outputs\**\hierarchy.xml` should also still be present, because smoke tests rely on them.
+脱敏页面样本位于 `tests\fixtures`，并随代码版本控制；不再依赖运行时 `outputs` 目录。
 
 ### 4. Run sample-backed smoke tests
 
@@ -153,6 +153,21 @@ outputs/migration_selfcheck/<timestamp>/
 ```
 
 ## Known Migration-Specific Issues
+
+### Candidate locator schema upgrade
+
+`ensure_resume_experience_schema()` now creates the additive
+`candidate_resume_source_locators` table. The first normal database-backed run performs this
+upgrade automatically. Existing resume, analysis, hit, and contact rows are not rewritten.
+
+Configure a stable non-secret label for each authorized recruiter account:
+
+```dotenv
+LIEPIN_ACCOUNT_ALIAS=recruiter_a
+```
+
+Old rows cannot be backfilled with platform IDs that were never exposed or captured; their existing
+candidate fingerprint and experience hash remain usable for content-based identity matching.
 
 ### Old editable path still active
 

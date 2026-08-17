@@ -83,6 +83,13 @@ class DeviceClient:
     def current_app(self) -> dict[str, Any]:
         return self._with_reconnect(lambda: self._require_device().app_current())
 
+    def get_clipboard(self) -> str | None:
+        value = self._with_reconnect(lambda: self._require_device().clipboard)
+        if value is None:
+            return None
+        cleaned = str(value).strip()
+        return cleaned or None
+
     def device_info(self) -> dict[str, Any]:
         return self._with_reconnect(lambda: self._require_device().info)
 

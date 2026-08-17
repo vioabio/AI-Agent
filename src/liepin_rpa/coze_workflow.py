@@ -1,20 +1,47 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import random
 import time
 from dataclasses import dataclass
-from typing import Any
+from datetime import datetime, timedelta
+from typing import Any, Mapping
 
 from cozepy import Coze, TokenAuth
 from cozepy.exception import CozeAPIError
+from cozepy.request import SyncHTTPClient
 
 from liepin_rpa.config import Settings
 from liepin_rpa.logging_utils import get_logger
 
 LOGGER = get_logger(__name__)
-COZE_MAX_ATTEMPTS = 3
-COZE_RETRYABLE_CODES = {5000}
+COZE_MAX_ATTEMPTS = 4
+COZE_TRANSIENT_CACHE_TTL = timedelta(minutes=10)
+COZE_RETRYABLE_CODES = {429, 5000, 5001, 5002, 5003, 5004, 5005}
+COZE_NEEDS_REVIEW_CODES = {4000}
 VALID_MATCH_RESULTS = {"relevant", "not_relevant", "needs_review"}
+EXPECTED_SCORE_BREAKDOWN_KEYS = {
+    "beauty_continuity",
+    "industry_depth",
+    "role_evidence",
+}
+COZE_RESUME_RECORD_FIELDS = (
+    "id",
+    "candidate_name",
+    "source_platform",
+    "search_keyword",
+    "experience",
+    "analysis_status",
+)
+COZE_FIELD_MAX_CHARS = {
+    "candidate_name": 128,
+    "source_platform": 64,
+    "search_keyword": 512,
+    "analysis_status": 64,
+    "experience": 4000,
+}
+COZE_COMPACT_WHITESPACE_FIELDS = {"experience"}
 
 
 @dataclass(slots=True)
@@ -53,13 +80,31 @@ def analyze_resume_record_with_coze(
     coze = Coze(
         auth=TokenAuth(token=settings.coze_api_token),
         base_url=settings.coze_api_base_url,
+        http_client=SyncHTTPClient(trust_env=False),
+    )
+    parameters = _build_coze_workflow_parameters(resume_record)
+    request_fingerprint = hashlib.sha256(
+        json.dumps(parameters, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()[:16]
+    LOGGER.info(
+        "Prepared Coze workflow parameters",
+        extra={
+            "event": "coze_parameters_prepared",
+            "context": {
+                "record_id": resume_record.get("id"),
+                "candidate_name": resume_record.get("candidate_name"),
+                "coze_request_fingerprint": request_fingerprint,
+                **_summarize_coze_parameters(resume_record, parameters),
+            },
+        },
     )
     last_error: Exception | None = None
     for attempt in range(1, COZE_MAX_ATTEMPTS + 1):
+        attempt_started_at = time.monotonic()
         try:
             workflow = coze.workflows.runs.create(
                 workflow_id=settings.coze_workflow_id,
-                parameters={"resume_record": resume_record},
+                parameters=parameters,
             )
             raw_data = workflow.data or ""
             parsed_payload = _parse_workflow_data(raw_data)
@@ -74,6 +119,7 @@ def analyze_resume_record_with_coze(
                             "record_id": resume_record.get("id"),
                             "candidate_name": resume_record.get("candidate_name"),
                             "attempt": attempt,
+                            "coze_request_fingerprint": request_fingerprint,
                             "validation_errors": validation_errors,
                         },
                     },
@@ -95,21 +141,31 @@ def analyze_resume_record_with_coze(
                         "attempt": attempt,
                         "code": exc.code,
                         "message": exc.msg,
+                        "logid": exc.logid,
+                        "debug_url": exc.debug_url,
+                        "coze_request_fingerprint": request_fingerprint,
+                        "attempt_elapsed_seconds": round(
+                            time.monotonic() - attempt_started_at,
+                            3,
+                        ),
                     },
                 },
             )
-            if exc.code in COZE_RETRYABLE_CODES and attempt >= COZE_MAX_ATTEMPTS:
+            should_retry_or_review = (
+                exc.code in COZE_RETRYABLE_CODES or exc.code in COZE_NEEDS_REVIEW_CODES
+            )
+            if should_retry_or_review and attempt >= COZE_MAX_ATTEMPTS:
                 return _build_needs_review_result(
                     raw_data="",
                     reason=(
-                        "Coze API 连续返回临时内部错误，"
+                        "Coze API 连续返回异常，"
                         f"code={exc.code}, message={exc.msg}"
                     ),
                     source="api_error",
                 )
-            if exc.code not in COZE_RETRYABLE_CODES:
+            if not should_retry_or_review:
                 raise
-            time.sleep(attempt * 2)
+            time.sleep(min(2**attempt, 15) + random.uniform(0, 0.75))
     else:
         raise RuntimeError("Coze workflow did not return a result") from last_error
 
@@ -143,6 +199,78 @@ def analyze_resume_record_with_coze(
     )
 
 
+def _build_coze_workflow_parameters(resume_record: dict[str, object]) -> dict[str, object]:
+    normalized_record = {
+        field_name: _coze_field_value(field_name, resume_record.get(field_name))
+        for field_name in COZE_RESUME_RECORD_FIELDS
+    }
+    return {"resume_record": normalized_record}
+
+
+def _coze_field_value(field_name: str, value: object) -> object:
+    if field_name == "id":
+        return _coze_number_value(value)
+    normalized = _coze_string_value(value).replace("\x00", "").strip()
+    if field_name in COZE_COMPACT_WHITESPACE_FIELDS:
+        normalized = " ".join(normalized.split())
+    max_chars = COZE_FIELD_MAX_CHARS.get(field_name)
+    if max_chars is not None and len(normalized) > max_chars:
+        return normalized[:max_chars].rstrip()
+    return normalized
+
+
+def _coze_number_value(value: object) -> int | float:
+    if isinstance(value, bool) or value is None:
+        return 0
+    if isinstance(value, (int, float)):
+        return value
+    normalized = str(value).strip()
+    try:
+        return int(normalized)
+    except ValueError:
+        try:
+            return float(normalized)
+        except ValueError:
+            return 0
+
+
+def _coze_string_value(value: object) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
+
+
+def _summarize_coze_parameters(
+    original_record: dict[str, object],
+    parameters: dict[str, object],
+) -> dict[str, object]:
+    resume_record = parameters.get("resume_record")
+    if not isinstance(resume_record, dict):
+        return {"coze_parameter_error": "resume_record is not an object"}
+    field_lengths = {
+        field_name: len(str(resume_record.get(field_name) or ""))
+        for field_name in COZE_RESUME_RECORD_FIELDS
+    }
+    truncated_fields = []
+    for field_name in COZE_RESUME_RECORD_FIELDS:
+        max_chars = COZE_FIELD_MAX_CHARS.get(field_name)
+        if max_chars is None:
+            continue
+        original_value = _coze_string_value(original_record.get(field_name)).replace("\x00", "").strip()
+        if field_name in COZE_COMPACT_WHITESPACE_FIELDS:
+            original_value = " ".join(original_value.split())
+        if len(original_value) > max_chars:
+            truncated_fields.append(field_name)
+    return {
+        "coze_field_lengths": field_lengths,
+        "coze_truncated_fields": truncated_fields,
+    }
+
+
 def _parse_workflow_data(raw_data: str) -> dict[str, Any]:
     if not raw_data:
         return {}
@@ -173,11 +301,20 @@ def _validate_coze_payload(payload: dict[str, Any]) -> list[str]:
     if not isinstance(payload.get("evidence_summary"), list):
         errors.append("evidence_summary must be an array")
     score = _normalize_match_score(payload)
-    if score is not None and not 0 <= score <= 100:
-        errors.append("match_score must be between 0 and 100")
+    if score is None:
+        errors.append("match_score must be an integer between 0 and 100")
     score_breakdown = payload.get("score_breakdown")
-    if score_breakdown is not None and not isinstance(score_breakdown, dict):
-        errors.append("score_breakdown must be an object when present")
+    if not isinstance(score_breakdown, dict):
+        errors.append("score_breakdown must be an object")
+    else:
+        actual_keys = set(score_breakdown)
+        if actual_keys != EXPECTED_SCORE_BREAKDOWN_KEYS:
+            errors.append("score_breakdown must contain exactly the expected dimensions")
+        normalized_breakdown = _normalize_score_breakdown(payload)
+        if len(normalized_breakdown) != len(EXPECTED_SCORE_BREAKDOWN_KEYS):
+            errors.append("score_breakdown values must be integers between 0 and 100")
+        elif score is not None and sum(normalized_breakdown.values()) != score:
+            errors.append("match_score must equal the sum of score_breakdown")
     return errors
 
 
@@ -208,6 +345,52 @@ def _build_needs_review_result(
         raw_data=raw_data,
         parsed_payload=payload,
     )
+
+
+def is_transient_coze_api_review(result: CozeMatchResult | None) -> bool:
+    return bool(
+        result is not None
+        and result.match_result == "needs_review"
+        and "Coze API 临时异常" in (result.analysis_reason or "")
+    )
+
+
+def transient_coze_cache_retry_due(
+    result: CozeMatchResult | None,
+    cache_record: Mapping[str, object] | None,
+    *,
+    now: datetime | None = None,
+    ttl: timedelta = COZE_TRANSIENT_CACHE_TTL,
+) -> bool:
+    """Return true when a cached transient API failure should be analyzed again."""
+    if not is_transient_coze_api_review(result):
+        return False
+    if cache_record is None:
+        return True
+    cached_at = _coerce_cache_datetime(
+        cache_record.get("updated_at") or cache_record.get("created_at")
+    )
+    if cached_at is None:
+        return True
+    resolved_now = _coerce_cache_datetime(now or datetime.now())
+    if resolved_now is None:
+        return True
+    return resolved_now - cached_at >= ttl
+
+
+def _coerce_cache_datetime(value: object) -> datetime | None:
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str) and value.strip():
+        try:
+            parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    else:
+        return None
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone().replace(tzinfo=None)
+    return parsed
 
 
 def _normalize_match_result(payload: dict[str, Any]) -> str | None:

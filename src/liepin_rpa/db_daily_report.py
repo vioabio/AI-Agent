@@ -1,42 +1,56 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 import re
 
 from sqlalchemy import text
 
-from liepin_rpa.coze_workflow import CozeMatchResult, analyze_resume_record_with_coze
+from liepin_rpa.coze_workflow import (
+    CozeMatchResult,
+    analyze_resume_record_with_coze,
+    transient_coze_cache_retry_due,
+)
 from liepin_rpa.config import Settings
 from liepin_rpa.db import (
     build_experience_hash,
     ensure_resume_experience_schema,
     get_analysis_cache_record,
+    get_candidate_record_by_fingerprint,
     get_engine,
-    get_latest_daily_report_run,
-    list_contacted_candidate_records,
-    record_daily_report_run,
+    start_daily_report_delivery,
+    update_daily_report_delivery,
     upsert_analysis_cache_record,
 )
 from liepin_rpa.feishu_report import (
+    ReportCandidate,
     build_report_candidates,
-    select_featured_candidates,
+    select_relevant_candidates,
+    select_review_candidates,
     send_feishu_daily_report,
 )
 from liepin_rpa.logging_utils import get_logger
 from liepin_rpa.pdf_upload import upload_pdf_if_configured
 from liepin_rpa.profile_collection.resume_schema import sanitize_candidate_name
 from liepin_rpa.resume_pdf_export import build_daily_resume_pdf_path, export_featured_resume_pdf
+from liepin_rpa.report_batch import BATCH_STATE_FILENAME, SearchBatchStateStore
+from liepin_rpa.report_candidate_history import (
+    REPORT_CANDIDATE_HISTORY_FILENAME,
+    ReportCandidateHistoryStore,
+)
 from liepin_rpa.search_execution.result_filter import CandidateProcessOutcome
 from liepin_rpa.search_execution.workflow import KeywordWorkflowResult, SearchWorkflowReport
 
 LOGGER = get_logger(__name__)
+DAILY_REPORT_DETAIL_MIN_SCORE = 90
 WORK_CONTENT_PREFIX = "工作内容："
 PROJECT_CONTENT_PREFIX = "项目内容："
 PROFILE_CONTENT_PREFIX = "候选人信息："
 WORK_ITEM_SEPARATOR = "；"
+SHANGHAI_TIMEZONE = timezone(timedelta(hours=8))
 
 
 def send_database_daily_report(
@@ -46,16 +60,30 @@ def send_database_daily_report(
     use_cache: bool = False,
     dry_run: bool = False,
     report_date: date | None = None,
+    window_start_at: datetime | None = None,
+    window_end_at: datetime | None = None,
+    batch_id: str | None = None,
+    feishu_webhook_override: str | None = None,
+    advance_watermark: bool = True,
 ) -> dict[str, object]:
     ensure_resume_experience_schema(settings)
-    updated_from, updated_before, window_mode = _build_report_window(settings, report_date)
-    contacted_records = list_contacted_candidate_records(
+    updated_from, updated_before, window_mode, resolved_batch_id = _build_report_window(
+        settings,
+        report_date,
+        window_start_at=window_start_at,
+        window_end_at=window_end_at,
+        batch_id=batch_id,
+    )
+    contacted_records = _load_report_candidate_records(
         settings,
         limit=limit,
-        updated_from=updated_from,
-        updated_before=updated_before,
+        window_start_at=updated_from,
+        window_end_at=updated_before,
     )
-    latest_hits = _load_latest_hit_map(settings)
+    latest_hits = _overlay_latest_hit_status(
+        contacted_records,
+        latest_hit_map=_load_latest_hit_map(settings),
+    )
 
     candidate_outcomes = _build_candidate_outcomes(
         settings,
@@ -63,62 +91,268 @@ def send_database_daily_report(
         contacted_records=contacted_records,
         use_cache=use_cache,
     )
+    candidate_history = ReportCandidateHistoryStore(
+        settings.artifacts_dir / REPORT_CANDIDATE_HISTORY_FILENAME
+    )
+    previously_reported_fingerprints = candidate_history.load_fingerprints()
+    previously_reported_count = sum(
+        1
+        for outcome in candidate_outcomes
+        if outcome.candidate_fingerprint in previously_reported_fingerprints
+    )
+    candidate_outcomes = [
+        outcome
+        for outcome in candidate_outcomes
+        if outcome.candidate_fingerprint not in previously_reported_fingerprints
+    ]
+    total_candidates_seen = _count_total_seen_candidates(settings)
+    cumulative_metrics = _count_cumulative_report_metrics(settings)
+    cumulative_metrics_by_job = _count_cumulative_report_metrics_by_job(settings)
+    cumulative_start_at, cumulative_end_at = _load_cumulative_report_window(settings)
+    executed_keywords_by_role = _count_executed_keywords_by_role_from_log(
+        settings,
+        window_start_at=updated_from,
+        window_end_at=updated_before,
+    )
+    executed_keywords = (
+        sum(executed_keywords_by_role.values()) if executed_keywords_by_role is not None else None
+    )
+    screened_candidate_views_by_role = _count_screened_candidate_views_by_role_from_log(
+        settings,
+        window_start_at=updated_from,
+        window_end_at=updated_before,
+    )
+    screened_candidate_views = (
+        sum(screened_candidate_views_by_role.values())
+        if screened_candidate_views_by_role is not None
+        else None
+    )
+    cumulative_screened_views_by_role = _count_screened_candidate_views_by_role_from_log(
+        settings,
+        window_start_at=cumulative_start_at,
+        window_end_at=datetime.now(),
+    )
+    cumulative_metrics_by_job["screened_views_by_role"] = (
+        cumulative_screened_views_by_role or {}
+    )
+    cumulative_screened_candidate_views = (
+        sum(cumulative_screened_views_by_role.values())
+        if cumulative_screened_views_by_role is not None
+        else None
+    )
+    report_key = _build_daily_report_key(updated_from, contacted_records)
+    tracked_delivery = not dry_run and advance_watermark
     if not candidate_outcomes:
+        if tracked_delivery and resolved_batch_id is not None:
+            SearchBatchStateStore(
+                settings.artifacts_dir / BATCH_STATE_FILENAME
+            ).mark_reported(
+                batch_id=resolved_batch_id,
+                report_key=report_key,
+                delivery_status="skipped_no_new_candidates",
+            )
         return {
             "records_loaded": 0,
             "candidate_outcomes": 0,
             "feishu_sent": False,
+            "total_candidates_seen": total_candidates_seen,
+            "executed_keywords": executed_keywords,
+            "executed_keywords_by_role": executed_keywords_by_role,
+            "screened_candidate_views": screened_candidate_views,
+            "cumulative_screened_candidate_views": cumulative_screened_candidate_views,
             "window_mode": window_mode,
+            "batch_id": resolved_batch_id,
+            "report_key": report_key,
             "window_start_at": updated_from.isoformat() if updated_from is not None else None,
             "window_end_at": updated_before.isoformat() if updated_before is not None else None,
             "report_date": report_date.isoformat() if report_date is not None else None,
             "dry_run": dry_run,
+            "advance_watermark": advance_watermark,
+            "webhook_mode": "override" if feishu_webhook_override else "default",
         }
-
-    detail_pdf_path = _export_featured_candidate_pdf(
-        settings,
-        candidate_outcomes=candidate_outcomes,
-        contacted_records=contacted_records,
-    )
-    upload_result = upload_pdf_if_configured(settings, detail_pdf_path) if not dry_run else None
-    detail_pdf_url = upload_result.public_url if upload_result is not None else None
-
-    report = _build_report_from_db_snapshot(candidate_outcomes)
-    feishu_sent = False if dry_run else send_feishu_daily_report(
-        settings,
-        report,
-        detail_pdf_url=detail_pdf_url,
-        window_start_at=updated_from,
-        window_end_at=updated_before,
-    )
-    report_run_id = None
-    if feishu_sent:
-        report_run_id = record_daily_report_run(
+    delivery_run: dict[str, object] | None = None
+    if tracked_delivery:
+        delivery_run = start_daily_report_delivery(
             settings,
+            report_key=report_key,
             window_start_at=updated_from,
             window_end_at=updated_before or datetime.now(),
             records_loaded=len(contacted_records),
             candidate_outcomes=len(candidate_outcomes),
+        )
+        if delivery_run.get("delivery_status") == "sent":
+            if resolved_batch_id is not None:
+                SearchBatchStateStore(
+                    settings.artifacts_dir / BATCH_STATE_FILENAME
+                ).mark_reported(
+                    batch_id=resolved_batch_id,
+                    report_key=report_key,
+                    delivery_status="already_sent",
+                )
+            return {
+                "records_loaded": len(contacted_records),
+                "candidate_outcomes": len(candidate_outcomes),
+                "feishu_sent": False,
+                "already_sent": True,
+                "report_run_id": int(delivery_run["id"]),
+                "report_key": report_key,
+                "detail_pdf_path": delivery_run.get("detail_pdf_path"),
+                "detail_pdf_url": delivery_run.get("detail_pdf_url"),
+                "window_mode": window_mode,
+                "batch_id": resolved_batch_id,
+                "window_start_at": updated_from.isoformat() if updated_from is not None else None,
+                "window_end_at": updated_before.isoformat() if updated_before is not None else None,
+                "dry_run": dry_run,
+                "advance_watermark": advance_watermark,
+            }
+
+    detail_pdf_paths_by_job = _export_candidate_pdfs_by_job(
+        settings,
+        candidate_outcomes=candidate_outcomes,
+        contacted_records=contacted_records,
+        report_key=report_key,
+    )
+    upload_results_by_job = {
+        job_name: upload_pdf_if_configured(settings, pdf_path)
+        for job_name, pdf_path in detail_pdf_paths_by_job.items()
+    } if not dry_run else {}
+    detail_pdf_urls_by_job = {
+        job_name: (
+            _version_pdf_public_url(
+                upload_results_by_job[job_name].public_url,
+                detail_pdf_paths_by_job.get(job_name),
+            )
+            if job_name in upload_results_by_job
+            else None
+        )
+        for job_name in ("达人营销总监", "财务共享与管理经理")
+    }
+    detail_pdf_path = detail_pdf_paths_by_job.get("达人营销总监")
+    upload_result = upload_results_by_job.get("达人营销总监")
+    detail_pdf_url = detail_pdf_urls_by_job.get("达人营销总监")
+    if tracked_delivery:
+        update_daily_report_delivery(
+            settings,
+            report_key=report_key,
+            delivery_status="uploaded" if upload_result and upload_result.uploaded else "pdf_ready",
             detail_pdf_path=str(detail_pdf_path) if detail_pdf_path is not None else None,
             detail_pdf_url=detail_pdf_url,
+            uploaded=bool(upload_result and upload_result.uploaded),
         )
+    if detail_pdf_path is not None and upload_result is not None and not upload_result.uploaded:
+        if tracked_delivery:
+            update_daily_report_delivery(
+                settings,
+                report_key=report_key,
+                delivery_status="upload_failed",
+                detail_pdf_path=str(detail_pdf_path),
+            )
+        LOGGER.warning(
+            "Sending daily report card without PDF link because upload failed",
+            extra={"event": "daily_report_send_without_pdf", "context": {}},
+        )
+
+    report = _build_report_from_db_snapshot(candidate_outcomes)
+    report_settings = (
+        settings.model_copy(update={"feishu_bot_webhook": feishu_webhook_override})
+        if feishu_webhook_override
+        else settings
+    )
+    feishu_sent = False if dry_run else send_feishu_daily_report(
+        report_settings,
+        report,
+        detail_pdf_url=detail_pdf_url,
+        detail_pdf_urls_by_job=detail_pdf_urls_by_job,
+        window_start_at=updated_from,
+        window_end_at=updated_before,
+        total_candidates_seen=total_candidates_seen,
+        executed_keywords=executed_keywords,
+        executed_keywords_by_role=executed_keywords_by_role,
+        screened_candidate_views=screened_candidate_views,
+        screened_candidate_views_by_role=screened_candidate_views_by_role,
+        cumulative_screened_candidate_views=cumulative_screened_candidate_views,
+        cumulative_relevant_count=cumulative_metrics["relevant"],
+        cumulative_needs_review_count=cumulative_metrics["needs_review"],
+        cumulative_not_relevant_count=cumulative_metrics["not_relevant"],
+        cumulative_greeted_count=cumulative_metrics["greeted"],
+        cumulative_start_at=cumulative_start_at,
+        cumulative_end_at=cumulative_end_at,
+        cumulative_metrics_by_job=cumulative_metrics_by_job,
+    )
+    report_run_id = int(delivery_run["id"]) if delivery_run is not None else None
+    if tracked_delivery:
+        update_daily_report_delivery(
+            settings,
+            report_key=report_key,
+            delivery_status="sent" if feishu_sent else "feishu_failed",
+            detail_pdf_path=str(detail_pdf_path) if detail_pdf_path is not None else None,
+            detail_pdf_url=detail_pdf_url,
+            uploaded=bool(upload_result and upload_result.uploaded),
+            feishu_attempted=True,
+        )
+    if feishu_sent and advance_watermark:
+        displayed_fingerprints = {
+            candidate.candidate_fingerprint
+            for candidate in build_report_candidates(candidate_outcomes)
+            if candidate.match_score is not None
+            and candidate.match_score >= DAILY_REPORT_DETAIL_MIN_SCORE
+        }
+        candidate_history.record_delivery(
+            report_key=report_key,
+            candidate_fingerprints=displayed_fingerprints,
+            window_start_at=updated_from,
+            window_end_at=updated_before,
+        )
+        if resolved_batch_id is not None:
+            SearchBatchStateStore(
+                settings.artifacts_dir / BATCH_STATE_FILENAME
+            ).mark_reported(
+                batch_id=resolved_batch_id,
+                report_key=report_key,
+                delivery_status="sent",
+            )
     return {
         "records_loaded": len(contacted_records),
         "candidate_outcomes": len(candidate_outcomes),
+        "previously_reported_candidates_excluded": previously_reported_count,
         "feishu_sent": feishu_sent,
         "report_run_id": report_run_id,
+        "report_key": report_key,
+        "total_candidates_seen": total_candidates_seen,
+        "executed_keywords": executed_keywords,
+        "executed_keywords_by_role": executed_keywords_by_role,
+        "screened_candidate_views": screened_candidate_views,
+        "cumulative_screened_candidate_views": cumulative_screened_candidate_views,
         "detail_pdf_path": str(detail_pdf_path) if detail_pdf_path is not None else None,
         "detail_pdf_url": detail_pdf_url,
+        "detail_pdf_paths_by_job": {
+            job_name: str(path) if path is not None else None
+            for job_name, path in detail_pdf_paths_by_job.items()
+        },
+        "detail_pdf_urls_by_job": detail_pdf_urls_by_job,
         "window_mode": window_mode,
+        "batch_id": resolved_batch_id,
         "window_start_at": updated_from.isoformat() if updated_from is not None else None,
         "window_end_at": updated_before.isoformat() if updated_before is not None else None,
         "report_date": report_date.isoformat() if report_date is not None else None,
         "dry_run": dry_run,
+        "advance_watermark": advance_watermark,
+        "webhook_mode": "override" if feishu_webhook_override else "default",
     }
 
 
 def previous_local_date() -> date:
     return date.today() - timedelta(days=1)
+
+
+def _version_pdf_public_url(public_url: str | None, pdf_path: Path | None) -> str | None:
+    """Use the PDF content digest as a cache key for Feishu's embedded preview."""
+
+    if not public_url or pdf_path is None or not pdf_path.exists():
+        return public_url
+    digest = hashlib.sha256(pdf_path.read_bytes()).hexdigest()[:12]
+    separator = "&" if "?" in public_url else "?"
+    return f"{public_url}{separator}v={digest}"
 
 
 def _build_report_date_window(report_date: date | None) -> tuple[datetime | None, datetime | None]:
@@ -132,18 +366,31 @@ def _build_report_date_window(report_date: date | None) -> tuple[datetime | None
 def _build_report_window(
     settings: Settings,
     report_date: date | None,
-) -> tuple[datetime | None, datetime | None, str]:
+    *,
+    window_start_at: datetime | None = None,
+    window_end_at: datetime | None = None,
+    batch_id: str | None = None,
+) -> tuple[datetime | None, datetime | None, str, str | None]:
+    if batch_id is not None and (
+        report_date is not None or window_start_at is not None or window_end_at is not None
+    ):
+        raise ValueError("--batch-id cannot be combined with a date or custom report window.")
+    if report_date is not None and (window_start_at is not None or window_end_at is not None):
+        raise ValueError("--report-date cannot be used with a custom report window.")
+    if window_start_at is not None or window_end_at is not None:
+        return window_start_at, window_end_at or datetime.now(), "custom_window", None
     if report_date is not None:
         start_at, end_at = _build_report_date_window(report_date)
-        return start_at, end_at, "fixed_date"
-    latest_run = get_latest_daily_report_run(settings)
-    end_at = datetime.now()
-    if latest_run is None:
-        return None, end_at, "since_last_success_or_all"
-    sent_at = latest_run.get("sent_at")
-    if isinstance(sent_at, datetime):
-        return sent_at, end_at, "since_last_success"
-    return None, end_at, "since_last_success_or_all"
+        return start_at, end_at, "fixed_date", None
+    batch_window = SearchBatchStateStore(
+        settings.artifacts_dir / BATCH_STATE_FILENAME
+    ).latest_unreported_completed_window(batch_id=batch_id)
+    return (
+        batch_window.started_at,
+        batch_window.ended_at,
+        "completed_search_batch",
+        batch_window.batch_id,
+    )
 
 
 def _build_candidate_outcomes(
@@ -160,7 +407,10 @@ def _build_candidate_outcomes(
     }
     latest_cache_by_fingerprint = _load_latest_analysis_map(settings)
 
-    all_fingerprints = set(latest_hits.keys()) | set(contacted_by_fingerprint.keys())
+    # Daily reports must be scoped to candidates contacted in the current report window.
+    # Search-hit/cache tables are only metadata helpers; including their full history here
+    # would resend old candidates when no new records were loaded.
+    all_fingerprints = set(contacted_by_fingerprint.keys())
     outcomes: list[CandidateProcessOutcome] = []
     for candidate_fingerprint in all_fingerprints:
         record = contacted_by_fingerprint.get(candidate_fingerprint)
@@ -173,7 +423,7 @@ def _build_candidate_outcomes(
             latest_cache_by_fingerprint=latest_cache_by_fingerprint,
             use_cache=use_cache,
         )
-        if outcome is not None:
+        if outcome is not None and not _is_coze_api_failure_outcome(outcome):
             outcomes.append(outcome)
     return outcomes
 
@@ -200,6 +450,17 @@ def _build_candidate_outcome(
         "sent" if record is not None else "reviewed"
     )
     brand_keyword, role_keyword = _split_search_keyword(search_keyword)
+    job_profile_id = _optional_str((record or {}).get("job_profile_id"))
+    if job_profile_id == "finance_shared_management_v1":
+        brand_keyword = ""
+        role_keyword = "财务共享与管理经理"
+    elif job_profile_id == "daren_live_bd_v1" and not role_keyword:
+        role_keyword = "达人营销总监"
+    analysis_settings = _analysis_settings_for_search_keyword(
+        settings,
+        search_keyword,
+        job_profile_id=job_profile_id,
+    )
 
     coze_result: CozeMatchResult | None = None
     normalized_analysis_status = _optional_str((record or {}).get("analysis_status")) or "未分析"
@@ -213,11 +474,23 @@ def _build_candidate_outcome(
                 settings,
                 candidate_fingerprint=candidate_fingerprint,
                 experience_hash=experience_hash,
+                analysis_version=analysis_settings.coze_analysis_version,
             )
+            if cache_record is None:
+                cache_record = latest_cache_by_fingerprint.get(candidate_fingerprint)
         coze_result = _coze_result_from_cache_record(cache_record) if cache_record else None
+        if transient_coze_cache_retry_due(coze_result, cache_record):
+            LOGGER.info(
+                "Cached transient Coze API failure expired; retrying for daily report",
+                extra={
+                    "event": "daily_report_coze_reanalysis",
+                    "context": {"candidate_fingerprint": candidate_fingerprint},
+                },
+            )
+            coze_result = None
         if coze_result is None:
             coze_result = analyze_resume_record_with_coze(
-                settings,
+                analysis_settings,
                 resume_record={
                     "id": int(record.get("id") or 0),
                     "candidate_name": candidate_name or "",
@@ -232,6 +505,8 @@ def _build_candidate_outcome(
             settings,
             candidate_fingerprint=candidate_fingerprint,
             experience_hash=experience_hash,
+            experience=experience,
+            analysis_version=analysis_settings.coze_analysis_version,
             analysis_status=normalized_analysis_status,
             match_result=coze_result.match_result,
             match_score=coze_result.match_score,
@@ -266,9 +541,9 @@ def _build_candidate_outcome(
         evidence_summary=list(coze_result.evidence_summary) if coze_result is not None else [],
         hit_status=hit_status,
         continue_without_db_record=False,
-        message_send_success=hit_status in {"sent", "immediate_job_confirmed"},
+        message_send_success=hit_status == "sent",
         message_send_reason=hit_status,
-        message_send_attempts=1 if hit_status in {"sent", "immediate_job_confirmed"} else 0,
+        message_send_attempts=1 if hit_status == "sent" else 0,
         message_screenshot_path=None,
         recent_experience_summary=recent_experience_summary,
         matched_experience_summary=matched_experience_summary,
@@ -313,30 +588,390 @@ def _build_report_from_db_snapshot(
     )
 
 
-def _export_featured_candidate_pdf(
+def _export_candidate_pdfs_by_job(
     settings: Settings,
     *,
     candidate_outcomes: list[CandidateProcessOutcome],
     contacted_records: list[dict[str, object]],
-) -> Path | None:
+    report_key: str,
+) -> dict[str, Path | None]:
     report_candidates = build_report_candidates(candidate_outcomes)
-    featured_candidates = select_featured_candidates(report_candidates)
+    # PDF is an actionable shortlist: both relevant and needs_review candidates
+    # must score 90+, except relevant candidates already greeted successfully.
+    report_candidates = (
+        select_relevant_candidates(report_candidates)
+        + select_review_candidates(report_candidates)
+    )
+    candidate_groups = {
+        "达人营销总监": [
+            candidate for candidate in report_candidates
+            if not any("财务" in role for role in candidate.role_keywords)
+        ],
+        "财务共享与管理经理": [
+            candidate for candidate in report_candidates
+            if any("财务" in role for role in candidate.role_keywords)
+        ],
+    }
+    cumulative_review_groups, cumulative_review_experience = (
+        _load_cumulative_review_candidates_by_job(settings)
+    )
     experience_by_fingerprint = {
         str(item.get("candidate_fingerprint") or ""): _optional_str(item.get("experience")) or ""
         for item in contacted_records
         if str(item.get("candidate_fingerprint") or "")
     }
-    output_dir = settings.artifacts_dir / "daily_reports"
-    output_path = build_daily_resume_pdf_path(
-        output_dir,
-        report_date=datetime.now().strftime("%Y-%m-%d_%H%M%S"),
+    for fingerprint, experience in cumulative_review_experience.items():
+        experience_by_fingerprint.setdefault(fingerprint, experience)
+    current_fingerprints_by_job = {
+        job_name: {candidate.candidate_fingerprint for candidate in candidates}
+        for job_name, candidates in candidate_groups.items()
+    }
+    historical_review_groups = {
+        job_name: [
+            candidate
+            for candidate in cumulative_review_groups.get(job_name, [])
+            if candidate.candidate_fingerprint not in current_fingerprints_by_job[job_name]
+        ]
+        for job_name in candidate_groups
+    }
+    all_candidates = [candidate for items in candidate_groups.values() for candidate in items]
+    all_candidates.extend(
+        candidate
+        for items in historical_review_groups.values()
+        for candidate in items
     )
-    exported = export_featured_resume_pdf(
-        output_path=output_path,
-        candidates=featured_candidates,
+    _backfill_pdf_experience_from_database(
+        settings,
+        featured_candidates=all_candidates,
         experience_by_fingerprint=experience_by_fingerprint,
     )
-    return exported
+    resume_link_by_fingerprint = _load_candidate_resume_links(
+        settings,
+        candidate_fingerprints={
+            candidate.candidate_fingerprint
+            for candidate in all_candidates
+        },
+    )
+    interaction_note_by_fingerprint = _load_candidate_interaction_notes(
+        settings,
+        candidate_fingerprints={
+            candidate.candidate_fingerprint
+            for candidate in all_candidates
+        },
+    )
+    output_dir = settings.artifacts_dir / "daily_reports"
+    exported_by_job: dict[str, Path | None] = {}
+    filename_prefixes = {
+        "达人营销总监": "daren_marketing_candidates",
+        "财务共享与管理经理": "finance_shared_management_candidates",
+    }
+    for job_name, job_candidates in candidate_groups.items():
+        relevant_candidates = _deduplicate_pdf_candidates(
+            select_relevant_candidates(job_candidates),
+            experience_by_fingerprint=experience_by_fingerprint,
+        )
+        review_candidates = _deduplicate_pdf_candidates(
+            select_review_candidates(job_candidates),
+            experience_by_fingerprint=experience_by_fingerprint,
+        )
+        cumulative_review_candidates = _deduplicate_pdf_candidates(
+            historical_review_groups[job_name],
+            experience_by_fingerprint=experience_by_fingerprint,
+        )
+        output_path = output_dir / f"{filename_prefixes[job_name]}_{report_key}.pdf"
+        exported_by_job[job_name] = export_featured_resume_pdf(
+            output_path=output_path,
+            candidates=relevant_candidates,
+            review_candidates=review_candidates,
+            cumulative_review_candidates=cumulative_review_candidates,
+            experience_by_fingerprint=experience_by_fingerprint,
+            resume_link_by_fingerprint=resume_link_by_fingerprint,
+            interaction_note_by_fingerprint=interaction_note_by_fingerprint,
+            job_name=job_name,
+        )
+    return exported_by_job
+
+
+def _load_cumulative_review_candidates_by_job(
+    settings: Settings,
+) -> tuple[dict[str, list[ReportCandidate]], dict[str, str]]:
+    """Load the same latest high-score review population used by cumulative metrics."""
+
+    engine = get_engine(settings)
+    sql = text(
+        """
+        WITH latest_hit AS (
+            SELECT ranked_hit.*
+            FROM (
+                SELECT hit.*,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY hit.candidate_fingerprint
+                           ORDER BY hit.id DESC
+                       ) AS hit_rank
+                FROM candidate_resume_search_hits hit
+            ) ranked_hit
+            WHERE ranked_hit.hit_rank = 1
+        ),
+        latest_locator AS (
+            SELECT ranked_locator.*
+            FROM (
+                SELECT locator.*,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY locator.candidate_fingerprint
+                           ORDER BY locator.id DESC
+                       ) AS locator_rank
+                FROM candidate_resume_source_locators locator
+                WHERE locator.candidate_fingerprint IS NOT NULL
+                  AND locator.candidate_fingerprint <> ''
+            ) ranked_locator
+            WHERE ranked_locator.locator_rank = 1
+        ),
+        latest_analysis AS (
+            SELECT ranked_analysis.*
+            FROM (
+                SELECT analysis.*,
+                       latest_hit.candidate_name AS hit_candidate_name,
+                       latest_hit.search_keyword,
+                       latest_hit.hit_status,
+                       latest_locator.candidate_name AS locator_candidate_name,
+                       latest_locator.job_profile_id,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY analysis.candidate_fingerprint
+                           ORDER BY analysis.id DESC
+                       ) AS analysis_rank
+                FROM candidate_resume_analysis_cache analysis
+                LEFT JOIN latest_hit
+                  ON latest_hit.candidate_fingerprint = analysis.candidate_fingerprint
+                LEFT JOIN latest_locator
+                  ON latest_locator.candidate_fingerprint = analysis.candidate_fingerprint
+            ) ranked_analysis
+            WHERE ranked_analysis.analysis_rank = 1
+        )
+        SELECT analysis.*,
+               COALESCE(
+                   analysis.hit_candidate_name,
+                   analysis.locator_candidate_name,
+                   record.candidate_name,
+                   '未命名候选人'
+               ) AS candidate_name,
+               COALESCE(analysis.experience, record.experience, '') AS resume_experience,
+               CASE
+                   WHEN analysis.job_profile_id = 'finance_shared_management_v1'
+                       THEN '财务共享与管理经理'
+                   WHEN analysis.job_profile_id = 'daren_live_bd_v1'
+                       THEN '达人营销总监'
+                   WHEN analysis.analysis_version = :finance_version
+                        OR analysis.search_keyword LIKE '%财务%'
+                       THEN '财务共享与管理经理'
+                   ELSE '达人营销总监'
+               END AS job_name
+        FROM latest_analysis analysis
+        LEFT JOIN candidate_resume_experience_records record
+          ON record.candidate_fingerprint = analysis.candidate_fingerprint
+        WHERE analysis.match_result = 'needs_review'
+          AND COALESCE(analysis.analysis_reason, '') NOT LIKE '%Coze API%'
+          AND COALESCE(analysis.match_score, 0) >= :needs_review_min_score
+        ORDER BY job_name, analysis.match_score DESC, candidate_name
+        """
+    )
+    with engine.begin() as connection:
+        rows = connection.execute(
+            sql,
+            {
+                "finance_version": settings.coze_finance_analysis_version,
+                "needs_review_min_score": DAILY_REPORT_DETAIL_MIN_SCORE,
+            },
+        ).mappings().all()
+
+    groups: dict[str, list[ReportCandidate]] = {
+        "达人营销总监": [],
+        "财务共享与管理经理": [],
+    }
+    experience_by_fingerprint: dict[str, str] = {}
+    for row in rows:
+        fingerprint = str(row.get("candidate_fingerprint") or "")
+        if not fingerprint:
+            continue
+        job_name = str(row.get("job_name") or "达人营销总监")
+        experience = _optional_str(row.get("resume_experience")) or ""
+        evidence_summary = _parse_string_list(row.get("evidence_summary_json"))
+        search_keyword = _optional_str(row.get("search_keyword")) or job_name
+        candidate_name = sanitize_candidate_name(row.get("candidate_name")) or "未命名候选人"
+        groups.setdefault(job_name, []).append(
+            ReportCandidate(
+                candidate_fingerprint=fingerprint,
+                candidate_name=candidate_name,
+                search_keywords={search_keyword},
+                role_keywords={job_name},
+                analysis_status=_optional_str(row.get("analysis_status")) or "待复核",
+                match_result="needs_review",
+                match_score=_optional_int(row.get("match_score")),
+                score_breakdown=_parse_score_breakdown(row.get("score_breakdown_json")),
+                analysis_reason=_optional_str(row.get("analysis_reason")),
+                evidence_summary=evidence_summary,
+                hit_status=_optional_str(row.get("hit_status")) or "reviewed",
+                recent_experience_summary=_extract_recent_experience_summary(experience),
+                matched_experience_summary=_extract_matched_experience_summary(
+                    evidence_summary=evidence_summary
+                ),
+                candidate_age=_extract_candidate_age(experience),
+            )
+        )
+        experience_by_fingerprint[fingerprint] = experience
+    return groups, experience_by_fingerprint
+
+
+def _analysis_settings_for_search_keyword(
+    settings: Settings,
+    search_keyword: str,
+    *,
+    job_profile_id: str | None = None,
+) -> Settings:
+    analysis_version = (
+        settings.coze_finance_analysis_version
+        if job_profile_id == "finance_shared_management_v1" or "财务" in search_keyword
+        else settings.coze_jd_analysis_version
+    )
+    return settings.model_copy(update={"coze_analysis_version": analysis_version})
+
+
+def _load_candidate_resume_links(
+    settings: Settings,
+    *,
+    candidate_fingerprints: set[str],
+) -> dict[str, str]:
+    """Load the latest saved official Liepin share link for report candidates."""
+    if not candidate_fingerprints:
+        return {}
+    engine = get_engine(settings)
+    sql = text(
+        """
+        SELECT locator.candidate_fingerprint, locator.detail_deep_link
+        FROM candidate_resume_source_locators locator
+        INNER JOIN (
+            SELECT candidate_fingerprint, MAX(id) AS max_id
+            FROM candidate_resume_source_locators
+            WHERE locator_quality = 'share_link'
+              AND detail_deep_link LIKE 'https://mr.liepin.com/resume/view-share-res%'
+            GROUP BY candidate_fingerprint
+        ) latest
+          ON latest.max_id = locator.id
+        """
+    )
+    with engine.begin() as connection:
+        rows = connection.execute(sql).mappings().all()
+    return {
+        str(row["candidate_fingerprint"]): str(row["detail_deep_link"])
+        for row in rows
+        if str(row.get("candidate_fingerprint") or "") in candidate_fingerprints
+        and str(row.get("detail_deep_link") or "").strip()
+    }
+
+
+def _load_candidate_interaction_notes(
+    settings: Settings,
+    *,
+    candidate_fingerprints: set[str],
+) -> dict[str, str]:
+    """Load the latest platform interaction hint for each report candidate."""
+
+    if not candidate_fingerprints:
+        return {}
+    engine = get_engine(settings)
+    sql = text(
+        """
+        SELECT locator.candidate_fingerprint, locator.platform_interaction_note
+        FROM candidate_resume_source_locators locator
+        INNER JOIN (
+            SELECT candidate_fingerprint, MAX(id) AS max_id
+            FROM candidate_resume_source_locators
+            WHERE platform_interaction_note IS NOT NULL
+              AND platform_interaction_note <> ''
+            GROUP BY candidate_fingerprint
+        ) latest
+          ON latest.max_id = locator.id
+        """
+    )
+    with engine.begin() as connection:
+        rows = connection.execute(sql).mappings().all()
+    return {
+        str(row["candidate_fingerprint"]): str(row["platform_interaction_note"])
+        for row in rows
+        if str(row.get("candidate_fingerprint") or "") in candidate_fingerprints
+        and str(row.get("platform_interaction_note") or "").strip()
+    }
+
+
+def _build_daily_report_key(
+    window_start_at: datetime | None,
+    contacted_records: list[dict[str, object]],
+) -> str:
+    parts = [window_start_at.isoformat() if window_start_at is not None else "first_report"]
+    for record in sorted(contacted_records, key=lambda item: str(item.get("candidate_fingerprint") or "")):
+        parts.append(
+            "|".join(
+                (
+                    str(record.get("candidate_fingerprint") or ""),
+                    str(record.get("created_at") or record.get("updated_at") or ""),
+                )
+            )
+        )
+    return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()[:24]
+
+
+def _deduplicate_pdf_candidates(
+    candidates: list[ReportCandidate],
+    *,
+    experience_by_fingerprint: dict[str, str],
+) -> list[ReportCandidate]:
+    """Last-line PDF guard for legacy rows that were created before identity merge."""
+    deduplicated: list[ReportCandidate] = []
+    seen_experience_hashes: set[str] = set()
+    duplicate_count = 0
+    for candidate in candidates:
+        experience = experience_by_fingerprint.get(candidate.candidate_fingerprint) or ""
+        experience_hash = build_experience_hash(experience) if experience.strip() else None
+        if experience_hash and experience_hash in seen_experience_hashes:
+            duplicate_count += 1
+            continue
+        if experience_hash:
+            seen_experience_hashes.add(experience_hash)
+        deduplicated.append(candidate)
+    if duplicate_count:
+        LOGGER.warning(
+            "Skipped duplicate resume entries during PDF export",
+            extra={
+                "event": "daily_pdf_duplicate_resume_skipped",
+                "context": {"duplicate_count": duplicate_count},
+            },
+        )
+    return deduplicated
+
+
+def _backfill_pdf_experience_from_database(
+    settings: Settings,
+    *,
+    featured_candidates: list[object],
+    experience_by_fingerprint: dict[str, str],
+) -> None:
+    for candidate in featured_candidates:
+        fingerprint = str(getattr(candidate, "candidate_fingerprint", "") or "")
+        if not fingerprint or experience_by_fingerprint.get(fingerprint, "").strip():
+            continue
+        record = get_candidate_record_by_fingerprint(settings, fingerprint)
+        if record is None:
+            LOGGER.warning(
+                "Featured candidate has no database resume text for PDF export",
+                extra={
+                    "event": "daily_pdf_experience_missing",
+                    "context": {
+                        "candidate_name": getattr(candidate, "candidate_name", ""),
+                        "candidate_fingerprint": fingerprint,
+                    },
+                },
+            )
+            continue
+        experience_by_fingerprint[fingerprint] = _optional_str(record.get("experience")) or ""
 
 
 def _load_latest_hit_map(settings: Settings) -> dict[str, dict[str, object]]:
@@ -359,6 +994,491 @@ def _load_latest_hit_map(settings: Settings) -> dict[str, dict[str, object]]:
     return {str(row["candidate_fingerprint"]): dict(row) for row in rows}
 
 
+def _overlay_latest_hit_status(
+    window_records: list[dict[str, object]],
+    *,
+    latest_hit_map: dict[str, dict[str, object]],
+) -> dict[str, dict[str, object]]:
+    """Keep the report window membership while showing each candidate's current contact status."""
+    merged: dict[str, dict[str, object]] = {}
+    for record in window_records:
+        fingerprint = str(record.get("candidate_fingerprint") or "")
+        if not fingerprint:
+            continue
+        current = latest_hit_map.get(fingerprint) or {}
+        item = dict(record)
+        if current.get("hit_status"):
+            item["hit_status"] = current["hit_status"]
+        merged[fingerprint] = item
+    return merged
+
+
+def _load_report_candidate_records(
+    settings: Settings,
+    *,
+    limit: int | None,
+    window_start_at: datetime | None,
+    window_end_at: datetime | None,
+) -> list[dict[str, object]]:
+    """Load the latest hit per candidate in the report window, including collect-only hits."""
+    engine = get_engine(settings)
+    conditions: list[str] = []
+    params: dict[str, object] = {
+        "legacy_analysis_version": settings.coze_analysis_version,
+        "jd_analysis_version": settings.coze_jd_analysis_version,
+        "finance_analysis_version": settings.coze_finance_analysis_version,
+    }
+    if window_start_at is not None:
+        conditions.append("created_at >= :window_start_at")
+        params["window_start_at"] = _to_database_local_datetime(window_start_at)
+    if window_end_at is not None:
+        conditions.append("created_at < :window_end_at")
+        params["window_end_at"] = _to_database_local_datetime(window_end_at)
+    where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+    limit_clause = "LIMIT :row_limit" if isinstance(limit, int) and limit > 0 else ""
+    if limit_clause:
+        params["row_limit"] = limit
+    sql = text(
+        f"""
+        SELECT h.candidate_fingerprint,
+               h.candidate_name,
+               h.search_keyword,
+               h.hit_status,
+               h.created_at,
+               locator.job_profile_id,
+               COALESCE(c.experience, r.experience) AS experience,
+               COALESCE(c.match_score, r.match_score) AS match_score,
+               COALESCE(c.analysis_status, r.analysis_status) AS analysis_status,
+               COALESCE(c.updated_at, r.updated_at, h.created_at) AS updated_at,
+               COALESCE(r.source_platform, 'liepin') AS source_platform
+        FROM candidate_resume_search_hits h
+        INNER JOIN (
+            SELECT candidate_fingerprint, MAX(id) AS max_id
+            FROM candidate_resume_search_hits
+            {where_clause}
+            GROUP BY candidate_fingerprint
+        ) latest
+          ON latest.candidate_fingerprint = h.candidate_fingerprint
+         AND latest.max_id = h.id
+        LEFT JOIN (
+            SELECT ranked_cache.*
+            FROM (
+                SELECT cache.*,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY cache.candidate_fingerprint
+                           ORDER BY
+                               CASE
+                                   WHEN cache.analysis_version = :jd_analysis_version THEN 3
+                                   WHEN cache.analysis_version = :finance_analysis_version THEN 2
+                                   ELSE 1
+                               END DESC,
+                               cache.id DESC
+                       ) AS report_rank
+                FROM candidate_resume_analysis_cache cache
+                WHERE cache.analysis_version IN (
+                    :jd_analysis_version,
+                    :finance_analysis_version,
+                    :legacy_analysis_version
+                )
+            ) ranked_cache
+            WHERE ranked_cache.report_rank = 1
+        ) c ON c.candidate_fingerprint = h.candidate_fingerprint
+        LEFT JOIN (
+            SELECT l.*
+            FROM candidate_resume_source_locators l
+            INNER JOIN (
+                SELECT candidate_fingerprint, MAX(id) AS max_id
+                FROM candidate_resume_source_locators
+                GROUP BY candidate_fingerprint
+            ) latest_locator ON latest_locator.max_id = l.id
+        ) locator ON locator.candidate_fingerprint = h.candidate_fingerprint
+        LEFT JOIN candidate_resume_experience_records r
+          ON r.candidate_fingerprint = h.candidate_fingerprint
+        ORDER BY h.created_at DESC
+        {limit_clause}
+        """
+    )
+    with engine.begin() as connection:
+        return [dict(row) for row in connection.execute(sql, params).mappings().all()]
+
+
+def _count_total_seen_candidates(settings: Settings) -> int:
+    engine = get_engine(settings)
+    sql = text(
+        """
+        SELECT COUNT(*) AS total_count
+        FROM (
+            SELECT candidate_fingerprint
+            FROM candidate_resume_search_hits
+            WHERE candidate_fingerprint IS NOT NULL
+              AND candidate_fingerprint <> ''
+            UNION
+            SELECT candidate_fingerprint
+            FROM candidate_resume_experience_records
+            WHERE candidate_fingerprint IS NOT NULL
+              AND candidate_fingerprint <> ''
+        ) all_candidates
+        """
+    )
+    with engine.begin() as connection:
+        row = connection.execute(sql).mappings().first()
+    return int((row or {}).get("total_count") or 0)
+
+
+def _count_cumulative_report_metrics(settings: Settings) -> dict[str, int]:
+    engine = get_engine(settings)
+    analysis_sql = text(
+        """
+        SELECT
+            SUM(CASE WHEN match_result = 'relevant' THEN 1 ELSE 0 END) AS relevant_count,
+            SUM(
+                CASE
+                    WHEN match_result = 'not_relevant'
+                      OR (
+                          match_result = 'needs_review'
+                          AND COALESCE(analysis_reason, '') NOT LIKE '%Coze API%'
+                          AND COALESCE(match_score, 0) < :needs_review_min_score
+                      )
+                    THEN 1 ELSE 0
+                END
+            ) AS not_relevant_count,
+            SUM(
+                CASE
+                    WHEN match_result = 'needs_review'
+                     AND COALESCE(analysis_reason, '') NOT LIKE '%Coze API%'
+                     AND COALESCE(match_score, 0) >= :needs_review_min_score
+                    THEN 1 ELSE 0
+                END
+            ) AS needs_review_count
+        FROM candidate_resume_analysis_cache c
+        INNER JOIN (
+            SELECT candidate_fingerprint, MAX(id) AS max_id
+            FROM candidate_resume_analysis_cache
+            GROUP BY candidate_fingerprint
+        ) latest ON latest.max_id = c.id
+        """
+    )
+    greeted_sql = text(
+        """
+        SELECT COUNT(DISTINCT candidate_fingerprint) AS greeted_count
+        FROM candidate_resume_search_hits
+        WHERE hit_status = 'sent'
+        """
+    )
+    with engine.begin() as connection:
+        analysis = connection.execute(
+            analysis_sql,
+            {"needs_review_min_score": DAILY_REPORT_DETAIL_MIN_SCORE},
+        ).mappings().first() or {}
+        greeted = connection.execute(greeted_sql).mappings().first() or {}
+    return {
+        "relevant": int(analysis.get("relevant_count") or 0),
+        "needs_review": int(analysis.get("needs_review_count") or 0),
+        "not_relevant": int(analysis.get("not_relevant_count") or 0),
+        "greeted": int(greeted.get("greeted_count") or 0),
+    }
+
+
+def _count_cumulative_report_metrics_by_job(
+    settings: Settings,
+) -> dict[str, dict[str, int]]:
+    engine = get_engine(settings)
+    analysis_sql = text(
+        """
+        WITH latest_hit AS (
+            SELECT ranked_hit.*
+            FROM (
+                SELECT hit.*,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY hit.candidate_fingerprint
+                           ORDER BY hit.id DESC
+                       ) AS hit_rank
+                FROM candidate_resume_search_hits hit
+            ) ranked_hit
+            WHERE ranked_hit.hit_rank = 1
+        ),
+        latest_locator AS (
+            SELECT ranked_locator.*
+            FROM (
+                SELECT locator.*,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY locator.candidate_fingerprint
+                           ORDER BY locator.id DESC
+                       ) AS locator_rank
+                FROM candidate_resume_source_locators locator
+                WHERE locator.candidate_fingerprint IS NOT NULL
+                  AND locator.candidate_fingerprint <> ''
+            ) ranked_locator
+            WHERE ranked_locator.locator_rank = 1
+        ),
+        latest_analysis AS (
+            SELECT ranked_analysis.*
+            FROM (
+                SELECT analysis.*,
+                       latest_hit.search_keyword,
+                       latest_locator.job_profile_id,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY analysis.candidate_fingerprint
+                           ORDER BY analysis.id DESC
+                       ) AS analysis_rank
+                FROM candidate_resume_analysis_cache analysis
+                LEFT JOIN latest_hit
+                  ON latest_hit.candidate_fingerprint = analysis.candidate_fingerprint
+                LEFT JOIN latest_locator
+                  ON latest_locator.candidate_fingerprint = analysis.candidate_fingerprint
+            ) ranked_analysis
+            WHERE ranked_analysis.analysis_rank = 1
+        )
+        SELECT
+            CASE
+                WHEN analysis.job_profile_id = 'finance_shared_management_v1'
+                    THEN '财务共享与管理经理'
+                WHEN analysis.job_profile_id = 'daren_live_bd_v1'
+                    THEN '达人营销总监'
+                WHEN analysis.analysis_version = :finance_version
+                     OR analysis.search_keyword LIKE '%财务%'
+                    THEN '财务共享与管理经理'
+                ELSE '达人营销总监'
+            END AS job_name,
+            SUM(CASE WHEN analysis.match_result = 'relevant' THEN 1 ELSE 0 END) AS relevant_count,
+            SUM(
+                CASE
+                    WHEN analysis.match_result = 'needs_review'
+                     AND COALESCE(analysis.analysis_reason, '') NOT LIKE '%Coze API%'
+                     AND COALESCE(analysis.match_score, 0) >= :needs_review_min_score
+                    THEN 1 ELSE 0
+                END
+            ) AS needs_review_count
+        FROM latest_analysis analysis
+        GROUP BY job_name
+        """
+    )
+    greeted_sql = text(
+        """
+        WITH latest_sent_hit AS (
+            SELECT ranked_hit.*
+            FROM (
+                SELECT hit.*,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY hit.candidate_fingerprint
+                           ORDER BY hit.id DESC
+                       ) AS hit_rank
+                FROM candidate_resume_search_hits hit
+                WHERE hit.hit_status = 'sent'
+            ) ranked_hit
+            WHERE ranked_hit.hit_rank = 1
+        ),
+        latest_locator AS (
+            SELECT ranked_locator.*
+            FROM (
+                SELECT locator.*,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY locator.candidate_fingerprint
+                           ORDER BY locator.id DESC
+                       ) AS locator_rank
+                FROM candidate_resume_source_locators locator
+                WHERE locator.candidate_fingerprint IS NOT NULL
+                  AND locator.candidate_fingerprint <> ''
+            ) ranked_locator
+            WHERE ranked_locator.locator_rank = 1
+        )
+        SELECT
+            CASE WHEN latest_locator.job_profile_id = 'finance_shared_management_v1'
+                       OR latest_sent_hit.search_keyword LIKE '%财务%'
+                 THEN '财务共享与管理经理' ELSE '达人营销总监' END AS job_name,
+            COUNT(*) AS greeted_count
+        FROM latest_sent_hit
+        LEFT JOIN latest_locator
+          ON latest_locator.candidate_fingerprint = latest_sent_hit.candidate_fingerprint
+        GROUP BY job_name
+        """
+    )
+    result = {
+        "达人营销总监": {"relevant": 0, "needs_review": 0, "greeted": 0},
+        "财务共享与管理经理": {"relevant": 0, "needs_review": 0, "greeted": 0},
+    }
+    with engine.begin() as connection:
+        rows = connection.execute(
+            analysis_sql,
+            {
+                "finance_version": settings.coze_finance_analysis_version,
+                "needs_review_min_score": DAILY_REPORT_DETAIL_MIN_SCORE,
+            },
+        ).mappings().all()
+        greeted_rows = connection.execute(greeted_sql).mappings().all()
+    for row in rows:
+        job_name = str(row.get("job_name") or "达人营销总监")
+        result[job_name] = {
+            "relevant": int(row.get("relevant_count") or 0),
+            "needs_review": int(row.get("needs_review_count") or 0),
+            "greeted": 0,
+        }
+    for row in greeted_rows:
+        job_name = str(row.get("job_name") or "达人营销总监")
+        result[job_name]["greeted"] = int(row.get("greeted_count") or 0)
+    return result
+
+
+def _load_cumulative_report_window(
+    settings: Settings,
+) -> tuple[datetime | None, datetime | None]:
+    engine = get_engine(settings)
+    sql = text(
+        """
+        SELECT MIN(first_seen_at) AS start_at, MAX(last_seen_at) AS end_at
+        FROM (
+            SELECT MIN(created_at) AS first_seen_at, MAX(created_at) AS last_seen_at
+            FROM candidate_resume_search_hits
+            UNION ALL
+            SELECT MIN(created_at) AS first_seen_at, MAX(updated_at) AS last_seen_at
+            FROM candidate_resume_experience_records
+            UNION ALL
+            SELECT MIN(created_at) AS first_seen_at, MAX(updated_at) AS last_seen_at
+            FROM candidate_resume_analysis_cache
+        ) report_activity
+        """
+    )
+    with engine.begin() as connection:
+        row = connection.execute(sql).mappings().first() or {}
+    return row.get("start_at"), row.get("end_at")
+
+
+def _count_executed_keywords_from_log(
+    settings: Settings,
+    *,
+    window_start_at: datetime | None,
+    window_end_at: datetime | None,
+) -> int | None:
+    counts = _count_executed_keywords_by_role_from_log(
+        settings,
+        window_start_at=window_start_at,
+        window_end_at=window_end_at,
+    )
+    return sum(counts.values()) if counts is not None else None
+
+
+def _count_executed_keywords_by_role_from_log(
+    settings: Settings,
+    *,
+    window_start_at: datetime | None,
+    window_end_at: datetime | None,
+) -> dict[str, int] | None:
+    if window_start_at is None or window_end_at is None:
+        return None
+    log_path = settings.logs_dir / "app.log"
+    if not log_path.exists():
+        return None
+    start_utc = _local_datetime_to_utc(window_start_at)
+    end_utc = _local_datetime_to_utc(window_end_at)
+    counts: dict[str, int] = defaultdict(int)
+    log_paths = sorted(settings.logs_dir.glob("app.log*"))
+    for candidate_log_path in log_paths:
+        if not candidate_log_path.is_file():
+            continue
+        for line in candidate_log_path.read_text(encoding="utf-8", errors="replace").splitlines():
+            if '"event": "keyword_run_start"' not in line:
+                continue
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            timestamp = _parse_log_timestamp(payload.get("timestamp"))
+            if timestamp is None:
+                continue
+            if start_utc <= timestamp < end_utc:
+                role_keyword = _optional_str(payload.get("role_keyword")) or "未识别岗位"
+                counts[role_keyword] += 1
+    return dict(counts)
+
+
+def _count_screened_candidate_views_by_role_from_log(
+    settings: Settings,
+    *,
+    window_start_at: datetime | None,
+    window_end_at: datetime | None,
+) -> dict[str, int] | None:
+    if window_start_at is None or window_end_at is None:
+        return None
+    start_utc = _local_datetime_to_utc(window_start_at)
+    end_utc = _local_datetime_to_utc(window_end_at)
+    events: list[tuple[datetime, dict[str, object]]] = []
+    for log_path in sorted(settings.logs_dir.glob("app.log*")):
+        if not log_path.is_file():
+            continue
+        for line in log_path.read_text(encoding="utf-8", errors="replace").splitlines():
+            if not any(
+                marker in line
+                for marker in (
+                    '"event": "keyword_run_start"',
+                    '"event": "result_page_iteration"',
+                    '"event": "keyword_run_complete"',
+                    '"event": "keyword_run_failed"',
+                )
+            ):
+                continue
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            timestamp = _parse_log_timestamp(payload.get("timestamp"))
+            if timestamp is not None and start_utc <= timestamp < end_utc:
+                events.append((timestamp, payload))
+
+    counts: dict[str, int] = defaultdict(int)
+    current_role: str | None = None
+    current_screened = 0
+
+    def finish_current() -> None:
+        nonlocal current_role, current_screened
+        if current_role:
+            counts[current_role] += current_screened
+        current_role = None
+        current_screened = 0
+
+    for _, payload in sorted(events, key=lambda item: item[0]):
+        event = _optional_str(payload.get("event"))
+        if event == "keyword_run_start":
+            finish_current()
+            current_role = _optional_str(payload.get("role_keyword")) or "未识别岗位"
+        elif event == "result_page_iteration" and current_role:
+            screened_total = _optional_int(payload.get("screened_total")) or 0
+            visible_candidates = _optional_int(payload.get("visible_candidates")) or 0
+            current_screened = max(current_screened, screened_total, visible_candidates)
+        elif event in {"keyword_run_complete", "keyword_run_failed"} and current_role:
+            final_screened = _optional_int(payload.get("screened_candidates"))
+            if final_screened is not None:
+                current_screened = max(current_screened, final_screened)
+            finish_current()
+    finish_current()
+    return dict(counts)
+
+
+def _to_database_local_datetime(value: datetime) -> datetime:
+    """Return a naive Asia/Shanghai value for database `created_at` comparisons."""
+    if value.tzinfo is None:
+        return value
+    return value.astimezone(SHANGHAI_TIMEZONE).replace(tzinfo=None)
+
+
+def _local_datetime_to_utc(value: datetime) -> datetime:
+    """Convert the local batch window only for comparison with UTC JSON log timestamps."""
+    if value.tzinfo is not None:
+        return value.astimezone(timezone.utc)
+    return (value - timedelta(hours=8)).replace(tzinfo=timezone.utc)
+
+
+def _parse_log_timestamp(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
 def _load_latest_analysis_map(settings: Settings) -> dict[str, dict[str, object]]:
     engine = get_engine(settings)
     sql = text(
@@ -370,20 +1490,38 @@ def _load_latest_analysis_map(settings: Settings) -> dict[str, dict[str, object]
                c.score_breakdown_json,
                c.analysis_reason,
                c.evidence_summary_json,
-               c.updated_at
+               c.updated_at,
+               c.analysis_version,
+               c.id
         FROM candidate_resume_analysis_cache c
-        INNER JOIN (
-            SELECT candidate_fingerprint, MAX(id) AS max_id
-            FROM candidate_resume_analysis_cache
-            GROUP BY candidate_fingerprint
-        ) latest
-            ON latest.candidate_fingerprint = c.candidate_fingerprint
-           AND latest.max_id = c.id
+        WHERE c.analysis_version IN (
+            :jd_analysis_version,
+            :finance_analysis_version,
+            :legacy_analysis_version
+        )
+        ORDER BY c.candidate_fingerprint,
+                 CASE
+                     WHEN c.analysis_version = :jd_analysis_version THEN 3
+                     WHEN c.analysis_version = :finance_analysis_version THEN 2
+                     ELSE 1
+                 END DESC,
+                 c.id DESC
         """
     )
     with engine.begin() as connection:
-        rows = connection.execute(sql).mappings().all()
-    return {str(row["candidate_fingerprint"]): dict(row) for row in rows}
+        rows = connection.execute(
+            sql,
+            {
+                "jd_analysis_version": settings.coze_jd_analysis_version,
+                "finance_analysis_version": settings.coze_finance_analysis_version,
+                "legacy_analysis_version": settings.coze_analysis_version,
+            },
+        ).mappings().all()
+    result: dict[str, dict[str, object]] = {}
+    for row in rows:
+        fingerprint = str(row["candidate_fingerprint"])
+        result.setdefault(fingerprint, dict(row))
+    return result
 
 
 def _coze_result_from_cache_record(record: dict[str, object] | None) -> CozeMatchResult | None:
@@ -439,6 +1577,14 @@ def _derive_analysis_status(result: CozeMatchResult) -> str:
     if result.match_result == "needs_review":
         return "待复核"
     return "不匹配"
+
+
+def _is_coze_api_failure_outcome(outcome: CandidateProcessOutcome) -> bool:
+    """Exclude system-side Coze failures from human-review report statistics."""
+    return bool(
+        outcome.match_result == "needs_review"
+        and "Coze API" in (outcome.analysis_reason or "")
+    )
 
 
 def _split_search_keyword(search_keyword: str) -> tuple[str, str]:

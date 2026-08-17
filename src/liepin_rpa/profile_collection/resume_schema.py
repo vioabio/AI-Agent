@@ -45,6 +45,19 @@ INVALID_CANDIDATE_NAME_TOKENS = (
     "今日活跃",
     "今天活跃",
     "聊聊吧",
+    "之前hr找过我",
+    "之前猎头找过我",
+    "此前hr找过我",
+    "此前猎头找过我",
+)
+CANDIDATE_INTERACTION_HINT_TOKENS = (
+    "之前hr找过我",
+    "之前猎头找过我",
+    "此前hr找过我",
+    "此前猎头找过我",
+)
+CANDIDATE_NAME_PATTERN = re.compile(
+    r"^(?:[\u4e00-\u9fff·]{1,8}(?:先生|女士)|[\u4e00-\u9fff]{1,4}[*＊xX]{1,4}|[\u4e00-\u9fff·]{2,6})$"
 )
 
 
@@ -100,6 +113,8 @@ def build_candidate_resume_schema(
             "current_company": basic_info.get("current_company"),
             "current_position": basic_info.get("current_position"),
             "expected_position": basic_info.get("expected_position"),
+            "expected_city": basic_info.get("expected_city"),
+            "job_intent_raw": basic_info.get("job_intent_raw"),
             "resume_updated_at": None,
         },
         "work_experiences": experiences,
@@ -121,7 +136,8 @@ def build_candidate_resume_schema(
 
 
 def parse_basic_info(sections: dict[str, list[str]]) -> dict[str, Any]:
-    header = sections.get("_profile_header", [])
+    raw_header = sections.get("_profile_header", [])
+    header = _candidate_header_lines(raw_header)
     intent = sections.get("求职意向", [])
 
     second_line = header[1] if len(header) > 1 else ""
@@ -136,19 +152,88 @@ def parse_basic_info(sections: dict[str, list[str]]) -> dict[str, Any]:
         "work_years": parse_first_int(WORK_YEARS_PATTERN, header[4] if len(header) > 4 else ""),
         "age": parse_first_int(AGE_PATTERN, header[5] if len(header) > 5 else ""),
         "expected_position": value_or_none(intent[0] if intent else None),
+        "expected_city": extract_explicit_job_intent_city(intent),
+        "job_intent_raw": value_or_none(" ".join(intent)),
         "self_description": value_or_none(" ".join(header[7:]) if len(header) > 7 else None),
     }
+
+
+def extract_explicit_job_intent_city(intent_lines: list[str]) -> str | None:
+    """Return Shanghai only when it is explicitly present in 求职意向.
+
+    Current residence/header city is deliberately ignored. The strict recruitment
+    rule must not infer willingness to work in Shanghai from the candidate's
+    current city, search location, or company location.
+    """
+
+    return "上海" if any(_intent_line_accepts_city(line, "上海") for line in intent_lines) else None
+
+
+def has_explicit_job_intent_city(
+    sections: dict[str, list[str]],
+    required_city: str,
+) -> bool:
+    normalized_city = normalize_text(required_city)
+    if not normalized_city:
+        return True
+    intent_lines = sections.get("求职意向", [])
+    return any(_intent_line_accepts_city(line, normalized_city) for line in intent_lines)
+
+
+def _intent_line_accepts_city(line: str, required_city: str) -> bool:
+    normalized_line = re.sub(r"\s+", "", normalize_text(line))
+    normalized_city = re.sub(r"\s+", "", normalize_text(required_city))
+    if not normalized_city or normalized_city not in normalized_line:
+        return False
+    rejection_markers = (
+        f"非{normalized_city}",
+        f"不考虑{normalized_city}",
+        f"暂不考虑{normalized_city}",
+        f"不接受{normalized_city}",
+        f"不去{normalized_city}",
+        f"排除{normalized_city}",
+        f"{normalized_city}除外",
+        f"{normalized_city}不考虑",
+        f"{normalized_city}暂不考虑",
+    )
+    return not any(marker in normalized_line for marker in rejection_markers)
 
 
 def sanitize_candidate_name(value: str | None) -> str | None:
     normalized = value_or_none(value)
     if not normalized:
         return None
-    if any(token in normalized for token in INVALID_CANDIDATE_NAME_TOKENS):
+    compact = re.sub(r"\s+", "", normalized).lower()
+    if any(token in compact for token in INVALID_CANDIDATE_NAME_TOKENS):
+        return None
+    if compact.isdigit():
         return None
     if len(normalized) > 20:
         return None
     return normalized
+
+
+def is_candidate_interaction_hint(value: str | None) -> bool:
+    normalized = value_or_none(value)
+    if not normalized:
+        return False
+    compact = re.sub(r"\s+", "", normalized).lower()
+    return any(token in compact for token in CANDIDATE_INTERACTION_HINT_TOKENS)
+
+
+def _candidate_header_lines(header: list[str]) -> list[str]:
+    """Start the profile header at the first plausible candidate name.
+
+    Liepin can insert interaction banners such as `你们之前HR找过我` and a
+    numeric badge before the actual profile header. Slicing at the name keeps
+    every position-based field aligned even when those controls are present.
+    """
+
+    for index, value in enumerate(header):
+        normalized = sanitize_candidate_name(value)
+        if normalized and CANDIDATE_NAME_PATTERN.fullmatch(normalized):
+            return header[index:]
+    return header
 
 
 def parse_work_experiences(

@@ -17,7 +17,7 @@ function Resolve-Python {
     }
 
     $candidates = @(
-        "C:\Users\MCsir\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe",
+        (Join-Path $env:USERPROFILE ".cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"),
         "py -3.12",
         "python"
     )
@@ -25,11 +25,13 @@ function Resolve-Python {
     foreach ($candidate in $candidates) {
         try {
             if ($candidate.Contains(" ")) {
-                & cmd /c $candidate "--version" *> $null
+                $version = & cmd /c $candidate "--version" 2>&1
             } else {
-                & $candidate --version *> $null
+                $version = & $candidate --version 2>&1
             }
-            return $candidate
+            if ($version -match "Python 3\.(1[2-9]|[2-9][0-9])\.") {
+                return $candidate
+            }
         } catch {
             continue
         }

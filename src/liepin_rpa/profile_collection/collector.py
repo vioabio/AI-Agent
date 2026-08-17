@@ -12,7 +12,10 @@ from liepin_rpa.device.client import DeviceClient, DeviceConnectionError
 from liepin_rpa.logging_utils import get_logger
 from liepin_rpa.page_detection.enums import PageState
 from liepin_rpa.page_detection.runtime import build_page_detector
-from liepin_rpa.profile_collection.resume_schema import build_candidate_resume_schema
+from liepin_rpa.profile_collection.resume_schema import (
+    build_candidate_resume_schema,
+    is_candidate_interaction_hint,
+)
 from liepin_rpa.ui_controls import iter_app_nodes, node_label, parse_bounds
 
 from .models import ProfileCollectionIteration, ProfileCollectionReport
@@ -304,7 +307,28 @@ def extract_visible_profile_text_nodes(root: ElementTree.Element) -> list[Visibl
             )
         )
     nodes.sort(key=lambda item: (item.top, item.left, len(item.label)))
-    return nodes
+    interaction_tops = [item.top for item in nodes if is_candidate_interaction_hint(item.label)]
+    if not interaction_tops:
+        return nodes
+    return [
+        item
+        for item in nodes
+        if not is_candidate_interaction_hint(item.label)
+        and not (
+            item.label.strip().isdigit()
+            and any(abs(item.top - interaction_top) <= 80 for interaction_top in interaction_tops)
+        )
+    ]
+
+
+def extract_candidate_interaction_note(root: ElementTree.Element) -> str | None:
+    """Return a platform interaction hint without treating it as resume text."""
+
+    for node in iter_app_nodes(root):
+        label = node_label(node)
+        if is_candidate_interaction_hint(label):
+            return " ".join(label.split())
+    return None
 
 
 def should_collect_profile_label(label: str) -> bool:
@@ -335,11 +359,20 @@ def looks_like_recommended_candidate_card(
 
 
 def merge_unique_lines(lines: list[str], *, seen: set[str], target: list[str]) -> int:
+    """Keep repeated lines when they occur multiple times in one visible section.
+
+    The same viewport is captured after each settle wait, so occurrence indexes
+    still prevent repeat captures while retaining legitimately repeated duties.
+    """
     added = 0
+    occurrence_counts: dict[str, int] = {}
     for line in lines:
-        if line in seen:
+        occurrence_index = occurrence_counts.get(line, 0)
+        occurrence_counts[line] = occurrence_index + 1
+        occurrence_key = f"{line}\x1f{occurrence_index}"
+        if occurrence_key in seen:
             continue
-        seen.add(line)
+        seen.add(occurrence_key)
         target.append(line)
         added += 1
     return added
