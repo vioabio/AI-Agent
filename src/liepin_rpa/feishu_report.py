@@ -10,11 +10,17 @@ from urllib import error, request
 from liepin_rpa.config import Settings
 from liepin_rpa.logging_utils import get_logger
 from liepin_rpa.profile_collection.resume_schema import sanitize_candidate_name
+from liepin_rpa.reporting_rules import (
+    ACTIONABLE_NEEDS_REVIEW_MIN_SCORE,
+    has_needs_review_result,
+    is_actionable_needs_review_result,
+    is_not_relevant_result,
+    is_relevant_result,
+)
 from liepin_rpa.search_execution.result_filter import CandidateProcessOutcome
 from liepin_rpa.search_execution.workflow import SearchWorkflowReport
 
 LOGGER = get_logger(__name__)
-MIN_DISPLAY_SCORE = 90
 FEISHU_DISPLAY_LIMIT = 3
 FEISHU_REVIEW_DISPLAY_LIMIT = 5
 MIN_REPORT_AGE = 32
@@ -355,16 +361,9 @@ def select_featured_candidates(candidates: list[ReportCandidate]) -> list[Report
 
 
 def select_relevant_candidates(candidates: list[ReportCandidate]) -> list[ReportCandidate]:
-    """Return PDF matches scoring 90+, plus lower-scoring matches already greeted."""
+    """Return every relevant candidate; score gates only needs_review results."""
 
-    return _select_candidates(
-        candidates,
-        lambda item: _is_relevant_candidate(item)
-        and (
-            (item.match_score is not None and item.match_score >= MIN_DISPLAY_SCORE)
-            or item.hit_status == "sent"
-        ),
-    )
+    return _select_candidates(candidates, _is_relevant_candidate)
 
 
 def select_review_candidates(candidates: list[ReportCandidate]) -> list[ReportCandidate]:
@@ -457,25 +456,19 @@ def _build_summary(
             1
             for item in aggregated_candidates
             if item.hit_status == "sent"
-            and (item.analysis_status == "匹配" or item.match_result == "relevant")
+            and _is_relevant_candidate(item)
         ),
         skipped_recent_count=sum(
             1 for item in aggregated_candidates if item.hit_status == "skipped_recent_continue"
         ),
-        relevant_count=sum(
-            1
-            for item in aggregated_candidates
-            if _is_relevant_candidate(item)
-            and item.match_score is not None
-            and item.match_score >= MIN_DISPLAY_SCORE
-        ),
+        relevant_count=sum(1 for item in aggregated_candidates if _is_relevant_candidate(item)),
         needs_review_count=sum(
             1
             for item in aggregated_candidates
             if _is_needs_review_candidate(item)
             and not _requires_recollection(item)
             and item.match_score is not None
-            and item.match_score >= MIN_DISPLAY_SCORE
+            and item.match_score >= ACTIONABLE_NEEDS_REVIEW_MIN_SCORE
         ),
         recollection_count=sum(1 for item in aggregated_candidates if _requires_recollection(item)),
         not_relevant_count=sum(
@@ -620,17 +613,13 @@ def _build_job_summaries(
                 continue
             fingerprints_by_job[job_name].add(candidate.candidate_fingerprint)
             job.profiles_collected += 1
-            if (
-                _is_relevant_candidate(candidate)
-                and candidate.match_score is not None
-                and candidate.match_score >= MIN_DISPLAY_SCORE
-            ):
+            if _is_relevant_candidate(candidate):
                 job.relevant_count += 1
             elif (
                 _is_needs_review_candidate(candidate)
                 and not _requires_recollection(candidate)
                 and candidate.match_score is not None
-                and candidate.match_score >= MIN_DISPLAY_SCORE
+                and candidate.match_score >= ACTIONABLE_NEEDS_REVIEW_MIN_SCORE
             ):
                 job.needs_review_count += 1
             if candidate.hit_status == "sent":
@@ -1022,13 +1011,16 @@ def _format_status(candidate: ReportCandidate) -> str:
         return "待沟通"
     if candidate.hit_status.startswith("send_failed:"):
         return "打招呼失败"
-    if candidate.analysis_status == "匹配":
+    if _is_relevant_candidate(candidate):
         return "匹配未打招呼"
     if _is_needs_review_candidate(candidate):
         return "待人工复核"
     if _is_below_needs_review_score(candidate):
-        return f"不匹配（未达{MIN_DISPLAY_SCORE}分待复核线）"
-    if candidate.analysis_status == "不匹配" or candidate.match_result == "not_relevant":
+        return f"不匹配（未达{ACTIONABLE_NEEDS_REVIEW_MIN_SCORE}分待复核线）"
+    if is_not_relevant_result(
+        candidate.match_result,
+        analysis_status=candidate.analysis_status,
+    ):
         return "不匹配"
     return candidate.hit_status
 
@@ -1050,36 +1042,41 @@ def _select_candidates(
 def _is_featured_candidate(item: ReportCandidate) -> bool:
     return (
         _is_relevant_candidate(item)
-        and item.match_score is not None
-        and item.match_score >= MIN_DISPLAY_SCORE
         and _is_report_age_allowed(item.candidate_age)
     )
 
 
 def _is_relevant_candidate(item: ReportCandidate) -> bool:
-    return item.match_result == "relevant" or (
-        item.match_result is None and item.analysis_status == "匹配"
+    return is_relevant_result(
+        item.match_result,
+        analysis_status=item.analysis_status,
     )
 
 
 def _is_needs_review_candidate(item: ReportCandidate) -> bool:
-    return bool(
-        _has_needs_review_result(item)
-        and not _is_coze_api_failure_candidate(item)
-        and item.match_score is not None
-        and item.match_score >= MIN_DISPLAY_SCORE
+    return is_actionable_needs_review_result(
+        item.match_result,
+        item.match_score,
+        analysis_status=item.analysis_status,
+        analysis_reason=item.analysis_reason,
     )
 
 
 def _has_needs_review_result(item: ReportCandidate) -> bool:
-    return item.match_result == "needs_review" or item.analysis_status == "待复核"
+    return has_needs_review_result(
+        item.match_result,
+        analysis_status=item.analysis_status,
+    )
 
 
 def _is_below_needs_review_score(item: ReportCandidate) -> bool:
     return bool(
         _has_needs_review_result(item)
         and not _is_coze_api_failure_candidate(item)
-        and (item.match_score is None or item.match_score < MIN_DISPLAY_SCORE)
+        and (
+            item.match_score is None
+            or item.match_score < ACTIONABLE_NEEDS_REVIEW_MIN_SCORE
+        )
     )
 
 
@@ -1113,8 +1110,10 @@ def _is_not_relevant_candidate(item: ReportCandidate) -> bool:
         return False
     return bool(
         _is_below_needs_review_score(item)
-        or item.match_result == "not_relevant"
-        or item.analysis_status == "不匹配"
+        or is_not_relevant_result(
+            item.match_result,
+            analysis_status=item.analysis_status,
+        )
     )
 
 

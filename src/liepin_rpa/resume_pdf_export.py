@@ -20,7 +20,14 @@ from reportlab.platypus import (
     Spacer,
 )
 
-from liepin_rpa.feishu_report import MIN_DISPLAY_SCORE, ReportCandidate
+from liepin_rpa.feishu_report import ReportCandidate
+from liepin_rpa.reporting_rules import (
+    ACTIONABLE_NEEDS_REVIEW_MIN_SCORE,
+    has_needs_review_result,
+    is_actionable_needs_review_result,
+    is_not_relevant_result,
+    is_relevant_result,
+)
 
 PDF_FONT_NAME = "MicrosoftYaHei"
 PDF_BOLD_FONT_NAME = "MicrosoftYaHeiBold"
@@ -359,6 +366,8 @@ def _format_hit_status(hit_status: str) -> str:
         return "已打招呼"
     if hit_status == "immediate_job_confirmed":
         return "已确认打招呼岗位"
+    if hit_status == "skipped_recent_continue":
+        return "7天内已打过招呼"
     if hit_status == "send_failed:message_sending_disabled":
         return "待沟通"
     if hit_status.startswith("send_failed:"):
@@ -371,14 +380,30 @@ def _format_candidate_status(candidate: ReportCandidate) -> str:
         return "需重新采集"
     if _requires_analysis_retry(candidate):
         return "AI分析重试"
-    if (
-        candidate.match_result == "needs_review" or candidate.analysis_status == "待复核"
-    ) and candidate.match_score is not None and candidate.match_score >= MIN_DISPLAY_SCORE:
+    if is_actionable_needs_review_result(
+        candidate.match_result,
+        candidate.match_score,
+        analysis_status=candidate.analysis_status,
+        analysis_reason=candidate.analysis_reason,
+    ):
         return "待人工复核"
-    if candidate.match_result == "needs_review" or candidate.analysis_status == "待复核":
-        return f"不匹配（未达{MIN_DISPLAY_SCORE}分待复核线）"
-    if candidate.match_result == "not_relevant" or candidate.analysis_status == "不匹配":
+    if _has_needs_review_result(candidate):
+        return f"不匹配（未达{ACTIONABLE_NEEDS_REVIEW_MIN_SCORE}分待复核线）"
+    if is_not_relevant_result(
+        candidate.match_result,
+        analysis_status=candidate.analysis_status,
+    ):
         return "不匹配"
+    if is_relevant_result(
+        candidate.match_result,
+        analysis_status=candidate.analysis_status,
+    ):
+        if (
+            candidate.hit_status in {"sent", "immediate_job_confirmed", "skipped_recent_continue"}
+            or candidate.hit_status.startswith("send_failed:")
+        ):
+            return _format_hit_status(candidate.hit_status)
+        return "匹配未打招呼"
     return _format_hit_status(candidate.hit_status)
 
 
@@ -396,8 +421,15 @@ def _requires_analysis_retry(candidate: ReportCandidate) -> bool:
 
 def _is_coze_api_failure(candidate: ReportCandidate) -> bool:
     return bool(
-        (candidate.match_result == "needs_review" or candidate.analysis_status == "待复核")
+        _has_needs_review_result(candidate)
         and "Coze API" in (candidate.analysis_reason or "")
+    )
+
+
+def _has_needs_review_result(candidate: ReportCandidate) -> bool:
+    return has_needs_review_result(
+        candidate.match_result,
+        analysis_status=candidate.analysis_status,
     )
 
 

@@ -9,6 +9,7 @@ import re
 
 from sqlalchemy import text
 
+from liepin_rpa.candidate_decision_rules import analysis_status_for_match_result
 from liepin_rpa.coze_workflow import (
     CozeMatchResult,
     analyze_resume_record_with_coze,
@@ -41,11 +42,14 @@ from liepin_rpa.report_candidate_history import (
     REPORT_CANDIDATE_HISTORY_FILENAME,
     ReportCandidateHistoryStore,
 )
+from liepin_rpa.reporting_rules import (
+    ACTIONABLE_NEEDS_REVIEW_MIN_SCORE,
+    is_relevant_result,
+)
 from liepin_rpa.search_execution.result_filter import CandidateProcessOutcome
 from liepin_rpa.search_execution.workflow import KeywordWorkflowResult, SearchWorkflowReport
 
 LOGGER = get_logger(__name__)
-DAILY_REPORT_DETAIL_MIN_SCORE = 90
 WORK_CONTENT_PREFIX = "工作内容："
 PROJECT_CONTENT_PREFIX = "项目内容："
 PROFILE_CONTENT_PREFIX = "候选人信息："
@@ -291,12 +295,7 @@ def send_database_daily_report(
             feishu_attempted=True,
         )
     if feishu_sent and advance_watermark:
-        displayed_fingerprints = {
-            candidate.candidate_fingerprint
-            for candidate in build_report_candidates(candidate_outcomes)
-            if candidate.match_score is not None
-            and candidate.match_score >= DAILY_REPORT_DETAIL_MIN_SCORE
-        }
+        displayed_fingerprints = _select_actionable_candidate_fingerprints(candidate_outcomes)
         candidate_history.record_delivery(
             report_key=report_key,
             candidate_fingerprints=displayed_fingerprints,
@@ -500,7 +499,9 @@ def _build_candidate_outcome(
                     "analysis_status": normalized_analysis_status,
                 },
             )
-        normalized_analysis_status = _derive_analysis_status(coze_result)
+        normalized_analysis_status = analysis_status_for_match_result(
+            coze_result.match_result
+        )
         upsert_analysis_cache_record(
             settings,
             candidate_fingerprint=candidate_fingerprint,
@@ -518,7 +519,9 @@ def _build_candidate_outcome(
         latest_cache = latest_cache_by_fingerprint.get(candidate_fingerprint)
         coze_result = _coze_result_from_cache_record(latest_cache) if latest_cache is not None else None
         if coze_result is not None:
-            normalized_analysis_status = _derive_analysis_status(coze_result)
+            normalized_analysis_status = analysis_status_for_match_result(
+                coze_result.match_result
+            )
 
     recent_experience_summary = _extract_recent_experience_summary(experience)
     matched_experience_summary = _extract_matched_experience_summary(
@@ -568,7 +571,10 @@ def _build_report_from_db_snapshot(
                 brand_keyword=brand_keyword,
                 role_keyword=role_keyword,
                 matched=any(
-                    item.analysis_status == "匹配" or item.match_result == "relevant"
+                    is_relevant_result(
+                        item.match_result,
+                        analysis_status=item.analysis_status,
+                    )
                     for item in outcomes
                 ),
                 profiles_collected=len(outcomes),
@@ -596,8 +602,8 @@ def _export_candidate_pdfs_by_job(
     report_key: str,
 ) -> dict[str, Path | None]:
     report_candidates = build_report_candidates(candidate_outcomes)
-    # PDF is an actionable shortlist: both relevant and needs_review candidates
-    # must score 90+, except relevant candidates already greeted successfully.
+    # PDF is an actionable shortlist: all relevant candidates, plus
+    # needs_review candidates meeting the shared score gate.
     report_candidates = (
         select_relevant_candidates(report_candidates)
         + select_review_candidates(report_candidates)
@@ -771,6 +777,7 @@ def _load_cumulative_review_candidates_by_job(
         WHERE analysis.match_result = 'needs_review'
           AND COALESCE(analysis.analysis_reason, '') NOT LIKE '%Coze API%'
           AND COALESCE(analysis.match_score, 0) >= :needs_review_min_score
+          AND COALESCE(record.manual_suppress_report, 0) = 0
         ORDER BY job_name, analysis.match_score DESC, candidate_name
         """
     )
@@ -779,7 +786,7 @@ def _load_cumulative_review_candidates_by_job(
             sql,
             {
                 "finance_version": settings.coze_finance_analysis_version,
-                "needs_review_min_score": DAILY_REPORT_DETAIL_MIN_SCORE,
+                "needs_review_min_score": ACTIONABLE_NEEDS_REVIEW_MIN_SCORE,
             },
         ).mappings().all()
 
@@ -827,12 +834,26 @@ def _analysis_settings_for_search_keyword(
     *,
     job_profile_id: str | None = None,
 ) -> Settings:
-    analysis_version = (
-        settings.coze_finance_analysis_version
-        if job_profile_id == "finance_shared_management_v1" or "财务" in search_keyword
-        else settings.coze_jd_analysis_version
+    is_finance = job_profile_id == "finance_shared_management_v1" or "财务" in search_keyword
+    if is_finance:
+        workflow_id = settings.coze_finance_workflow_id
+        backup_workflow_id = settings.coze_finance_backup_workflow_id
+        analysis_version = settings.coze_finance_analysis_version
+        missing_setting = "COZE_FINANCE_WORKFLOW_ID"
+    else:
+        workflow_id = settings.coze_jd_workflow_id
+        backup_workflow_id = settings.coze_jd_backup_workflow_id
+        analysis_version = settings.coze_jd_analysis_version
+        missing_setting = "COZE_JD_WORKFLOW_ID"
+    if not workflow_id:
+        raise RuntimeError(f"{missing_setting} is required for database report analysis.")
+    return settings.model_copy(
+        update={
+            "coze_workflow_id": workflow_id,
+            "coze_backup_workflow_id": backup_workflow_id,
+            "coze_analysis_version": analysis_version,
+        }
     )
-    return settings.model_copy(update={"coze_analysis_version": analysis_version})
 
 
 def _load_candidate_resume_links(
@@ -865,6 +886,19 @@ def _load_candidate_resume_links(
         for row in rows
         if str(row.get("candidate_fingerprint") or "") in candidate_fingerprints
         and str(row.get("detail_deep_link") or "").strip()
+    }
+
+
+def _select_actionable_candidate_fingerprints(
+    candidate_outcomes: list[CandidateProcessOutcome],
+) -> set[str]:
+    report_candidates = build_report_candidates(candidate_outcomes)
+    return {
+        candidate.candidate_fingerprint
+        for candidate in (
+            select_relevant_candidates(report_candidates)
+            + select_review_candidates(report_candidates)
+        )
     }
 
 
@@ -1049,6 +1083,9 @@ def _load_report_candidate_records(
                COALESCE(c.experience, r.experience) AS experience,
                COALESCE(c.match_score, r.match_score) AS match_score,
                COALESCE(c.analysis_status, r.analysis_status) AS analysis_status,
+               r.manual_review_status,
+               r.manual_review_feedback,
+               r.manual_suppress_report,
                COALESCE(c.updated_at, r.updated_at, h.created_at) AS updated_at,
                COALESCE(r.source_platform, 'liepin') AS source_platform
         FROM candidate_resume_search_hits h
@@ -1094,6 +1131,7 @@ def _load_report_candidate_records(
         ) locator ON locator.candidate_fingerprint = h.candidate_fingerprint
         LEFT JOIN candidate_resume_experience_records r
           ON r.candidate_fingerprint = h.candidate_fingerprint
+        WHERE COALESCE(r.manual_suppress_report, 0) = 0
         ORDER BY h.created_at DESC
         {limit_clause}
         """
@@ -1130,23 +1168,23 @@ def _count_cumulative_report_metrics(settings: Settings) -> dict[str, int]:
     analysis_sql = text(
         """
         SELECT
-            SUM(CASE WHEN match_result = 'relevant' THEN 1 ELSE 0 END) AS relevant_count,
+            SUM(CASE WHEN c.match_result = 'relevant' THEN 1 ELSE 0 END) AS relevant_count,
             SUM(
                 CASE
-                    WHEN match_result = 'not_relevant'
+                    WHEN c.match_result = 'not_relevant'
                       OR (
-                          match_result = 'needs_review'
-                          AND COALESCE(analysis_reason, '') NOT LIKE '%Coze API%'
-                          AND COALESCE(match_score, 0) < :needs_review_min_score
+                          c.match_result = 'needs_review'
+                          AND COALESCE(c.analysis_reason, '') NOT LIKE '%Coze API%'
+                          AND COALESCE(c.match_score, 0) < :needs_review_min_score
                       )
                     THEN 1 ELSE 0
                 END
             ) AS not_relevant_count,
             SUM(
                 CASE
-                    WHEN match_result = 'needs_review'
-                     AND COALESCE(analysis_reason, '') NOT LIKE '%Coze API%'
-                     AND COALESCE(match_score, 0) >= :needs_review_min_score
+                    WHEN c.match_result = 'needs_review'
+                     AND COALESCE(c.analysis_reason, '') NOT LIKE '%Coze API%'
+                     AND COALESCE(c.match_score, 0) >= :needs_review_min_score
                     THEN 1 ELSE 0
                 END
             ) AS needs_review_count
@@ -1156,6 +1194,9 @@ def _count_cumulative_report_metrics(settings: Settings) -> dict[str, int]:
             FROM candidate_resume_analysis_cache
             GROUP BY candidate_fingerprint
         ) latest ON latest.max_id = c.id
+        LEFT JOIN candidate_resume_experience_records r
+          ON r.candidate_fingerprint = c.candidate_fingerprint
+        WHERE COALESCE(r.manual_suppress_report, 0) = 0
         """
     )
     greeted_sql = text(
@@ -1168,7 +1209,7 @@ def _count_cumulative_report_metrics(settings: Settings) -> dict[str, int]:
     with engine.begin() as connection:
         analysis = connection.execute(
             analysis_sql,
-            {"needs_review_min_score": DAILY_REPORT_DETAIL_MIN_SCORE},
+            {"needs_review_min_score": ACTIONABLE_NEEDS_REVIEW_MIN_SCORE},
         ).mappings().first() or {}
         greeted = connection.execute(greeted_sql).mappings().first() or {}
     return {
@@ -1250,6 +1291,9 @@ def _count_cumulative_report_metrics_by_job(
                 END
             ) AS needs_review_count
         FROM latest_analysis analysis
+        LEFT JOIN candidate_resume_experience_records record
+          ON record.candidate_fingerprint = analysis.candidate_fingerprint
+        WHERE COALESCE(record.manual_suppress_report, 0) = 0
         GROUP BY job_name
         """
     )
@@ -1302,7 +1346,7 @@ def _count_cumulative_report_metrics_by_job(
             analysis_sql,
             {
                 "finance_version": settings.coze_finance_analysis_version,
-                "needs_review_min_score": DAILY_REPORT_DETAIL_MIN_SCORE,
+                "needs_review_min_score": ACTIONABLE_NEEDS_REVIEW_MIN_SCORE,
             },
         ).mappings().all()
         greeted_rows = connection.execute(greeted_sql).mappings().all()
@@ -1530,7 +1574,10 @@ def _coze_result_from_cache_record(record: dict[str, object] | None) -> CozeMatc
     match_result = _optional_str(record.get("match_result"))
     analysis_status = _optional_str(record.get("analysis_status"))
     return CozeMatchResult(
-        matched=bool(analysis_status == "匹配" or match_result == "relevant"),
+        matched=is_relevant_result(
+            match_result,
+            analysis_status=analysis_status,
+        ),
         match_result=match_result,
         match_score=_optional_int(record.get("match_score")),
         score_breakdown=_parse_score_breakdown(record.get("score_breakdown_json")),
@@ -1569,14 +1616,6 @@ def _parse_json_value(value: object) -> object:
         return json.loads(value)
     except json.JSONDecodeError:
         return None
-
-
-def _derive_analysis_status(result: CozeMatchResult) -> str:
-    if result.match_result == "relevant" or result.matched:
-        return "匹配"
-    if result.match_result == "needs_review":
-        return "待复核"
-    return "不匹配"
 
 
 def _is_coze_api_failure_outcome(outcome: CandidateProcessOutcome) -> bool:

@@ -12,6 +12,12 @@ from cozepy import Coze, TokenAuth
 from cozepy.exception import CozeAPIError
 from cozepy.request import SyncHTTPClient
 
+from liepin_rpa.candidate_decision_rules import (
+    MATCH_RESULT_NEEDS_REVIEW,
+    VALID_MATCH_RESULTS,
+    beauty_relevance_matches_result,
+    is_relevant_match_result,
+)
 from liepin_rpa.config import Settings
 from liepin_rpa.logging_utils import get_logger
 
@@ -20,7 +26,6 @@ COZE_MAX_ATTEMPTS = 4
 COZE_TRANSIENT_CACHE_TTL = timedelta(minutes=10)
 COZE_RETRYABLE_CODES = {429, 5000, 5001, 5002, 5003, 5004, 5005}
 COZE_NEEDS_REVIEW_CODES = {4000}
-VALID_MATCH_RESULTS = {"relevant", "not_relevant", "needs_review"}
 EXPECTED_SCORE_BREAKDOWN_KEYS = {
     "beauty_continuity",
     "industry_depth",
@@ -56,6 +61,21 @@ class CozeMatchResult:
     parsed_payload: dict[str, Any]
 
 
+class CozeWorkflowExecutionFailure(RuntimeError):
+    """One configured workflow exhausted its safe retry policy."""
+
+    def __init__(
+        self,
+        reason: str,
+        *,
+        raw_data: str = "",
+        source: str = "api_error",
+    ) -> None:
+        super().__init__(reason)
+        self.raw_data = raw_data
+        self.source = source
+
+
 def analyze_resume_record_with_coze(
     settings: Settings,
     *,
@@ -63,7 +83,8 @@ def analyze_resume_record_with_coze(
 ) -> CozeMatchResult:
     if not settings.coze_api_token:
         raise RuntimeError("COZE_API_TOKEN is not configured")
-    if not settings.coze_workflow_id:
+    workflow_ids = _configured_workflow_ids(settings)
+    if not workflow_ids:
         raise RuntimeError("COZE_WORKFLOW_ID is not configured")
 
     LOGGER.info(
@@ -73,7 +94,8 @@ def analyze_resume_record_with_coze(
             "context": {
                 "record_id": resume_record.get("id"),
                 "candidate_name": resume_record.get("candidate_name"),
-                "workflow_id": settings.coze_workflow_id,
+                "workflow_id": workflow_ids[0],
+                "backup_workflow_configured": len(workflow_ids) > 1,
             },
         },
     )
@@ -98,12 +120,86 @@ def analyze_resume_record_with_coze(
             },
         },
     )
+    last_failure: CozeWorkflowExecutionFailure | None = None
+    for workflow_index, workflow_id in enumerate(workflow_ids):
+        workflow_role = "primary" if workflow_index == 0 else "backup"
+        try:
+            return _run_workflow_with_retries(
+                coze=coze,
+                workflow_id=workflow_id,
+                workflow_role=workflow_role,
+                resume_record=resume_record,
+                parameters=parameters,
+                request_fingerprint=request_fingerprint,
+            )
+        except CozeWorkflowExecutionFailure as exc:
+            last_failure = exc
+            if workflow_index + 1 < len(workflow_ids):
+                LOGGER.warning(
+                    "Primary Coze workflow failed; switching to configured backup",
+                    extra={
+                        "event": "coze_workflow_failover",
+                        "context": {
+                            "record_id": resume_record.get("id"),
+                            "candidate_name": resume_record.get("candidate_name"),
+                            "failed_workflow_id": workflow_id,
+                            "backup_workflow_id": workflow_ids[workflow_index + 1],
+                            "failure_reason": str(exc),
+                            "failure_source": exc.source,
+                            "coze_request_fingerprint": request_fingerprint,
+                        },
+                    },
+                )
+                continue
+            LOGGER.error(
+                "All configured Coze workflows failed",
+                extra={
+                    "event": "coze_all_workflows_failed",
+                    "context": {
+                        "record_id": resume_record.get("id"),
+                        "candidate_name": resume_record.get("candidate_name"),
+                        "workflow_id": workflow_id,
+                        "failure_reason": str(exc),
+                        "failure_source": exc.source,
+                        "coze_request_fingerprint": request_fingerprint,
+                    },
+                },
+            )
+
+    if last_failure is None:  # pragma: no cover - guarded by workflow_ids
+        raise RuntimeError("Coze workflow did not return a result")
+    return _build_needs_review_result(
+        raw_data=last_failure.raw_data,
+        reason=str(last_failure),
+        source=last_failure.source,
+    )
+
+
+def _configured_workflow_ids(settings: Settings) -> list[str]:
+    primary = str(settings.coze_workflow_id or "").strip()
+    backup = str(getattr(settings, "coze_backup_workflow_id", None) or "").strip()
+    if not primary:
+        return []
+    if backup and backup != primary:
+        return [primary, backup]
+    return [primary]
+
+
+def _run_workflow_with_retries(
+    *,
+    coze: Coze,
+    workflow_id: str,
+    workflow_role: str,
+    resume_record: dict[str, object],
+    parameters: dict[str, object],
+    request_fingerprint: str,
+) -> CozeMatchResult:
     last_error: Exception | None = None
     for attempt in range(1, COZE_MAX_ATTEMPTS + 1):
         attempt_started_at = time.monotonic()
         try:
             workflow = coze.workflows.runs.create(
-                workflow_id=settings.coze_workflow_id,
+                workflow_id=workflow_id,
                 parameters=parameters,
             )
             raw_data = workflow.data or ""
@@ -118,6 +214,8 @@ def analyze_resume_record_with_coze(
                         "context": {
                             "record_id": resume_record.get("id"),
                             "candidate_name": resume_record.get("candidate_name"),
+                            "workflow_id": workflow_id,
+                            "workflow_role": workflow_role,
                             "attempt": attempt,
                             "coze_request_fingerprint": request_fingerprint,
                             "validation_errors": validation_errors,
@@ -127,7 +225,11 @@ def analyze_resume_record_with_coze(
                 if attempt < COZE_MAX_ATTEMPTS:
                     time.sleep(attempt * 2)
                     continue
-                return _build_needs_review_result(raw_data=raw_data, reason=str(last_error))
+                raise CozeWorkflowExecutionFailure(
+                    str(last_error),
+                    raw_data=raw_data,
+                    source="payload_validation",
+                )
             break
         except CozeAPIError as exc:
             last_error = exc
@@ -138,6 +240,8 @@ def analyze_resume_record_with_coze(
                     "context": {
                         "record_id": resume_record.get("id"),
                         "candidate_name": resume_record.get("candidate_name"),
+                        "workflow_id": workflow_id,
+                        "workflow_role": workflow_role,
                         "attempt": attempt,
                         "code": exc.code,
                         "message": exc.msg,
@@ -154,27 +258,25 @@ def analyze_resume_record_with_coze(
             should_retry_or_review = (
                 exc.code in COZE_RETRYABLE_CODES or exc.code in COZE_NEEDS_REVIEW_CODES
             )
-            if should_retry_or_review and attempt >= COZE_MAX_ATTEMPTS:
-                return _build_needs_review_result(
-                    raw_data="",
-                    reason=(
-                        "Coze API 连续返回异常，"
-                        f"code={exc.code}, message={exc.msg}"
-                    ),
+            if not should_retry_or_review or attempt >= COZE_MAX_ATTEMPTS:
+                raise CozeWorkflowExecutionFailure(
+                    "Coze API 连续返回异常，"
+                    f"code={exc.code}, message={exc.msg}",
                     source="api_error",
-                )
-            if not should_retry_or_review:
-                raise
+                ) from exc
             time.sleep(min(2**attempt, 15) + random.uniform(0, 0.75))
-    else:
-        raise RuntimeError("Coze workflow did not return a result") from last_error
+    else:  # pragma: no cover - every terminal path raises or returns
+        raise CozeWorkflowExecutionFailure(
+            "Coze workflow did not return a result",
+            source="api_error",
+        ) from last_error
 
     match_result = _normalize_match_result(parsed_payload)
     match_score = _normalize_match_score(parsed_payload)
     score_breakdown = _normalize_score_breakdown(parsed_payload)
     analysis_reason = _normalize_string_field(parsed_payload, "analysis_reason")
     evidence_summary = _normalize_string_list(parsed_payload, "evidence_summary")
-    matched = bool(parsed_payload.get("beauty_relevant") is True or match_result == "relevant")
+    matched = is_relevant_match_result(match_result)
     LOGGER.info(
         "Completed Coze analysis",
         extra={
@@ -182,6 +284,8 @@ def analyze_resume_record_with_coze(
             "context": {
                 "record_id": resume_record.get("id"),
                 "candidate_name": resume_record.get("candidate_name"),
+                "workflow_id": workflow_id,
+                "workflow_role": workflow_role,
                 "matched": matched,
                 "match_result": match_result,
             },
@@ -296,6 +400,11 @@ def _validate_coze_payload(payload: dict[str, Any]) -> list[str]:
     match_result = _normalize_match_result(payload)
     if match_result not in VALID_MATCH_RESULTS:
         errors.append("match_result must be relevant, not_relevant, or needs_review")
+    elif not beauty_relevance_matches_result(
+        payload.get("beauty_relevant"),
+        match_result,
+    ):
+        errors.append("beauty_relevant must be true exactly when match_result is relevant")
     if not _normalize_string_field(payload, "analysis_reason"):
         errors.append("analysis_reason must be a non-empty string")
     if not isinstance(payload.get("evidence_summary"), list):
@@ -329,7 +438,7 @@ def _build_needs_review_result(
         analysis_reason = f"需要人工复核：Coze API 临时异常，系统未进行自动匹配判断。{reason}"
     payload: dict[str, Any] = {
         "beauty_relevant": False,
-        "match_result": "needs_review",
+        "match_result": MATCH_RESULT_NEEDS_REVIEW,
         "match_score": None,
         "score_breakdown": {},
         "analysis_reason": analysis_reason,
@@ -337,7 +446,7 @@ def _build_needs_review_result(
     }
     return CozeMatchResult(
         matched=False,
-        match_result="needs_review",
+        match_result=MATCH_RESULT_NEEDS_REVIEW,
         match_score=None,
         score_breakdown={},
         analysis_reason=analysis_reason,
@@ -350,7 +459,7 @@ def _build_needs_review_result(
 def is_transient_coze_api_review(result: CozeMatchResult | None) -> bool:
     return bool(
         result is not None
-        and result.match_result == "needs_review"
+        and result.match_result == MATCH_RESULT_NEEDS_REVIEW
         and "Coze API 临时异常" in (result.analysis_reason or "")
     )
 

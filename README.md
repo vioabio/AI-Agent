@@ -1,5 +1,7 @@
 # 猎聘美妆人才自动搜索与页面采集项目
 
+> **当前权威入口（2026-08-17）**：先读 [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) 和 [docs/PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md)。当前生产链路是达人 96 词 + 财务 22 词的单手机串行任务；可行动报表口径为 `relevant` 全部 + `needs_review >= 90`。本页其余内容主要保留早期迁移与工具说明，若有冲突，以两份权威文档和主目录当前代码为准。
+
 当前仓库已经恢复到迁移后的可运行状态，并覆盖了以下能力：
 
 - Python 项目骨架与本地 `.venv`

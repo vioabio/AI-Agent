@@ -94,6 +94,38 @@ def test_pdf_status_only_marks_needs_review_at_90_or_above() -> None:
     assert _format_candidate_status(threshold_score) == "待人工复核"
 
 
+def test_pdf_relevant_status_preserves_contact_action() -> None:
+    greeted = ReportCandidate(
+        candidate_fingerprint="relevant-sent",
+        candidate_name="已沟通候选人",
+        match_result="relevant",
+        match_score=70,
+        hit_status="sent",
+    )
+    pending = ReportCandidate(
+        candidate_fingerprint="relevant-reviewed",
+        candidate_name="待沟通候选人",
+        match_result="relevant",
+        match_score=70,
+        hit_status="reviewed",
+    )
+
+    assert _format_candidate_status(greeted) == "已打招呼"
+    assert _format_candidate_status(pending) == "匹配未打招呼"
+
+
+def test_pdf_explicit_not_relevant_wins_over_conflicting_review_status() -> None:
+    candidate = ReportCandidate(
+        candidate_fingerprint="conflicting-status",
+        candidate_name="矛盾状态候选人",
+        analysis_status="待复核",
+        match_result="not_relevant",
+        match_score=99,
+    )
+
+    assert _format_candidate_status(candidate) == "不匹配"
+
+
 def test_pdf_coze_api_failure_never_becomes_below_threshold_mismatch() -> None:
     retry_candidate = ReportCandidate(
         candidate_fingerprint="coze-retry",
@@ -118,7 +150,7 @@ def test_pdf_coze_api_failure_never_becomes_below_threshold_mismatch() -> None:
     assert _format_candidate_status(recollection_candidate) == "需重新采集"
 
 
-def test_daily_pdf_uses_90_point_gate_but_keeps_greeted_relevant_candidates(
+def test_daily_pdf_includes_all_relevant_and_only_90_point_reviews(
     monkeypatch,
     tmp_path,
 ) -> None:
@@ -224,7 +256,11 @@ def test_daily_pdf_uses_90_point_gate_but_keeps_greeted_relevant_candidates(
     )
 
     daren_pdf = captured["达人营销总监"]
-    assert daren_pdf["candidates"] == [ungreeted_relevant_at_90, greeted_relevant_below_90]
+    assert daren_pdf["candidates"] == [
+        ungreeted_relevant_at_90,
+        ungreeted_relevant_below_90,
+        greeted_relevant_below_90,
+    ]
     assert daren_pdf["review_candidates"] == [review_at_90]
     assert "other_candidates" not in daren_pdf
     assert "recollection_candidates" not in daren_pdf

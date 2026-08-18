@@ -20,6 +20,7 @@ from liepin_rpa.db import (
 from liepin_rpa.device.adb import AdbRunner
 from liepin_rpa.device.client import DeviceClient
 from liepin_rpa.profile_collection import CandidateProfileCollector
+from liepin_rpa.reporting_rules import is_actionable_report_result
 from liepin_rpa.search_execution.result_filter import ResultPageFilter
 from liepin_rpa.ui_controls import parse_bounds
 
@@ -115,8 +116,11 @@ def load_targets(path: Path, selected_names: set[str]) -> list[dict[str, object]
     for job in payload.get("jobs", []):
         for candidate in job.get("candidates", []):
             score = candidate.get("match_score")
-            qualified = candidate.get("match_result") == "relevant" or (
-                isinstance(score, (int, float)) and score >= 90
+            qualified = is_actionable_report_result(
+                candidate.get("match_result"),
+                score,
+                analysis_status=candidate.get("analysis_status"),
+                analysis_reason=candidate.get("analysis_reason"),
             )
             if not qualified:
                 continue

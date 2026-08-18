@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from liepin_rpa import db_daily_report
+from liepin_rpa.feishu_report import ReportCandidate
 from liepin_rpa.report_candidate_history import ReportCandidateHistoryStore
 
 
@@ -21,3 +23,18 @@ def test_report_candidate_history_deduplicates_deliveries(tmp_path) -> None:
     )
 
     assert store.load_fingerprints() == {"candidate-a", "candidate-b"}
+
+
+def test_report_history_watermark_uses_same_actionable_population(monkeypatch) -> None:
+    candidates = [
+        ReportCandidate("relevant-low", "低分匹配", match_result="relevant", match_score=40),
+        ReportCandidate("review-90", "90分待复核", match_result="needs_review", match_score=90),
+        ReportCandidate("review-89", "89分待复核", match_result="needs_review", match_score=89),
+        ReportCandidate("not-relevant", "不匹配", match_result="not_relevant", match_score=99),
+    ]
+    monkeypatch.setattr(db_daily_report, "build_report_candidates", lambda _outcomes: candidates)
+
+    assert db_daily_report._select_actionable_candidate_fingerprints([]) == {
+        "relevant-low",
+        "review-90",
+    }

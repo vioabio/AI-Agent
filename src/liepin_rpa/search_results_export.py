@@ -12,6 +12,11 @@ from sqlalchemy import text
 
 from liepin_rpa.config import Settings
 from liepin_rpa.db import ensure_resume_experience_schema, get_engine
+from liepin_rpa.reporting_rules import (
+    ACTIONABLE_NEEDS_REVIEW_MIN_SCORE,
+    is_actionable_needs_review_result,
+    is_not_relevant_result,
+)
 
 
 EXPORT_COLUMNS = [
@@ -36,7 +41,6 @@ EXPORT_COLUMNS = [
 ]
 
 SENT_HIT_STATUSES = {"sent", "immediate_job_confirmed"}
-NEEDS_REVIEW_MIN_SCORE = 90
 LOCAL_TIMEZONE = timezone(timedelta(hours=8))
 
 
@@ -370,12 +374,15 @@ def format_hit_status(
         return "发送失败"
     if hit_status == "continue_without_db_record":
         return "继续沟通但无历史记录，未发送"
-    if hit_status == "not_relevant" or analysis_status == "不匹配":
+    if is_not_relevant_result(
+        match_result,
+        analysis_status=analysis_status,
+    ) or (match_result in (None, "") and hit_status == "not_relevant"):
         return "Coze未通过，未发送"
     if _is_counted_needs_review(match_result, match_score):
         return "需人工复核，未发送"
     if match_result == "needs_review":
-        return f"Coze未达{NEEDS_REVIEW_MIN_SCORE}分待复核线，未发送"
+        return f"Coze未达{ACTIONABLE_NEEDS_REVIEW_MIN_SCORE}分待复核线，未发送"
     if hit_status == "reviewed":
         return "已评估，未发送"
     if hit_status == "intention_communication_skipped":
@@ -408,8 +415,11 @@ def format_skip_reason(
     if _is_counted_needs_review(match_result, match_score):
         return "Coze返回需人工复核"
     if match_result == "needs_review":
-        return f"Coze分数未达到{NEEDS_REVIEW_MIN_SCORE}分待复核线"
-    if hit_status == "not_relevant" or analysis_status == "不匹配":
+        return f"Coze分数未达到{ACTIONABLE_NEEDS_REVIEW_MIN_SCORE}分待复核线"
+    if is_not_relevant_result(
+        match_result,
+        analysis_status=analysis_status,
+    ) or (match_result in (None, "") and hit_status == "not_relevant"):
         return "Coze判断不匹配"
     if hit_status == "reviewed":
         return "已评估但未进入发送条件"
@@ -427,12 +437,7 @@ def format_skip_reason(
 
 
 def _is_counted_needs_review(match_result: object, match_score: object) -> bool:
-    if match_result != "needs_review":
-        return False
-    try:
-        return int(match_score) >= NEEDS_REVIEW_MIN_SCORE
-    except (TypeError, ValueError):
-        return False
+    return is_actionable_needs_review_result(match_result, match_score)
 
 
 def split_search_keyword(keyword: str) -> tuple[str, str]:

@@ -39,11 +39,19 @@ class Settings(BaseSettings):
     coze_api_token: str | None = Field(default=None, alias="COZE_API_TOKEN")
     coze_api_base_url: str = Field(default=COZE_CN_BASE_URL, alias="COZE_API_BASE_URL")
     coze_workflow_id: str | None = Field(default=None, alias="COZE_WORKFLOW_ID")
+    coze_backup_workflow_id: str | None = Field(
+        default=None,
+        alias="COZE_BACKUP_WORKFLOW_ID",
+    )
     coze_analysis_version: str = Field(
         default="2026-08-10-daren-v3",
         alias="COZE_ANALYSIS_VERSION",
     )
     coze_jd_workflow_id: str | None = Field(default=None, alias="COZE_JD_WORKFLOW_ID")
+    coze_jd_backup_workflow_id: str | None = Field(
+        default=None,
+        alias="COZE_JD_BACKUP_WORKFLOW_ID",
+    )
     coze_jd_analysis_version: str = Field(
         default="2026-08-13-daren-live-bd-jd-v5",
         alias="COZE_JD_ANALYSIS_VERSION",
@@ -51,6 +59,10 @@ class Settings(BaseSettings):
     coze_finance_workflow_id: str | None = Field(
         default=None,
         alias="COZE_FINANCE_WORKFLOW_ID",
+    )
+    coze_finance_backup_workflow_id: str | None = Field(
+        default=None,
+        alias="COZE_FINANCE_BACKUP_WORKFLOW_ID",
     )
     coze_finance_analysis_version: str = Field(
         default="2026-08-13-finance-shared-management-v2",

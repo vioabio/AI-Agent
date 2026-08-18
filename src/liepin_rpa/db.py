@@ -77,6 +77,11 @@ resume_experience_records = Table(
         nullable=False,
         server_default=text(f"'{DEFAULT_ANALYSIS_STATUS}'"),
     ),
+    Column("manual_review_status", String(64), nullable=True, index=True),
+    Column("manual_review_feedback", Text, nullable=True),
+    Column("manual_suppress_communication", BigInteger, nullable=False, server_default=text("0")),
+    Column("manual_suppress_report", BigInteger, nullable=False, server_default=text("0")),
+    Column("manual_reviewed_at", DateTime, nullable=True),
     Column("created_at", TIMESTAMP, nullable=False, server_default=func.current_timestamp()),
     Column("updated_at", TIMESTAMP, nullable=False, server_default=func.current_timestamp()),
     mysql_charset="utf8mb4",
@@ -396,6 +401,40 @@ def upsert_contacted_candidate_record(
     return int(record_id)
 
 
+def update_candidate_manual_review(
+    settings: Settings,
+    *,
+    candidate_fingerprint: str,
+    review_status: str,
+    feedback: str,
+    suppress_communication: bool = True,
+    suppress_report: bool = True,
+) -> int:
+    """Persist an HR disposition separately from the original AI analysis."""
+
+    ensure_resume_experience_schema(settings)
+    normalized_status = _string_or_none(review_status)
+    normalized_feedback = _string_or_none(feedback)
+    if not normalized_status or not normalized_feedback:
+        raise ValueError("review_status and feedback must not be empty")
+    stmt = (
+        update(resume_experience_records)
+        .where(resume_experience_records.c.candidate_fingerprint == candidate_fingerprint)
+        .values(
+            manual_review_status=normalized_status,
+            manual_review_feedback=normalized_feedback,
+            manual_suppress_communication=1 if suppress_communication else 0,
+            manual_suppress_report=1 if suppress_report else 0,
+            manual_reviewed_at=func.current_timestamp(),
+            updated_at=func.current_timestamp(),
+        )
+    )
+    engine = get_engine(settings)
+    with engine.begin() as connection:
+        result = connection.execute(stmt)
+    return int(result.rowcount or 0)
+
+
 def get_candidate_record_by_fingerprint(
     settings: Settings,
     candidate_fingerprint: str,
@@ -450,6 +489,11 @@ def list_contacted_candidate_records(
             resume_experience_records.c.experience,
             resume_experience_records.c.match_score,
             resume_experience_records.c.analysis_status,
+            resume_experience_records.c.manual_review_status,
+            resume_experience_records.c.manual_review_feedback,
+            resume_experience_records.c.manual_suppress_communication,
+            resume_experience_records.c.manual_suppress_report,
+            resume_experience_records.c.manual_reviewed_at,
             resume_experience_records.c.created_at,
             resume_experience_records.c.updated_at,
         )
@@ -1031,6 +1075,11 @@ def _candidate_record_select():
         resume_experience_records.c.experience,
         resume_experience_records.c.match_score,
         resume_experience_records.c.analysis_status,
+        resume_experience_records.c.manual_review_status,
+        resume_experience_records.c.manual_review_feedback,
+        resume_experience_records.c.manual_suppress_communication,
+        resume_experience_records.c.manual_suppress_report,
+        resume_experience_records.c.manual_reviewed_at,
         resume_experience_records.c.created_at,
         resume_experience_records.c.updated_at,
     )
@@ -1142,6 +1191,28 @@ def _ensure_resume_experience_columns(engine: Engine) -> None:
         alter_statements.append(
             f"ALTER TABLE {RESUME_EXPERIENCE_TABLE_NAME} "
             f"ADD COLUMN experience_hash_version BIGINT NOT NULL DEFAULT {EXPERIENCE_HASH_VERSION}"
+        )
+    if "manual_review_status" not in column_names:
+        alter_statements.append(
+            f"ALTER TABLE {RESUME_EXPERIENCE_TABLE_NAME} ADD COLUMN manual_review_status VARCHAR(64) NULL"
+        )
+    if "manual_review_feedback" not in column_names:
+        alter_statements.append(
+            f"ALTER TABLE {RESUME_EXPERIENCE_TABLE_NAME} ADD COLUMN manual_review_feedback TEXT NULL"
+        )
+    if "manual_suppress_communication" not in column_names:
+        alter_statements.append(
+            f"ALTER TABLE {RESUME_EXPERIENCE_TABLE_NAME} "
+            "ADD COLUMN manual_suppress_communication BIGINT NOT NULL DEFAULT 0"
+        )
+    if "manual_suppress_report" not in column_names:
+        alter_statements.append(
+            f"ALTER TABLE {RESUME_EXPERIENCE_TABLE_NAME} "
+            "ADD COLUMN manual_suppress_report BIGINT NOT NULL DEFAULT 0"
+        )
+    if "manual_reviewed_at" not in column_names:
+        alter_statements.append(
+            f"ALTER TABLE {RESUME_EXPERIENCE_TABLE_NAME} ADD COLUMN manual_reviewed_at DATETIME NULL"
         )
     if alter_statements:
         with engine.begin() as connection:

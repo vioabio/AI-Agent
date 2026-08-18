@@ -1,11 +1,17 @@
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 from xml.etree import ElementTree
 
 import liepin_rpa.search_execution.result_filter as result_filter_module
 from liepin_rpa.coze_workflow import CozeMatchResult
+from liepin_rpa.config import Settings
 from liepin_rpa.page_detection.enums import PageState
-from liepin_rpa.search_execution.result_filter import CandidateCard, ResultPageFilter
+from liepin_rpa.search_execution.result_filter import (
+    CandidateCard,
+    MessageSendResult,
+    ResultPageFilter,
+)
 from liepin_rpa.share_quota import DailyShareQuotaStateStore
 from liepin_rpa.task_generation.models import SearchTaskSeed
 
@@ -101,6 +107,35 @@ def test_both_jd_smart_job_profiles_require_explicit_shanghai_intent() -> None:
         )
 
         assert result_filter._required_job_intent_city() == "上海"
+
+
+def test_both_jd_smart_job_profiles_route_primary_and_backup_coze_workflows() -> None:
+    repository_root = Path(__file__).parents[2]
+    settings = Settings(
+        _env_file=None,
+        COZE_JD_WORKFLOW_ID="daren-primary",
+        COZE_JD_BACKUP_WORKFLOW_ID="daren-backup",
+        COZE_FINANCE_WORKFLOW_ID="finance-primary",
+        COZE_FINANCE_BACKUP_WORKFLOW_ID="finance-backup",
+    )
+    cases = [
+        ("daren_live_bd.yaml", "daren-primary", "daren-backup"),
+        ("finance_shared_management.yaml", "finance-primary", "finance-backup"),
+    ]
+
+    for profile_name, expected_primary, expected_backup in cases:
+        result_filter = ResultPageFilter(
+            device=object(),  # type: ignore[arg-type]
+            detector=object(),
+            settle_seconds=0,
+            selection_mode="jd_smart",
+            job_profile_path=repository_root / "config" / "job_profiles" / profile_name,
+        )
+
+        analysis_settings = result_filter._analysis_settings(settings)
+
+        assert analysis_settings.coze_workflow_id == expected_primary
+        assert analysis_settings.coze_backup_workflow_id == expected_backup
 
 
 def test_daren_card_screening_requires_direction_and_quality_support() -> None:
@@ -582,9 +617,55 @@ def test_high_value_analysis_policy() -> None:
         )
 
     assert ResultPageFilter._is_high_value_analysis(result("relevant", 80)) is True
-    assert ResultPageFilter._is_high_value_analysis(result("needs_review", 85)) is True
-    assert ResultPageFilter._is_high_value_analysis(result("needs_review", 84)) is False
+    assert ResultPageFilter._is_high_value_analysis(result("needs_review", 90)) is True
+    assert ResultPageFilter._is_high_value_analysis(result("needs_review", 89)) is False
     assert ResultPageFilter._is_high_value_analysis(result("not_relevant", 92)) is False
+
+
+def test_manual_review_handler_skips_ai_and_communication(monkeypatch) -> None:
+    class FakeDevice:
+        def __init__(self) -> None:
+            self.back_calls = 0
+
+        def press_back(self) -> None:
+            self.back_calls += 1
+
+    device = FakeDevice()
+    result_filter = ResultPageFilter(
+        device=device,  # type: ignore[arg-type]
+        detector=object(),
+        settle_seconds=0,
+        write_to_db=True,
+    )
+    calls: dict[str, object] = {}
+    monkeypatch.setattr(result_filter_module, "get_settings", lambda: SimpleNamespace())
+    monkeypatch.setattr(result_filter, "_wait", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        result_filter_module,
+        "record_candidate_search_hit",
+        lambda *_args, **kwargs: calls.update(hit=kwargs) or 1,
+    )
+
+    outcome = result_filter._handle_manual_review_suppressed_candidate(
+        seed=SearchTaskSeed(
+            brand_keyword="",
+            role_keyword="达人营销负责人",
+            query_text="达人营销负责人",
+        ),
+        candidate_name="毛先生",
+        candidate_fingerprint="candidate-fp",
+        communication_label="继续沟通",
+        candidate_age=35,
+        manual_review_status="interview_rejected",
+        manual_review_feedback="已经面试，淘汰。",
+    )
+
+    assert outcome.hit_status == "manual_review_suppressed:interview_rejected"
+    assert outcome.message_send_success is False
+    assert outcome.message_send_reason == "manual_review_suppressed"
+    assert outcome.match_result is None
+    assert calls["hit"]["hit_status"] == "manual_review_suppressed:interview_rejected"  # type: ignore[index]
+    assert device.back_calls == 1
 
 
 def test_quota_exhausted_high_value_candidate_is_favorited(monkeypatch, tmp_path) -> None:
@@ -731,3 +812,262 @@ def test_cached_contradictory_boolean_never_overrides_match_result() -> None:
     assert cached is not None
     assert cached.match_result == "needs_review"
     assert cached.matched is False
+
+
+def test_hit_status_uses_match_result_as_canonical_decision() -> None:
+    no_message = MessageSendResult(
+        success=False,
+        attempts=0,
+        reason="not_attempted",
+        screenshot_path=None,
+    )
+
+    assert ResultPageFilter._derive_hit_status(
+        analysis_status="不匹配",
+        match_result="needs_review",
+        message_send_result=no_message,
+        continue_without_db_record=False,
+    ) == "reviewed"
+    assert ResultPageFilter._derive_hit_status(
+        analysis_status="匹配",
+        match_result="not_relevant",
+        message_send_result=no_message,
+        continue_without_db_record=False,
+    ) == "not_relevant"
+
+
+def _run_needs_review_candidate(
+    monkeypatch,
+    *,
+    write_to_db: bool,
+    cache_record: dict[str, object] | None,
+) -> tuple[object, dict[str, object]]:
+    class FakeDevice:
+        def __init__(self) -> None:
+            self.back_calls = 0
+
+        def tap(self, *_args) -> None:
+            return None
+
+        def dump_hierarchy_text(self) -> str:
+            return "<hierarchy/>"
+
+        def current_app(self) -> dict[str, str]:
+            return {}
+
+        def press_back(self) -> None:
+            self.back_calls += 1
+
+    device = FakeDevice()
+    result_filter = ResultPageFilter(
+        device=device,  # type: ignore[arg-type]
+        detector=object(),
+        settle_seconds=0,
+        write_to_db=write_to_db,
+        send_messages=True,
+    )
+    report = SimpleNamespace(
+        sections={"求职意向": ["上海"], "工作经历": ["达人营销负责人"]},
+        structured_resume={
+            "basic_info": {"name": "张女士", "age": 34},
+            "work_experiences": [],
+            "education_experiences": [],
+        },
+    )
+    needs_review_result = CozeMatchResult(
+        matched=False,
+        match_result="needs_review",
+        match_score=88,
+        score_breakdown={
+            "beauty_continuity": 30,
+            "industry_depth": 30,
+            "role_evidence": 28,
+        },
+        analysis_reason="证据不足，需要人工确认。",
+        evidence_summary=["缺少完整业绩数据"],
+        raw_data="",
+        parsed_payload={},
+    )
+    calls: dict[str, object] = {"upserts": [], "hits": [], "coze_calls": 0}
+
+    monkeypatch.setattr(
+        result_filter_module,
+        "get_settings",
+        lambda: SimpleNamespace(coze_analysis_version="test-v1"),
+    )
+    monkeypatch.setattr(result_filter, "_wait", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(result_filter, "_record_entered_candidate_detail", lambda **_kwargs: None)
+    monkeypatch.setattr(result_filter, "_is_intention_communication_page", lambda _root: False)
+    monkeypatch.setattr(result_filter, "_preserve_high_value_candidate", lambda **_kwargs: None)
+    monkeypatch.setattr(
+        result_filter,
+        "_tap_continue_communication",
+        lambda **_kwargs: (_ for _ in ()).throw(
+            AssertionError("needs_review must never enter the communication flow")
+        ),
+    )
+    monkeypatch.setattr(
+        result_filter_module,
+        "find_profile_communication_action",
+        lambda _root: ("立即沟通", (1, 1)),
+    )
+    monkeypatch.setattr(
+        result_filter_module,
+        "CandidateProfileCollector",
+        lambda device: SimpleNamespace(collect_current_profile=lambda: report),
+    )
+    monkeypatch.setattr(
+        result_filter_module,
+        "get_candidate_record_by_fingerprint",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        result_filter_module,
+        "get_candidate_record_by_experience_hash",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        result_filter_module,
+        "get_analysis_cache_record",
+        lambda *_args, **_kwargs: cache_record,
+    )
+
+    def analyze(*_args, **_kwargs):
+        calls["coze_calls"] = int(calls["coze_calls"]) + 1
+        return needs_review_result
+
+    monkeypatch.setattr(result_filter_module, "analyze_resume_record_with_coze", analyze)
+    monkeypatch.setattr(
+        result_filter_module,
+        "upsert_analysis_cache_record",
+        lambda *_args, **kwargs: calls["upserts"].append(kwargs) or 1,  # type: ignore[union-attr]
+    )
+    monkeypatch.setattr(
+        result_filter_module,
+        "record_candidate_search_hit",
+        lambda *_args, **kwargs: calls["hits"].append(kwargs) or 1,  # type: ignore[union-attr]
+    )
+
+    outcome = result_filter._collect_profile_for_candidate(
+        seed=SearchTaskSeed(
+            brand_keyword="珀莱雅",
+            role_keyword="达人营销负责人",
+            query_text="达人营销负责人",
+        ),
+        card=CandidateCard(
+            fingerprint="card-needs-review",
+            raw_text="张女士 34岁 本科 达人营销负责人 上海",
+            bounds="[0,0][100,100]",
+        ),
+    )
+    calls["back_calls"] = device.back_calls
+    return outcome, calls
+
+
+def test_fresh_needs_review_is_persisted_and_hit_as_reviewed_without_message(monkeypatch) -> None:
+    outcome, calls = _run_needs_review_candidate(
+        monkeypatch,
+        write_to_db=True,
+        cache_record=None,
+    )
+
+    assert outcome.analysis_status == "待复核"
+    assert outcome.match_result == "needs_review"
+    assert outcome.hit_status == "reviewed"
+    assert outcome.message_send_success is False
+    assert outcome.message_send_reason == "not_attempted"
+    assert calls["coze_calls"] == 1
+    assert len(calls["upserts"]) == 1
+    assert calls["upserts"][0]["analysis_status"] == "待复核"  # type: ignore[index]
+    assert calls["hits"][0]["hit_status"] == "reviewed"  # type: ignore[index]
+    assert calls["back_calls"] == 1
+
+
+def test_cached_needs_review_repairs_legacy_status_and_never_messages(monkeypatch) -> None:
+    outcome, calls = _run_needs_review_candidate(
+        monkeypatch,
+        write_to_db=True,
+        cache_record={
+            "analysis_status": "不匹配",
+            "match_result": "needs_review",
+            "match_score": 88,
+            "score_breakdown_json": '{"beauty_continuity":30,"industry_depth":30,"role_evidence":28}',
+            "analysis_reason": "证据不足，需要人工确认。",
+            "evidence_summary_json": '["缺少完整业绩数据"]',
+        },
+    )
+
+    assert outcome.analysis_status == "待复核"
+    assert outcome.hit_status == "reviewed"
+    assert outcome.message_send_reason == "not_attempted"
+    assert calls["coze_calls"] == 0
+    assert len(calls["upserts"]) == 1
+    repaired = calls["upserts"][0]  # type: ignore[index]
+    assert repaired["analysis_status"] == "待复核"
+    assert repaired["match_score"] == 88
+    assert repaired["score_breakdown"] == {
+        "beauty_continuity": 30,
+        "industry_depth": 30,
+        "role_evidence": 28,
+    }
+    assert repaired["analysis_reason"] == "证据不足，需要人工确认。"
+    assert repaired["evidence_summary"] == ["缺少完整业绩数据"]
+    assert calls["hits"][0]["hit_status"] == "reviewed"  # type: ignore[index]
+
+
+def test_cached_needs_review_with_correct_status_is_not_rewritten(monkeypatch) -> None:
+    outcome, calls = _run_needs_review_candidate(
+        monkeypatch,
+        write_to_db=True,
+        cache_record={
+            "analysis_status": "待复核",
+            "match_result": "needs_review",
+            "match_score": 88,
+            "score_breakdown_json": "{}",
+            "analysis_reason": "证据不足，需要人工确认。",
+            "evidence_summary_json": "[]",
+        },
+    )
+
+    assert outcome.analysis_status == "待复核"
+    assert outcome.hit_status == "reviewed"
+    assert outcome.message_send_reason == "not_attempted"
+    assert calls["coze_calls"] == 0
+    assert calls["upserts"] == []
+
+
+def test_transient_needs_review_cache_status_is_not_rewritten_before_retry_ttl(monkeypatch) -> None:
+    outcome, calls = _run_needs_review_candidate(
+        monkeypatch,
+        write_to_db=True,
+        cache_record={
+            "analysis_status": "不匹配",
+            "match_result": "needs_review",
+            "match_score": None,
+            "score_breakdown_json": "{}",
+            "analysis_reason": "需要人工复核：Coze API 临时异常，系统未进行自动匹配判断。",
+            "evidence_summary_json": "[]",
+            "updated_at": datetime.now(),
+        },
+    )
+
+    assert outcome.analysis_status == "待复核"
+    assert outcome.hit_status == "reviewed"
+    assert outcome.message_send_reason == "not_attempted"
+    assert calls["coze_calls"] == 0
+    assert calls["upserts"] == []
+
+
+def test_read_only_needs_review_does_not_write_cache_or_hit(monkeypatch) -> None:
+    outcome, calls = _run_needs_review_candidate(
+        monkeypatch,
+        write_to_db=False,
+        cache_record=None,
+    )
+
+    assert outcome.analysis_status == "待复核"
+    assert outcome.hit_status == "reviewed"
+    assert outcome.message_send_reason == "not_attempted"
+    assert calls["coze_calls"] == 1
+    assert calls["upserts"] == []
+    assert calls["hits"] == []

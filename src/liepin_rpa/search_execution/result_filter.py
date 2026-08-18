@@ -12,6 +12,15 @@ from xml.etree import ElementTree
 from PIL import Image
 from rapidfuzz import fuzz
 import xxhash
+from liepin_rpa.candidate_decision_rules import (
+    ANALYSIS_STATUS_MATCHED,
+    ANALYSIS_STATUS_NOT_RELEVANT,
+    allows_automatic_communication,
+    analysis_status_for_match_result,
+    is_needs_review_match_result,
+    is_not_relevant_match_result,
+    is_relevant_match_result,
+)
 from liepin_rpa.coze_workflow import (
     CozeMatchResult,
     analyze_resume_record_with_coze,
@@ -53,6 +62,7 @@ from liepin_rpa.profile_collection.resume_schema import (
     has_explicit_job_intent_city,
     sanitize_candidate_name,
 )
+from liepin_rpa.reporting_rules import ACTIONABLE_NEEDS_REVIEW_MIN_SCORE
 from liepin_rpa.share_quota import DailyShareQuotaStateStore
 from liepin_rpa.search_execution.job_selection import choose_job_before_chat_if_present
 from liepin_rpa.search_execution.search_pages import SearchFlowError, SearchPageNavigator
@@ -88,7 +98,6 @@ CHAT_MESSAGE_TEMPLATE = (
     "如果方便的话，期待您发一份简历过来，我们安排后续沟通。"
 )
 LOGGER = get_logger(__name__)
-HIGH_VALUE_REVIEW_SCORE = 85
 SHARE_QUOTA_EXHAUSTED_LABELS = (
     "分享次数已用完",
     "今日分享次数已用完",
@@ -900,6 +909,22 @@ class ResultPageFilter:
                     experience_hash=experience_hash,
                     candidate_name=candidate_name,
                 )
+        if existing_record is not None and bool(
+            existing_record.get("manual_suppress_communication")
+        ):
+            return self._handle_manual_review_suppressed_candidate(
+                seed=seed,
+                candidate_name=candidate_name,
+                candidate_fingerprint=candidate_fingerprint,
+                communication_label=communication_label,
+                candidate_age=candidate_age,
+                manual_review_status=self._normalize_optional_str(
+                    existing_record.get("manual_review_status")
+                ),
+                manual_review_feedback=self._normalize_optional_str(
+                    existing_record.get("manual_review_feedback")
+                ),
+            )
         required_maximum_age = self._required_candidate_maximum_age()
         if (
             required_maximum_age is not None
@@ -1017,11 +1042,47 @@ class ResultPageFilter:
             )
         else:
             if analysis_result is not None:
-                analysis_status = str(analysis_cache_record.get("analysis_status") or "未分析")
+                cached_analysis_status = self._normalize_optional_str(
+                    analysis_cache_record.get("analysis_status")
+                )
+                analysis_status = analysis_status_for_match_result(
+                    analysis_result.match_result
+                )
                 # Communication is authorized only by the normalized tri-state result.
                 # Do not let a stale/contradictory boolean field turn needs_review or
                 # not_relevant into an outbound message.
-                coze_matched = analysis_result.match_result == "relevant"
+                coze_matched = allows_automatic_communication(
+                    analysis_result.match_result
+                )
+                if (
+                    self.write_to_db
+                    and cached_analysis_status != analysis_status
+                    # Updating the cache also refreshes updated_at. Never postpone
+                    # the ten-minute retry window for a transient Coze API failure.
+                    and not is_transient_coze_api_review(analysis_result)
+                ):
+                    upsert_analysis_cache_record(
+                        settings,
+                        candidate_fingerprint=candidate_fingerprint,
+                        experience_hash=experience_hash,
+                        experience=experience,
+                        analysis_version=analysis_version,
+                        analysis_status=analysis_status,
+                        match_result=analysis_result.match_result,
+                        match_score=analysis_result.match_score,
+                        score_breakdown=analysis_result.score_breakdown,
+                        analysis_reason=analysis_result.analysis_reason,
+                        evidence_summary=analysis_result.evidence_summary,
+                    )
+                    self._log(
+                        "candidate_analysis_cache_status_repaired",
+                        "Repaired cached analysis status from normalized match result",
+                        candidate_name=candidate_name,
+                        candidate_fingerprint=candidate_fingerprint,
+                        previous_analysis_status=cached_analysis_status,
+                        analysis_status=analysis_status,
+                        match_result=analysis_result.match_result,
+                    )
                 self._log(
                     "candidate_analysis_cache_hit",
                     "Reused cached analysis result",
@@ -1056,11 +1117,9 @@ class ResultPageFilter:
                     matched=coze_result.matched,
                     match_result=coze_result.match_result,
                 )
-                coze_matched = coze_result.match_result == "relevant"
-                analysis_status = (
-                    "待复核"
-                    if is_transient_coze_api_review(coze_result)
-                    else ("匹配" if coze_matched else "不匹配")
+                coze_matched = allows_automatic_communication(coze_result.match_result)
+                analysis_status = analysis_status_for_match_result(
+                    coze_result.match_result
                 )
                 if self.write_to_db:
                     upsert_analysis_cache_record(
@@ -1135,6 +1194,11 @@ class ResultPageFilter:
 
             hit_status = self._derive_hit_status(
                 analysis_status=analysis_status,
+                match_result=(
+                    analysis_result.match_result
+                    if analysis_result is not None
+                    else None
+                ),
                 message_send_result=message_send_result,
                 continue_without_db_record=continue_without_db_record,
             )
@@ -1465,6 +1529,62 @@ class ResultPageFilter:
             candidate_age=candidate_age,
         )
 
+    def _handle_manual_review_suppressed_candidate(
+        self,
+        *,
+        seed: SearchTaskSeed,
+        candidate_name: str | None,
+        candidate_fingerprint: str,
+        communication_label: str | None,
+        candidate_age: int | None,
+        manual_review_status: str | None,
+        manual_review_feedback: str | None,
+    ) -> CandidateProcessOutcome:
+        """Honor an HR disposition without overwriting the original AI decision."""
+
+        settings = get_settings()
+        status = manual_review_status or "manual_reviewed"
+        hit_status = f"manual_review_suppressed:{status}"
+        if self.write_to_db:
+            record_candidate_search_hit(
+                settings,
+                candidate_fingerprint=candidate_fingerprint,
+                candidate_name=candidate_name,
+                search_keyword=seed.effective_query,
+                hit_status=hit_status,
+            )
+        self._log(
+            "candidate_manual_review_suppressed",
+            "Skipped AI analysis and communication because HR already dispositioned the candidate",
+            candidate_name=candidate_name,
+            candidate_fingerprint=candidate_fingerprint,
+            manual_review_status=status,
+            manual_review_feedback=manual_review_feedback,
+        )
+        self.device.press_back()
+        self._wait(2.0)
+        return CandidateProcessOutcome(
+            candidate_name=candidate_name,
+            candidate_fingerprint=candidate_fingerprint,
+            search_keyword=seed.effective_query,
+            brand_keyword=seed.brand_keyword,
+            role_keyword=seed.role_keyword,
+            communication_label=communication_label,
+            analysis_status=f"人工已处理：{status}",
+            match_result=None,
+            match_score=None,
+            score_breakdown={},
+            analysis_reason=manual_review_feedback,
+            evidence_summary=[],
+            hit_status=hit_status,
+            continue_without_db_record=False,
+            message_send_success=False,
+            message_send_reason="manual_review_suppressed",
+            message_send_attempts=0,
+            message_screenshot_path=None,
+            candidate_age=candidate_age,
+        )
+
     @staticmethod
     def _coze_result_from_cache_record(record: dict[str, object] | None) -> CozeMatchResult | None:
         if record is None:
@@ -1472,7 +1592,7 @@ class ResultPageFilter:
         match_result = ResultPageFilter._normalize_optional_str(record.get("match_result"))
         analysis_status = ResultPageFilter._normalize_optional_str(record.get("analysis_status"))
         return CozeMatchResult(
-            matched=match_result == "relevant",
+            matched=is_relevant_match_result(match_result),
             match_result=match_result,
             match_score=ResultPageFilter._normalize_optional_int(record.get("match_score")),
             score_breakdown=ResultPageFilter._parse_score_breakdown(record.get("score_breakdown_json")),
@@ -2076,12 +2196,12 @@ class ResultPageFilter:
     def _is_high_value_analysis(analysis_result: CozeMatchResult | None) -> bool:
         if analysis_result is None:
             return False
-        if analysis_result.match_result == "relevant":
+        if is_relevant_match_result(analysis_result.match_result):
             return True
         return bool(
-            analysis_result.match_result == "needs_review"
+            is_needs_review_match_result(analysis_result.match_result)
             and analysis_result.match_score is not None
-            and analysis_result.match_score >= HIGH_VALUE_REVIEW_SCORE
+            and analysis_result.match_score >= ACTIONABLE_NEEDS_REVIEW_MIN_SCORE
         )
 
     @staticmethod
@@ -2292,10 +2412,12 @@ class ResultPageFilter:
             workflow_key = str(self.job_profile.get("coze_workflow_key") or workflow_key).strip()
         if workflow_key == "finance":
             workflow_id = settings.coze_finance_workflow_id
+            backup_workflow_id = settings.coze_finance_backup_workflow_id
             analysis_version = settings.coze_finance_analysis_version
             missing_setting = "COZE_FINANCE_WORKFLOW_ID"
         else:
             workflow_id = settings.coze_jd_workflow_id
+            backup_workflow_id = settings.coze_jd_backup_workflow_id
             analysis_version = settings.coze_jd_analysis_version
             missing_setting = "COZE_JD_WORKFLOW_ID"
         if not workflow_id:
@@ -2305,6 +2427,7 @@ class ResultPageFilter:
         return settings.model_copy(
             update={
                 "coze_workflow_id": workflow_id,
+                "coze_backup_workflow_id": backup_workflow_id,
                 "coze_analysis_version": analysis_version,
             }
         )
@@ -2327,6 +2450,7 @@ class ResultPageFilter:
     def _derive_hit_status(
         *,
         analysis_status: str,
+        match_result: str | None,
         message_send_result: MessageSendResult,
         continue_without_db_record: bool,
     ) -> str:
@@ -2338,9 +2462,13 @@ class ResultPageFilter:
             return "skipped_recent_continue"
         if continue_without_db_record:
             return "continue_without_db_record"
-        if analysis_status == "不匹配":
+        if is_not_relevant_match_result(match_result) or (
+            match_result is None and analysis_status == ANALYSIS_STATUS_NOT_RELEVANT
+        ):
             return "not_relevant"
-        if analysis_status == "匹配":
+        if is_relevant_match_result(match_result) or (
+            match_result is None and analysis_status == ANALYSIS_STATUS_MATCHED
+        ):
             return f"send_failed:{message_send_result.reason}"
         return "reviewed"
 
