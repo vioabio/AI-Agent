@@ -1,21 +1,22 @@
 from __future__ import annotations
 
-import json
 import hashlib
-from collections import defaultdict
-from datetime import date, datetime, timedelta, timezone
-from pathlib import Path
+import json
 import re
+from collections import defaultdict
+from dataclasses import asdict
+from datetime import UTC, date, datetime, timedelta, timezone
+from pathlib import Path
 
 from sqlalchemy import text
 
 from liepin_rpa.candidate_decision_rules import analysis_status_for_match_result
+from liepin_rpa.config import Settings
 from liepin_rpa.coze_workflow import (
     CozeMatchResult,
     analyze_resume_record_with_coze,
     transient_coze_cache_retry_due,
 )
-from liepin_rpa.config import Settings
 from liepin_rpa.db import (
     build_experience_hash,
     ensure_resume_experience_schema,
@@ -33,10 +34,10 @@ from liepin_rpa.feishu_report import (
     select_review_candidates,
     send_feishu_daily_report,
 )
+from liepin_rpa.hr_review_reporting import HRReviewStatus, RecruitmentProgressSnapshot
 from liepin_rpa.logging_utils import get_logger
 from liepin_rpa.pdf_upload import upload_pdf_if_configured
 from liepin_rpa.profile_collection.resume_schema import sanitize_candidate_name
-from liepin_rpa.resume_pdf_export import build_daily_resume_pdf_path, export_featured_resume_pdf
 from liepin_rpa.report_batch import BATCH_STATE_FILENAME, SearchBatchStateStore
 from liepin_rpa.report_candidate_history import (
     REPORT_CANDIDATE_HISTORY_FILENAME,
@@ -44,8 +45,12 @@ from liepin_rpa.report_candidate_history import (
 )
 from liepin_rpa.reporting_rules import (
     ACTIONABLE_NEEDS_REVIEW_MIN_SCORE,
+    has_needs_review_result,
+    is_actionable_report_result,
+    is_not_relevant_result,
     is_relevant_result,
 )
+from liepin_rpa.resume_pdf_export import export_featured_resume_pdf
 from liepin_rpa.search_execution.result_filter import CandidateProcessOutcome
 from liepin_rpa.search_execution.workflow import KeywordWorkflowResult, SearchWorkflowReport
 
@@ -112,6 +117,11 @@ def send_database_daily_report(
     total_candidates_seen = _count_total_seen_candidates(settings)
     cumulative_metrics = _count_cumulative_report_metrics(settings)
     cumulative_metrics_by_job = _count_cumulative_report_metrics_by_job(settings)
+    recruitment_progress = load_recruitment_progress_snapshot(
+        settings,
+        window_start_at=updated_from,
+        window_end_at=updated_before,
+    )
     cumulative_start_at, cumulative_end_at = _load_cumulative_report_window(settings)
     executed_keywords_by_role = _count_executed_keywords_by_role_from_log(
         settings,
@@ -136,9 +146,7 @@ def send_database_daily_report(
         window_start_at=cumulative_start_at,
         window_end_at=datetime.now(),
     )
-    cumulative_metrics_by_job["screened_views_by_role"] = (
-        cumulative_screened_views_by_role or {}
-    )
+    cumulative_metrics_by_job["screened_views_by_role"] = cumulative_screened_views_by_role or {}
     cumulative_screened_candidate_views = (
         sum(cumulative_screened_views_by_role.values())
         if cumulative_screened_views_by_role is not None
@@ -148,9 +156,7 @@ def send_database_daily_report(
     tracked_delivery = not dry_run and advance_watermark
     if not candidate_outcomes:
         if tracked_delivery and resolved_batch_id is not None:
-            SearchBatchStateStore(
-                settings.artifacts_dir / BATCH_STATE_FILENAME
-            ).mark_reported(
+            SearchBatchStateStore(settings.artifacts_dir / BATCH_STATE_FILENAME).mark_reported(
                 batch_id=resolved_batch_id,
                 report_key=report_key,
                 delivery_status="skipped_no_new_candidates",
@@ -173,6 +179,7 @@ def send_database_daily_report(
             "dry_run": dry_run,
             "advance_watermark": advance_watermark,
             "webhook_mode": "override" if feishu_webhook_override else "default",
+            "recruitment_progress": asdict(recruitment_progress),
         }
     delivery_run: dict[str, object] | None = None
     if tracked_delivery:
@@ -186,9 +193,7 @@ def send_database_daily_report(
         )
         if delivery_run.get("delivery_status") == "sent":
             if resolved_batch_id is not None:
-                SearchBatchStateStore(
-                    settings.artifacts_dir / BATCH_STATE_FILENAME
-                ).mark_reported(
+                SearchBatchStateStore(settings.artifacts_dir / BATCH_STATE_FILENAME).mark_reported(
                     batch_id=resolved_batch_id,
                     report_key=report_key,
                     delivery_status="already_sent",
@@ -208,6 +213,7 @@ def send_database_daily_report(
                 "window_end_at": updated_before.isoformat() if updated_before is not None else None,
                 "dry_run": dry_run,
                 "advance_watermark": advance_watermark,
+                "recruitment_progress": asdict(recruitment_progress),
             }
 
     detail_pdf_paths_by_job = _export_candidate_pdfs_by_job(
@@ -216,10 +222,14 @@ def send_database_daily_report(
         contacted_records=contacted_records,
         report_key=report_key,
     )
-    upload_results_by_job = {
-        job_name: upload_pdf_if_configured(settings, pdf_path)
-        for job_name, pdf_path in detail_pdf_paths_by_job.items()
-    } if not dry_run else {}
+    upload_results_by_job = (
+        {
+            job_name: upload_pdf_if_configured(settings, pdf_path)
+            for job_name, pdf_path in detail_pdf_paths_by_job.items()
+        }
+        if not dry_run
+        else {}
+    )
     detail_pdf_urls_by_job = {
         job_name: (
             _version_pdf_public_url(
@@ -262,26 +272,31 @@ def send_database_daily_report(
         if feishu_webhook_override
         else settings
     )
-    feishu_sent = False if dry_run else send_feishu_daily_report(
-        report_settings,
-        report,
-        detail_pdf_url=detail_pdf_url,
-        detail_pdf_urls_by_job=detail_pdf_urls_by_job,
-        window_start_at=updated_from,
-        window_end_at=updated_before,
-        total_candidates_seen=total_candidates_seen,
-        executed_keywords=executed_keywords,
-        executed_keywords_by_role=executed_keywords_by_role,
-        screened_candidate_views=screened_candidate_views,
-        screened_candidate_views_by_role=screened_candidate_views_by_role,
-        cumulative_screened_candidate_views=cumulative_screened_candidate_views,
-        cumulative_relevant_count=cumulative_metrics["relevant"],
-        cumulative_needs_review_count=cumulative_metrics["needs_review"],
-        cumulative_not_relevant_count=cumulative_metrics["not_relevant"],
-        cumulative_greeted_count=cumulative_metrics["greeted"],
-        cumulative_start_at=cumulative_start_at,
-        cumulative_end_at=cumulative_end_at,
-        cumulative_metrics_by_job=cumulative_metrics_by_job,
+    feishu_sent = (
+        False
+        if dry_run
+        else send_feishu_daily_report(
+            report_settings,
+            report,
+            detail_pdf_url=detail_pdf_url,
+            detail_pdf_urls_by_job=detail_pdf_urls_by_job,
+            window_start_at=updated_from,
+            window_end_at=updated_before,
+            total_candidates_seen=total_candidates_seen,
+            executed_keywords=executed_keywords,
+            executed_keywords_by_role=executed_keywords_by_role,
+            screened_candidate_views=screened_candidate_views,
+            screened_candidate_views_by_role=screened_candidate_views_by_role,
+            cumulative_screened_candidate_views=cumulative_screened_candidate_views,
+            cumulative_relevant_count=cumulative_metrics["relevant"],
+            cumulative_needs_review_count=cumulative_metrics["needs_review"],
+            cumulative_not_relevant_count=cumulative_metrics["not_relevant"],
+            cumulative_greeted_count=cumulative_metrics["greeted"],
+            cumulative_start_at=cumulative_start_at,
+            cumulative_end_at=cumulative_end_at,
+            cumulative_metrics_by_job=cumulative_metrics_by_job,
+            recruitment_progress=recruitment_progress,
+        )
     )
     report_run_id = int(delivery_run["id"]) if delivery_run is not None else None
     if tracked_delivery:
@@ -303,9 +318,7 @@ def send_database_daily_report(
             window_end_at=updated_before,
         )
         if resolved_batch_id is not None:
-            SearchBatchStateStore(
-                settings.artifacts_dir / BATCH_STATE_FILENAME
-            ).mark_reported(
+            SearchBatchStateStore(settings.artifacts_dir / BATCH_STATE_FILENAME).mark_reported(
                 batch_id=resolved_batch_id,
                 report_key=report_key,
                 delivery_status="sent",
@@ -337,11 +350,118 @@ def send_database_daily_report(
         "dry_run": dry_run,
         "advance_watermark": advance_watermark,
         "webhook_mode": "override" if feishu_webhook_override else "default",
+        "recruitment_progress": asdict(recruitment_progress),
     }
 
 
 def previous_local_date() -> date:
     return date.today() - timedelta(days=1)
+
+
+def load_recruitment_progress_snapshot(
+    settings: Settings,
+    *,
+    window_start_at: datetime | None,
+    window_end_at: datetime | None,
+) -> RecruitmentProgressSnapshot:
+    """Read AI facts and HR progress for candidates collected in the report window."""
+
+    engine = get_engine(settings)
+    locator_conditions: list[str] = []
+    event_conditions: list[str] = []
+    params: dict[str, object] = {}
+    if window_start_at is not None:
+        params["window_start_at"] = _to_database_local_datetime(window_start_at)
+        locator_conditions.append("l.created_at >= :window_start_at")
+        event_conditions.append("e.created_at >= :window_start_at")
+    if window_end_at is not None:
+        params["window_end_at"] = _to_database_local_datetime(window_end_at)
+        locator_conditions.append("l.created_at < :window_end_at")
+        event_conditions.append("e.created_at < :window_end_at")
+    locator_where = "WHERE " + " AND ".join(locator_conditions) if locator_conditions else ""
+    event_where = " AND " + " AND ".join(event_conditions) if event_conditions else ""
+    rows_sql = text(
+        f"""
+        SELECT window_candidates.candidate_fingerprint,
+               r.manual_review_status,
+               r.manual_suppress_report,
+               c.analysis_status,
+               c.match_result,
+               c.match_score,
+               c.analysis_reason
+        FROM (
+            SELECT DISTINCT l.candidate_fingerprint
+            FROM candidate_resume_source_locators l
+            {locator_where}
+              {"AND" if locator_where else "WHERE"} l.candidate_fingerprint IS NOT NULL
+              AND l.candidate_fingerprint <> ''
+        ) window_candidates
+        LEFT JOIN candidate_resume_experience_records r
+          ON r.candidate_fingerprint = window_candidates.candidate_fingerprint
+        LEFT JOIN candidate_resume_analysis_cache c
+          ON c.id = (
+              SELECT MAX(c2.id)
+              FROM candidate_resume_analysis_cache c2
+              WHERE c2.candidate_fingerprint = window_candidates.candidate_fingerprint
+          )
+        """
+    )
+    feedback_sql = text(
+        f"""
+        SELECT COUNT(DISTINCT e.candidate_fingerprint) AS feedback_count
+        FROM candidate_resume_manual_review_events e
+        WHERE 1 = 1
+          {event_where}
+        """
+    )
+    with engine.begin() as connection:
+        rows = connection.execute(rows_sql, params).mappings().all()
+        feedback_row = connection.execute(feedback_sql, params).mappings().first()
+
+    hr_status_counts = {status.value: 0 for status in HRReviewStatus}
+    ai_relevant = 0
+    ai_needs_review = 0
+    ai_not_relevant = 0
+    actionable_pending = 0
+    for row in rows:
+        match_result = row.get("match_result")
+        analysis_status = row.get("analysis_status")
+        match_score = row.get("match_score")
+        analysis_reason = row.get("analysis_reason")
+        if is_relevant_result(match_result, analysis_status=analysis_status):
+            ai_relevant += 1
+        elif has_needs_review_result(match_result, analysis_status=analysis_status):
+            ai_needs_review += 1
+        elif is_not_relevant_result(match_result, analysis_status=analysis_status):
+            ai_not_relevant += 1
+
+        raw_status = str(row.get("manual_review_status") or "").strip()
+        formal_status = raw_status if raw_status in hr_status_counts else None
+        if formal_status and formal_status != HRReviewStatus.PENDING_REVIEW.value:
+            hr_status_counts[formal_status] += 1
+            continue
+        if bool(row.get("manual_suppress_report")):
+            continue
+        if is_actionable_report_result(
+            match_result,
+            match_score,
+            analysis_status=analysis_status,
+            analysis_reason=analysis_reason,
+        ):
+            actionable_pending += 1
+            hr_status_counts[HRReviewStatus.PENDING_REVIEW.value] += 1
+
+    feedback_count = (
+        _optional_int(feedback_row["feedback_count"]) if feedback_row is not None else None
+    )
+    return RecruitmentProgressSnapshot(
+        ai_relevant=ai_relevant,
+        ai_needs_review=ai_needs_review,
+        ai_not_relevant=ai_not_relevant,
+        actionable_pending=actionable_pending,
+        hr_status_counts=hr_status_counts,
+        feedback_candidates_in_window=feedback_count or 0,
+    )
 
 
 def _version_pdf_public_url(public_url: str | None, pdf_path: Path | None) -> str | None:
@@ -499,9 +619,7 @@ def _build_candidate_outcome(
                     "analysis_status": normalized_analysis_status,
                 },
             )
-        normalized_analysis_status = analysis_status_for_match_result(
-            coze_result.match_result
-        )
+        normalized_analysis_status = analysis_status_for_match_result(coze_result.match_result)
         upsert_analysis_cache_record(
             settings,
             candidate_fingerprint=candidate_fingerprint,
@@ -517,11 +635,11 @@ def _build_candidate_outcome(
         )
     else:
         latest_cache = latest_cache_by_fingerprint.get(candidate_fingerprint)
-        coze_result = _coze_result_from_cache_record(latest_cache) if latest_cache is not None else None
+        coze_result = (
+            _coze_result_from_cache_record(latest_cache) if latest_cache is not None else None
+        )
         if coze_result is not None:
-            normalized_analysis_status = analysis_status_for_match_result(
-                coze_result.match_result
-            )
+            normalized_analysis_status = analysis_status_for_match_result(coze_result.match_result)
 
     recent_experience_summary = _extract_recent_experience_summary(experience)
     matched_experience_summary = _extract_matched_experience_summary(
@@ -604,17 +722,18 @@ def _export_candidate_pdfs_by_job(
     report_candidates = build_report_candidates(candidate_outcomes)
     # PDF is an actionable shortlist: all relevant candidates, plus
     # needs_review candidates meeting the shared score gate.
-    report_candidates = (
-        select_relevant_candidates(report_candidates)
-        + select_review_candidates(report_candidates)
+    report_candidates = select_relevant_candidates(report_candidates) + select_review_candidates(
+        report_candidates
     )
     candidate_groups = {
         "达人营销总监": [
-            candidate for candidate in report_candidates
+            candidate
+            for candidate in report_candidates
             if not any("财务" in role for role in candidate.role_keywords)
         ],
         "财务共享与管理经理": [
-            candidate for candidate in report_candidates
+            candidate
+            for candidate in report_candidates
             if any("财务" in role for role in candidate.role_keywords)
         ],
     }
@@ -642,9 +761,7 @@ def _export_candidate_pdfs_by_job(
     }
     all_candidates = [candidate for items in candidate_groups.values() for candidate in items]
     all_candidates.extend(
-        candidate
-        for items in historical_review_groups.values()
-        for candidate in items
+        candidate for items in historical_review_groups.values() for candidate in items
     )
     _backfill_pdf_experience_from_database(
         settings,
@@ -653,17 +770,11 @@ def _export_candidate_pdfs_by_job(
     )
     resume_link_by_fingerprint = _load_candidate_resume_links(
         settings,
-        candidate_fingerprints={
-            candidate.candidate_fingerprint
-            for candidate in all_candidates
-        },
+        candidate_fingerprints={candidate.candidate_fingerprint for candidate in all_candidates},
     )
     interaction_note_by_fingerprint = _load_candidate_interaction_notes(
         settings,
-        candidate_fingerprints={
-            candidate.candidate_fingerprint
-            for candidate in all_candidates
-        },
+        candidate_fingerprints={candidate.candidate_fingerprint for candidate in all_candidates},
     )
     output_dir = settings.artifacts_dir / "daily_reports"
     exported_by_job: dict[str, Path | None] = {}
@@ -782,13 +893,17 @@ def _load_cumulative_review_candidates_by_job(
         """
     )
     with engine.begin() as connection:
-        rows = connection.execute(
-            sql,
-            {
-                "finance_version": settings.coze_finance_analysis_version,
-                "needs_review_min_score": ACTIONABLE_NEEDS_REVIEW_MIN_SCORE,
-            },
-        ).mappings().all()
+        rows = (
+            connection.execute(
+                sql,
+                {
+                    "finance_version": settings.coze_finance_analysis_version,
+                    "needs_review_min_score": ACTIONABLE_NEEDS_REVIEW_MIN_SCORE,
+                },
+            )
+            .mappings()
+            .all()
+        )
 
     groups: dict[str, list[ReportCandidate]] = {
         "达人营销总监": [],
@@ -941,7 +1056,9 @@ def _build_daily_report_key(
     contacted_records: list[dict[str, object]],
 ) -> str:
     parts = [window_start_at.isoformat() if window_start_at is not None else "first_report"]
-    for record in sorted(contacted_records, key=lambda item: str(item.get("candidate_fingerprint") or "")):
+    for record in sorted(
+        contacted_records, key=lambda item: str(item.get("candidate_fingerprint") or "")
+    ):
         parts.append(
             "|".join(
                 (
@@ -1012,7 +1129,8 @@ def _load_latest_hit_map(settings: Settings) -> dict[str, dict[str, object]]:
     engine = get_engine(settings)
     sql = text(
         """
-        SELECT h.candidate_fingerprint, h.candidate_name, h.search_keyword, h.hit_status, h.created_at
+        SELECT h.candidate_fingerprint, h.candidate_name, h.search_keyword,
+               h.hit_status, h.created_at
         FROM candidate_resume_search_hits h
         INNER JOIN (
             SELECT candidate_fingerprint, MAX(id) AS max_id
@@ -1207,10 +1325,15 @@ def _count_cumulative_report_metrics(settings: Settings) -> dict[str, int]:
         """
     )
     with engine.begin() as connection:
-        analysis = connection.execute(
-            analysis_sql,
-            {"needs_review_min_score": ACTIONABLE_NEEDS_REVIEW_MIN_SCORE},
-        ).mappings().first() or {}
+        analysis = (
+            connection.execute(
+                analysis_sql,
+                {"needs_review_min_score": ACTIONABLE_NEEDS_REVIEW_MIN_SCORE},
+            )
+            .mappings()
+            .first()
+            or {}
+        )
         greeted = connection.execute(greeted_sql).mappings().first() or {}
     return {
         "relevant": int(analysis.get("relevant_count") or 0),
@@ -1342,13 +1465,17 @@ def _count_cumulative_report_metrics_by_job(
         "财务共享与管理经理": {"relevant": 0, "needs_review": 0, "greeted": 0},
     }
     with engine.begin() as connection:
-        rows = connection.execute(
-            analysis_sql,
-            {
-                "finance_version": settings.coze_finance_analysis_version,
-                "needs_review_min_score": ACTIONABLE_NEEDS_REVIEW_MIN_SCORE,
-            },
-        ).mappings().all()
+        rows = (
+            connection.execute(
+                analysis_sql,
+                {
+                    "finance_version": settings.coze_finance_analysis_version,
+                    "needs_review_min_score": ACTIONABLE_NEEDS_REVIEW_MIN_SCORE,
+                },
+            )
+            .mappings()
+            .all()
+        )
         greeted_rows = connection.execute(greeted_sql).mappings().all()
     for row in rows:
         job_name = str(row.get("job_name") or "达人营销总监")
@@ -1507,8 +1634,8 @@ def _to_database_local_datetime(value: datetime) -> datetime:
 def _local_datetime_to_utc(value: datetime) -> datetime:
     """Convert the local batch window only for comparison with UTC JSON log timestamps."""
     if value.tzinfo is not None:
-        return value.astimezone(timezone.utc)
-    return (value - timedelta(hours=8)).replace(tzinfo=timezone.utc)
+        return value.astimezone(UTC)
+    return (value - timedelta(hours=8)).replace(tzinfo=UTC)
 
 
 def _parse_log_timestamp(value: object) -> datetime | None:
@@ -1519,8 +1646,8 @@ def _parse_log_timestamp(value: object) -> datetime | None:
     except ValueError:
         return None
     if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 def _load_latest_analysis_map(settings: Settings) -> dict[str, dict[str, object]]:
@@ -1553,14 +1680,18 @@ def _load_latest_analysis_map(settings: Settings) -> dict[str, dict[str, object]
         """
     )
     with engine.begin() as connection:
-        rows = connection.execute(
-            sql,
-            {
-                "jd_analysis_version": settings.coze_jd_analysis_version,
-                "finance_analysis_version": settings.coze_finance_analysis_version,
-                "legacy_analysis_version": settings.coze_analysis_version,
-            },
-        ).mappings().all()
+        rows = (
+            connection.execute(
+                sql,
+                {
+                    "jd_analysis_version": settings.coze_jd_analysis_version,
+                    "finance_analysis_version": settings.coze_finance_analysis_version,
+                    "legacy_analysis_version": settings.coze_analysis_version,
+                },
+            )
+            .mappings()
+            .all()
+        )
     result: dict[str, dict[str, object]] = {}
     for row in rows:
         fingerprint = str(row["candidate_fingerprint"])
@@ -1621,8 +1752,7 @@ def _parse_json_value(value: object) -> object:
 def _is_coze_api_failure_outcome(outcome: CandidateProcessOutcome) -> bool:
     """Exclude system-side Coze failures from human-review report statistics."""
     return bool(
-        outcome.match_result == "needs_review"
-        and "Coze API" in (outcome.analysis_reason or "")
+        outcome.match_result == "needs_review" and "Coze API" in (outcome.analysis_reason or "")
     )
 
 

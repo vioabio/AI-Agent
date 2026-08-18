@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 from sqlalchemy import create_engine, insert, select
 
+from apps.hr_review_api.persistence.tables import hr_users, manual_review_events
 from liepin_rpa import db_daily_report
 from liepin_rpa.config import Settings
 from liepin_rpa.db import (
@@ -127,9 +128,7 @@ def test_cumulative_metrics_and_review_list_use_actionable_population(monkeypatc
                     "candidate_fingerprint": fingerprint,
                     "experience_hash": f"hash-{index}",
                     "analysis_version": version,
-                    "analysis_status": (
-                        "匹配" if result == "relevant" else "待复核"
-                    ),
+                    "analysis_status": ("匹配" if result == "relevant" else "待复核"),
                     "match_result": result,
                     "match_score": score,
                     "analysis_reason": reason,
@@ -194,3 +193,110 @@ def test_cumulative_metrics_and_review_list_use_actionable_population(monkeypatc
             )
         ).all()
     assert {row[0] for row in retained} == {"suppressed-relevant", "suppressed-review"}
+
+
+def test_recruitment_progress_keeps_ai_and_hr_metrics_separate(monkeypatch) -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    metadata.create_all(engine)
+    collected_at = db_daily_report.datetime(2026, 8, 18, 9, 0)
+    candidates = ["ai-relevant", "hr-contacted", "ai-rejected", "suppressed"]
+    with engine.begin() as connection:
+        connection.execute(
+            insert(resume_experience_records),
+            [
+                {
+                    "id": index,
+                    "candidate_fingerprint": fingerprint,
+                    "candidate_name": fingerprint,
+                    "manual_review_status": (
+                        "contacted" if fingerprint == "hr-contacted" else None
+                    ),
+                    "manual_suppress_report": int(fingerprint == "suppressed"),
+                }
+                for index, fingerprint in enumerate(candidates, start=1)
+            ],
+        )
+        connection.execute(
+            insert(resume_source_locators),
+            [
+                {
+                    "id": index,
+                    "candidate_fingerprint": fingerprint,
+                    "candidate_name": fingerprint,
+                    "job_profile_id": "daren_live_bd_v1",
+                    "search_keyword": "测试关键词",
+                    "created_at": collected_at,
+                }
+                for index, fingerprint in enumerate(candidates, start=1)
+            ],
+        )
+        results = {
+            "ai-relevant": ("relevant", 82, "匹配"),
+            "hr-contacted": ("needs_review", 92, "待复核"),
+            "ai-rejected": ("not_relevant", 40, "不匹配"),
+            "suppressed": ("relevant", 95, "匹配"),
+        }
+        connection.execute(
+            insert(resume_analysis_cache),
+            [
+                {
+                    "id": index,
+                    "candidate_fingerprint": fingerprint,
+                    "experience_hash": f"hash-{index}",
+                    "analysis_version": "jd-v2",
+                    "analysis_status": results[fingerprint][2],
+                    "match_result": results[fingerprint][0],
+                    "match_score": results[fingerprint][1],
+                    "analysis_reason": "",
+                }
+                for index, fingerprint in enumerate(candidates, start=1)
+            ],
+        )
+        connection.execute(
+            insert(hr_users).values(
+                id=1,
+                username="reviewer",
+                display_name="审核人",
+                password_hash="hash",
+                role="reviewer",
+            )
+        )
+        connection.execute(
+            insert(manual_review_events).values(
+                candidate_fingerprint="hr-contacted",
+                previous_status="pending_review",
+                review_status="contacted",
+                feedback="已完成电话沟通。",
+                reviewer_id=1,
+                reviewer_name_snapshot="审核人",
+                revision=1,
+                suppress_communication=False,
+                suppress_report=False,
+                client_ip="127.0.0.1",
+                user_agent="pytest",
+                created_at=collected_at,
+            )
+        )
+
+    monkeypatch.setattr(db_daily_report, "get_engine", lambda _settings: engine)
+    settings = SimpleNamespace(
+        coze_analysis_version="legacy-v1",
+        coze_jd_analysis_version="jd-v2",
+        coze_finance_analysis_version="finance-v2",
+    )
+
+    snapshot = db_daily_report.load_recruitment_progress_snapshot(
+        settings,  # type: ignore[arg-type]
+        window_start_at=db_daily_report.datetime(2026, 8, 18, 0, 0),
+        window_end_at=db_daily_report.datetime(2026, 8, 19, 0, 0),
+    )
+
+    assert (snapshot.ai_relevant, snapshot.ai_needs_review, snapshot.ai_not_relevant) == (
+        2,
+        1,
+        1,
+    )
+    assert snapshot.actionable_pending == 1
+    assert snapshot.hr_status_counts["pending_review"] == 1
+    assert snapshot.hr_status_counts["contacted"] == 1
+    assert snapshot.feedback_candidates_in_window == 1

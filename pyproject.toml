@@ -10,7 +10,9 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
   "alembic>=1.16,<2.0",
+  "argon2-cffi>=25.1,<26.0",
   "cozepy>=0.20,<0.21",
+  "fastapi>=0.116,<1.0",
   "pydantic-settings>=2.14,<3.0",
   "pymysql>=1.2,<2.0",
   "paramiko>=4.0,<5.0",
@@ -23,12 +25,29 @@ dependencies = [
   "sqlalchemy>=2.0,<3.0",
   "uiautomator2>=3.7,<4.0",
   "xxhash>=3.5,<4.0",
+  "uvicorn[standard]>=0.35,<1.0",
 ]
 
 [project.optional-dependencies]
 dev = [
+  "httpx>=0.28,<1.0",
+  "mypy>=1.17,<2.0",
   "pytest>=9.1,<10.0",
+  "ruff>=0.12,<1.0",
 ]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+mypy_path = ["src"]
+python_version = "3.12"
+strict = true
+packages = ["apps.hr_review_api"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

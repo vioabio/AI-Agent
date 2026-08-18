@@ -6,8 +6,10 @@ from liepin_rpa.feishu_report import (
     JobReportSummary,
     ReportCandidate,
     _build_job_progress_elements,
+    _build_recruitment_progress_markdown,
     select_review_candidates,
 )
+from liepin_rpa.hr_review_reporting import RecruitmentProgressSnapshot
 
 
 def test_job_progress_card_separates_today_and_cumulative_metrics() -> None:
@@ -71,3 +73,24 @@ def test_only_needs_review_candidates_scoring_at_least_90_enter_review_list() ->
     )
 
     assert select_review_candidates([below_threshold, at_threshold]) == [at_threshold]
+
+
+def test_recruitment_progress_block_labels_three_independent_metrics() -> None:
+    rendered = _build_recruitment_progress_markdown(
+        RecruitmentProgressSnapshot(
+            ai_relevant=4,
+            ai_needs_review=3,
+            ai_not_relevant=2,
+            actionable_pending=5,
+            hr_status_counts={"pending_review": 5, "interviewing": 1, "hired": 1},
+            feedback_candidates_in_window=2,
+        )
+    )
+
+    assert "AI 原始判断（三态，不受人工结论影响）" in rendered
+    assert "AI 可行动待办**：5 人" in rendered
+    assert "HR 实际招聘进度" in rendered
+    assert "待审核：5 人" in rendered
+    assert "面试中：1 人" in rendered
+    assert "已录用：1 人" in rendered
+    assert "本统计窗口已反馈候选人：2 人" in rendered
