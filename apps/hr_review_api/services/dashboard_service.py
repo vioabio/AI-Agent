@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import Engine
 
+from apps.hr_review_api.domain.errors import BatchNotFoundError
 from apps.hr_review_api.domain.models import (
     AuthenticatedUser,
     CandidateQueryCriteria,
@@ -86,6 +87,7 @@ class DashboardService:
         batch_id: str | None,
         job_profile_id: str | None,
     ) -> LiveReportCounts:
+        report_batch_id = self._report_batch_id(batch_id)
         base = self.query_service.build_criteria(
             user=user,
             criteria=CandidateQueryCriteria(
@@ -93,7 +95,7 @@ class DashboardService:
                 review_scope="all",
                 page_size=1,
             ),
-            batch_id=batch_id,
+            batch_id=report_batch_id,
         )
         actionable = self.query_service.build_criteria(
             user=user,
@@ -102,7 +104,7 @@ class DashboardService:
                 review_scope="pending",
                 page_size=1,
             ),
-            batch_id=batch_id,
+            batch_id=report_batch_id,
         )
         with self.engine.connect() as connection:
             ai_counts = {
@@ -123,10 +125,11 @@ class DashboardService:
             hr_counts[ReviewStatus.PENDING_REVIEW.value] = actionable_count
             feedback_count = self.candidates.count_feedback_candidates(
                 connection,
-                since=base.batch_start,
-                before=base.batch_end,
+                since=None,
+                before=None,
                 allowed_job_profile_ids=base.allowed_job_profile_ids,
                 job_profile_id=base.job_profile_id,
+                batch_id=report_batch_id,
             )
         return LiveReportCounts(
             ai_relevant=ai_counts["relevant"],
@@ -137,3 +140,11 @@ class DashboardService:
             feedback_candidates_in_window=feedback_count,
             generated_at=self._now_provider(),
         )
+
+    def _report_batch_id(self, requested: str | None) -> str:
+        if requested:
+            return requested
+        batches = self.batches.list_completed()
+        if not batches:
+            raise BatchNotFoundError("没有可用于日报预览的已完成搜索批次")
+        return batches[0].batch_id

@@ -9,7 +9,10 @@ import { WorkbenchPage } from "./WorkbenchPage";
 
 export function App() {
   const session = useQuery({ queryKey: queryKeys.me, queryFn: api.me, retry: false });
-  if (session.isLoading) return <LoadingState label="正在验证登录状态" />;
+  // A window-focus refetch without cached user data becomes `isLoading` again.
+  // Keep the current route mounted after the first session check so an
+  // unauthenticated user's in-progress login form is not discarded on focus.
+  if (!session.isFetched) return <LoadingState label="正在验证登录状态" />;
 
   return (
     <Routes>

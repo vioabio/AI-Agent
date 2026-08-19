@@ -8,6 +8,10 @@ from datetime import datetime, timedelta
 from typing import Any
 from urllib import error, request
 
+from liepin_rpa.communication_status_policy import (
+    communication_status_priority,
+    is_sent_hit_status,
+)
 from liepin_rpa.config import Settings
 from liepin_rpa.hr_review_reporting import (
     HR_REVIEW_STATUS_LABELS,
@@ -150,6 +154,7 @@ def send_feishu_daily_report(
     cumulative_end_at: datetime | None = None,
     cumulative_metrics_by_job: dict[str, dict[str, int]] | None = None,
     recruitment_progress: RecruitmentProgressSnapshot | None = None,
+    search_batch_id: str | None = None,
 ) -> bool:
     if not settings.feishu_bot_webhook:
         LOGGER.info(
@@ -181,6 +186,7 @@ def send_feishu_daily_report(
         cumulative_end_at=cumulative_end_at,
         cumulative_metrics_by_job=cumulative_metrics_by_job,
         recruitment_progress=recruitment_progress,
+        search_batch_id=search_batch_id,
     )
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     opener = request.build_opener(request.ProxyHandler({}))
@@ -265,6 +271,7 @@ def _build_feishu_payload(
     cumulative_end_at: datetime | None = None,
     cumulative_metrics_by_job: dict[str, dict[str, int]] | None = None,
     recruitment_progress: RecruitmentProgressSnapshot | None = None,
+    search_batch_id: str | None = None,
 ) -> dict[str, Any]:
     summary = _build_summary(
         report,
@@ -302,6 +309,7 @@ def _build_feishu_payload(
             cumulative_start_at=cumulative_start_at,
             cumulative_end_at=cumulative_end_at,
             recruitment_progress=recruitment_progress,
+            search_batch_id=search_batch_id,
         ),
         {"tag": "hr"},
         _markdown_block(
@@ -417,19 +425,7 @@ def _is_better_outcome(outcome: CandidateProcessOutcome, candidate: ReportCandid
 
 
 def _hit_status_priority(hit_status: str) -> int:
-    if hit_status == "sent":
-        return 5
-    if hit_status == "immediate_job_confirmed":
-        return 4
-    if hit_status == "skipped_recent_continue":
-        return 3
-    if hit_status.startswith("send_failed:"):
-        return 3
-    if hit_status == "continue_without_db_record":
-        return 2
-    if hit_status == "reviewed":
-        return 1
-    return 0
+    return communication_status_priority(hit_status)
 
 
 def _candidate_sort_priority(candidate: ReportCandidate) -> int:
@@ -463,11 +459,13 @@ def _build_summary(
         hit_keywords=report.total_keywords,
         profiles_collected=report.profiles_collected,
         unique_candidates=len(aggregated_candidates),
-        greeted_count=sum(1 for item in aggregated_candidates if item.hit_status == "sent"),
+        greeted_count=sum(
+            1 for item in aggregated_candidates if is_sent_hit_status(item.hit_status)
+        ),
         contacted_relevant_count=sum(
             1
             for item in aggregated_candidates
-            if item.hit_status == "sent" and _is_relevant_candidate(item)
+            if is_sent_hit_status(item.hit_status) and _is_relevant_candidate(item)
         ),
         skipped_recent_count=sum(
             1 for item in aggregated_candidates if item.hit_status == "skipped_recent_continue"
@@ -632,7 +630,7 @@ def _build_job_summaries(
                 and candidate.match_score >= ACTIONABLE_NEEDS_REVIEW_MIN_SCORE
             ):
                 job.needs_review_count += 1
-            if candidate.hit_status == "sent":
+            if is_sent_hit_status(candidate.hit_status):
                 job.greeted_count += 1
     for job_name, job in summaries.items():
         cumulative = (cumulative_metrics_by_job or {}).get(job_name, {})
@@ -699,11 +697,18 @@ def _build_management_summary_elements(
     cumulative_start_at: datetime | None = None,
     cumulative_end_at: datetime | None = None,
     recruitment_progress: RecruitmentProgressSnapshot | None = None,
+    search_batch_id: str | None = None,
 ) -> list[dict[str, Any]]:
     jobs = job_summaries or _job_summaries_from_role_summaries(role_summaries)
     period_lines = [
         f"累计区间｜{_format_cumulative_interval(cumulative_start_at, cumulative_end_at)}",
     ]
+    if search_batch_id:
+        period_lines.insert(0, f"当前批次｜{search_batch_id}")
+        period_lines.insert(
+            1,
+            f"批次执行时间｜{_format_report_window(window_start_at, window_end_at)}",
+        )
     elements: list[dict[str, Any]] = [
         _markdown_block(
             "\n".join(
@@ -749,7 +754,7 @@ def _build_recruitment_progress_markdown(
             "",
             "**HR 实际招聘进度**",
             *status_lines,
-            f"- 本统计窗口已反馈候选人：{progress.feedback_candidates_in_window} 人",
+            f"- 本批次已反馈候选人：{progress.feedback_candidates_in_window} 人",
         ]
     )
 
@@ -766,7 +771,7 @@ def _build_job_progress_elements(job: JobReportSummary) -> list[dict[str, Any]]:
             ),
             _metric_column(
                 1,
-                "**今日**\n"
+                "**本批次**\n"
                 f"{_formatted_metric_text(job.screened_candidate_views)}\n"
                 f"{job.relevant_count} 份\n"
                 f"{job.needs_review_count} 份\n"

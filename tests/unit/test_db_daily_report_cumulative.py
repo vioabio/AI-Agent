@@ -67,7 +67,7 @@ def test_cumulative_metrics_and_review_list_use_actionable_population(monkeypatc
                 for index, (fingerprint, keyword, hit_status) in enumerate(
                     [
                         ("talent-history", "达人营销总监", "sent"),
-                        ("finance-profile", "集团总账经理", "sent"),
+                        ("finance-profile", "集团总账经理", "immediate_job_confirmed"),
                         ("profile-wins", "财务共享负责人", "reviewed"),
                         ("coze-system-failure", "达人营销总监", "reviewed"),
                         ("low-score-review", "达人营销总监", "reviewed"),
@@ -78,6 +78,15 @@ def test_cumulative_metrics_and_review_list_use_actionable_population(monkeypatc
                     start=1,
                 )
             ],
+        )
+        connection.execute(
+            insert(resume_search_hits).values(
+                id=99,
+                candidate_fingerprint="talent-history",
+                candidate_name="talent-history",
+                search_keyword="达人营销总监",
+                hit_status="immediate_job_confirmed",
+            )
         )
         connection.execute(
             insert(resume_source_locators),
@@ -300,3 +309,117 @@ def test_recruitment_progress_keeps_ai_and_hr_metrics_separate(monkeypatch) -> N
     assert snapshot.hr_status_counts["pending_review"] == 1
     assert snapshot.hr_status_counts["contacted"] == 1
     assert snapshot.feedback_candidates_in_window == 1
+
+
+def test_latest_hit_overlay_preserves_earlier_successful_communication(monkeypatch) -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    metadata.create_all(engine)
+    with engine.begin() as connection:
+        connection.execute(
+            insert(resume_search_hits),
+            [
+                {
+                    "id": 1,
+                    "candidate_fingerprint": "successful-candidate",
+                    "candidate_name": "候选人",
+                    "search_keyword": "达人营销负责人",
+                    "hit_status": "immediate_job_confirmed",
+                },
+                {
+                    "id": 2,
+                    "candidate_fingerprint": "successful-candidate",
+                    "candidate_name": "候选人",
+                    "search_keyword": "达人营销负责人",
+                    "hit_status": "reviewed",
+                },
+            ],
+        )
+
+    monkeypatch.setattr(db_daily_report, "get_engine", lambda _settings: engine)
+    latest = db_daily_report._load_latest_hit_map(SimpleNamespace())  # type: ignore[arg-type]
+
+    assert latest["successful-candidate"]["hit_status"] == "immediate_job_confirmed"
+
+
+def test_report_candidate_membership_uses_batch_id_not_timestamp(monkeypatch) -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    metadata.create_all(engine)
+    same_time = db_daily_report.datetime(2026, 8, 18, 9, 0)
+    with engine.begin() as connection:
+        connection.execute(
+            insert(resume_experience_records),
+            [
+                {
+                    "id": 101,
+                    "candidate_fingerprint": "batch-a-candidate",
+                    "candidate_name": "批次A候选人",
+                },
+                {
+                    "id": 102,
+                    "candidate_fingerprint": "batch-b-candidate",
+                    "candidate_name": "批次B候选人",
+                },
+            ],
+        )
+        for identifier, fingerprint, batch_id in (
+            (101, "batch-a-candidate", "batch-a"),
+            (102, "batch-b-candidate", "batch-b"),
+        ):
+            connection.execute(
+                insert(resume_search_hits).values(
+                    id=identifier,
+                    candidate_fingerprint=fingerprint,
+                    candidate_name=fingerprint,
+                    search_keyword="同一时间执行",
+                    search_batch_id=batch_id,
+                    hit_status="hit",
+                    created_at=same_time,
+                )
+            )
+            connection.execute(
+                insert(resume_source_locators).values(
+                    id=identifier,
+                    candidate_fingerprint=fingerprint,
+                    candidate_name=fingerprint,
+                    job_profile_id="daren_live_bd_v1",
+                    search_keyword="同一时间执行",
+                    search_batch_id=batch_id,
+                    created_at=same_time,
+                )
+            )
+            connection.execute(
+                insert(resume_analysis_cache).values(
+                    id=identifier,
+                    candidate_fingerprint=fingerprint,
+                    experience_hash=f"batch-hash-{identifier}",
+                    analysis_version="jd-v2",
+                    analysis_status="待复核",
+                    match_result="needs_review",
+                    match_score=95,
+                )
+            )
+
+    monkeypatch.setattr(db_daily_report, "get_engine", lambda _settings: engine)
+    settings = SimpleNamespace(
+        coze_analysis_version="legacy-v1",
+        coze_jd_analysis_version="jd-v2",
+        coze_finance_analysis_version="finance-v2",
+    )
+
+    records = db_daily_report._load_report_candidate_records(
+        settings,  # type: ignore[arg-type]
+        limit=None,
+        window_start_at=db_daily_report.datetime(2026, 8, 18, 0, 0),
+        window_end_at=db_daily_report.datetime(2026, 8, 19, 0, 0),
+        search_batch_id="batch-a",
+    )
+    snapshot = db_daily_report.load_recruitment_progress_snapshot(
+        settings,  # type: ignore[arg-type]
+        window_start_at=db_daily_report.datetime(2026, 8, 18, 0, 0),
+        window_end_at=db_daily_report.datetime(2026, 8, 19, 0, 0),
+        search_batch_id="batch-a",
+    )
+
+    assert [record["candidate_fingerprint"] for record in records] == ["batch-a-candidate"]
+    assert snapshot.ai_needs_review == 1
+    assert snapshot.actionable_pending == 1

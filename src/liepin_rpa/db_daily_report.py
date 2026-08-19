@@ -8,9 +8,14 @@ from dataclasses import asdict
 from datetime import UTC, date, datetime, timedelta, timezone
 from pathlib import Path
 
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 
 from liepin_rpa.candidate_decision_rules import analysis_status_for_match_result
+from liepin_rpa.communication_status_policy import (
+    SENT_HIT_STATUSES,
+    is_sent_hit_status,
+    prefer_communication_hit_status,
+)
 from liepin_rpa.config import Settings
 from liepin_rpa.coze_workflow import (
     CozeMatchResult,
@@ -83,11 +88,13 @@ def send_database_daily_report(
         window_end_at=window_end_at,
         batch_id=batch_id,
     )
+    candidate_batch_id = resolved_batch_id if window_mode == "completed_search_batch" else None
     contacted_records = _load_report_candidate_records(
         settings,
         limit=limit,
         window_start_at=updated_from,
         window_end_at=updated_before,
+        search_batch_id=candidate_batch_id,
     )
     latest_hits = _overlay_latest_hit_status(
         contacted_records,
@@ -121,6 +128,7 @@ def send_database_daily_report(
         settings,
         window_start_at=updated_from,
         window_end_at=updated_before,
+        search_batch_id=candidate_batch_id,
     )
     cumulative_start_at, cumulative_end_at = _load_cumulative_report_window(settings)
     executed_keywords_by_role = _count_executed_keywords_by_role_from_log(
@@ -152,7 +160,11 @@ def send_database_daily_report(
         if cumulative_screened_views_by_role is not None
         else None
     )
-    report_key = _build_daily_report_key(updated_from, contacted_records)
+    report_key = _build_daily_report_key(
+        updated_from,
+        contacted_records,
+        search_batch_id=candidate_batch_id,
+    )
     tracked_delivery = not dry_run and advance_watermark
     if not candidate_outcomes:
         if tracked_delivery and resolved_batch_id is not None:
@@ -190,6 +202,7 @@ def send_database_daily_report(
             window_end_at=updated_before or datetime.now(),
             records_loaded=len(contacted_records),
             candidate_outcomes=len(candidate_outcomes),
+            search_batch_id=candidate_batch_id,
         )
         if delivery_run.get("delivery_status") == "sent":
             if resolved_batch_id is not None:
@@ -296,6 +309,7 @@ def send_database_daily_report(
             cumulative_end_at=cumulative_end_at,
             cumulative_metrics_by_job=cumulative_metrics_by_job,
             recruitment_progress=recruitment_progress,
+            search_batch_id=candidate_batch_id,
         )
     )
     report_run_id = int(delivery_run["id"]) if delivery_run is not None else None
@@ -363,18 +377,22 @@ def load_recruitment_progress_snapshot(
     *,
     window_start_at: datetime | None,
     window_end_at: datetime | None,
+    search_batch_id: str | None = None,
 ) -> RecruitmentProgressSnapshot:
-    """Read AI facts and HR progress for candidates collected in the report window."""
+    """Read AI facts and HR progress for one batch or an explicit legacy window."""
 
     engine = get_engine(settings)
     locator_conditions: list[str] = []
     event_conditions: list[str] = []
     params: dict[str, object] = {}
-    if window_start_at is not None:
+    if search_batch_id is not None:
+        params["search_batch_id"] = search_batch_id
+        locator_conditions.append("l.search_batch_id = :search_batch_id")
+    elif window_start_at is not None:
         params["window_start_at"] = _to_database_local_datetime(window_start_at)
         locator_conditions.append("l.created_at >= :window_start_at")
         event_conditions.append("e.created_at >= :window_start_at")
-    if window_end_at is not None:
+    if search_batch_id is None and window_end_at is not None:
         params["window_end_at"] = _to_database_local_datetime(window_end_at)
         locator_conditions.append("l.created_at < :window_end_at")
         event_conditions.append("e.created_at < :window_end_at")
@@ -406,14 +424,28 @@ def load_recruitment_progress_snapshot(
           )
         """
     )
-    feedback_sql = text(
-        f"""
-        SELECT COUNT(DISTINCT e.candidate_fingerprint) AS feedback_count
-        FROM candidate_resume_manual_review_events e
-        WHERE 1 = 1
-          {event_where}
-        """
-    )
+    if search_batch_id is not None:
+        feedback_sql = text(
+            f"""
+            SELECT COUNT(DISTINCT e.candidate_fingerprint) AS feedback_count
+            FROM candidate_resume_manual_review_events e
+            INNER JOIN (
+                SELECT DISTINCT l.candidate_fingerprint
+                FROM candidate_resume_source_locators l
+                {locator_where}
+            ) batch_candidates
+              ON batch_candidates.candidate_fingerprint = e.candidate_fingerprint
+            """
+        )
+    else:
+        feedback_sql = text(
+            f"""
+            SELECT COUNT(DISTINCT e.candidate_fingerprint) AS feedback_count
+            FROM candidate_resume_manual_review_events e
+            WHERE 1 = 1
+              {event_where}
+            """
+        )
     with engine.begin() as connection:
         rows = connection.execute(rows_sql, params).mappings().all()
         feedback_row = connection.execute(feedback_sql, params).mappings().first()
@@ -662,9 +694,9 @@ def _build_candidate_outcome(
         evidence_summary=list(coze_result.evidence_summary) if coze_result is not None else [],
         hit_status=hit_status,
         continue_without_db_record=False,
-        message_send_success=hit_status == "sent",
+        message_send_success=is_sent_hit_status(hit_status),
         message_send_reason=hit_status,
-        message_send_attempts=1 if hit_status == "sent" else 0,
+        message_send_attempts=1 if is_sent_hit_status(hit_status) else 0,
         message_screenshot_path=None,
         recent_experience_summary=recent_experience_summary,
         matched_experience_summary=matched_experience_summary,
@@ -1054,8 +1086,14 @@ def _load_candidate_interaction_notes(
 def _build_daily_report_key(
     window_start_at: datetime | None,
     contacted_records: list[dict[str, object]],
+    *,
+    search_batch_id: str | None = None,
 ) -> str:
-    parts = [window_start_at.isoformat() if window_start_at is not None else "first_report"]
+    parts = [
+        f"batch:{search_batch_id}"
+        if search_batch_id
+        else (window_start_at.isoformat() if window_start_at is not None else "first_report")
+    ]
     for record in sorted(
         contacted_records, key=lambda item: str(item.get("candidate_fingerprint") or "")
     ):
@@ -1129,21 +1167,25 @@ def _load_latest_hit_map(settings: Settings) -> dict[str, dict[str, object]]:
     engine = get_engine(settings)
     sql = text(
         """
-        SELECT h.candidate_fingerprint, h.candidate_name, h.search_keyword,
-               h.hit_status, h.created_at
-        FROM candidate_resume_search_hits h
-        INNER JOIN (
-            SELECT candidate_fingerprint, MAX(id) AS max_id
-            FROM candidate_resume_search_hits
-            GROUP BY candidate_fingerprint
-        ) latest
-            ON latest.candidate_fingerprint = h.candidate_fingerprint
-           AND latest.max_id = h.id
+        SELECT candidate_fingerprint, candidate_name, search_keyword,
+               hit_status, created_at
+        FROM candidate_resume_search_hits
+        ORDER BY candidate_fingerprint, id
         """
     )
     with engine.begin() as connection:
         rows = connection.execute(sql).mappings().all()
-    return {str(row["candidate_fingerprint"]): dict(row) for row in rows}
+    merged: dict[str, dict[str, object]] = {}
+    for row in rows:
+        fingerprint = str(row["candidate_fingerprint"])
+        item = dict(row)
+        previous = merged.get(fingerprint)
+        if previous is not None:
+            item["hit_status"] = prefer_communication_hit_status(
+                previous.get("hit_status"), item.get("hit_status")
+            )
+        merged[fingerprint] = item
+    return merged
 
 
 def _overlay_latest_hit_status(
@@ -1171,8 +1213,9 @@ def _load_report_candidate_records(
     limit: int | None,
     window_start_at: datetime | None,
     window_end_at: datetime | None,
+    search_batch_id: str | None = None,
 ) -> list[dict[str, object]]:
-    """Load the latest hit per candidate in the report window, including collect-only hits."""
+    """Load latest hit per candidate from one batch or an explicit legacy window."""
     engine = get_engine(settings)
     conditions: list[str] = []
     params: dict[str, object] = {
@@ -1180,13 +1223,19 @@ def _load_report_candidate_records(
         "jd_analysis_version": settings.coze_jd_analysis_version,
         "finance_analysis_version": settings.coze_finance_analysis_version,
     }
-    if window_start_at is not None:
+    if search_batch_id is not None:
+        conditions.append("search_batch_id = :search_batch_id")
+        params["search_batch_id"] = search_batch_id
+    elif window_start_at is not None:
         conditions.append("created_at >= :window_start_at")
         params["window_start_at"] = _to_database_local_datetime(window_start_at)
-    if window_end_at is not None:
+    if search_batch_id is None and window_end_at is not None:
         conditions.append("created_at < :window_end_at")
         params["window_end_at"] = _to_database_local_datetime(window_end_at)
     where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+    locator_batch_clause = (
+        "WHERE search_batch_id = :search_batch_id" if search_batch_id is not None else ""
+    )
     limit_clause = "LIMIT :row_limit" if isinstance(limit, int) and limit > 0 else ""
     if limit_clause:
         params["row_limit"] = limit
@@ -1196,6 +1245,7 @@ def _load_report_candidate_records(
                h.candidate_name,
                h.search_keyword,
                h.hit_status,
+               h.search_batch_id,
                h.created_at,
                locator.job_profile_id,
                COALESCE(c.experience, r.experience) AS experience,
@@ -1244,6 +1294,7 @@ def _load_report_candidate_records(
             INNER JOIN (
                 SELECT candidate_fingerprint, MAX(id) AS max_id
                 FROM candidate_resume_source_locators
+                {locator_batch_clause}
                 GROUP BY candidate_fingerprint
             ) latest_locator ON latest_locator.max_id = l.id
         ) locator ON locator.candidate_fingerprint = h.candidate_fingerprint
@@ -1321,9 +1372,9 @@ def _count_cumulative_report_metrics(settings: Settings) -> dict[str, int]:
         """
         SELECT COUNT(DISTINCT candidate_fingerprint) AS greeted_count
         FROM candidate_resume_search_hits
-        WHERE hit_status = 'sent'
+        WHERE hit_status IN :sent_hit_statuses
         """
-    )
+    ).bindparams(bindparam("sent_hit_statuses", expanding=True))
     with engine.begin() as connection:
         analysis = (
             connection.execute(
@@ -1334,7 +1385,15 @@ def _count_cumulative_report_metrics(settings: Settings) -> dict[str, int]:
             .first()
             or {}
         )
-        greeted = connection.execute(greeted_sql).mappings().first() or {}
+        greeted = (
+            connection.execute(
+                greeted_sql,
+                {"sent_hit_statuses": tuple(SENT_HIT_STATUSES)},
+            )
+            .mappings()
+            .first()
+            or {}
+        )
     return {
         "relevant": int(analysis.get("relevant_count") or 0),
         "needs_review": int(analysis.get("needs_review_count") or 0),
@@ -1431,7 +1490,7 @@ def _count_cumulative_report_metrics_by_job(
                            ORDER BY hit.id DESC
                        ) AS hit_rank
                 FROM candidate_resume_search_hits hit
-                WHERE hit.hit_status = 'sent'
+                WHERE hit.hit_status IN :sent_hit_statuses
             ) ranked_hit
             WHERE ranked_hit.hit_rank = 1
         ),
@@ -1459,7 +1518,7 @@ def _count_cumulative_report_metrics_by_job(
           ON latest_locator.candidate_fingerprint = latest_sent_hit.candidate_fingerprint
         GROUP BY job_name
         """
-    )
+    ).bindparams(bindparam("sent_hit_statuses", expanding=True))
     result = {
         "达人营销总监": {"relevant": 0, "needs_review": 0, "greeted": 0},
         "财务共享与管理经理": {"relevant": 0, "needs_review": 0, "greeted": 0},
@@ -1476,7 +1535,14 @@ def _count_cumulative_report_metrics_by_job(
             .mappings()
             .all()
         )
-        greeted_rows = connection.execute(greeted_sql).mappings().all()
+        greeted_rows = (
+            connection.execute(
+                greeted_sql,
+                {"sent_hit_statuses": tuple(SENT_HIT_STATUSES)},
+            )
+            .mappings()
+            .all()
+        )
     for row in rows:
         job_name = str(row.get("job_name") or "达人营销总监")
         result[job_name] = {

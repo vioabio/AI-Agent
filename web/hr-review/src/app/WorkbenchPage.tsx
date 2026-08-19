@@ -1,6 +1,12 @@
-import { BarChartOutlined, LogoutOutlined, TeamOutlined } from "@ant-design/icons";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Layout, Select, Space, Tabs, Typography } from "antd";
+import {
+  BarChartOutlined,
+  LogoutOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+  TeamOutlined,
+} from "@ant-design/icons";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button, Layout, Space, Tabs, Typography } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 
@@ -15,7 +21,7 @@ import type { User } from "../shared/api/types";
 
 const allJobs = ["daren_live_bd_v1", "finance_shared_management_v1"];
 const scopeTabs = [
-  { key: "mine", label: "待我审核" }, { key: "pending", label: "全部待审核" },
+  { key: "pending", label: "待审核" },
   { key: "progress", label: "推进中" }, { key: "closed", label: "已结束" },
   { key: "all", label: "全部候选人" },
 ];
@@ -23,16 +29,26 @@ const scopeTabs = [
 export function WorkbenchPage({ user }: { user: User }) {
   const [search, setSearch] = useSearchParams();
   const searchRef = useRef(search);
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
   const [selected, setSelected] = useState<string>();
   const [reportOpen, setReportOpen] = useState(false);
   const queryClient = useQueryClient();
   const params = useMemo(() => queueParams(search), [search]);
-  const batches = useQuery({ queryKey: queryKeys.batches, queryFn: api.batches });
-  const queue = useQuery({ queryKey: queryKeys.queue(search.toString()), queryFn: () => api.queue(params) });
+  const batches = useQuery({
+    queryKey: queryKeys.batches,
+    queryFn: api.batches,
+    staleTime: 60_000,
+  });
+  const queue = useQuery({
+    queryKey: queryKeys.queue(search.toString()),
+    queryFn: () => api.queue(params),
+    placeholderData: keepPreviousData,
+  });
   const logout = useMutation({ mutationFn: api.logout, onSuccess: () => { queryClient.clear(); window.location.assign("/login"); } });
   const allowedJobs = ["admin", "recruiting_lead"].includes(user.role) ? allJobs : [...user.allowed_job_profile_ids];
   useEffect(() => { searchRef.current = search; }, [search]);
   const filters: FilterValues = {
+    batch: params.batchId,
     job: params.jobProfileId,
     match: params.matchResult,
     status: params.reviewStatus,
@@ -53,35 +69,53 @@ export function WorkbenchPage({ user }: { user: User }) {
     next.set("page", "1");
     commitSearch(next);
   };
-  const batchId = search.get("batch") ?? undefined;
-
   return (
     <Layout className="workbench-shell">
       <Layout.Header className="topbar">
-        <Space size={12}><div className="compact-logo"><TeamOutlined /></div><div><Typography.Title level={4}>候选人审核与招聘进度工作台</Typography.Title><Typography.Text>AI 初筛事实与 HR 推进状态分离展示</Typography.Text></div></Space>
         <Space size={12}>
-          <Select className="batch-select" placeholder="最新完成批次" allowClear value={batchId} loading={batches.isLoading} options={batches.data?.items.map((item) => ({ value: item.batch_id, label: item.label }))} onChange={(value) => patchSearch({ batch: value })} />
+          <Button
+            type="text"
+            className="sidebar-toggle"
+            aria-label={filtersCollapsed ? "展开筛选栏" : "收起筛选栏"}
+            aria-expanded={!filtersCollapsed}
+            icon={filtersCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => setFiltersCollapsed((value) => !value)}
+          />
+          <div className="compact-logo"><TeamOutlined /></div>
+          <div><Typography.Title level={4}>候选人审核与招聘进度工作台</Typography.Title><Typography.Text>AI 初筛事实与 HR 推进状态分离展示</Typography.Text></div>
+        </Space>
+        <Space size={12}>
           <Button ghost icon={<BarChartOutlined />} onClick={() => setReportOpen(true)}>日报实时预览</Button>
           <div className="current-user"><Typography.Text>{user.display_name}</Typography.Text><small>{user.role}</small></div>
           <Button type="text" danger icon={<LogoutOutlined />} loading={logout.isPending} onClick={() => logout.mutate()}>退出</Button>
         </Space>
       </Layout.Header>
       <Layout>
-        <Layout.Sider width={236} theme="light" className="sidebar">
+        <Layout.Sider
+          width={236}
+          collapsedWidth={0}
+          collapsed={filtersCollapsed}
+          collapsible
+          trigger={null}
+          theme="light"
+          className="sidebar"
+          aria-hidden={filtersCollapsed}
+        >
           <QueueFilters
             values={filters}
+            batches={(batches.data?.items ?? []).map((batch) => ({ value: batch.batch_id, label: batch.label }))}
             allowedJobs={allowedJobs}
             onChange={(key, value) => patchSearch({ [filterSearchKeys[key]]: value })}
             onReset={() => commitSearch(new URLSearchParams({ scope: params.scope }))}
           />
         </Layout.Sider>
         <Layout.Content className="workspace">
-          <MetricCards batchId={batchId} jobProfileId={params.jobProfileId} reviewerId={params.reviewerId} />
+          <MetricCards batchId={params.batchId} jobProfileId={params.jobProfileId} reviewerId={params.reviewerId} />
           <div className="queue-card">
             <Tabs activeKey={params.scope} items={scopeTabs} onChange={(scope) => patchSearch({ scope })} />
             <CandidateTable
               items={queue.data?.items ?? []}
-              loading={queue.isLoading || queue.isFetching}
+              loading={queue.isLoading}
               error={queue.error?.message}
               page={params.page}
               pageSize={params.pageSize}
@@ -103,7 +137,7 @@ export function WorkbenchPage({ user }: { user: User }) {
         </Layout.Content>
       </Layout>
       <CandidateDetailDrawer fingerprint={selected} onClose={() => setSelected(undefined)} canSubmit={user.role !== "read_only"} />
-      <ReportPreviewDrawer open={reportOpen} onClose={() => setReportOpen(false)} batchId={batchId} jobProfileId={params.jobProfileId} />
+      <ReportPreviewDrawer open={reportOpen} onClose={() => setReportOpen(false)} batchId={params.batchId} jobProfileId={params.jobProfileId} />
     </Layout>
   );
 }
@@ -111,15 +145,20 @@ export function WorkbenchPage({ user }: { user: User }) {
 function queueParams(search: URLSearchParams): QueueParams {
   const hasLink = search.get("link");
   return {
-    batchId: search.get("batch") ?? undefined, jobProfileId: search.get("job") ?? undefined,
+    batchId: search.get("batch") ?? undefined,
+    jobProfileId: search.get("job") ?? undefined,
     matchResult: search.get("match") ?? undefined, reviewStatus: search.get("status") ?? undefined,
     minScore: optionalNumber(search.get("min_score")), maxScore: optionalNumber(search.get("max_score")),
     reviewerId: optionalNumber(search.get("reviewer")), communicationStatus: search.get("communication") ?? undefined,
     keyword: search.get("keyword") ?? undefined, hasShareLink: hasLink ? hasLink === "true" : undefined,
-    scope: search.get("scope") ?? "mine", page: Number(search.get("page") ?? 1),
+    scope: normalizeScope(search.get("scope")), page: Number(search.get("page") ?? 1),
     pageSize: Number(search.get("page_size") ?? 20), sortBy: search.get("sort") ?? "updated_at",
     sortOrder: search.get("order") === "asc" ? "asc" : "desc",
   };
+}
+
+function normalizeScope(value: string | null): string {
+  return !value || value === "mine" ? "pending" : value;
 }
 
 function optionalNumber(value: string | null): number | undefined {
@@ -129,6 +168,7 @@ function optionalNumber(value: string | null): number | undefined {
 }
 
 const filterSearchKeys: Record<keyof FilterValues, string> = {
+  batch: "batch",
   job: "job",
   match: "match",
   status: "status",

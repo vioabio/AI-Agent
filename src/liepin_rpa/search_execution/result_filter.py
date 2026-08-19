@@ -4,14 +4,15 @@ import json
 import random
 import re
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 from xml.etree import ElementTree
 
+import xxhash
 from PIL import Image
 from rapidfuzz import fuzz
-import xxhash
+
 from liepin_rpa.candidate_decision_rules import (
     ANALYSIS_STATUS_MATCHED,
     ANALYSIS_STATUS_NOT_RELEVANT,
@@ -21,24 +22,24 @@ from liepin_rpa.candidate_decision_rules import (
     is_not_relevant_match_result,
     is_relevant_match_result,
 )
+from liepin_rpa.candidate_locator import (
+    extract_platform_locator_evidence,
+    is_official_resume_share_link,
+)
+from liepin_rpa.config import get_settings
 from liepin_rpa.coze_workflow import (
     CozeMatchResult,
     analyze_resume_record_with_coze,
     is_transient_coze_api_review,
     transient_coze_cache_retry_due,
 )
-from liepin_rpa.candidate_locator import (
-    extract_platform_locator_evidence,
-    is_official_resume_share_link,
-)
-from liepin_rpa.config import get_settings
 from liepin_rpa.db import (
-    build_candidate_fingerprint,
     build_candidate_experience_text,
+    build_candidate_fingerprint,
     build_experience_hash,
+    get_analysis_cache_record,
     get_candidate_record_by_experience_hash,
     get_candidate_record_by_fingerprint,
-    get_analysis_cache_record,
     list_candidate_source_locators,
     record_candidate_search_hit,
     record_candidate_source_locator,
@@ -63,9 +64,9 @@ from liepin_rpa.profile_collection.resume_schema import (
     sanitize_candidate_name,
 )
 from liepin_rpa.reporting_rules import ACTIONABLE_NEEDS_REVIEW_MIN_SCORE
-from liepin_rpa.share_quota import DailyShareQuotaStateStore
 from liepin_rpa.search_execution.job_selection import choose_job_before_chat_if_present
 from liepin_rpa.search_execution.search_pages import SearchFlowError, SearchPageNavigator
+from liepin_rpa.share_quota import DailyShareQuotaStateStore
 from liepin_rpa.task_generation.config_loader import load_job_profile
 from liepin_rpa.task_generation.models import SearchTaskSeed
 from liepin_rpa.ui_controls import (
@@ -149,7 +150,7 @@ class FilterRunReport:
     profiles_collected: int
     end_reason: str
     iterations: list[FilterIteration]
-    candidate_outcomes: list["CandidateProcessOutcome"]
+    candidate_outcomes: list[CandidateProcessOutcome]
 
 
 @dataclass(slots=True)
@@ -204,6 +205,7 @@ class ResultPageFilter:
         selection_mode: str | None = None,
         job_profile_path: Path | None = None,
         jd_card_min_score: int | None = None,
+        search_batch_id: str | None = None,
     ) -> None:
         self.device = device
         self.detector = detector or build_page_detector()
@@ -212,7 +214,9 @@ class ResultPageFilter:
         self.write_to_db = write_to_db
         self.send_messages = send_messages
         self.max_profiles_per_keyword = max(1, int(max_profiles_per_keyword))
-        resolved_mode = (selection_mode or ("ai_first" if ai_first_selection else "legacy")).strip().lower()
+        resolved_mode = (
+            (selection_mode or ("ai_first" if ai_first_selection else "legacy")).strip().lower()
+        )
         if resolved_mode not in {"legacy", "ai_first", "jd_smart"}:
             raise ValueError("selection_mode must be legacy, ai_first, or jd_smart")
         self.selection_mode = resolved_mode
@@ -236,6 +240,7 @@ class ResultPageFilter:
             if jd_card_min_score is not None
             else (configured_min_score if configured_min_score is not None else 3)
         )
+        self.search_batch_id = search_batch_id.strip() if search_batch_id else None
         self.session_card_fingerprints: set[str] = set()
         self.navigator = SearchPageNavigator(
             device=device,
@@ -359,12 +364,13 @@ class ResultPageFilter:
                     card_screening = card_screenings[card.fingerprint]
                     if not card_screening.selected:
                         continue
-                if self.has_known_education(card.raw_text) and not self.is_allowed_education_candidate(
+                if self.has_known_education(
                     card.raw_text
-                ):
+                ) and not self.is_allowed_education_candidate(card.raw_text):
                     self._log(
                         "result_candidate_education_rejected",
-                        "Skipped candidate before profile entry because education is below requirement",
+                        "Skipped candidate before profile entry because education "
+                        "is below requirement",
                         brand_keyword=seed.brand_keyword,
                         role_keyword=seed.role_keyword,
                         candidate_card=card.raw_text,
@@ -424,7 +430,9 @@ class ResultPageFilter:
 
             if matched_card is not None:
                 self.session_card_fingerprints.add(matched_card.fingerprint)
-                candidate_outcome = self._collect_profile_for_candidate(seed=seed, card=matched_card)
+                candidate_outcome = self._collect_profile_for_candidate(
+                    seed=seed, card=matched_card
+                )
                 collected_profile_fingerprints.add(matched_card.fingerprint)
                 matched_candidates.append(matched_card.raw_text)
                 candidate_outcomes.append(candidate_outcome)
@@ -548,9 +556,7 @@ class ResultPageFilter:
         normalized = " ".join(raw_text.split())
         folded = normalized.casefold()
         card_config = (
-            self.job_profile.get("card_screening", {})
-            if isinstance(self.job_profile, dict)
-            else {}
+            self.job_profile.get("card_screening", {}) if isinstance(self.job_profile, dict) else {}
         )
         if not isinstance(card_config, dict):
             card_config = {}
@@ -648,11 +654,13 @@ class ResultPageFilter:
         if self.selection_mode != "jd_smart":
             return True
         card_config = (
-            self.job_profile.get("card_screening", {})
-            if isinstance(self.job_profile, dict)
-            else {}
+            self.job_profile.get("card_screening", {}) if isinstance(self.job_profile, dict) else {}
         )
-        return bool(card_config.get("enforce_age_range", False)) if isinstance(card_config, dict) else False
+        return (
+            bool(card_config.get("enforce_age_range", False))
+            if isinstance(card_config, dict)
+            else False
+        )
 
     @staticmethod
     def extract_candidate_age_from_card(raw_text: str) -> int | None:
@@ -735,7 +743,8 @@ class ResultPageFilter:
             ):
                 self._log(
                     "result_page_recover_result_context",
-                    "Result page drifted away during filtering, attempting to recover result context",
+                    "Result page drifted away during filtering, attempting to recover "
+                    "result context",
                     page_state=detection.state.value,
                     brand_keyword=seed.brand_keyword,
                     role_keyword=seed.role_keyword,
@@ -834,7 +843,7 @@ class ResultPageFilter:
                 card=card,
                 reason=str(exc),
             )
-        except RuntimeError as exc:
+        except RuntimeError:
             fallback_root = ElementTree.fromstring(self.device.dump_hierarchy_text())
             if self._is_intention_communication_page(fallback_root):
                 return self._handle_intention_communication_candidate(
@@ -858,7 +867,9 @@ class ResultPageFilter:
 
         settings = get_settings()
         basic_info = structured_resume.get("basic_info", {})
-        candidate_name = sanitize_candidate_name(basic_info.get("name") if isinstance(basic_info, dict) else None)
+        candidate_name = sanitize_candidate_name(
+            basic_info.get("name") if isinstance(basic_info, dict) else None
+        )
         candidate_age = self._normalize_optional_int(
             basic_info.get("age") if isinstance(basic_info, dict) else None
         )
@@ -1033,6 +1044,7 @@ class ResultPageFilter:
                     candidate_name=candidate_name,
                     search_keyword=search_keyword,
                     hit_status=hit_status,
+                    search_batch_id=self.search_batch_id,
                 )
             self._log_candidate_processing(
                 candidate_name=candidate_name,
@@ -1045,15 +1057,11 @@ class ResultPageFilter:
                 cached_analysis_status = self._normalize_optional_str(
                     analysis_cache_record.get("analysis_status")
                 )
-                analysis_status = analysis_status_for_match_result(
-                    analysis_result.match_result
-                )
+                analysis_status = analysis_status_for_match_result(analysis_result.match_result)
                 # Communication is authorized only by the normalized tri-state result.
                 # Do not let a stale/contradictory boolean field turn needs_review or
                 # not_relevant into an outbound message.
-                coze_matched = allows_automatic_communication(
-                    analysis_result.match_result
-                )
+                coze_matched = allows_automatic_communication(analysis_result.match_result)
                 if (
                     self.write_to_db
                     and cached_analysis_status != analysis_status
@@ -1118,9 +1126,7 @@ class ResultPageFilter:
                     match_result=coze_result.match_result,
                 )
                 coze_matched = allows_automatic_communication(coze_result.match_result)
-                analysis_status = analysis_status_for_match_result(
-                    coze_result.match_result
-                )
+                analysis_status = analysis_status_for_match_result(coze_result.match_result)
                 if self.write_to_db:
                     upsert_analysis_cache_record(
                         settings,
@@ -1160,6 +1166,7 @@ class ResultPageFilter:
                     )
                     message_send_result = self._tap_continue_communication(
                         candidate_name=candidate_name,
+                        candidate_fingerprint=candidate_fingerprint,
                         role_keyword=self._extract_role_keyword(seed),
                         button_label=communication_label,
                     )
@@ -1195,9 +1202,7 @@ class ResultPageFilter:
             hit_status = self._derive_hit_status(
                 analysis_status=analysis_status,
                 match_result=(
-                    analysis_result.match_result
-                    if analysis_result is not None
-                    else None
+                    analysis_result.match_result if analysis_result is not None else None
                 ),
                 message_send_result=message_send_result,
                 continue_without_db_record=continue_without_db_record,
@@ -1209,6 +1214,7 @@ class ResultPageFilter:
                     candidate_name=candidate_name,
                     search_keyword=search_keyword,
                     hit_status=hit_status,
+                    search_batch_id=self.search_batch_id,
                 )
 
             if self.write_to_db and message_send_result.success:
@@ -1232,7 +1238,9 @@ class ResultPageFilter:
                     search_keyword=search_keyword,
                     experience=experience,
                     experience_hash=experience_hash,
-                    match_score=analysis_result.match_score if analysis_result is not None else None,
+                    match_score=analysis_result.match_score
+                    if analysis_result is not None
+                    else None,
                     analysis_status=analysis_status,
                 )
 
@@ -1262,8 +1270,12 @@ class ResultPageFilter:
             match_result=analysis_result.match_result if analysis_result is not None else None,
             match_score=analysis_result.match_score if analysis_result is not None else None,
             score_breakdown=analysis_result.score_breakdown if analysis_result is not None else {},
-            analysis_reason=analysis_result.analysis_reason if analysis_result is not None else None,
-            evidence_summary=analysis_result.evidence_summary if analysis_result is not None else [],
+            analysis_reason=analysis_result.analysis_reason
+            if analysis_result is not None
+            else None,
+            evidence_summary=analysis_result.evidence_summary
+            if analysis_result is not None
+            else [],
             hit_status=hit_status,
             continue_without_db_record=continue_without_db_record,
             message_send_success=message_send_result.success,
@@ -1280,7 +1292,6 @@ class ResultPageFilter:
         card: CandidateCard,
         detail_root: ElementTree.Element,
     ) -> CandidateProcessOutcome:
-        settings = get_settings()
         candidate_name = self._extract_candidate_name_from_card(card.raw_text)
         search_keyword = seed.effective_query
         analysis_status = "意向沟通跳过"
@@ -1385,6 +1396,7 @@ class ResultPageFilter:
                 candidate_name=candidate_name,
                 search_keyword=search_keyword,
                 hit_status="profile_collection_skipped",
+                search_batch_id=self.search_batch_id,
             )
         self._log(
             "candidate_profile_collection_skipped",
@@ -1442,6 +1454,7 @@ class ResultPageFilter:
                 candidate_name=candidate_name,
                 search_keyword=search_keyword,
                 hit_status=hit_status,
+                search_batch_id=self.search_batch_id,
             )
         self._log(
             "candidate_job_intent_city_rejected",
@@ -1496,6 +1509,7 @@ class ResultPageFilter:
                 candidate_name=candidate_name,
                 search_keyword=search_keyword,
                 hit_status=hit_status,
+                search_batch_id=self.search_batch_id,
             )
         self._log(
             "candidate_age_rejected_after_profile_collection",
@@ -1552,6 +1566,7 @@ class ResultPageFilter:
                 candidate_name=candidate_name,
                 search_keyword=seed.effective_query,
                 hit_status=hit_status,
+                search_batch_id=self.search_batch_id,
             )
         self._log(
             "candidate_manual_review_suppressed",
@@ -1590,14 +1605,17 @@ class ResultPageFilter:
         if record is None:
             return None
         match_result = ResultPageFilter._normalize_optional_str(record.get("match_result"))
-        analysis_status = ResultPageFilter._normalize_optional_str(record.get("analysis_status"))
         return CozeMatchResult(
             matched=is_relevant_match_result(match_result),
             match_result=match_result,
             match_score=ResultPageFilter._normalize_optional_int(record.get("match_score")),
-            score_breakdown=ResultPageFilter._parse_score_breakdown(record.get("score_breakdown_json")),
+            score_breakdown=ResultPageFilter._parse_score_breakdown(
+                record.get("score_breakdown_json")
+            ),
             analysis_reason=ResultPageFilter._normalize_optional_str(record.get("analysis_reason")),
-            evidence_summary=ResultPageFilter._parse_string_list(record.get("evidence_summary_json")),
+            evidence_summary=ResultPageFilter._parse_string_list(
+                record.get("evidence_summary_json")
+            ),
             raw_data="",
             parsed_payload={},
         )
@@ -1671,6 +1689,7 @@ class ResultPageFilter:
         self,
         *,
         candidate_name: str | None,
+        candidate_fingerprint: str,
         role_keyword: str,
         button_label: str,
     ) -> MessageSendResult:
@@ -1726,6 +1745,7 @@ class ResultPageFilter:
                     reason="job_selection_not_handled",
                     screenshot_path=self._capture_message_result_screenshot(
                         candidate_name=candidate_name,
+                        candidate_fingerprint=candidate_fingerprint,
                         status="failed",
                     ),
                 )
@@ -1736,6 +1756,7 @@ class ResultPageFilter:
                     reason="post_job_selection_chat_not_detected",
                     screenshot_path=self._capture_message_result_screenshot(
                         candidate_name=candidate_name,
+                        candidate_fingerprint=candidate_fingerprint,
                         status="failed",
                     ),
                 )
@@ -1746,6 +1767,7 @@ class ResultPageFilter:
                     reason="immediate_job_confirmed",
                     screenshot_path=self._capture_message_result_screenshot(
                         candidate_name=candidate_name,
+                        candidate_fingerprint=candidate_fingerprint,
                         status="success",
                     ),
                 )
@@ -1753,7 +1775,11 @@ class ResultPageFilter:
             self._wait(2.0)
             return result
 
-        result = self._send_chat_message(candidate_name=candidate_name, role_keyword=role_keyword)
+        result = self._send_chat_message(
+            candidate_name=candidate_name,
+            candidate_fingerprint=candidate_fingerprint,
+            role_keyword=role_keyword,
+        )
         self._tap_back_button_or_fallback()
         self._wait(2.0)
         return result
@@ -1762,6 +1788,7 @@ class ResultPageFilter:
         self,
         *,
         candidate_name: str | None,
+        candidate_fingerprint: str,
         role_keyword: str,
     ) -> MessageSendResult:
         message = CHAT_MESSAGE_TEMPLATE.format(role=role_keyword)
@@ -1840,6 +1867,7 @@ class ResultPageFilter:
 
             screenshot_path = self._capture_message_result_screenshot(
                 candidate_name=candidate_name,
+                candidate_fingerprint=candidate_fingerprint,
                 status="success",
             )
             if screenshot_path is None:
@@ -1867,6 +1895,7 @@ class ResultPageFilter:
 
         screenshot_path = self._capture_message_result_screenshot(
             candidate_name=candidate_name,
+            candidate_fingerprint=candidate_fingerprint,
             status="failed",
         )
         self._log(
@@ -1888,13 +1917,15 @@ class ResultPageFilter:
         self,
         *,
         candidate_name: str | None,
+        candidate_fingerprint: str,
         status: str,
     ) -> str | None:
         settings = get_settings()
         screenshot_dir = settings.artifacts_dir / "message_delivery"
         screenshot_dir.mkdir(parents=True, exist_ok=True)
-        safe_name = self._slugify(candidate_name or "unknown_candidate")
-        screenshot_path = screenshot_dir / f"{safe_name}_{status}.png"
+        fingerprint_token = xxhash.xxh3_64_hexdigest(candidate_fingerprint.encode("utf-8"))[:12]
+        safe_status = self._slugify(status)
+        screenshot_path = screenshot_dir / f"candidate_{fingerprint_token}_{safe_status}.png"
         try:
             self.device.screenshot(screenshot_path)
         except Exception:
@@ -1959,14 +1990,17 @@ class ResultPageFilter:
         settings = get_settings()
         screenshot_dir = settings.artifacts_dir / "candidate_locators"
         screenshot_dir.mkdir(parents=True, exist_ok=True)
-        filename = "_".join(
-            [
-                self._slugify(candidate_name or "unknown_candidate"),
-                self._slugify(candidate_fingerprint[:12]),
-                self._slugify(seed.search_pack_id or "search"),
-                str(int(time.time())),
-            ]
-        ) + ".png"
+        filename = (
+            "_".join(
+                [
+                    self._slugify(candidate_name or "unknown_candidate"),
+                    self._slugify(candidate_fingerprint[:12]),
+                    self._slugify(seed.search_pack_id or "search"),
+                    str(int(time.time())),
+                ]
+            )
+            + ".png"
+        )
         screenshot_path = screenshot_dir / filename
         try:
             self.device.screenshot(screenshot_path)
@@ -2009,9 +2043,7 @@ class ResultPageFilter:
                     self._wait(0.8)
                     share_root = ElementTree.fromstring(self.device.dump_hierarchy_text())
                     if self._share_quota_is_exhausted_on_page(share_root):
-                        self._share_quota_store().mark_exhausted(
-                            reason="liepin_ui_quota_message"
-                        )
+                        self._share_quota_store().mark_exhausted(reason="liepin_ui_quota_message")
                         self._dismiss_share_sheet(width, height)
                         return None
                     copy_center = self._find_bottom_sheet_action(share_root, "复制链接")
@@ -2091,6 +2123,7 @@ class ResultPageFilter:
                 else None
             ),
             search_pack_id=seed.search_pack_id,
+            search_batch_id=self.search_batch_id,
             result_iteration=card.result_iteration,
             result_rank=card.result_rank,
             candidate_card_fingerprint=card.fingerprint,
@@ -2243,7 +2276,9 @@ class ResultPageFilter:
             width = int(device_info.get("displayWidth") or device_info.get("width") or 1080)
             height = int(device_info.get("displayHeight") or device_info.get("height") or 2388)
             root = ElementTree.fromstring(self.device.dump_hierarchy_text())
-            if self._page_has_any_label(root, ("已收藏", "取消收藏")) or self._favorite_icon_is_filled(
+            if self._page_has_any_label(
+                root, ("已收藏", "取消收藏")
+            ) or self._favorite_icon_is_filled(
                 width=width,
                 height=height,
                 stage="before",
@@ -2310,10 +2345,7 @@ class ResultPageFilter:
                 orange_pixels = sum(
                     1
                     for red, green, blue in crop.getdata()
-                    if red >= 220
-                    and 55 <= green <= 180
-                    and blue <= 80
-                    and red - green >= 70
+                    if red >= 220 and 55 <= green <= 180 and blue <= 80 and red - green >= 70
                 )
             self._log(
                 "candidate_favorite_visual_check",
@@ -2421,9 +2453,7 @@ class ResultPageFilter:
             analysis_version = settings.coze_jd_analysis_version
             missing_setting = "COZE_JD_WORKFLOW_ID"
         if not workflow_id:
-            raise RuntimeError(
-                f"{missing_setting} is required for JD smart mode."
-            )
+            raise RuntimeError(f"{missing_setting} is required for JD smart mode.")
         return settings.model_copy(
             update={
                 "coze_workflow_id": workflow_id,

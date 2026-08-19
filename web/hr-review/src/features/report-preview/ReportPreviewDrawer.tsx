@@ -14,7 +14,7 @@ export function ReportPreviewDrawer({ open, onClose, batchId, jobProfileId }: { 
   });
   return (
     <Drawer title="日报实时预览" width={560} open={open} onClose={onClose}>
-      <Alert type="info" showIcon message="实时预览直接读取 MySQL 最新状态；不会发送日报，也不会修改已发送的飞书卡片。" />
+      <Alert type="info" showIcon message={batchId ? "实时预览按左侧所选搜索批次读取 MySQL；不会发送日报，也不会修改已发送的飞书卡片。" : "实时预览按最新完成搜索批次读取 MySQL；不会发送日报，也不会修改已发送的飞书卡片。"} />
       {report.isLoading ? <Skeleton active /> : report.isError ? <Alert type="error" message="日报预览加载失败" /> : report.data ? (
         <Space direction="vertical" size={24} className="drawer-section">
           <ReportSection title="AI 原始三态">
@@ -29,7 +29,7 @@ export function ReportPreviewDrawer({ open, onClose, batchId, jobProfileId }: { 
             <Typography.Title level={5}>HR 实际招聘进度</Typography.Title>
             <Descriptions column={2} size="small" bordered items={reviewStatusOptions.map((item) => ({ key: item.value, label: item.label, children: report.data.hr_status_counts[item.value] ?? 0 }))} />
           </div>
-          <Typography.Text type="secondary">当前窗口新增反馈人数：{report.data.feedback_candidates_in_window} · 更新于 {new Date(report.data.generated_at).toLocaleTimeString("zh-CN", { hour12: false })}</Typography.Text>
+          <Typography.Text type="secondary">当前批次已反馈候选人：{report.data.feedback_candidates_in_window} · 更新于 {new Date(report.data.generated_at).toLocaleTimeString("zh-CN", { hour12: false })}</Typography.Text>
         </Space>
       ) : null}
     </Drawer>

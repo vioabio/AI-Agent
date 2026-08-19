@@ -4,8 +4,8 @@ from types import SimpleNamespace
 from xml.etree import ElementTree
 
 import liepin_rpa.search_execution.result_filter as result_filter_module
-from liepin_rpa.coze_workflow import CozeMatchResult
 from liepin_rpa.config import Settings
+from liepin_rpa.coze_workflow import CozeMatchResult
 from liepin_rpa.page_detection.enums import PageState
 from liepin_rpa.search_execution.result_filter import (
     CandidateCard,
@@ -19,11 +19,7 @@ FIXTURES_DIR = Path(__file__).parents[1] / "fixtures"
 
 
 def test_extract_visible_candidate_cards_from_saved_result_list() -> None:
-    root = ElementTree.fromstring(
-        (FIXTURES_DIR / "result_list.xml").read_text(
-            encoding="utf-8"
-        )
-    )
+    root = ElementTree.fromstring((FIXTURES_DIR / "result_list.xml").read_text(encoding="utf-8"))
 
     cards = ResultPageFilter.extract_visible_candidate_cards(root)
     seed = SearchTaskSeed(brand_keyword="珀莱雅", role_keyword="达播总监")
@@ -336,7 +332,9 @@ def test_non_shanghai_intent_stops_before_coze_and_communication(monkeypatch) ->
     def fail_if_coze_called(*_args, **_kwargs):
         raise AssertionError("Coze must not run for a non-Shanghai job intent")
 
-    monkeypatch.setattr(result_filter_module, "analyze_resume_record_with_coze", fail_if_coze_called)
+    monkeypatch.setattr(
+        result_filter_module, "analyze_resume_record_with_coze", fail_if_coze_called
+    )
 
     outcome = result_filter._collect_profile_for_candidate(
         seed=SearchTaskSeed(
@@ -414,7 +412,9 @@ def test_finance_detail_age_over_limit_stops_before_coze_and_communication(monke
     def fail_if_coze_called(*_args, **_kwargs):
         raise AssertionError("Coze must not run for a finance candidate over age 35")
 
-    monkeypatch.setattr(result_filter_module, "analyze_resume_record_with_coze", fail_if_coze_called)
+    monkeypatch.setattr(
+        result_filter_module, "analyze_resume_record_with_coze", fail_if_coze_called
+    )
 
     outcome = result_filter._collect_profile_for_candidate(
         seed=SearchTaskSeed(
@@ -560,23 +560,70 @@ def test_candidate_locator_screenshot_uses_windows_safe_filename(monkeypatch, tm
     assert "|" not in device.paths[0].name
 
 
+def test_message_screenshots_for_same_name_use_distinct_fingerprint_paths(
+    monkeypatch, tmp_path
+) -> None:
+    class FakeDevice:
+        def __init__(self) -> None:
+            self.paths: list[Path] = []
+
+        def screenshot(self, path: Path) -> None:
+            self.paths.append(path)
+
+    device = FakeDevice()
+    result_filter = ResultPageFilter(
+        device=device,  # type: ignore[arg-type]
+        detector=object(),
+        settle_seconds=0,
+    )
+    monkeypatch.setattr(
+        result_filter_module,
+        "get_settings",
+        lambda: SimpleNamespace(artifacts_dir=tmp_path),
+    )
+
+    first = result_filter._capture_message_result_screenshot(
+        candidate_name="张女士",
+        candidate_fingerprint="candidate-a",
+        status="success",
+    )
+    second = result_filter._capture_message_result_screenshot(
+        candidate_name="张女士",
+        candidate_fingerprint="candidate-b",
+        status="success",
+    )
+
+    assert first is not None
+    assert second is not None
+    assert first != second
+    assert device.paths[0].name != device.paths[1].name
+    assert all(path.name.startswith("candidate_") for path in device.paths)
+
+
 def test_detail_entry_records_locator_without_consuming_share_quota(monkeypatch) -> None:
     result_filter = ResultPageFilter(
         device=object(),  # type: ignore[arg-type]
         detector=object(),
         settle_seconds=0,
         write_to_db=True,
+        search_batch_id="batch-20260818",
     )
     settings = SimpleNamespace(liepin_account_alias="account-a", device_id="device-a")
     calls: dict[str, object] = {}
     monkeypatch.setattr(result_filter_module, "get_settings", lambda: settings)
-    monkeypatch.setattr(result_filter, "_capture_candidate_locator_screenshot", lambda **_kwargs: "detail.png")
+    monkeypatch.setattr(
+        result_filter, "_capture_candidate_locator_screenshot", lambda **_kwargs: "detail.png"
+    )
     monkeypatch.setattr(
         result_filter,
         "_copy_candidate_share_link",
         lambda: calls.update(unexpected_share=True),
     )
-    monkeypatch.setattr(result_filter_module, "record_candidate_source_locator", lambda *_args, **kwargs: calls.update(record=kwargs) or 17)
+    monkeypatch.setattr(
+        result_filter_module,
+        "record_candidate_source_locator",
+        lambda *_args, **kwargs: calls.update(record=kwargs) or 17,
+    )
     locator = SimpleNamespace(
         platform_candidate_id=None,
         platform_resume_id=None,
@@ -600,6 +647,7 @@ def test_detail_entry_records_locator_without_consuming_share_quota(monkeypatch)
     assert locator_id == 17
     assert calls["record"]["candidate_fingerprint"] == "card-fingerprint"  # type: ignore[index]
     assert calls["record"]["platform_interaction_note"] == "你们之前HR找过我"  # type: ignore[index]
+    assert calls["record"]["search_batch_id"] == "batch-20260818"  # type: ignore[index]
     assert "unexpected_share" not in calls
 
 
@@ -681,7 +729,9 @@ def test_quota_exhausted_high_value_candidate_is_favorited(monkeypatch, tmp_path
     calls: dict[str, object] = {}
     monkeypatch.setattr(result_filter, "_share_quota_store", lambda: quota_store)
     monkeypatch.setattr(result_filter, "_find_existing_official_share_link", lambda **_kwargs: None)
-    monkeypatch.setattr(result_filter, "_copy_candidate_share_link", lambda: calls.update(unexpected_share=True))
+    monkeypatch.setattr(
+        result_filter, "_copy_candidate_share_link", lambda: calls.update(unexpected_share=True)
+    )
     monkeypatch.setattr(result_filter, "_favorite_current_candidate", lambda: True)
     monkeypatch.setattr(
         result_filter_module,
@@ -822,18 +872,24 @@ def test_hit_status_uses_match_result_as_canonical_decision() -> None:
         screenshot_path=None,
     )
 
-    assert ResultPageFilter._derive_hit_status(
-        analysis_status="不匹配",
-        match_result="needs_review",
-        message_send_result=no_message,
-        continue_without_db_record=False,
-    ) == "reviewed"
-    assert ResultPageFilter._derive_hit_status(
-        analysis_status="匹配",
-        match_result="not_relevant",
-        message_send_result=no_message,
-        continue_without_db_record=False,
-    ) == "not_relevant"
+    assert (
+        ResultPageFilter._derive_hit_status(
+            analysis_status="不匹配",
+            match_result="needs_review",
+            message_send_result=no_message,
+            continue_without_db_record=False,
+        )
+        == "reviewed"
+    )
+    assert (
+        ResultPageFilter._derive_hit_status(
+            analysis_status="匹配",
+            match_result="not_relevant",
+            message_send_result=no_message,
+            continue_without_db_record=False,
+        )
+        == "not_relevant"
+    )
 
 
 def _run_needs_review_candidate(
@@ -991,7 +1047,9 @@ def test_cached_needs_review_repairs_legacy_status_and_never_messages(monkeypatc
             "analysis_status": "不匹配",
             "match_result": "needs_review",
             "match_score": 88,
-            "score_breakdown_json": '{"beauty_continuity":30,"industry_depth":30,"role_evidence":28}',
+            "score_breakdown_json": (
+                '{"beauty_continuity":30,"industry_depth":30,"role_evidence":28}'
+            ),
             "analysis_reason": "证据不足，需要人工确认。",
             "evidence_summary_json": '["缺少完整业绩数据"]',
         },

@@ -53,7 +53,12 @@ def client(engine: Engine, tmp_path) -> TestClient:
                         "batch_id": "test-completed-batch",
                         "started_at": "2020-01-01T00:00:00+08:00",
                         "ended_at": "2030-01-01T00:00:00+08:00",
-                    }
+                    },
+                    {
+                        "batch_id": "another-completed-batch",
+                        "started_at": "2019-01-01T00:00:00+08:00",
+                        "ended_at": "2019-01-02T00:00:00+08:00",
+                    },
                 ],
             }
         ),
@@ -87,6 +92,218 @@ def test_default_queue_uses_shared_actionable_rules_and_job_permissions(client: 
     assert fingerprints == {"relevant-low", "review-90"}
     assert "temporary-failure" not in fingerprints
     assert "finance-hidden" not in fingerprints
+
+
+def test_analysis_led_queue_includes_orphan_needs_review_and_materializes_on_detail(
+    client: TestClient,
+    engine: Engine,
+) -> None:
+    seed_analysis_only_candidate(
+        engine,
+        identifier=200,
+        fingerprint="orphan-review-92",
+        score=92,
+        with_locator=True,
+    )
+
+    login(client)
+    response = client.get("/api/v1/review-queue", params={"scope": "pending"})
+    assert response.status_code == 200
+    item = next(
+        value
+        for value in response.json()["items"]
+        if value["candidate_fingerprint"] == "orphan-review-92"
+    )
+    assert item["match_result"] == "needs_review"
+    assert item["match_score"] == 92
+    assert item["analysis_status"] == "待复核"
+
+    with engine.connect() as connection:
+        before = connection.scalar(
+            select(func.count())
+            .select_from(resume_experience_records)
+            .where(resume_experience_records.c.candidate_fingerprint == "orphan-review-92")
+        )
+    assert before == 0
+
+    detail = client.get("/api/v1/candidates/orphan-review-92")
+    assert detail.status_code == 200
+    assert detail.json()["experience"] == "候选人信息：年龄：36岁 工作内容：历史累计候选人"
+    with engine.connect() as connection:
+        master_count = connection.scalar(
+            select(func.count())
+            .select_from(resume_experience_records)
+            .where(resume_experience_records.c.candidate_fingerprint == "orphan-review-92")
+        )
+        access_count = connection.scalar(
+            select(func.count())
+            .select_from(sensitive_access_events)
+            .where(sensitive_access_events.c.candidate_fingerprint == "orphan-review-92")
+        )
+    assert master_count == 1
+    assert access_count == 1
+
+
+def test_direct_review_of_analysis_only_candidate_is_atomic(
+    client: TestClient,
+    engine: Engine,
+) -> None:
+    seed_analysis_only_candidate(
+        engine,
+        identifier=201,
+        fingerprint="orphan-direct-review",
+        score=93,
+        with_locator=True,
+    )
+    csrf = login(client)
+
+    response = client.patch(
+        "/api/v1/candidates/orphan-direct-review/review",
+        json={
+            "review_status": "recommended_contact",
+            "feedback": "日报累计候选人，建议沟通。",
+            "revision": 0,
+        },
+        headers={"X-CSRF-Token": csrf},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["summary"]["revision"] == 1
+    with engine.connect() as connection:
+        snapshot = (
+            connection.execute(
+                select(resume_experience_records).where(
+                    resume_experience_records.c.candidate_fingerprint == "orphan-direct-review"
+                )
+            )
+            .mappings()
+            .one()
+        )
+        event_count = connection.scalar(
+            select(func.count())
+            .select_from(manual_review_events)
+            .where(manual_review_events.c.candidate_fingerprint == "orphan-direct-review")
+        )
+    assert snapshot["manual_review_status"] == "recommended_contact"
+    assert snapshot["manual_review_revision"] == 1
+    assert event_count == 1
+
+
+def test_locatorless_history_is_excluded_even_for_all_job_role(
+    client: TestClient,
+    engine: Engine,
+) -> None:
+    seed_analysis_only_candidate(
+        engine,
+        identifier=202,
+        fingerprint="orphan-without-locator",
+        score=94,
+        with_locator=False,
+    )
+
+    login(client)
+    restricted = client.get("/api/v1/review-queue", params={"scope": "pending"})
+    assert restricted.status_code == 200
+    assert "orphan-without-locator" not in {
+        value["candidate_fingerprint"] for value in restricted.json()["items"]
+    }
+
+    client.post(
+        "/api/v1/auth/logout",
+        headers={"X-CSRF-Token": client.cookies["hr_review_csrf"]},
+    )
+    login(client, "lead")
+    all_jobs = client.get("/api/v1/review-queue", params={"scope": "pending"})
+    assert all_jobs.status_code == 200
+    assert "orphan-without-locator" not in {
+        value["candidate_fingerprint"] for value in all_jobs.json()["items"]
+    }
+
+
+def test_review_queue_spans_batches_unless_api_explicitly_requests_one(
+    client: TestClient,
+    engine: Engine,
+) -> None:
+    with engine.begin() as connection:
+        connection.execute(
+            resume_source_locators.update()
+            .where(resume_source_locators.c.candidate_fingerprint == "relevant-low")
+            .values(
+                search_batch_id="another-completed-batch",
+                # 故意保留在所选批次的时间范围内，证明不会再按时间误归批次。
+                created_at=datetime(2026, 8, 18, 12, 0),
+            )
+        )
+        connection.execute(
+            resume_search_hits.update()
+            .where(resume_search_hits.c.candidate_fingerprint == "relevant-low")
+            .values(
+                search_batch_id="another-completed-batch",
+                created_at=datetime(2026, 8, 18, 12, 0),
+            )
+        )
+
+    login(client)
+    all_batches = client.get("/api/v1/review-queue", params={"scope": "pending"})
+    assert all_batches.status_code == 200
+    assert "relevant-low" in {
+        value["candidate_fingerprint"] for value in all_batches.json()["items"]
+    }
+
+    explicit_batch = client.get(
+        "/api/v1/review-queue",
+        params={"scope": "pending", "batch_id": "test-completed-batch"},
+    )
+    assert explicit_batch.status_code == 200
+    assert "relevant-low" not in {
+        value["candidate_fingerprint"] for value in explicit_batch.json()["items"]
+    }
+
+
+def test_reviewer_is_information_not_a_queue_permission(
+    client: TestClient,
+    engine: Engine,
+) -> None:
+    with engine.begin() as connection:
+        connection.execute(
+            resume_experience_records.update()
+            .where(resume_experience_records.c.candidate_fingerprint == "review-90")
+            .values(manual_reviewed_by=1, manual_review_assignee_id=2)
+        )
+        connection.execute(
+            resume_experience_records.update()
+            .where(resume_experience_records.c.candidate_fingerprint == "relevant-low")
+            .values(manual_reviewed_by=1, manual_review_assignee_id=None)
+        )
+
+    login(client)
+    legacy_mine = client.get("/api/v1/review-queue", params={"scope": "mine"})
+    assert legacy_mine.status_code == 200
+    item = next(
+        value
+        for value in legacy_mine.json()["items"]
+        if value["candidate_fingerprint"] == "review-90"
+    )
+    assert item["reviewer_id"] == 2
+    assert item["reviewer_name"] == "只读用户"
+
+    reviewer_filter = client.get(
+        "/api/v1/review-queue",
+        params={"scope": "pending", "reviewer_id": 2},
+    )
+    assert reviewer_filter.status_code == 200
+    assert {value["candidate_fingerprint"] for value in reviewer_filter.json()["items"]} == {
+        "review-90"
+    }
+
+    legacy_reviewer_filter = client.get(
+        "/api/v1/review-queue",
+        params={"scope": "pending", "reviewer_id": 1},
+    )
+    assert legacy_reviewer_filter.status_code == 200
+    assert {value["candidate_fingerprint"] for value in legacy_reviewer_filter.json()["items"]} == {
+        "relevant-low"
+    }
 
 
 def test_cross_job_latest_source_cannot_leak_unauthorized_locator(
@@ -144,6 +361,132 @@ def test_cross_job_latest_source_cannot_leak_unauthorized_locator(
     assert "relevant-low" not in {
         value["candidate_fingerprint"] for value in keyword_search.json()["items"]
     }
+
+
+def test_communication_status_uses_normalized_history_in_list_detail_and_filters(
+    client: TestClient,
+    engine: Engine,
+) -> None:
+    with engine.begin() as connection:
+        connection.execute(
+            resume_search_hits.update()
+            .where(resume_search_hits.c.candidate_fingerprint == "review-90")
+            .values(hit_status="immediate_job_confirmed")
+        )
+        connection.execute(
+            resume_search_hits.update()
+            .where(resume_search_hits.c.candidate_fingerprint == "review-89")
+            .values(hit_status="skipped_recent_continue")
+        )
+        connection.execute(
+            resume_search_hits.update()
+            .where(resume_search_hits.c.candidate_fingerprint == "temporary-failure")
+            .values(hit_status="send_failed:post_job_selection_chat_not_detected")
+        )
+        connection.execute(
+            insert(resume_search_hits).values(
+                id=900,
+                candidate_fingerprint="relevant-low",
+                candidate_name="候选人1",
+                search_keyword="达人营销负责人",
+                search_batch_id="test-completed-batch",
+                hit_status="reviewed",
+                created_at=datetime(2026, 8, 19, 9, 0),
+            )
+        )
+
+    login(client)
+    all_candidates = client.get(
+        "/api/v1/review-queue",
+        params={"scope": "all", "page_size": 100},
+    )
+    assert all_candidates.status_code == 200
+    by_fingerprint = {
+        item["candidate_fingerprint"]: item for item in all_candidates.json()["items"]
+    }
+    assert by_fingerprint["relevant-low"]["communication_status"] == "sent"
+    assert by_fingerprint["review-90"]["communication_status"] == "sent"
+    assert by_fingerprint["review-89"]["communication_status"] == "previously_contacted"
+    assert by_fingerprint["temporary-failure"]["communication_status"] == "failed"
+    assert (
+        len(
+            [
+                item
+                for item in all_candidates.json()["items"]
+                if item["candidate_fingerprint"] == "relevant-low"
+            ]
+        )
+        == 1
+    )
+
+    detail = client.get("/api/v1/candidates/relevant-low")
+    assert detail.status_code == 200
+    assert detail.json()["summary"]["communication_status"] == "sent"
+
+    expected_by_filter = {
+        "sent": {"relevant-low", "review-90"},
+        "previously_contacted": {"review-89"},
+        "failed": {"temporary-failure"},
+    }
+    for status, expected in expected_by_filter.items():
+        response = client.get(
+            "/api/v1/review-queue",
+            params={
+                "scope": "all",
+                "communication_status": status,
+                "page_size": 100,
+            },
+        )
+        assert response.status_code == 200
+        assert {item["candidate_fingerprint"] for item in response.json()["items"]} == expected
+
+    not_sent = client.get(
+        "/api/v1/review-queue",
+        params={"scope": "all", "communication_status": "not_sent", "page_size": 100},
+    )
+    assert not_sent.status_code == 200
+    assert {"relevant-low", "review-90"}.isdisjoint(
+        item["candidate_fingerprint"] for item in not_sent.json()["items"]
+    )
+
+
+def test_candidate_detail_collapses_repeated_batch_source_observations(
+    client: TestClient,
+    engine: Engine,
+) -> None:
+    with engine.begin() as connection:
+        connection.execute(
+            insert(resume_source_locators),
+            [
+                {
+                    "id": 101,
+                    "candidate_fingerprint": "relevant-low",
+                    "candidate_name": "候选人1",
+                    "job_profile_id": "daren_live_bd_v1",
+                    "search_keyword": "达人营销负责人",
+                    "search_batch_id": "another-completed-batch",
+                    "locator_quality": "snapshot",
+                },
+                {
+                    "id": 102,
+                    "candidate_fingerprint": "relevant-low",
+                    "candidate_name": "候选人1",
+                    "job_profile_id": "daren_live_bd_v1",
+                    "search_keyword": "达人营销负责人",
+                    "search_batch_id": "test-completed-batch",
+                    "locator_quality": "share_link",
+                    "detail_deep_link": "https://example.invalid/relevant-low",
+                },
+            ],
+        )
+
+    login(client)
+    response = client.get("/api/v1/candidates/relevant-low")
+
+    assert response.status_code == 200
+    sources = response.json()["sources"]
+    assert len(sources) == 1
+    assert sources[0]["locator_quality"] == "share_link"
 
 
 def test_review_is_atomic_preserves_ai_and_rejects_stale_revision(
@@ -325,7 +668,7 @@ def test_login_failures_are_rate_limited(client: TestClient) -> None:
     assert limited.status_code == 429
 
 
-def test_database_url_is_required_and_missing_batch_fails_closed(
+def test_database_url_is_required_and_only_report_needs_a_completed_batch(
     engine: Engine,
     tmp_path,
     monkeypatch: pytest.MonkeyPatch,
@@ -341,9 +684,12 @@ def test_database_url_is_required_and_missing_batch_fails_closed(
     )
     with TestClient(create_app(settings=settings, engine=engine)) as isolated_client:
         login(isolated_client)
-        response = isolated_client.get("/api/v1/review-queue")
-    assert response.status_code == 404
-    assert response.json()["code"] == "batch_not_found"
+        queue_response = isolated_client.get("/api/v1/review-queue")
+        report_response = isolated_client.get("/api/v1/reports/live-preview")
+    assert queue_response.status_code == 200
+    assert queue_response.json()["total"] == 0
+    assert report_response.status_code == 404
+    assert report_response.json()["code"] == "batch_not_found"
 
 
 def seed_database(engine: Engine) -> None:
@@ -367,6 +713,15 @@ def seed_database(engine: Engine) -> None:
                     "display_name": "只读用户",
                     "password_hash": password_hash,
                     "role": "read_only",
+                    "is_active": True,
+                    "can_view_sensitive": False,
+                },
+                {
+                    "id": 3,
+                    "username": "lead",
+                    "display_name": "招聘负责人",
+                    "password_hash": password_hash,
+                    "role": "recruiting_lead",
                     "is_active": True,
                     "can_view_sensitive": False,
                 },
@@ -431,6 +786,7 @@ def seed_database(engine: Engine) -> None:
                     candidate_name=f"候选人{identifier}",
                     job_profile_id=job,
                     search_keyword="达人营销负责人",
+                    search_batch_id="test-completed-batch",
                     locator_quality=("snapshot" if fingerprint == "relevant-low" else "share_link"),
                     detail_deep_link=(
                         None
@@ -450,6 +806,56 @@ def seed_database(engine: Engine) -> None:
                     candidate_fingerprint=fingerprint,
                     candidate_name=f"候选人{identifier}",
                     search_keyword="达人营销负责人",
+                    search_batch_id="test-completed-batch",
                     hit_status="sent" if fingerprint == "relevant-low" else "hit",
+                )
+            )
+
+
+def seed_analysis_only_candidate(
+    engine: Engine,
+    *,
+    identifier: int,
+    fingerprint: str,
+    score: int,
+    with_locator: bool,
+) -> None:
+    with engine.begin() as connection:
+        connection.execute(
+            insert(resume_analysis_cache).values(
+                id=identifier,
+                candidate_fingerprint=fingerprint,
+                experience_hash=f"orphan-hash-{identifier}",
+                experience="候选人信息：年龄：36岁 工作内容：历史累计候选人",
+                analysis_version="daren-history-v3",
+                analysis_status="待复核",
+                match_result="needs_review",
+                match_score=score,
+                analysis_reason="历史累计待人工复核",
+                score_breakdown_json=json.dumps(
+                    {"industry_depth": 30, "beauty_continuity": 30, "role_evidence": 32}
+                ),
+            )
+        )
+        connection.execute(
+            insert(resume_search_hits).values(
+                id=identifier,
+                candidate_fingerprint=fingerprint,
+                candidate_name="历史候选人",
+                search_keyword="达人营销负责人",
+                search_batch_id="test-completed-batch",
+                hit_status="hit",
+            )
+        )
+        if with_locator:
+            connection.execute(
+                insert(resume_source_locators).values(
+                    id=identifier,
+                    candidate_fingerprint=fingerprint,
+                    candidate_name="历史候选人",
+                    job_profile_id="daren_live_bd_v1",
+                    search_keyword="达人营销负责人",
+                    search_batch_id="test-completed-batch",
+                    locator_quality="snapshot",
                 )
             )

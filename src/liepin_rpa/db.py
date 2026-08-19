@@ -98,6 +98,7 @@ resume_search_hits = Table(
     Column("candidate_fingerprint", String(64), nullable=False, index=True),
     Column("candidate_name", String(255), nullable=True),
     Column("search_keyword", String(255), nullable=False, index=True),
+    Column("search_batch_id", String(64), nullable=True, index=True),
     Column("hit_status", String(64), nullable=False, server_default=text("'hit'")),
     Column("created_at", TIMESTAMP, nullable=False, server_default=func.current_timestamp()),
     mysql_charset="utf8mb4",
@@ -117,6 +118,7 @@ resume_source_locators = Table(
     Column("job_profile_id", String(128), nullable=True, index=True),
     Column("search_keyword", String(255), nullable=False, index=True),
     Column("search_pack_id", String(128), nullable=True),
+    Column("search_batch_id", String(64), nullable=True, index=True),
     Column("result_iteration", BigInteger, nullable=True),
     Column("result_rank", BigInteger, nullable=True),
     Column("candidate_card_fingerprint", String(255), nullable=True, index=True),
@@ -176,6 +178,7 @@ daily_report_runs = Table(
     Column("records_loaded", BigInteger, nullable=False, server_default=text("0")),
     Column("candidate_outcomes", BigInteger, nullable=False, server_default=text("0")),
     Column("report_key", String(64), nullable=True, unique=True),
+    Column("search_batch_id", String(64), nullable=True, unique=True),
     Column("delivery_status", String(32), nullable=False, server_default=text("'sent'")),
     Column("detail_pdf_path", Text, nullable=True),
     Column("detail_pdf_url", Text, nullable=True),
@@ -261,6 +264,7 @@ def ensure_resume_experience_schema(settings: Settings) -> None:
     metadata.create_all(engine, checkfirst=True)
     _ensure_resume_experience_columns(engine)
     _ensure_analysis_cache_columns(engine)
+    _ensure_search_hit_columns(engine)
     _ensure_source_locator_columns(engine)
     _ensure_daily_report_runs_columns(engine)
 
@@ -525,6 +529,7 @@ def get_latest_daily_report_run(settings: Settings) -> dict[str, object] | None:
                 daily_report_runs.c.records_loaded,
                 daily_report_runs.c.candidate_outcomes,
                 daily_report_runs.c.report_key,
+                daily_report_runs.c.search_batch_id,
                 daily_report_runs.c.delivery_status,
                 daily_report_runs.c.detail_pdf_path,
                 daily_report_runs.c.detail_pdf_url,
@@ -546,10 +551,12 @@ def start_daily_report_delivery(
     window_end_at: datetime,
     records_loaded: int,
     candidate_outcomes: int,
+    search_batch_id: str | None = None,
 ) -> dict[str, object]:
     ensure_resume_experience_schema(settings)
     stmt = mysql_insert(daily_report_runs).values(
         report_key=report_key,
+        search_batch_id=_string_or_none(search_batch_id),
         window_start_at=window_start_at,
         window_end_at=window_end_at,
         records_loaded=records_loaded,
@@ -557,6 +564,7 @@ def start_daily_report_delivery(
         delivery_status="pending",
     )
     stmt = stmt.on_duplicate_key_update(
+        search_batch_id=stmt.inserted.search_batch_id,
         window_end_at=stmt.inserted.window_end_at,
         records_loaded=stmt.inserted.records_loaded,
         candidate_outcomes=stmt.inserted.candidate_outcomes,
@@ -626,12 +634,14 @@ def record_candidate_search_hit(
     candidate_name: str | None,
     search_keyword: str,
     hit_status: str,
+    search_batch_id: str | None = None,
 ) -> int:
     ensure_resume_experience_schema(settings)
     stmt = insert(resume_search_hits).values(
         candidate_fingerprint=candidate_fingerprint,
         candidate_name=_string_or_none(candidate_name),
         search_keyword=search_keyword,
+        search_batch_id=_string_or_none(search_batch_id),
         hit_status=hit_status,
     )
     engine = get_engine(settings)
@@ -652,6 +662,7 @@ def record_candidate_source_locator(
     source_device_id: str | None = None,
     job_profile_id: str | None = None,
     search_pack_id: str | None = None,
+    search_batch_id: str | None = None,
     result_iteration: int | None = None,
     result_rank: int | None = None,
     candidate_card_fingerprint: str | None = None,
@@ -678,6 +689,7 @@ def record_candidate_source_locator(
         job_profile_id=_string_or_none(job_profile_id),
         search_keyword=search_keyword,
         search_pack_id=_string_or_none(search_pack_id),
+        search_batch_id=_string_or_none(search_batch_id),
         result_iteration=result_iteration,
         result_rank=result_rank,
         candidate_card_fingerprint=_string_or_none(candidate_card_fingerprint),
@@ -1154,6 +1166,29 @@ def _ensure_analysis_cache_columns(engine: Engine) -> None:
     _ensure_analysis_cache_unique_index(engine)
 
 
+def _ensure_search_hit_columns(engine: Engine) -> None:
+    inspector = inspect(engine)
+    try:
+        column_names = {
+            str(column.get("name"))
+            for column in inspector.get_columns(RESUME_SEARCH_HITS_TABLE_NAME)
+        }
+    except Exception:
+        return
+    if "search_batch_id" not in column_names:
+        with engine.begin() as connection:
+            connection.exec_driver_sql(
+                f"ALTER TABLE {RESUME_SEARCH_HITS_TABLE_NAME} "
+                "ADD COLUMN search_batch_id VARCHAR(64) NULL"
+            )
+    if not _has_index_for_column(engine, RESUME_SEARCH_HITS_TABLE_NAME, "search_batch_id"):
+        with engine.begin() as connection:
+            connection.exec_driver_sql(
+                f"CREATE INDEX ix_candidate_search_hits_batch "
+                f"ON {RESUME_SEARCH_HITS_TABLE_NAME} (search_batch_id)"
+            )
+
+
 def _ensure_source_locator_columns(engine: Engine) -> None:
     inspector = inspect(engine)
     try:
@@ -1163,13 +1198,27 @@ def _ensure_source_locator_columns(engine: Engine) -> None:
         }
     except Exception:
         return
-    if "platform_interaction_note" in column_names:
-        return
-    with engine.begin() as connection:
-        connection.exec_driver_sql(
+    alter_statements: list[str] = []
+    if "platform_interaction_note" not in column_names:
+        alter_statements.append(
             f"ALTER TABLE {RESUME_SOURCE_LOCATORS_TABLE_NAME} "
             "ADD COLUMN platform_interaction_note TEXT NULL"
         )
+    if "search_batch_id" not in column_names:
+        alter_statements.append(
+            f"ALTER TABLE {RESUME_SOURCE_LOCATORS_TABLE_NAME} "
+            "ADD COLUMN search_batch_id VARCHAR(64) NULL"
+        )
+    if alter_statements:
+        with engine.begin() as connection:
+            for statement in alter_statements:
+                connection.exec_driver_sql(statement)
+    if not _has_index_for_column(engine, RESUME_SOURCE_LOCATORS_TABLE_NAME, "search_batch_id"):
+        with engine.begin() as connection:
+            connection.exec_driver_sql(
+                f"CREATE INDEX ix_candidate_source_locators_batch "
+                f"ON {RESUME_SOURCE_LOCATORS_TABLE_NAME} (search_batch_id)"
+            )
 
 
 def _ensure_resume_experience_columns(engine: Engine) -> None:
@@ -1242,6 +1291,17 @@ def _ensure_resume_experience_columns(engine: Engine) -> None:
 
 def _has_unique_index_for_column(engine: Engine, table_name: str, column_name: str) -> bool:
     return _has_unique_index_for_columns(engine, table_name, (column_name,))
+
+
+def _has_index_for_column(engine: Engine, table_name: str, column_name: str) -> bool:
+    inspector = inspect(engine)
+    try:
+        return any(
+            tuple(index.get("column_names") or []) == (column_name,)
+            for index in inspector.get_indexes(table_name)
+        )
+    except Exception:
+        return False
 
 
 def _has_unique_index_for_columns(
@@ -1525,6 +1585,7 @@ def _ensure_daily_report_runs_columns(engine: Engine) -> None:
         "records_loaded": f"ALTER TABLE {DAILY_REPORT_RUNS_TABLE_NAME} ADD COLUMN records_loaded BIGINT NOT NULL DEFAULT 0",
         "candidate_outcomes": f"ALTER TABLE {DAILY_REPORT_RUNS_TABLE_NAME} ADD COLUMN candidate_outcomes BIGINT NOT NULL DEFAULT 0",
         "report_key": f"ALTER TABLE {DAILY_REPORT_RUNS_TABLE_NAME} ADD COLUMN report_key VARCHAR(64) NULL",
+        "search_batch_id": f"ALTER TABLE {DAILY_REPORT_RUNS_TABLE_NAME} ADD COLUMN search_batch_id VARCHAR(64) NULL",
         "delivery_status": f"ALTER TABLE {DAILY_REPORT_RUNS_TABLE_NAME} ADD COLUMN delivery_status VARCHAR(32) NOT NULL DEFAULT 'sent'",
         "detail_pdf_path": f"ALTER TABLE {DAILY_REPORT_RUNS_TABLE_NAME} ADD COLUMN detail_pdf_path TEXT NULL",
         "detail_pdf_url": f"ALTER TABLE {DAILY_REPORT_RUNS_TABLE_NAME} ADD COLUMN detail_pdf_url TEXT NULL",
@@ -1545,4 +1606,10 @@ def _ensure_daily_report_runs_columns(engine: Engine) -> None:
             connection.exec_driver_sql(
                 f"CREATE UNIQUE INDEX uniq_daily_report_run_key "
                 f"ON {DAILY_REPORT_RUNS_TABLE_NAME} (report_key)"
+            )
+    if not _has_unique_index_for_column(engine, DAILY_REPORT_RUNS_TABLE_NAME, "search_batch_id"):
+        with engine.begin() as connection:
+            connection.exec_driver_sql(
+                f"CREATE UNIQUE INDEX uniq_daily_report_search_batch "
+                f"ON {DAILY_REPORT_RUNS_TABLE_NAME} (search_batch_id)"
             )

@@ -1,8 +1,10 @@
 import { Button, Divider, Input, InputNumber, Select, Space, Typography } from "antd";
+import { useEffect, useState } from "react";
 
 import { reviewStatusOptions } from "./reviewStatuses";
 
 export interface FilterValues {
+  batch?: string;
   job?: string;
   match?: string;
   status?: string;
@@ -16,6 +18,7 @@ export interface FilterValues {
 
 interface Props {
   values: FilterValues;
+  batches: readonly { value: string; label: string }[];
   allowedJobs: readonly string[];
   onChange: (key: keyof FilterValues, value: string | number | undefined) => void;
   onReset: () => void;
@@ -26,8 +29,10 @@ const jobLabels: Record<string, string> = {
   finance_shared_management_v1: "财务共享与管理经理",
 };
 
-export function QueueFilters({ values, allowedJobs, onChange, onReset }: Props) {
+export function QueueFilters({ values, batches, allowedJobs, onChange, onReset }: Props) {
   const set = <Key extends keyof FilterValues>(key: Key, value: FilterValues[Key]) => onChange(key, value);
+  const [keywordDraft, setKeywordDraft] = useState(values.keyword ?? "");
+  useEffect(() => { setKeywordDraft(values.keyword ?? ""); }, [values.keyword]);
   return (
     <aside className="filter-panel" aria-label="候选人筛选">
       <Space direction="vertical" size={14} className="filter-stack">
@@ -36,11 +41,21 @@ export function QueueFilters({ values, allowedJobs, onChange, onReset }: Props) 
           <Input.Search
             placeholder="姓名、公司、职位或关键词"
             allowClear
-            value={values.keyword}
+            value={keywordDraft}
             onSearch={(value) => set("keyword", value || undefined)}
-            onChange={(event) => !event.target.value && set("keyword", undefined)}
+            onChange={(event) => {
+              const value = event.target.value;
+              setKeywordDraft(value);
+              if (!value) set("keyword", undefined);
+            }}
           />
         </div>
+        <FilterSelect
+          label="搜索批次"
+          value={values.batch}
+          options={[...batches]}
+          onChange={(value) => set("batch", value)}
+        />
         <FilterSelect
           label="岗位"
           value={values.job}
@@ -97,7 +112,7 @@ export function QueueFilters({ values, allowedJobs, onChange, onReset }: Props) 
           onChange={(value) => set("communication", value)}
         />
         <div>
-          <Typography.Text className="filter-label">审核人 / 负责人</Typography.Text>
+          <Typography.Text className="filter-label">审核人</Typography.Text>
           <InputNumber
             aria-label="审核人 ID"
             min={1}

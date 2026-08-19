@@ -8,7 +8,6 @@ from sqlalchemy import Engine
 from apps.hr_review_api.domain.access_policy import can_view_all_jobs
 from apps.hr_review_api.domain.errors import (
     AuthorizationError,
-    BatchNotFoundError,
     CandidateNotFoundError,
 )
 from apps.hr_review_api.domain.models import (
@@ -26,7 +25,7 @@ JOB_PROFILE_IDS = frozenset({"daren_live_bd_v1", "finance_shared_management_v1"}
 
 
 class CandidateQueryService:
-    """编排岗位隔离、批次窗口和候选人查询口径。"""
+    """编排岗位隔离、可选批次窗口和候选人查询口径。"""
 
     def __init__(
         self,
@@ -59,12 +58,21 @@ class CandidateQueryService:
         now: datetime,
     ) -> CandidateDetail:
         allowed_jobs = self.allowed_jobs(user)
+        completed_batch_ids = self.completed_batch_ids()
         # 完整简历和正式链接均为敏感访问，审计事件与读取成功在同一事务提交。
         with self.engine.begin() as connection:
+            if not self.candidates.materialize_candidate_for_review(
+                connection,
+                candidate_fingerprint=candidate_fingerprint,
+                allowed_job_profile_ids=allowed_jobs,
+                allowed_batch_ids=completed_batch_ids,
+            ):
+                raise CandidateNotFoundError("候选人不存在或无岗位访问权限")
             detail = self.candidates.get_candidate_detail(
                 connection,
                 candidate_fingerprint=candidate_fingerprint,
                 allowed_job_profile_ids=allowed_jobs,
+                allowed_batch_ids=completed_batch_ids,
                 include_sensitive_link=user.can_view_sensitive,
             )
             if detail is None:
@@ -86,11 +94,13 @@ class CandidateQueryService:
         user: AuthenticatedUser,
         candidate_fingerprint: str,
     ) -> tuple[ReviewEvent, ...]:
+        completed_batch_ids = self.completed_batch_ids()
         with self.engine.connect() as connection:
             history = self.candidates.list_review_history(
                 connection,
                 candidate_fingerprint=candidate_fingerprint,
                 allowed_job_profile_ids=self.allowed_jobs(user),
+                allowed_batch_ids=completed_batch_ids,
             )
         if not history:
             with self.engine.connect() as connection:
@@ -98,6 +108,7 @@ class CandidateQueryService:
                     connection,
                     candidate_fingerprint=candidate_fingerprint,
                     allowed_job_profile_ids=self.allowed_jobs(user),
+                    allowed_batch_ids=completed_batch_ids,
                     include_sensitive_link=False,
                 )
             if detail is None:
@@ -114,18 +125,21 @@ class CandidateQueryService:
         allowed_jobs = self.allowed_jobs(user)
         if criteria.job_profile_id and criteria.job_profile_id not in allowed_jobs:
             raise AuthorizationError("无权查看该岗位候选人")
-        available_batches = self.batches.list_completed()
         if batch_id:
-            batch = self.batches.get(batch_id)
-        elif available_batches:
-            batch = available_batches[0]
-        else:
-            raise BatchNotFoundError("没有可用的已完成搜索批次")
+            self.batches.get(batch_id)
+        batch_ids = (
+            frozenset()
+            if batch_id
+            else self.completed_batch_ids()
+        )
         actionable_scope = criteria.review_scope in {"mine", "pending"}
         return replace(
             criteria,
-            batch_start=batch.started_at,
-            batch_end=batch.ended_at,
+            batch_id=batch_id,
+            batch_ids=batch_ids,
+            # API 批次查询必须使用持久化批次 ID；时间仅是批次元数据。
+            batch_start=None,
+            batch_end=None,
             allowed_job_profile_ids=allowed_jobs,
             actionable_match_results=(
                 frozenset({"relevant", "needs_review"}) if actionable_scope else frozenset()
@@ -137,6 +151,12 @@ class CandidateQueryService:
             exclude_suppressed_report=actionable_scope,
             current_user_id=user.id,
         )
+
+    def completed_batch_ids(self) -> frozenset[str]:
+        """Return the cumulative completed-batch scope, failing closed when none exists."""
+
+        batch_ids = frozenset(item.batch_id for item in self.batches.list_completed())
+        return batch_ids or frozenset({"__no_completed_batch__"})
 
     @staticmethod
     def allowed_jobs(user: AuthenticatedUser) -> frozenset[str]:

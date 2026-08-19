@@ -2,19 +2,24 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Sequence
 from datetime import datetime
 
 from sqlalchemy import (
     Connection,
     Select,
     and_,
+    case,
     exists,
     func,
     insert,
     or_,
     select,
+    true,
     update,
 )
+from sqlalchemy.dialects.mysql import insert as mysql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.engine import RowMapping
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -35,6 +40,16 @@ from liepin_rpa.candidate_decision_rules import (
     ANALYSIS_STATUS_MATCHED,
     ANALYSIS_STATUS_NEEDS_REVIEW,
 )
+from liepin_rpa.communication_status_policy import (
+    FAILED_HIT_STATUS_MARKERS,
+    FAILED_HIT_STATUS_PREFIXES,
+    FAILED_HIT_STATUS_SUFFIXES,
+    FAILED_HIT_STATUSES,
+    PREVIOUSLY_CONTACTED_HIT_STATUSES,
+    PREVIOUSLY_CONTACTED_PREFIXES,
+    SENT_HIT_STATUSES,
+    normalize_communication_status,
+)
 from liepin_rpa.db import (
     resume_analysis_cache,
     resume_experience_records,
@@ -46,11 +61,11 @@ JOB_TITLES = {
     "daren_live_bd_v1": "达人营销与达播负责人",
     "finance_shared_management_v1": "财务共享与管理经理",
 }
-SORT_COLUMNS = {
-    "candidate_name": resume_experience_records.c.candidate_name,
-    "match_score": resume_analysis_cache.c.match_score,
-    "updated_at": resume_experience_records.c.updated_at,
-    "review_status": resume_experience_records.c.manual_review_status,
+SORT_FIELD_NAMES = {
+    "candidate_name": "candidate_name",
+    "match_score": "match_score",
+    "updated_at": "updated_at",
+    "review_status": "review_status",
 }
 AGE_PATTERN = re.compile(r"(?:年龄|岁数)[:：]?\s*(\d{2})|(?<!\d)(\d{2})岁")
 CARD_COMPANY_TITLE_PATTERN = re.compile(
@@ -70,10 +85,13 @@ class CandidateRepository:
     ) -> CandidatePage:
         statement = self._base_select(criteria)
         total = int(connection.scalar(select(func.count()).select_from(statement.subquery())) or 0)
-        sort_column = SORT_COLUMNS[criteria.sort_by]
+        sort_column = statement.selected_columns[SORT_FIELD_NAMES[criteria.sort_by]]
         ordering = sort_column.asc() if criteria.sort_order == "asc" else sort_column.desc()
         rows = connection.execute(
-            statement.order_by(ordering, resume_experience_records.c.id.desc())
+            statement.order_by(
+                ordering,
+                statement.selected_columns["candidate_fingerprint"].desc(),
+            )
             .limit(criteria.page_size)
             .offset((criteria.page - 1) * criteria.page_size)
         ).mappings()
@@ -100,6 +118,7 @@ class CandidateRepository:
         before: datetime | None,
         allowed_job_profile_ids: frozenset[str],
         job_profile_id: str | None = None,
+        batch_id: str | None = None,
     ) -> int:
         source_filters: list[ColumnElement[bool]] = [
             resume_source_locators.c.candidate_fingerprint
@@ -108,6 +127,8 @@ class CandidateRepository:
         source_filters.append(resume_source_locators.c.job_profile_id.in_(allowed_job_profile_ids))
         if job_profile_id:
             source_filters.append(resume_source_locators.c.job_profile_id == job_profile_id)
+        if batch_id:
+            source_filters.append(resume_source_locators.c.search_batch_id == batch_id)
         source_permission = exists(
             select(1).select_from(resume_source_locators).where(*source_filters)
         )
@@ -129,20 +150,18 @@ class CandidateRepository:
         *,
         candidate_fingerprint: str,
         allowed_job_profile_ids: frozenset[str],
+        allowed_batch_ids: frozenset[str] = frozenset(),
         include_sensitive_link: bool,
     ) -> CandidateDetail | None:
         criteria = CandidateQueryCriteria(
             allowed_job_profile_ids=allowed_job_profile_ids,
+            batch_ids=allowed_batch_ids,
             page_size=1,
         )
-        row = (
-            connection.execute(
-                self._base_select(criteria).where(
-                    resume_experience_records.c.candidate_fingerprint == candidate_fingerprint
-                )
-            )
-            .mappings()
-            .first()
+        row = self._candidate_row(
+            connection,
+            criteria=criteria,
+            candidate_fingerprint=candidate_fingerprint,
         )
         if row is None:
             return None
@@ -150,17 +169,24 @@ class CandidateRepository:
             resume_source_locators.c.candidate_fingerprint == candidate_fingerprint
         ]
         source_filters.append(resume_source_locators.c.job_profile_id.in_(allowed_job_profile_ids))
-        source_rows = connection.execute(
-            select(resume_source_locators)
-            .where(*source_filters)
-            .order_by(
-                resume_source_locators.c.created_at.desc(), resume_source_locators.c.id.desc()
+        if allowed_batch_ids:
+            source_filters.append(resume_source_locators.c.search_batch_id.in_(allowed_batch_ids))
+        source_rows = (
+            connection.execute(
+                select(resume_source_locators)
+                .where(*source_filters)
+                .order_by(
+                    resume_source_locators.c.created_at.desc(), resume_source_locators.c.id.desc()
+                )
             )
-        ).mappings()
+            .mappings()
+            .all()
+        )
         history = self.list_review_history(
             connection,
             candidate_fingerprint=candidate_fingerprint,
             allowed_job_profile_ids=allowed_job_profile_ids,
+            allowed_batch_ids=allowed_batch_ids,
         )
         return CandidateDetail(
             summary=self._summary_from_row(row),
@@ -183,7 +209,7 @@ class CandidateRepository:
             ),
             sources=tuple(
                 self._source_from_row(source, include_sensitive_link=include_sensitive_link)
-                for source in source_rows
+                for source in _deduplicate_source_rows(source_rows)
             ),
             history=history,
         )
@@ -194,14 +220,13 @@ class CandidateRepository:
         *,
         candidate_fingerprint: str,
         allowed_job_profile_ids: frozenset[str],
+        allowed_batch_ids: frozenset[str] = frozenset(),
     ) -> tuple[ReviewEvent, ...]:
-        if not connection.scalar(
-            select(
-                self._source_exists(
-                    candidate_fingerprint=candidate_fingerprint,
-                    allowed_job_profile_ids=allowed_job_profile_ids,
-                )
-            )
+        if not self._candidate_is_visible(
+            connection,
+            candidate_fingerprint=candidate_fingerprint,
+            allowed_job_profile_ids=allowed_job_profile_ids,
+            allowed_batch_ids=allowed_batch_ids,
         ):
             return ()
         rows = connection.execute(
@@ -217,14 +242,13 @@ class CandidateRepository:
         *,
         candidate_fingerprint: str,
         allowed_job_profile_ids: frozenset[str],
+        allowed_batch_ids: frozenset[str] = frozenset(),
     ) -> RowMapping | None:
-        if not connection.scalar(
-            select(
-                self._source_exists(
-                    candidate_fingerprint=candidate_fingerprint,
-                    allowed_job_profile_ids=allowed_job_profile_ids,
-                )
-            )
+        if not self._candidate_is_visible(
+            connection,
+            candidate_fingerprint=candidate_fingerprint,
+            allowed_job_profile_ids=allowed_job_profile_ids,
+            allowed_batch_ids=allowed_batch_ids,
         ):
             return None
         return (
@@ -240,6 +264,108 @@ class CandidateRepository:
             )
             .mappings()
             .first()
+        )
+
+    def materialize_candidate_for_review(
+        self,
+        connection: Connection,
+        *,
+        candidate_fingerprint: str,
+        allowed_job_profile_ids: frozenset[str],
+        allowed_batch_ids: frozenset[str] = frozenset(),
+    ) -> bool:
+        """Idempotently create the mutable HR snapshot for an analysis-led candidate."""
+
+        existing = connection.scalar(
+            select(resume_experience_records.c.candidate_fingerprint).where(
+                resume_experience_records.c.candidate_fingerprint == candidate_fingerprint
+            )
+        )
+        if existing is not None:
+            return True
+        criteria = CandidateQueryCriteria(
+            allowed_job_profile_ids=allowed_job_profile_ids,
+            batch_ids=allowed_batch_ids,
+            page_size=1,
+        )
+        row = self._candidate_row(
+            connection,
+            criteria=criteria,
+            candidate_fingerprint=candidate_fingerprint,
+        )
+        if row is None or row["analysis_version"] is None:
+            return False
+        values = {
+            "candidate_fingerprint": candidate_fingerprint,
+            # 分析缓存中的 hash 可能已被另一主档占用；人工快照不依赖该唯一键。
+            "experience_hash": None,
+            "candidate_name": row["candidate_name"],
+            "source_platform": row["source_platform"] or "liepin",
+            "search_keyword": row["search_keyword"],
+            "experience": row["experience"],
+            "match_score": row["match_score"],
+            "analysis_status": row["analysis_status"] or "未执行",
+        }
+        if connection.dialect.name == "sqlite":
+            values["id"] = (
+                int(connection.scalar(select(func.max(resume_experience_records.c.id))) or 0) + 1
+            )
+            statement = sqlite_insert(resume_experience_records).values(**values)
+            connection.execute(
+                statement.on_conflict_do_nothing(index_elements=["candidate_fingerprint"])
+            )
+        elif connection.dialect.name == "mysql":
+            connection.execute(
+                mysql_insert(resume_experience_records).values(**values).prefix_with("IGNORE")
+            )
+        else:
+            connection.execute(insert(resume_experience_records).values(**values))
+        return bool(
+            connection.scalar(
+                select(resume_experience_records.c.candidate_fingerprint).where(
+                    resume_experience_records.c.candidate_fingerprint == candidate_fingerprint
+                )
+            )
+        )
+
+    def _candidate_row(
+        self,
+        connection: Connection,
+        *,
+        criteria: CandidateQueryCriteria,
+        candidate_fingerprint: str,
+    ) -> RowMapping | None:
+        visible_candidates = self._base_select(criteria).subquery("visible_candidates")
+        return (
+            connection.execute(
+                select(visible_candidates).where(
+                    visible_candidates.c.candidate_fingerprint == candidate_fingerprint
+                )
+            )
+            .mappings()
+            .first()
+        )
+
+    def _candidate_is_visible(
+        self,
+        connection: Connection,
+        *,
+        candidate_fingerprint: str,
+        allowed_job_profile_ids: frozenset[str],
+        allowed_batch_ids: frozenset[str] = frozenset(),
+    ) -> bool:
+        criteria = CandidateQueryCriteria(
+            allowed_job_profile_ids=allowed_job_profile_ids,
+            batch_ids=allowed_batch_ids,
+            page_size=1,
+        )
+        return (
+            self._candidate_row(
+                connection,
+                criteria=criteria,
+                candidate_fingerprint=candidate_fingerprint,
+            )
+            is not None
         )
 
     def update_review_snapshot(
@@ -351,6 +477,7 @@ class CandidateRepository:
             .group_by(resume_analysis_cache.c.candidate_fingerprint)
             .subquery("latest_analysis_ids")
         )
+        candidate_fingerprint = latest_analysis_ids.c.candidate_fingerprint
         latest_locator_ids = (
             select(
                 resume_source_locators.c.candidate_fingerprint.label("candidate_fingerprint"),
@@ -371,43 +498,105 @@ class CandidateRepository:
             .group_by(resume_search_hits.c.candidate_fingerprint)
             .subquery("latest_hit_ids")
         )
-        statement = select(
-            resume_experience_records.c.candidate_fingerprint,
-            resume_experience_records.c.experience_hash,
+        inferred_job_profile = case(
+            (
+                or_(
+                    resume_analysis_cache.c.analysis_version.like("%finance%"),
+                    resume_search_hits.c.search_keyword.like("%财务%"),
+                ),
+                "finance_shared_management_v1",
+            ),
+            else_="daren_live_bd_v1",
+        )
+        job_profile = func.coalesce(
+            resume_source_locators.c.job_profile_id,
+            inferred_job_profile,
+        )
+        candidate_name = func.coalesce(
+            resume_search_hits.c.candidate_name,
+            resume_source_locators.c.candidate_name,
             resume_experience_records.c.candidate_name,
+        )
+        experience = func.coalesce(
+            resume_analysis_cache.c.experience,
             resume_experience_records.c.experience,
+        )
+        experience_hash = func.coalesce(
+            resume_analysis_cache.c.experience_hash,
+            resume_experience_records.c.experience_hash,
+        )
+        analysis_status = func.coalesce(
+            resume_analysis_cache.c.analysis_status,
+            resume_experience_records.c.analysis_status,
+            "未执行",
+        )
+        match_score = func.coalesce(
+            resume_analysis_cache.c.match_score,
+            resume_experience_records.c.match_score,
+        )
+        review_status = func.coalesce(
+            resume_experience_records.c.manual_review_status,
+            "pending_review",
+        )
+        updated_at = func.coalesce(
+            resume_experience_records.c.updated_at,
+            resume_analysis_cache.c.updated_at,
+            resume_search_hits.c.created_at,
+            resume_source_locators.c.created_at,
+        )
+        communication_status = self._communication_status_expression(
+            criteria,
+            candidate_fingerprint=candidate_fingerprint,
+        )
+        statement = select(
+            candidate_fingerprint.label("candidate_fingerprint"),
+            experience_hash.label("experience_hash"),
+            candidate_name.label("candidate_name"),
+            experience.label("experience"),
             resume_experience_records.c.manual_review_status,
             resume_experience_records.c.manual_review_feedback,
             resume_experience_records.c.manual_reviewed_by,
             resume_experience_records.c.manual_review_assignee_id,
             resume_experience_records.c.manual_review_revision,
-            resume_experience_records.c.updated_at,
+            review_status.label("review_status"),
+            updated_at.label("updated_at"),
             resume_analysis_cache.c.match_result,
-            resume_analysis_cache.c.analysis_status,
-            resume_analysis_cache.c.match_score,
+            analysis_status.label("analysis_status"),
+            match_score.label("match_score"),
             resume_analysis_cache.c.analysis_version,
             resume_analysis_cache.c.score_breakdown_json,
             resume_analysis_cache.c.analysis_reason,
             resume_analysis_cache.c.evidence_summary_json,
-            resume_source_locators.c.job_profile_id,
+            job_profile.label("job_profile_id"),
+            func.coalesce(
+                resume_search_hits.c.search_keyword,
+                resume_source_locators.c.search_keyword,
+                resume_experience_records.c.search_keyword,
+            ).label("search_keyword"),
+            func.coalesce(
+                resume_source_locators.c.source_platform,
+                resume_experience_records.c.source_platform,
+                "liepin",
+            ).label("source_platform"),
             resume_source_locators.c.candidate_card_text,
-            resume_search_hits.c.hit_status,
+            communication_status.label("communication_status"),
             hr_users.c.display_name.label("reviewer_name"),
-            self._share_link_exists(criteria).label("has_share_link"),
+            self._share_link_exists(
+                criteria,
+                candidate_fingerprint=candidate_fingerprint,
+            ).label("has_share_link"),
         ).select_from(
-            resume_experience_records.outerjoin(
-                latest_analysis_ids,
-                latest_analysis_ids.c.candidate_fingerprint
-                == resume_experience_records.c.candidate_fingerprint,
-            )
-            .outerjoin(
+            latest_analysis_ids.join(
                 resume_analysis_cache,
                 resume_analysis_cache.c.id == latest_analysis_ids.c.analysis_id,
             )
             .outerjoin(
+                resume_experience_records,
+                resume_experience_records.c.candidate_fingerprint == candidate_fingerprint,
+            )
+            .outerjoin(
                 latest_locator_ids,
-                latest_locator_ids.c.candidate_fingerprint
-                == resume_experience_records.c.candidate_fingerprint,
+                latest_locator_ids.c.candidate_fingerprint == candidate_fingerprint,
             )
             .outerjoin(
                 resume_source_locators,
@@ -415,25 +604,44 @@ class CandidateRepository:
             )
             .outerjoin(
                 latest_hit_ids,
-                latest_hit_ids.c.candidate_fingerprint
-                == resume_experience_records.c.candidate_fingerprint,
+                latest_hit_ids.c.candidate_fingerprint == candidate_fingerprint,
             )
             .outerjoin(resume_search_hits, resume_search_hits.c.id == latest_hit_ids.c.hit_id)
-            .outerjoin(hr_users, hr_users.c.id == resume_experience_records.c.manual_reviewed_by)
+            .outerjoin(
+                hr_users,
+                hr_users.c.id
+                == func.coalesce(
+                    resume_experience_records.c.manual_review_assignee_id,
+                    resume_experience_records.c.manual_reviewed_by,
+                ),
+            )
         )
-        return self._apply_criteria(statement, criteria)
+        return self._apply_criteria(
+            statement,
+            criteria,
+            candidate_fingerprint=candidate_fingerprint,
+            inferred_job_profile=inferred_job_profile,
+            candidate_name=candidate_name,
+            experience=experience,
+            communication_status=communication_status,
+        )
 
     def _apply_criteria(
         self,
         statement: Select[tuple[object, ...]],
         criteria: CandidateQueryCriteria,
+        *,
+        candidate_fingerprint: ColumnElement[str],
+        inferred_job_profile: ColumnElement[str],
+        candidate_name: ColumnElement[str],
+        experience: ColumnElement[str],
+        communication_status: ColumnElement[str],
     ) -> Select[tuple[object, ...]]:
         filters: list[ColumnElement[bool]] = [
-            self._source_exists(
-                batch_start=criteria.batch_start,
-                batch_end=criteria.batch_end,
-                job_profile_id=criteria.job_profile_id,
-                allowed_job_profile_ids=criteria.allowed_job_profile_ids,
+            self._candidate_visibility_expression(
+                criteria,
+                candidate_fingerprint=candidate_fingerprint,
+                inferred_job_profile=inferred_job_profile,
             )
         ]
         if criteria.match_result:
@@ -451,21 +659,34 @@ class CandidateRepository:
                 == criteria.review_status
             )
         if criteria.reviewer_id is not None:
-            filters.append(resume_experience_records.c.manual_reviewed_by == criteria.reviewer_id)
+            filters.append(
+                func.coalesce(
+                    resume_experience_records.c.manual_review_assignee_id,
+                    resume_experience_records.c.manual_reviewed_by,
+                )
+                == criteria.reviewer_id
+            )
         if criteria.communication_status:
-            filters.append(resume_search_hits.c.hit_status == criteria.communication_status)
+            filters.append(communication_status == criteria.communication_status)
         if criteria.has_share_link is not None:
-            link_exists = self._share_link_exists(criteria)
+            link_exists = self._share_link_exists(
+                criteria,
+                candidate_fingerprint=candidate_fingerprint,
+            )
             filters.append(link_exists if criteria.has_share_link else ~link_exists)
         if criteria.keyword:
             term = f"%{criteria.keyword}%"
             filters.append(
                 or_(
-                    resume_experience_records.c.candidate_name.like(term),
-                    resume_experience_records.c.experience.like(term),
+                    candidate_name.like(term),
+                    experience.like(term),
+                    resume_search_hits.c.search_keyword.like(term),
                     self._source_exists(
+                        candidate_fingerprint=candidate_fingerprint,
                         batch_start=criteria.batch_start,
                         batch_end=criteria.batch_end,
+                        batch_id=criteria.batch_id,
+                        batch_ids=criteria.batch_ids,
                         job_profile_id=criteria.job_profile_id,
                         allowed_job_profile_ids=criteria.allowed_job_profile_ids,
                         keyword=criteria.keyword,
@@ -475,7 +696,9 @@ class CandidateRepository:
         if criteria.actionable_match_results:
             filters.append(self._actionable_expression(criteria))
         if criteria.exclude_suppressed_report:
-            filters.append(resume_experience_records.c.manual_suppress_report == 0)
+            filters.append(
+                func.coalesce(resume_experience_records.c.manual_suppress_report, 0) == 0
+            )
         filters.extend(self._review_scope_filters(criteria))
         return statement.where(*filters)
 
@@ -517,14 +740,8 @@ class CandidateRepository:
             "pending_review",
         )
         if criteria.review_scope == "mine":
-            return [
-                status == "pending_review",
-                or_(
-                    resume_experience_records.c.manual_review_assignee_id.is_(None),
-                    resume_experience_records.c.manual_review_assignee_id
-                    == criteria.current_user_id,
-                ),
-            ]
+            # 兼容旧客户端的 mine 值；审核人仅作为业务信息，不再用于队列分权。
+            return [status == "pending_review"]
         if criteria.review_scope == "pending":
             return [status == "pending_review"]
         if criteria.review_scope == "progress":
@@ -533,12 +750,54 @@ class CandidateRepository:
             return [status.in_(("resume_rejected", "interview_rejected", "hired"))]
         return []
 
+    @classmethod
+    def _candidate_visibility_expression(
+        cls,
+        criteria: CandidateQueryCriteria,
+        *,
+        candidate_fingerprint: ColumnElement[str],
+        inferred_job_profile: ColumnElement[str],
+    ) -> ColumnElement[bool]:
+        authorized_source = cls._source_exists(
+            candidate_fingerprint=candidate_fingerprint,
+            batch_start=criteria.batch_start,
+            batch_end=criteria.batch_end,
+            batch_id=criteria.batch_id,
+            batch_ids=criteria.batch_ids,
+            job_profile_id=criteria.job_profile_id,
+            allowed_job_profile_ids=criteria.allowed_job_profile_ids,
+        )
+        # 历史日报允许 locator 缺失时按分析版本/关键词归类。工作台仅对拥有
+        # 全岗位权限的角色采用该回退，岗位受限角色仍必须有明确 locator 授权。
+        if (
+            set(criteria.allowed_job_profile_ids) != set(JOB_TITLES)
+            or criteria.batch_id is not None
+            or bool(criteria.batch_ids)
+            or criteria.batch_start is not None
+            or criteria.batch_end is not None
+        ):
+            return authorized_source
+        no_locator = ~exists(
+            select(1)
+            .select_from(resume_source_locators)
+            .where(resume_source_locators.c.candidate_fingerprint == candidate_fingerprint)
+            .correlate_except(resume_source_locators)
+        )
+        inferred_in_scope: ColumnElement[bool]
+        if criteria.job_profile_id:
+            inferred_in_scope = inferred_job_profile == criteria.job_profile_id
+        else:
+            inferred_in_scope = inferred_job_profile.in_(criteria.allowed_job_profile_ids)
+        return or_(authorized_source, and_(no_locator, inferred_in_scope))
+
     @staticmethod
     def _source_exists(
         *,
-        candidate_fingerprint: str | None = None,
+        candidate_fingerprint: str | ColumnElement[str] | None = None,
         batch_start: datetime | None = None,
         batch_end: datetime | None = None,
+        batch_id: str | None = None,
+        batch_ids: frozenset[str] = frozenset(),
         job_profile_id: str | None = None,
         allowed_job_profile_ids: frozenset[str] = frozenset(),
         keyword: str | None = None,
@@ -551,9 +810,13 @@ class CandidateRepository:
                 else resume_experience_records.c.candidate_fingerprint
             )
         ]
-        if batch_start is not None:
+        if batch_id is not None:
+            filters.append(resume_source_locators.c.search_batch_id == batch_id)
+        elif batch_ids:
+            filters.append(resume_source_locators.c.search_batch_id.in_(batch_ids))
+        elif batch_start is not None:
             filters.append(resume_source_locators.c.created_at >= _database_time(batch_start))
-        if batch_end is not None:
+        if batch_id is None and batch_end is not None:
             filters.append(resume_source_locators.c.created_at < _database_time(batch_end))
         if job_profile_id:
             filters.append(resume_source_locators.c.job_profile_id == job_profile_id)
@@ -565,7 +828,7 @@ class CandidateRepository:
             select(1)
             .select_from(resume_source_locators)
             .where(*filters)
-            .correlate(resume_experience_records)
+            .correlate_except(resume_source_locators)
         )
 
     @staticmethod
@@ -575,36 +838,48 @@ class CandidateRepository:
         filters: list[ColumnElement[bool]] = [
             resume_source_locators.c.job_profile_id.in_(criteria.allowed_job_profile_ids)
         ]
-        if criteria.batch_start is not None:
+        if criteria.batch_id is not None:
+            filters.append(resume_source_locators.c.search_batch_id == criteria.batch_id)
+        elif criteria.batch_ids:
+            filters.append(resume_source_locators.c.search_batch_id.in_(criteria.batch_ids))
+        elif criteria.batch_start is not None:
             filters.append(
                 resume_source_locators.c.created_at >= _database_time(criteria.batch_start)
             )
-        if criteria.batch_end is not None:
+        if criteria.batch_id is None and criteria.batch_end is not None:
             filters.append(resume_source_locators.c.created_at < _database_time(criteria.batch_end))
         if criteria.job_profile_id:
             filters.append(resume_source_locators.c.job_profile_id == criteria.job_profile_id)
         return filters
 
     @classmethod
-    def _share_link_exists(cls, criteria: CandidateQueryCriteria) -> ColumnElement[bool]:
+    def _share_link_exists(
+        cls,
+        criteria: CandidateQueryCriteria,
+        *,
+        candidate_fingerprint: str | ColumnElement[str] | None = None,
+    ) -> ColumnElement[bool]:
+        fingerprint = (
+            candidate_fingerprint
+            if candidate_fingerprint is not None
+            else resume_experience_records.c.candidate_fingerprint
+        )
         return exists(
             select(1)
             .select_from(resume_source_locators)
             .where(
-                resume_source_locators.c.candidate_fingerprint
-                == resume_experience_records.c.candidate_fingerprint,
+                resume_source_locators.c.candidate_fingerprint == fingerprint,
                 resume_source_locators.c.locator_quality == "share_link",
                 resume_source_locators.c.detail_deep_link.is_not(None),
                 *cls._locator_scope_filters(criteria),
             )
-            .correlate(resume_experience_records)
+            .correlate_except(resume_source_locators)
         )
 
     @classmethod
     def _hit_in_locator_scope(cls, criteria: CandidateQueryCriteria) -> ColumnElement[bool]:
         """搜索命中表无岗位列，以同候选人和关键词的授权定位作为最小权限边界。"""
-
-        return exists(
+        scoped_locator = exists(
             select(1)
             .select_from(resume_source_locators)
             .where(
@@ -615,11 +890,93 @@ class CandidateRepository:
             )
             .correlate(resume_search_hits)
         )
+        if criteria.batch_id is not None:
+            return and_(
+                resume_search_hits.c.search_batch_id == criteria.batch_id,
+                scoped_locator,
+            )
+        if criteria.batch_ids:
+            return and_(
+                resume_search_hits.c.search_batch_id.in_(criteria.batch_ids),
+                scoped_locator,
+            )
+        # 日报对缺失 locator 的历史记录按关键词归类；仅“全岗位”角色可采用该
+        # 回退，岗位受限账号不得借默认分类越过 locator 权限边界。
+        all_jobs_allowed = set(criteria.allowed_job_profile_ids) == set(JOB_TITLES)
+        if not all_jobs_allowed:
+            return scoped_locator
+        no_locator = ~exists(
+            select(1)
+            .select_from(resume_source_locators)
+            .where(
+                resume_source_locators.c.candidate_fingerprint
+                == resume_search_hits.c.candidate_fingerprint
+            )
+            .correlate(resume_search_hits)
+        )
+        inferred_job: ColumnElement[bool]
+        if criteria.job_profile_id == "finance_shared_management_v1":
+            inferred_job = resume_search_hits.c.search_keyword.like("%财务%")
+        elif criteria.job_profile_id == "daren_live_bd_v1":
+            inferred_job = ~resume_search_hits.c.search_keyword.like("%财务%")
+        else:
+            inferred_job = true()
+        return or_(scoped_locator, and_(no_locator, inferred_job))
+
+    @classmethod
+    def _communication_status_expression(
+        cls,
+        criteria: CandidateQueryCriteria,
+        *,
+        candidate_fingerprint: ColumnElement[str],
+    ) -> ColumnElement[str]:
+        """按当前岗位/批次内全部命中保留最高沟通事实，而不是只看最后一条。"""
+
+        raw_status = resume_search_hits.c.hit_status
+
+        def history_exists(status_filter: ColumnElement[bool]) -> ColumnElement[bool]:
+            return exists(
+                select(1)
+                .select_from(resume_search_hits)
+                .where(
+                    resume_search_hits.c.candidate_fingerprint == candidate_fingerprint,
+                    cls._hit_in_locator_scope(criteria),
+                    status_filter,
+                )
+                .correlate_except(resume_search_hits)
+            )
+
+        sent = history_exists(raw_status.in_(SENT_HIT_STATUSES))
+        previously_contacted = history_exists(
+            or_(
+                raw_status.in_(PREVIOUSLY_CONTACTED_HIT_STATUSES),
+                *(raw_status.like(f"{prefix}%") for prefix in PREVIOUSLY_CONTACTED_PREFIXES),
+            )
+        )
+        failed = history_exists(
+            or_(
+                raw_status.in_(FAILED_HIT_STATUSES),
+                *(raw_status.like(f"{prefix}%") for prefix in FAILED_HIT_STATUS_PREFIXES),
+                *(raw_status.like(f"%{suffix}") for suffix in FAILED_HIT_STATUS_SUFFIXES),
+                *(raw_status.like(f"%{marker}%") for marker in FAILED_HIT_STATUS_MARKERS),
+            )
+        )
+        return case(
+            (sent, "sent"),
+            (previously_contacted, "previously_contacted"),
+            (failed, "failed"),
+            else_="not_sent",
+        )
 
     @staticmethod
     def _summary_from_row(row: RowMapping) -> CandidateSummary:
         job_profile_id = str(row["job_profile_id"]) if row["job_profile_id"] else None
-        review_status = str(row["manual_review_status"] or "pending_review")
+        review_status = str(row["review_status"] or "pending_review")
+        displayed_reviewer_id = (
+            row["manual_review_assignee_id"]
+            if row["manual_review_assignee_id"] is not None
+            else row["manual_reviewed_by"]
+        )
         return CandidateSummary(
             candidate_fingerprint=str(row["candidate_fingerprint"]),
             candidate_name=str(row["candidate_name"]) if row["candidate_name"] else None,
@@ -633,9 +990,9 @@ class CandidateRepository:
                 row["candidate_card_text"],
                 row["experience"],
             ),
-            communication_status=_communication_status(row["hit_status"]),
+            communication_status=str(row["communication_status"]),
             review_status=review_status,
-            reviewer_id=(int(row["manual_reviewed_by"]) if row["manual_reviewed_by"] else None),
+            reviewer_id=(int(displayed_reviewer_id) if displayed_reviewer_id is not None else None),
             reviewer_name=str(row["reviewer_name"]) if row["reviewer_name"] else None,
             revision=int(row["manual_review_revision"] or 0),
             has_share_link=bool(row["has_share_link"]),
@@ -684,6 +1041,49 @@ def _database_time(value: datetime) -> datetime:
     return value.replace(tzinfo=None) if value.tzinfo is not None else value
 
 
+def _deduplicate_source_rows(rows: Sequence[RowMapping]) -> tuple[RowMapping, ...]:
+    """Collapse repeated batch observations without discarding the persisted audit trail."""
+
+    selected: dict[tuple[str, ...], RowMapping] = {}
+    for row in rows:
+        key = tuple(
+            str(row[field] or "").strip().casefold()
+            for field in (
+                "job_profile_id",
+                "search_keyword",
+                "search_pack_id",
+                "source_account_alias",
+                "platform_interaction_note",
+            )
+        )
+        current = selected.get(key)
+        if current is None or _source_row_preference(row) > _source_row_preference(current):
+            selected[key] = row
+    return tuple(
+        sorted(
+            selected.values(),
+            key=lambda row: (row["created_at"], int(row["id"])),
+            reverse=True,
+        )
+    )
+
+
+def _source_row_preference(row: RowMapping) -> tuple[int, int, datetime, int]:
+    quality_rank = {
+        "share_link": 4,
+        "platform_id": 3,
+        "snapshot": 2,
+        "favorite": 1,
+    }
+    quality = str(row["locator_quality"] or "")
+    return (
+        quality_rank.get(quality, 0),
+        int(bool(row["detail_deep_link"])),
+        row["created_at"],
+        int(row["id"]),
+    )
+
+
 def _extract_age(value: object) -> int | None:
     if not isinstance(value, str):
         return None
@@ -716,14 +1116,7 @@ def _extract_current_company_title(card_text: object, experience: object) -> str
 
 
 def _communication_status(value: object) -> str:
-    status = str(value or "")
-    if status == "sent":
-        return "sent"
-    if "already" in status or "contacted" in status:
-        return "previously_contacted"
-    if "failed" in status or "error" in status:
-        return "failed"
-    return "not_sent"
+    return normalize_communication_status(value)
 
 
 def _decode_score_breakdown(value: object) -> tuple[str, ...]:

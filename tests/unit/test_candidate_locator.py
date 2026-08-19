@@ -21,13 +21,11 @@ from liepin_rpa.db import (
 
 def test_extracts_explicit_platform_ids_and_deep_link() -> None:
     root = ElementTree.fromstring(
-        """
-        <hierarchy>
-          <node package="com.lietou.mishu"
-                candidate_id="talent_A12345"
-                content-desc="liepin://candidate/detail?resumeId=res_B67890&amp;candidateId=talent_A12345" />
-        </hierarchy>
-        """
+        "<hierarchy>"
+        '<node package="com.lietou.mishu" candidate_id="talent_A12345" '
+        'content-desc="liepin://candidate/detail?resumeId=res_B67890&amp;'
+        'candidateId=talent_A12345" />'
+        "</hierarchy>"
     )
 
     evidence = extract_platform_locator_evidence(
@@ -119,6 +117,7 @@ def test_source_locator_round_trip_on_sqlite(monkeypatch) -> None:
         source_device_id="device-1",
         job_profile_id="finance_shared_management_v1",
         search_pack_id="finance_shared",
+        search_batch_id="batch-20260818",
         result_iteration=2,
         result_rank=1,
         candidate_card_fingerprint="card-fp",
@@ -142,6 +141,7 @@ def test_source_locator_round_trip_on_sqlite(monkeypatch) -> None:
     assert rows[0]["source_account_alias"] == "recruiter_a"
     assert rows[0]["platform_resume_id"] == "resume-5678"
     assert rows[0]["result_iteration"] == 2
+    assert rows[0]["search_batch_id"] == "batch-20260818"
     assert rows[0]["platform_interaction_note"] == "你们之前HR找过我"
 
     share_link = (

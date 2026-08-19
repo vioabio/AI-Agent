@@ -53,11 +53,20 @@ class ReviewService:
         if not can_submit_review(user.role):
             raise AuthorizationError("当前角色仅可查看，不能提交审核")
         allowed_jobs = self.query_service.allowed_jobs(user)
+        completed_batch_ids = self.query_service.completed_batch_ids()
         with self.engine.begin() as connection:
+            if not self.repository.materialize_candidate_for_review(
+                connection,
+                candidate_fingerprint=command.candidate_fingerprint,
+                allowed_job_profile_ids=allowed_jobs,
+                allowed_batch_ids=completed_batch_ids,
+            ):
+                raise CandidateNotFoundError("候选人不存在或无岗位访问权限")
             snapshot = self.repository.get_review_snapshot_for_update(
                 connection,
                 candidate_fingerprint=command.candidate_fingerprint,
                 allowed_job_profile_ids=allowed_jobs,
+                allowed_batch_ids=completed_batch_ids,
             )
             if snapshot is None:
                 raise CandidateNotFoundError("候选人不存在或无岗位访问权限")
@@ -112,6 +121,7 @@ class ReviewService:
                 connection,
                 candidate_fingerprint=command.candidate_fingerprint,
                 allowed_job_profile_ids=allowed_jobs,
+                allowed_batch_ids=completed_batch_ids,
                 include_sensitive_link=user.can_view_sensitive,
             )
             if detail is None:

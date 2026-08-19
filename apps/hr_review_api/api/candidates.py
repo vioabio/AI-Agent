@@ -43,7 +43,7 @@ def list_review_queue(
     communication_status: str | None = None,
     has_share_link: bool | None = None,
     keyword: Annotated[str | None, Query(max_length=100)] = None,
-    scope: ReviewScope = "mine",
+    scope: ReviewScope = "pending",
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
     sort_by: CandidateSort = "updated_at",

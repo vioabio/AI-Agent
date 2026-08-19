@@ -25,6 +25,8 @@ class SessionIdentity:
 
 @dataclass(frozen=True, slots=True)
 class CandidateQueryCriteria:
+    batch_id: str | None = None
+    batch_ids: frozenset[str] = field(default_factory=frozenset)
     batch_start: datetime | None = None
     batch_end: datetime | None = None
     job_profile_id: str | None = None

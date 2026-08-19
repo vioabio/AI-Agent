@@ -7,9 +7,11 @@ from liepin_rpa.feishu_report import (
     ReportCandidate,
     _build_job_progress_elements,
     _build_recruitment_progress_markdown,
+    _build_summary,
     select_review_candidates,
 )
 from liepin_rpa.hr_review_reporting import RecruitmentProgressSnapshot
+from liepin_rpa.search_execution.workflow import SearchWorkflowReport
 
 
 def test_job_progress_card_separates_today_and_cumulative_metrics() -> None:
@@ -30,7 +32,7 @@ def test_job_progress_card_separates_today_and_cumulative_metrics() -> None:
     assert "达人营销总监" in rendered
     assert "招聘进展明细" in rendered
     assert "简历卡片浏览人次" in rendered
-    assert "今日" in rendered
+    assert "本批次" in rendered
     assert "864" in rendered
     assert "累计" in rendered
     assert "38,695" in rendered
@@ -75,6 +77,30 @@ def test_only_needs_review_candidates_scoring_at_least_90_enter_review_list() ->
     assert select_review_candidates([below_threshold, at_threshold]) == [at_threshold]
 
 
+def test_immediate_job_confirmation_counts_as_successful_communication() -> None:
+    candidate = ReportCandidate(
+        candidate_fingerprint="confirmed-job",
+        candidate_name="已确认候选人",
+        analysis_status="匹配",
+        match_result="relevant",
+        match_score=95,
+        hit_status="immediate_job_confirmed",
+    )
+    report = SearchWorkflowReport(
+        total_keywords=1,
+        matched_keywords=1,
+        profiles_collected=1,
+        keyword_runs=[],
+        candidate_outcomes=[],
+        report_path="",
+    )
+
+    summary = _build_summary(report, [candidate])
+
+    assert summary.greeted_count == 1
+    assert summary.contacted_relevant_count == 1
+
+
 def test_recruitment_progress_block_labels_three_independent_metrics() -> None:
     rendered = _build_recruitment_progress_markdown(
         RecruitmentProgressSnapshot(
@@ -93,4 +119,4 @@ def test_recruitment_progress_block_labels_three_independent_metrics() -> None:
     assert "待审核：5 人" in rendered
     assert "面试中：1 人" in rendered
     assert "已录用：1 人" in rendered
-    assert "本统计窗口已反馈候选人：2 人" in rendered
+    assert "本批次已反馈候选人：2 人" in rendered

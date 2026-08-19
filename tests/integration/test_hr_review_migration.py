@@ -22,6 +22,29 @@ def test_hr_review_migration_upgrade_and_downgrade(tmp_path) -> None:
             )
             """
         )
+        connection.exec_driver_sql(
+            """
+            CREATE TABLE candidate_resume_search_hits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                candidate_fingerprint VARCHAR(64) NOT NULL
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            CREATE TABLE candidate_resume_source_locators (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                candidate_fingerprint VARCHAR(64) NOT NULL
+            )
+            """
+        )
+        connection.exec_driver_sql(
+            """
+            CREATE TABLE candidate_resume_daily_report_runs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT
+            )
+            """
+        )
     config = Config("alembic.ini")
     config.set_main_option("sqlalchemy.url", f"sqlite+pysqlite:///{database}")
 
@@ -32,6 +55,15 @@ def test_hr_review_migration_upgrade_and_downgrade(tmp_path) -> None:
         column["name"] for column in inspector.get_columns("candidate_resume_experience_records")
     }
     assert {"manual_reviewed_by", "manual_review_assignee_id", "manual_review_revision"} <= columns
+    assert "search_batch_id" in {
+        column["name"] for column in inspector.get_columns("candidate_resume_search_hits")
+    }
+    assert "search_batch_id" in {
+        column["name"] for column in inspector.get_columns("candidate_resume_source_locators")
+    }
+    assert "search_batch_id" in {
+        column["name"] for column in inspector.get_columns("candidate_resume_daily_report_runs")
+    }
     with engine.begin() as connection:
         connection.exec_driver_sql(
             """
@@ -53,3 +85,6 @@ def test_hr_review_migration_upgrade_and_downgrade(tmp_path) -> None:
         column["name"] for column in inspector.get_columns("candidate_resume_experience_records")
     }
     assert "manual_review_revision" not in columns
+    assert "search_batch_id" not in {
+        column["name"] for column in inspector.get_columns("candidate_resume_search_hits")
+    }

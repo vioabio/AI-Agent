@@ -3,13 +3,14 @@ from __future__ import annotations
 import csv
 import json
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Iterable
 
 from sqlalchemy import text
 
+from liepin_rpa.communication_status_policy import SENT_HIT_STATUSES
 from liepin_rpa.config import Settings
 from liepin_rpa.db import ensure_resume_experience_schema, get_engine
 from liepin_rpa.reporting_rules import (
@@ -17,7 +18,6 @@ from liepin_rpa.reporting_rules import (
     is_actionable_needs_review_result,
     is_not_relevant_result,
 )
-
 
 EXPORT_COLUMNS = [
     "关键词",
@@ -40,7 +40,6 @@ EXPORT_COLUMNS = [
     "联系记录ID",
 ]
 
-SENT_HIT_STATUSES = {"sent", "immediate_job_confirmed"}
 LOCAL_TIMEZONE = timezone(timedelta(hours=8))
 
 
@@ -111,11 +110,11 @@ def export_search_results(
         candidate_rows=sum(1 for row in export_rows if row["候选人"]),
         sent_count=sum(1 for row in export_rows if row["是否发送"] == "是"),
         needs_review_count=sum(
-            1
-            for row in export_rows
-            if _is_counted_needs_review(row["Coze结果"], row["Coze分数"])
+            1 for row in export_rows if _is_counted_needs_review(row["Coze结果"], row["Coze分数"])
         ),
-        no_candidate_keywords=sum(1 for row in export_rows if row["命中状态"] == "no_candidate_in_batch"),
+        no_candidate_keywords=sum(
+            1 for row in export_rows if row["命中状态"] == "no_candidate_in_batch"
+        ),
         window_start_at=scope.window_start_at,
         window_end_at=scope.window_end_at,
     )
@@ -182,7 +181,9 @@ def resolve_latest_run_scope(
     state_path = settings.artifacts_dir / "search_workflow_run_state.json"
     state = _read_json(state_path)
     context = state.get("context") if isinstance(state.get("context"), dict) else {}
-    state_checkpoint = _optional_path(context.get("checkpoint_file")) if isinstance(context, dict) else None
+    state_checkpoint = (
+        _optional_path(context.get("checkpoint_file")) if isinstance(context, dict) else None
+    )
     resolved_checkpoint = checkpoint_file or state_checkpoint
     return ExportScope(
         checkpoint_file=resolved_checkpoint,
@@ -321,7 +322,9 @@ def _build_export_row(row: dict[str, object]) -> dict[str, object]:
         "Coze状态": analysis_status,
         "Coze结果": match_result,
         "Coze分数": match_score if match_score is not None else "",
-        "未发送/跳过原因": "" if sent else format_skip_reason(
+        "未发送/跳过原因": ""
+        if sent
+        else format_skip_reason(
             hit_status,
             analysis_status,
             match_result,
@@ -510,8 +513,8 @@ def _format_datetime(value: object) -> str:
 
 def _local_datetime_to_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
-        return value.replace(tzinfo=LOCAL_TIMEZONE).astimezone(timezone.utc)
-    return value.astimezone(timezone.utc)
+        return value.replace(tzinfo=LOCAL_TIMEZONE).astimezone(UTC)
+    return value.astimezone(UTC)
 
 
 def _parse_log_timestamp(value: object) -> datetime | None:
@@ -522,11 +525,13 @@ def _parse_log_timestamp(value: object) -> datetime | None:
     except ValueError:
         return None
     if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 def _default_output_path(settings: Settings, source_label: str) -> Path:
     safe_label = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in source_label)
     timestamp = datetime.fromtimestamp(time.time()).strftime("%Y%m%d_%H%M%S")
-    return settings.artifacts_dir / "search_results" / f"search_results_{safe_label}_{timestamp}.csv"
+    return (
+        settings.artifacts_dir / "search_results" / f"search_results_{safe_label}_{timestamp}.csv"
+    )

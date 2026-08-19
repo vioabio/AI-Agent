@@ -61,7 +61,7 @@ function columns(props: Props): ColumnsType<CandidateSummary> {
     { title: "当前公司/职位", dataIndex: "current_company_title", width: 160, ellipsis: true, render: (value?: string) => value ?? "-" },
     { title: "沟通状态", dataIndex: "communication_status", width: 110, render: communicationLabel },
     { title: "HR 状态", dataIndex: "review_status", width: 110, sorter: true, sortOrder: sortOrder("review_status", props), render: (value: string) => reviewStatusLabels[value] ?? value },
-    { title: "负责人", dataIndex: "reviewer_name", width: 100, render: (value?: string) => value ?? "未分配" },
+    { title: "审核人", dataIndex: "reviewer_name", width: 100, render: (value?: string) => value ?? "暂无" },
     { title: "更新时间", dataIndex: "updated_at", width: 150, sorter: true, sortOrder: sortOrder("updated_at", props), render: (value: string) => new Date(value).toLocaleString("zh-CN", { hour12: false }) },
     { title: "操作", fixed: "right", width: 90, render: (_, item) => <Space><Button type="link" onClick={() => props.onOpen(item.candidate_fingerprint)}>查看</Button></Space> },
   ];

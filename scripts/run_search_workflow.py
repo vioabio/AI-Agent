@@ -213,7 +213,12 @@ def _is_current_job_checkpoint_complete(args: argparse.Namespace) -> bool:
     )
 
 
-def _run_main(args: argparse.Namespace, settings) -> int:
+def _run_main(
+    args: argparse.Namespace,
+    settings,
+    *,
+    search_batch_id: str | None = None,
+) -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
     checkpoint_store = WorkflowCheckpointStore(Path(args.checkpoint_file))
@@ -335,6 +340,7 @@ def _run_main(args: argparse.Namespace, settings) -> int:
                 else None
             ),
             jd_card_min_score=settings.workflow_jd_card_min_score,
+            search_batch_id=search_batch_id,
         ),
         checkpoint_store=checkpoint_store,
         checkpoint_catalog_key=catalog_key,
@@ -441,7 +447,7 @@ def main() -> int:
             },
         )
         try:
-            exit_code = _run_main(args, settings)
+            exit_code = _run_main(args, settings, search_batch_id=batch_id)
         except KeyboardInterrupt:
             state_store.mark_finished(
                 run_id=run_id,
