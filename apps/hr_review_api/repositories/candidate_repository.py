@@ -23,6 +23,9 @@ from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.engine import RowMapping
 from sqlalchemy.sql.elements import ColumnElement
 
+from apps.hr_review_api.domain.candidate_identity_policy import (
+    deduplicate_candidate_summaries,
+)
 from apps.hr_review_api.domain.models import (
     CandidateDetail,
     CandidatePage,
@@ -84,7 +87,6 @@ class CandidateRepository:
         criteria: CandidateQueryCriteria,
     ) -> CandidatePage:
         statement = self._base_select(criteria)
-        total = int(connection.scalar(select(func.count()).select_from(statement.subquery())) or 0)
         sort_column = statement.selected_columns[SORT_FIELD_NAMES[criteria.sort_by]]
         ordering = sort_column.asc() if criteria.sort_order == "asc" else sort_column.desc()
         rows = connection.execute(
@@ -92,14 +94,16 @@ class CandidateRepository:
                 ordering,
                 statement.selected_columns["candidate_fingerprint"].desc(),
             )
-            .limit(criteria.page_size)
-            .offset((criteria.page - 1) * criteria.page_size)
         ).mappings()
+        candidates = deduplicate_candidate_summaries(
+            tuple(self._summary_from_row(row) for row in rows)
+        )
+        offset = (criteria.page - 1) * criteria.page_size
         return CandidatePage(
-            items=tuple(self._summary_from_row(row) for row in rows),
+            items=candidates[offset : offset + criteria.page_size],
             page=criteria.page,
             page_size=criteria.page_size,
-            total=total,
+            total=len(candidates),
         )
 
     def count_candidates(
@@ -108,7 +112,10 @@ class CandidateRepository:
         criteria: CandidateQueryCriteria,
     ) -> int:
         statement = self._base_select(criteria)
-        return int(connection.scalar(select(func.count()).select_from(statement.subquery())) or 0)
+        rows = connection.execute(statement).mappings()
+        return len(
+            deduplicate_candidate_summaries(tuple(self._summary_from_row(row) for row in rows))
+        )
 
     def count_feedback_candidates(
         self,
@@ -579,6 +586,7 @@ class CandidateRepository:
                 "liepin",
             ).label("source_platform"),
             resume_source_locators.c.candidate_card_text,
+            resume_source_locators.c.source_account_alias,
             communication_status.label("communication_status"),
             hr_users.c.display_name.label("reviewer_name"),
             self._share_link_exists(
@@ -997,6 +1005,13 @@ class CandidateRepository:
             revision=int(row["manual_review_revision"] or 0),
             has_share_link=bool(row["has_share_link"]),
             updated_at=row["updated_at"],
+            identity_card_text=(
+                str(row["candidate_card_text"]) if row["candidate_card_text"] else None
+            ),
+            identity_experience=(str(row["experience"]) if row["experience"] else None),
+            identity_source_account_alias=(
+                str(row["source_account_alias"]) if row["source_account_alias"] else None
+            ),
         )
 
     @staticmethod

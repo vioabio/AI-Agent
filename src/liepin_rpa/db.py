@@ -8,6 +8,7 @@ from functools import lru_cache
 
 import xxhash
 from sqlalchemy import (
+    TIMESTAMP,
     BigInteger,
     Column,
     DateTime,
@@ -15,20 +16,20 @@ from sqlalchemy import (
     String,
     Table,
     Text,
-    TIMESTAMP,
     UniqueConstraint,
     create_engine,
     func,
-    inspect,
     insert,
+    inspect,
     select,
     text,
     update,
 )
-from sqlalchemy.engine import Engine, URL
-from sqlalchemy.pool import QueuePool
 from sqlalchemy.dialects.mysql import insert as mysql_insert
+from sqlalchemy.engine import URL, Engine
+from sqlalchemy.pool import QueuePool
 
+from liepin_rpa.candidate_identity import canonicalize_candidate_name
 from liepin_rpa.config import Settings
 from liepin_rpa.logging_utils import get_logger
 
@@ -191,6 +192,7 @@ daily_report_runs = Table(
     mysql_engine="InnoDB",
 )
 
+
 def build_mysql_connection_kwargs(settings: Settings) -> dict[str, object]:
     return {
         "host": settings.mysql_host,
@@ -298,22 +300,32 @@ def build_candidate_fingerprint(
     structured_resume: Mapping[str, object] | None = None,
     experience: str | None = None,
 ) -> str:
-    basic_info = structured_resume.get("basic_info") if isinstance(structured_resume, Mapping) else None
-    work_experiences = (
-        structured_resume.get("work_experiences") if isinstance(structured_resume, Mapping) else None
+    basic_info = (
+        structured_resume.get("basic_info") if isinstance(structured_resume, Mapping) else None
     )
-    first_work = work_experiences[0] if isinstance(work_experiences, Sequence) and work_experiences else None
+    work_experiences = (
+        structured_resume.get("work_experiences")
+        if isinstance(structured_resume, Mapping)
+        else None
+    )
+    first_work = (
+        work_experiences[0] if isinstance(work_experiences, Sequence) and work_experiences else None
+    )
 
     stable_parts = [
-        _normalize_fingerprint_part(candidate_name),
+        _normalize_fingerprint_part(canonicalize_candidate_name(candidate_name)),
         _normalize_fingerprint_part(_nested_mapping_str(basic_info, "current_company")),
         _normalize_fingerprint_part(_nested_mapping_str(basic_info, "current_position")),
         _normalize_fingerprint_part(_nested_mapping_str(basic_info, "city")),
         _normalize_fingerprint_part(_mapping_number_as_str(basic_info, "age")),
         _normalize_fingerprint_part(_nested_mapping_str(basic_info, "education")),
         _normalize_fingerprint_part(_mapping_number_as_str(basic_info, "work_years")),
-        _normalize_fingerprint_part(_nested_mapping_str(_mapping_value(first_work, "company"), "raw_name")),
-        _normalize_fingerprint_part(_nested_mapping_str(_mapping_value(first_work, "position"), "raw_title")),
+        _normalize_fingerprint_part(
+            _nested_mapping_str(_mapping_value(first_work, "company"), "raw_name")
+        ),
+        _normalize_fingerprint_part(
+            _nested_mapping_str(_mapping_value(first_work, "position"), "raw_title")
+        ),
     ]
     compact_parts = [part for part in stable_parts if part]
     if len(compact_parts) < 3:
@@ -449,11 +461,15 @@ def get_candidate_record_by_fingerprint(
     ensure_resume_experience_schema(settings)
     engine = get_engine(settings)
     with engine.begin() as connection:
-        row = connection.execute(
-            _candidate_record_select().where(
-                resume_experience_records.c.candidate_fingerprint == candidate_fingerprint
+        row = (
+            connection.execute(
+                _candidate_record_select().where(
+                    resume_experience_records.c.candidate_fingerprint == candidate_fingerprint
+                )
             )
-        ).mappings().first()
+            .mappings()
+            .first()
+        )
     return dict(row) if row else None
 
 
@@ -467,11 +483,15 @@ def get_candidate_record_by_experience_hash(
     ensure_resume_experience_schema(settings)
     engine = get_engine(settings)
     with engine.begin() as connection:
-        row = connection.execute(
-            _candidate_record_select().where(
-                resume_experience_records.c.experience_hash == experience_hash
+        row = (
+            connection.execute(
+                _candidate_record_select().where(
+                    resume_experience_records.c.experience_hash == experience_hash
+                )
             )
-        ).mappings().first()
+            .mappings()
+            .first()
+        )
     return dict(row) if row else None
 
 
@@ -484,28 +504,25 @@ def list_contacted_candidate_records(
 ) -> list[dict[str, object]]:
     ensure_resume_experience_schema(settings)
     engine = get_engine(settings)
-    stmt = (
-        select(
-            resume_experience_records.c.id,
-            resume_experience_records.c.candidate_fingerprint,
-            resume_experience_records.c.experience_hash,
-            resume_experience_records.c.experience_hash_version,
-            resume_experience_records.c.candidate_name,
-            resume_experience_records.c.source_platform,
-            resume_experience_records.c.search_keyword,
-            resume_experience_records.c.experience,
-            resume_experience_records.c.match_score,
-            resume_experience_records.c.analysis_status,
-            resume_experience_records.c.manual_review_status,
-            resume_experience_records.c.manual_review_feedback,
-            resume_experience_records.c.manual_suppress_communication,
-            resume_experience_records.c.manual_suppress_report,
-            resume_experience_records.c.manual_reviewed_at,
-            resume_experience_records.c.created_at,
-            resume_experience_records.c.updated_at,
-        )
-        .order_by(resume_experience_records.c.updated_at.desc(), resume_experience_records.c.id.desc())
-    )
+    stmt = select(
+        resume_experience_records.c.id,
+        resume_experience_records.c.candidate_fingerprint,
+        resume_experience_records.c.experience_hash,
+        resume_experience_records.c.experience_hash_version,
+        resume_experience_records.c.candidate_name,
+        resume_experience_records.c.source_platform,
+        resume_experience_records.c.search_keyword,
+        resume_experience_records.c.experience,
+        resume_experience_records.c.match_score,
+        resume_experience_records.c.analysis_status,
+        resume_experience_records.c.manual_review_status,
+        resume_experience_records.c.manual_review_feedback,
+        resume_experience_records.c.manual_suppress_communication,
+        resume_experience_records.c.manual_suppress_report,
+        resume_experience_records.c.manual_reviewed_at,
+        resume_experience_records.c.created_at,
+        resume_experience_records.c.updated_at,
+    ).order_by(resume_experience_records.c.updated_at.desc(), resume_experience_records.c.id.desc())
     if updated_from is not None:
         stmt = stmt.where(resume_experience_records.c.updated_at >= updated_from)
     if updated_before is not None:
@@ -521,25 +538,29 @@ def get_latest_daily_report_run(settings: Settings) -> dict[str, object] | None:
     ensure_resume_experience_schema(settings)
     engine = get_engine(settings)
     with engine.begin() as connection:
-        row = connection.execute(
-            select(
-                daily_report_runs.c.id,
-                daily_report_runs.c.window_start_at,
-                daily_report_runs.c.window_end_at,
-                daily_report_runs.c.records_loaded,
-                daily_report_runs.c.candidate_outcomes,
-                daily_report_runs.c.report_key,
-                daily_report_runs.c.search_batch_id,
-                daily_report_runs.c.delivery_status,
-                daily_report_runs.c.detail_pdf_path,
-                daily_report_runs.c.detail_pdf_url,
-                daily_report_runs.c.sent_at,
-                daily_report_runs.c.updated_at,
+        row = (
+            connection.execute(
+                select(
+                    daily_report_runs.c.id,
+                    daily_report_runs.c.window_start_at,
+                    daily_report_runs.c.window_end_at,
+                    daily_report_runs.c.records_loaded,
+                    daily_report_runs.c.candidate_outcomes,
+                    daily_report_runs.c.report_key,
+                    daily_report_runs.c.search_batch_id,
+                    daily_report_runs.c.delivery_status,
+                    daily_report_runs.c.detail_pdf_path,
+                    daily_report_runs.c.detail_pdf_url,
+                    daily_report_runs.c.sent_at,
+                    daily_report_runs.c.updated_at,
+                )
+                .where(daily_report_runs.c.delivery_status == "sent")
+                .order_by(daily_report_runs.c.sent_at.desc(), daily_report_runs.c.id.desc())
+                .limit(1)
             )
-            .where(daily_report_runs.c.delivery_status == "sent")
-            .order_by(daily_report_runs.c.sent_at.desc(), daily_report_runs.c.id.desc())
-            .limit(1)
-        ).mappings().first()
+            .mappings()
+            .first()
+        )
     return dict(row) if row else None
 
 
@@ -573,9 +594,13 @@ def start_daily_report_delivery(
     engine = get_engine(settings)
     with engine.begin() as connection:
         connection.execute(stmt)
-        row = connection.execute(
-            select(daily_report_runs).where(daily_report_runs.c.report_key == report_key)
-        ).mappings().one()
+        row = (
+            connection.execute(
+                select(daily_report_runs).where(daily_report_runs.c.report_key == report_key)
+            )
+            .mappings()
+            .one()
+        )
     return dict(row)
 
 
@@ -819,27 +844,31 @@ def get_analysis_cache_record(
     ensure_resume_experience_schema(settings)
     engine = get_engine(settings)
     with engine.begin() as connection:
-        row = connection.execute(
-            select(
-                resume_analysis_cache.c.id,
-                resume_analysis_cache.c.candidate_fingerprint,
-                resume_analysis_cache.c.experience_hash,
-                resume_analysis_cache.c.experience,
-                resume_analysis_cache.c.analysis_version,
-                resume_analysis_cache.c.analysis_status,
-                resume_analysis_cache.c.match_result,
-                resume_analysis_cache.c.match_score,
-                resume_analysis_cache.c.score_breakdown_json,
-                resume_analysis_cache.c.analysis_reason,
-                resume_analysis_cache.c.evidence_summary_json,
-                resume_analysis_cache.c.created_at,
-                resume_analysis_cache.c.updated_at,
-            ).where(
-                (resume_analysis_cache.c.candidate_fingerprint == candidate_fingerprint)
-                & (resume_analysis_cache.c.experience_hash == experience_hash)
-                & (resume_analysis_cache.c.analysis_version == analysis_version)
+        row = (
+            connection.execute(
+                select(
+                    resume_analysis_cache.c.id,
+                    resume_analysis_cache.c.candidate_fingerprint,
+                    resume_analysis_cache.c.experience_hash,
+                    resume_analysis_cache.c.experience,
+                    resume_analysis_cache.c.analysis_version,
+                    resume_analysis_cache.c.analysis_status,
+                    resume_analysis_cache.c.match_result,
+                    resume_analysis_cache.c.match_score,
+                    resume_analysis_cache.c.score_breakdown_json,
+                    resume_analysis_cache.c.analysis_reason,
+                    resume_analysis_cache.c.evidence_summary_json,
+                    resume_analysis_cache.c.created_at,
+                    resume_analysis_cache.c.updated_at,
+                ).where(
+                    (resume_analysis_cache.c.candidate_fingerprint == candidate_fingerprint)
+                    & (resume_analysis_cache.c.experience_hash == experience_hash)
+                    & (resume_analysis_cache.c.analysis_version == analysis_version)
+                )
             )
-        ).mappings().first()
+            .mappings()
+            .first()
+        )
     return dict(row) if row else None
 
 
@@ -977,7 +1006,9 @@ def _build_project_lines_from_structured_resume(
     if not isinstance(structured_resume, Mapping):
         return []
     project_experiences = structured_resume.get("project_experiences")
-    if not isinstance(project_experiences, Sequence) or isinstance(project_experiences, (str, bytes)):
+    if not isinstance(project_experiences, Sequence) or isinstance(
+        project_experiences, (str, bytes)
+    ):
         return []
 
     lines: list[str] = []
@@ -1360,12 +1391,19 @@ def _ensure_analysis_cache_unique_index(engine: Engine) -> None:
 
 def _backfill_resume_experience_hashes(engine: Engine) -> tuple[int, int]:
     with engine.begin() as connection:
-        rows = connection.execute(
-            _candidate_record_select().where(
-                (resume_experience_records.c.experience_hash.is_(None))
-                | (resume_experience_records.c.experience_hash_version != EXPERIENCE_HASH_VERSION)
+        rows = (
+            connection.execute(
+                _candidate_record_select().where(
+                    (resume_experience_records.c.experience_hash.is_(None))
+                    | (
+                        resume_experience_records.c.experience_hash_version
+                        != EXPERIENCE_HASH_VERSION
+                    )
+                )
             )
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
 
         target_hash_by_id: dict[int, str | None] = {}
         grouped_records: dict[str, dict[int, dict[str, object]]] = {}
@@ -1378,11 +1416,15 @@ def _backfill_resume_experience_hashes(engine: Engine) -> tuple[int, int]:
                 grouped_records.setdefault(experience_hash, {})[record_id] = record
 
         if grouped_records:
-            existing_rows = connection.execute(
-                _candidate_record_select().where(
-                    resume_experience_records.c.experience_hash.in_(tuple(grouped_records))
+            existing_rows = (
+                connection.execute(
+                    _candidate_record_select().where(
+                        resume_experience_records.c.experience_hash.in_(tuple(grouped_records))
+                    )
                 )
-            ).mappings().all()
+                .mappings()
+                .all()
+            )
             for row in existing_rows:
                 record = dict(row)
                 experience_hash = _string_or_none(record.get("experience_hash"))
@@ -1414,15 +1456,19 @@ def _backfill_resume_experience_hashes(engine: Engine) -> tuple[int, int]:
 def _merge_duplicate_resume_records(engine: Engine) -> int:
     """Merge historical same-resume records while retaining hit and cache history."""
     with engine.begin() as connection:
-        rows = connection.execute(
-            _candidate_record_select()
-            .where(resume_experience_records.c.experience_hash.is_not(None))
-            .order_by(
-                resume_experience_records.c.experience_hash.asc(),
-                resume_experience_records.c.updated_at.desc(),
-                resume_experience_records.c.id.desc(),
+        rows = (
+            connection.execute(
+                _candidate_record_select()
+                .where(resume_experience_records.c.experience_hash.is_not(None))
+                .order_by(
+                    resume_experience_records.c.experience_hash.asc(),
+                    resume_experience_records.c.updated_at.desc(),
+                    resume_experience_records.c.id.desc(),
+                )
             )
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
 
         grouped: dict[str, list[dict[str, object]]] = {}
         for row in rows:
@@ -1446,7 +1492,9 @@ def _merge_resume_record_group(
     records = sorted(
         records,
         key=lambda item: (
-            item.get("updated_at") if isinstance(item.get("updated_at"), datetime) else datetime.min,
+            item.get("updated_at")
+            if isinstance(item.get("updated_at"), datetime)
+            else datetime.min,
             int(item.get("id") or 0),
         ),
         reverse=True,
@@ -1493,22 +1541,29 @@ def _merge_analysis_cache_rows(
     canonical_fingerprint: str,
     duplicate_fingerprint: str,
 ) -> None:
-    duplicate_rows = connection.execute(
-        select(resume_analysis_cache)
-        .where(resume_analysis_cache.c.candidate_fingerprint == duplicate_fingerprint)
-        .order_by(resume_analysis_cache.c.updated_at.desc(), resume_analysis_cache.c.id.desc())
-    ).mappings().all()
+    duplicate_rows = (
+        connection.execute(
+            select(resume_analysis_cache)
+            .where(resume_analysis_cache.c.candidate_fingerprint == duplicate_fingerprint)
+            .order_by(resume_analysis_cache.c.updated_at.desc(), resume_analysis_cache.c.id.desc())
+        )
+        .mappings()
+        .all()
+    )
     for duplicate in duplicate_rows:
         experience_hash = str(duplicate["experience_hash"])
         analysis_version = str(duplicate.get("analysis_version") or LEGACY_ANALYSIS_VERSION)
-        canonical = connection.execute(
-            select(resume_analysis_cache)
-            .where(
-                (resume_analysis_cache.c.candidate_fingerprint == canonical_fingerprint)
-                & (resume_analysis_cache.c.experience_hash == experience_hash)
-                & (resume_analysis_cache.c.analysis_version == analysis_version)
+        canonical = (
+            connection.execute(
+                select(resume_analysis_cache).where(
+                    (resume_analysis_cache.c.candidate_fingerprint == canonical_fingerprint)
+                    & (resume_analysis_cache.c.experience_hash == experience_hash)
+                    & (resume_analysis_cache.c.analysis_version == analysis_version)
+                )
             )
-        ).mappings().first()
+            .mappings()
+            .first()
+        )
         if canonical is None:
             connection.execute(
                 resume_analysis_cache.update()
@@ -1595,7 +1650,9 @@ def _ensure_daily_report_runs_columns(engine: Engine) -> None:
         "updated_at": f"ALTER TABLE {DAILY_REPORT_RUNS_TABLE_NAME} ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
     }
     alter_statements = [
-        statement for column_name, statement in required_columns.items() if column_name not in column_names
+        statement
+        for column_name, statement in required_columns.items()
+        if column_name not in column_names
     ]
     if alter_statements:
         with engine.begin() as connection:

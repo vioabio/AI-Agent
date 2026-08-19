@@ -654,6 +654,93 @@ def test_dashboard_and_live_report_reflect_latest_review(client: TestClient) -> 
     assert preview["hr_status_counts"]["hired"] == 1
 
 
+def test_historical_masked_name_variants_are_deduplicated_in_queue_and_metrics(
+    client: TestClient,
+    engine: Engine,
+) -> None:
+    common_resume = "工作经历：某消费品公司；达人营销负责人；负责达人投放。" * 40
+    with engine.begin() as connection:
+        for identifier, fingerprint, name, score, experience in (
+            (910, "legacy-mao-honorific", "毛先生", 90, common_resume),
+            (
+                911,
+                "legacy-mao-masked",
+                "毛**",
+                92,
+                f"{common_resume}补充项目经历：年度达人矩阵建设。",
+            ),
+        ):
+            connection.execute(
+                insert(resume_experience_records).values(
+                    id=identifier,
+                    candidate_fingerprint=fingerprint,
+                    experience_hash=f"identity-hash-{identifier}",
+                    candidate_name=name,
+                    experience=experience,
+                    analysis_status="匹配",
+                    match_score=score,
+                    manual_review_status="interviewing",
+                    updated_at=datetime(2026, 8, 19, 9, identifier - 900),
+                )
+            )
+            connection.execute(
+                insert(resume_analysis_cache).values(
+                    id=identifier,
+                    candidate_fingerprint=fingerprint,
+                    experience_hash=f"identity-hash-{identifier}",
+                    experience=experience,
+                    analysis_version="test-v1",
+                    analysis_status="匹配",
+                    match_result="relevant",
+                    match_score=score,
+                    analysis_reason="测试历史双指纹",
+                )
+            )
+            connection.execute(
+                insert(resume_source_locators).values(
+                    id=identifier,
+                    candidate_fingerprint=fingerprint,
+                    candidate_name=name,
+                    source_account_alias="liepin_account_a",
+                    job_profile_id="daren_live_bd_v1",
+                    search_keyword="达人营销负责人",
+                    search_batch_id="test-completed-batch",
+                    locator_quality="share_link",
+                    detail_deep_link=f"https://example.invalid/{identifier}",
+                    candidate_card_text=(f"{name} 43岁 60-80K · 16薪 达人营销负责人"),
+                )
+            )
+            connection.execute(
+                insert(resume_search_hits).values(
+                    id=identifier,
+                    candidate_fingerprint=fingerprint,
+                    candidate_name=name,
+                    search_keyword="达人营销负责人",
+                    search_batch_id="test-completed-batch",
+                    hit_status="sent",
+                )
+            )
+
+    login(client)
+    queue = client.get(
+        "/api/v1/review-queue",
+        params={"scope": "all", "page_size": 100},
+    )
+    summary = client.get("/api/v1/dashboard/summary")
+
+    assert queue.status_code == 200
+    identity_rows = [
+        item
+        for item in queue.json()["items"]
+        if item["candidate_fingerprint"] in {"legacy-mao-honorific", "legacy-mao-masked"}
+    ]
+    assert len(identity_rows) == 1
+    assert identity_rows[0]["candidate_fingerprint"] == "legacy-mao-masked"
+    assert identity_rows[0]["match_score"] == 92
+    assert summary.status_code == 200
+    assert summary.json()["interviewing"] == 1
+
+
 def test_login_failures_are_rate_limited(client: TestClient) -> None:
     for _ in range(3):
         response = client.post(
