@@ -8,7 +8,7 @@ test("login, review candidate, refresh metrics, history and report preview", asy
     const path = new URL(route.request().url()).pathname;
     if (path === "/api/v1/me") return route.fulfill({ status: loggedIn ? 200 : 401, json: loggedIn ? user : apiError("authentication_required", "请登录") });
     if (path === "/api/v1/auth/login") { loggedIn = true; return route.fulfill({ status: 200, headers: { "Set-Cookie": "hr_review_csrf=test-csrf; Path=/; SameSite=Strict" }, json: { user, expires_at: "2026-08-18T22:00:00+08:00" } }); }
-    if (path === "/api/v1/batches") return route.fulfill({ json: { items: [] } });
+    if (path === "/api/v1/batches") return route.fulfill({ json: { items: [{ batch_id: "batch-1", started_at: "2026-08-18T08:00:00+08:00", ended_at: "2026-08-18T17:00:00+08:00", label: "2026-08-18 17:00 完成" }] } });
     if (path === "/api/v1/review-queue") return route.fulfill({ json: { items: reviewed ? [] : [summary], page: 1, page_size: 20, total: reviewed ? 0 : 1 } });
     if (path === "/api/v1/dashboard/summary") return route.fulfill({ json: { actionable: reviewed ? 0 : 1, pending_review: reviewed ? 0 : 1, recommended_contact: reviewed ? 1 : 0, contacted: 0, interviewing: 0, rejected: 0, hired: 0 } });
     if (path === "/api/v1/reports/live-preview") return route.fulfill({ json: { ai_relevant: 1, ai_needs_review: 0, ai_not_relevant: 0, actionable_pending: reviewed ? 0 : 1, hr_status_counts: { pending_review: reviewed ? 0 : 1, recommended_contact: reviewed ? 1 : 0 }, feedback_candidates_in_window: reviewed ? 1 : 0, generated_at: "2026-08-18T13:00:00+08:00" } });
@@ -23,12 +23,12 @@ test("login, review candidate, refresh metrics, history and report preview", asy
   await page.getByRole("button", { name: "登录工作台" }).click();
   await expect(page.getByText("陈女士")).toBeVisible();
 
-  await page.getByLabel("AI 最低分").fill("90");
-  await page.getByLabel("审核人 ID").fill("1");
+  await expect(page.getByText("AI 分数范围")).toHaveCount(0);
+  await page.getByLabel("审核人姓名").fill("招聘负责人");
+  await page.getByLabel("审核人姓名").press("Enter");
   await page.getByRole("combobox", { name: "沟通状态" }).click();
   await page.getByText("已发送", { exact: true }).last().click();
-  await expect.poll(() => new URL(page.url()).searchParams.get("min_score")).toBe("90");
-  await expect.poll(() => new URL(page.url()).searchParams.get("reviewer")).toBe("1");
+  await expect.poll(() => new URL(page.url()).searchParams.get("reviewer_name")).toBe("招聘负责人");
   await expect.poll(() => new URL(page.url()).searchParams.get("communication")).toBe("sent");
   await page.getByRole("button", { name: "重置筛选" }).click();
 
@@ -79,7 +79,8 @@ test("login, review candidate, refresh metrics, history and report preview", asy
   await expect(recommendedMetric.getByText("1", { exact: true })).toBeVisible();
   await page.locator(".ant-drawer-close").click();
   await page.getByRole("button", { name: "日报实时预览" }).click();
-  await expect(page.getByText("实时预览按最新完成搜索批次读取 MySQL；不会发送日报，也不会修改已发送的飞书卡片。")).toBeVisible();
+  await expect(page.getByText("未选择批次，已自动展示最新完成批次")).toBeVisible();
+  await expect(page.getByText(/数据只读，不会发送日报或修改已发送的飞书卡片/)).toBeVisible();
   await expect(page.getByText("当前批次已反馈候选人：1", { exact: false })).toBeVisible();
   await expect(page.getByText("当前待审核").locator("..")).toContainText("0");
 });

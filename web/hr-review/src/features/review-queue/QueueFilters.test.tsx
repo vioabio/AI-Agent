@@ -5,7 +5,7 @@ import { vi } from "vitest";
 import { renderApp } from "../../test/render";
 import { QueueFilters } from "./QueueFilters";
 
-test("emits score, reviewer and communication filters", async () => {
+test("emits reviewer and communication filters without score controls", async () => {
   const onChange = vi.fn();
   renderApp(<QueueFilters values={{}} batches={[{ value: "batch-1", label: "2026-08-18 17:00 完成" }]} allowedJobs={["daren_live_bd_v1"]} onChange={onChange} onReset={vi.fn()} />);
 
@@ -18,8 +18,9 @@ test("emits score, reviewer and communication filters", async () => {
   expect(screen.getByText("待复核")).toBeInTheDocument();
   expect(screen.queryByText("不匹配")).not.toBeInTheDocument();
 
-  await userEvent.type(screen.getByLabelText("AI 最低分"), "90");
-  expect(onChange).toHaveBeenLastCalledWith("minScore", 90);
+  expect(screen.queryByText("AI 分数范围")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("AI 最低分")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("AI 最高分")).not.toBeInTheDocument();
 
   await userEvent.type(screen.getByLabelText("审核人姓名"), "招聘负责人{Enter}");
   expect(onChange).toHaveBeenLastCalledWith("reviewerName", "招聘负责人");

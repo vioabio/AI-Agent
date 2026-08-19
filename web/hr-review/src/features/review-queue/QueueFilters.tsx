@@ -1,4 +1,4 @@
-import { Button, Divider, Input, InputNumber, Select, Space, Typography } from "antd";
+import { Button, Divider, Input, Select, Space, Typography } from "antd";
 import { useEffect, useState } from "react";
 
 import { reviewStatusOptions } from "./reviewStatuses";
@@ -73,28 +73,6 @@ export function QueueFilters({ values, batches, allowedJobs, onChange, onReset }
           ]}
           onChange={(value) => set("match", value)}
         />
-        <div>
-          <Typography.Text className="filter-label">AI 分数范围</Typography.Text>
-          <Space.Compact block>
-            <InputNumber
-              aria-label="AI 最低分"
-              min={0}
-              max={100}
-              placeholder="最低"
-              value={values.minScore}
-              onChange={(value) => set("minScore", value ?? undefined)}
-            />
-            <Input className="score-separator" value="至" readOnly tabIndex={-1} aria-hidden="true" />
-            <InputNumber
-              aria-label="AI 最高分"
-              min={0}
-              max={100}
-              placeholder="最高"
-              value={values.maxScore}
-              onChange={(value) => set("maxScore", value ?? undefined)}
-            />
-          </Space.Compact>
-        </div>
         <FilterSelect
           label="HR 状态"
           value={values.status}
