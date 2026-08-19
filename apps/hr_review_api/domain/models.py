@@ -69,7 +69,7 @@ class CandidateSummary:
     reviewer_name: str | None
     revision: int
     has_share_link: bool
-    updated_at: datetime
+    updated_at: datetime | None
     # 仅用于服务端保守身份归并，不进入公开 API schema。
     identity_card_text: str | None
     identity_experience: str | None

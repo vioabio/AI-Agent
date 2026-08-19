@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from datetime import datetime
 
 from apps.hr_review_api.domain.models import CandidateSummary
 from liepin_rpa.candidate_identity import (
@@ -82,14 +83,21 @@ def _merge_candidate_summaries(
         preferred,
         communication_status=communication,
         has_share_link=first.has_share_link or second.has_share_link,
-        updated_at=max(first.updated_at, second.updated_at),
+        updated_at=max(
+            (first.updated_at, second.updated_at),
+            key=_sortable_updated_at,
+        ),
     )
 
 
-def _candidate_preference(candidate: CandidateSummary) -> tuple[int, object, int, int]:
+def _candidate_preference(candidate: CandidateSummary) -> tuple[int, datetime, int, int]:
     return (
         REVIEW_STATUS_PRIORITY.get(candidate.review_status, 0),
-        candidate.updated_at,
+        _sortable_updated_at(candidate.updated_at),
         candidate.match_score if candidate.match_score is not None else -1,
         len(candidate.identity_experience or ""),
     )
+
+
+def _sortable_updated_at(value: datetime | None) -> datetime:
+    return value or datetime.min

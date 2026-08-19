@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import datetime
 
 from sqlalchemy import Engine
 
@@ -53,21 +52,10 @@ class CandidateQueryService:
         *,
         user: AuthenticatedUser,
         candidate_fingerprint: str,
-        client_ip: str,
-        user_agent: str,
-        now: datetime,
     ) -> CandidateDetail:
         allowed_jobs = self.allowed_jobs(user)
         completed_batch_ids = self.completed_batch_ids()
-        # 完整简历和正式链接均为敏感访问，审计事件与读取成功在同一事务提交。
-        with self.engine.begin() as connection:
-            if not self.candidates.materialize_candidate_for_review(
-                connection,
-                candidate_fingerprint=candidate_fingerprint,
-                allowed_job_profile_ids=allowed_jobs,
-                allowed_batch_ids=completed_batch_ids,
-            ):
-                raise CandidateNotFoundError("候选人不存在或无岗位访问权限")
+        with self.engine.connect() as connection:
             detail = self.candidates.get_candidate_detail(
                 connection,
                 candidate_fingerprint=candidate_fingerprint,
@@ -77,15 +65,6 @@ class CandidateQueryService:
             )
             if detail is None:
                 raise CandidateNotFoundError("候选人不存在或无岗位访问权限")
-            self.candidates.add_sensitive_access_event(
-                connection,
-                candidate_fingerprint=candidate_fingerprint,
-                user_id=user.id,
-                access_kind="detail_with_resume",
-                client_ip=client_ip,
-                user_agent=user_agent,
-                created_at=now,
-            )
         return detail
 
     def get_history(
@@ -127,11 +106,7 @@ class CandidateQueryService:
             raise AuthorizationError("无权查看该岗位候选人")
         if batch_id:
             self.batches.get(batch_id)
-        batch_ids = (
-            frozenset()
-            if batch_id
-            else self.completed_batch_ids()
-        )
+        batch_ids = frozenset() if batch_id else self.completed_batch_ids()
         candidate_scope = criteria.review_scope in {
             "mine",
             "pending",

@@ -94,9 +94,6 @@ def get_candidate(
     detail = get_services(request).candidates.query_service.get_detail(
         user=user,
         candidate_fingerprint=candidate_fingerprint,
-        client_ip=_client_ip(request),
-        user_agent=request.headers.get("user-agent", "unknown"),
-        now=datetime.now(SHANGHAI_TIMEZONE),
     )
     return CandidateDetailResponse.model_validate(detail)
 

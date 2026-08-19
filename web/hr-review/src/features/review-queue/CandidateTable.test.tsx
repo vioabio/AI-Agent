@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
@@ -18,6 +18,20 @@ test("renders candidate and opens detail", async () => {
   expect(screen.getByText("陈女士")).toBeVisible();
   await userEvent.click(screen.getByRole("button", { name: "查看" }));
   expect(onOpen).toHaveBeenCalledWith("fp-1");
+});
+
+test("renders a missing experience-record update time as a dash", async () => {
+  const withoutTimestamp = {
+    ...candidate,
+    candidate_fingerprint: "fp-without-master",
+    candidate_name: "仅分析候选人",
+    current_company_title: "某公司 · 某职位",
+    updated_at: null,
+  };
+  renderApp(<CandidateTable items={[withoutTimestamp]} loading={false} page={1} pageSize={20} total={1} sortBy="updated_at" sortOrder="desc" onChange={vi.fn()} onOpen={vi.fn()} onRetry={vi.fn()} />);
+  const row = screen.getByText("仅分析候选人").closest("tr");
+  if (!row) throw new Error("未找到仅分析候选人所在行");
+  await waitFor(() => expect(within(row).getByText("-")).toBeVisible());
 });
 
 test("renders empty and error states", () => {

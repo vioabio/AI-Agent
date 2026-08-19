@@ -95,7 +95,7 @@ def test_default_queue_uses_shared_actionable_rules_and_job_permissions(client: 
     assert "finance-hidden" not in fingerprints
 
 
-def test_analysis_led_queue_includes_orphan_needs_review_and_materializes_on_detail(
+def test_analysis_led_queue_and_detail_keep_missing_experience_timestamp_null_without_writes(
     client: TestClient,
     engine: Engine,
 ) -> None:
@@ -118,18 +118,25 @@ def test_analysis_led_queue_includes_orphan_needs_review_and_materializes_on_det
     assert item["match_result"] == "needs_review"
     assert item["match_score"] == 92
     assert item["analysis_status"] == "待复核"
+    assert item["updated_at"] is None
 
     with engine.connect() as connection:
-        before = connection.scalar(
+        before_master_count = connection.scalar(
             select(func.count())
             .select_from(resume_experience_records)
             .where(resume_experience_records.c.candidate_fingerprint == "orphan-review-92")
         )
-    assert before == 0
+        before_analysis_updated_at = connection.scalar(
+            select(resume_analysis_cache.c.updated_at).where(
+                resume_analysis_cache.c.candidate_fingerprint == "orphan-review-92"
+            )
+        )
+    assert before_master_count == 0
 
     detail = client.get("/api/v1/candidates/orphan-review-92")
     assert detail.status_code == 200
     assert detail.json()["experience"] == "候选人信息：年龄：36岁 工作内容：历史累计候选人"
+    assert detail.json()["summary"]["updated_at"] is None
     with engine.connect() as connection:
         master_count = connection.scalar(
             select(func.count())
@@ -141,8 +148,126 @@ def test_analysis_led_queue_includes_orphan_needs_review_and_materializes_on_det
             .select_from(sensitive_access_events)
             .where(sensitive_access_events.c.candidate_fingerprint == "orphan-review-92")
         )
-    assert master_count == 1
-    assert access_count == 1
+        analysis_updated_at = connection.scalar(
+            select(resume_analysis_cache.c.updated_at).where(
+                resume_analysis_cache.c.candidate_fingerprint == "orphan-review-92"
+            )
+        )
+    assert master_count == 0
+    assert access_count == 0
+    assert analysis_updated_at == before_analysis_updated_at
+
+
+def test_updated_at_uses_only_experience_record_for_list_detail_and_sorting(
+    client: TestClient,
+    engine: Engine,
+) -> None:
+    relevant_updated_at = datetime(2026, 8, 10, 8, 0)
+    review_updated_at = datetime(2026, 8, 11, 8, 0)
+    with engine.begin() as connection:
+        connection.execute(
+            resume_experience_records.update()
+            .where(resume_experience_records.c.candidate_fingerprint == "relevant-low")
+            .values(updated_at=relevant_updated_at)
+        )
+        connection.execute(
+            resume_experience_records.update()
+            .where(resume_experience_records.c.candidate_fingerprint == "review-90")
+            .values(updated_at=review_updated_at)
+        )
+        connection.execute(
+            resume_analysis_cache.update()
+            .where(resume_analysis_cache.c.candidate_fingerprint == "relevant-low")
+            .values(updated_at=datetime(2026, 8, 29, 8, 0))
+        )
+        connection.execute(
+            resume_analysis_cache.update()
+            .where(resume_analysis_cache.c.candidate_fingerprint == "review-90")
+            .values(updated_at=datetime(2026, 8, 20, 8, 0))
+        )
+        connection.execute(
+            resume_search_hits.update()
+            .where(resume_search_hits.c.candidate_fingerprint == "relevant-low")
+            .values(created_at=datetime(2026, 8, 28, 8, 0))
+        )
+        connection.execute(
+            resume_source_locators.update()
+            .where(resume_source_locators.c.candidate_fingerprint == "relevant-low")
+            .values(created_at=datetime(2026, 8, 27, 8, 0))
+        )
+
+    login(client)
+    ascending = client.get(
+        "/api/v1/review-queue",
+        params={
+            "scope": "all",
+            "page_size": 100,
+            "sort_by": "updated_at",
+            "sort_order": "asc",
+        },
+    )
+    assert ascending.status_code == 200
+    items = ascending.json()["items"]
+    by_fingerprint = {item["candidate_fingerprint"]: item for item in items}
+    relevant_value = datetime.fromisoformat(by_fingerprint["relevant-low"]["updated_at"])
+    assert relevant_value == relevant_updated_at
+    assert datetime.fromisoformat(by_fingerprint["review-90"]["updated_at"]) == review_updated_at
+    fingerprints = [item["candidate_fingerprint"] for item in items]
+    assert fingerprints.index("relevant-low") < fingerprints.index("review-90")
+
+    detail = client.get("/api/v1/candidates/relevant-low")
+    assert detail.status_code == 200
+    assert datetime.fromisoformat(detail.json()["summary"]["updated_at"]) == relevant_updated_at
+
+    descending = client.get(
+        "/api/v1/review-queue",
+        params={
+            "scope": "all",
+            "page_size": 100,
+            "sort_by": "updated_at",
+            "sort_order": "desc",
+        },
+    )
+    assert descending.status_code == 200
+    fingerprints = [item["candidate_fingerprint"] for item in descending.json()["items"]]
+    assert fingerprints.index("review-90") < fingerprints.index("relevant-low")
+
+
+def test_list_and_detail_queries_do_not_write_or_refresh_source_timestamps(
+    client: TestClient,
+    engine: Engine,
+) -> None:
+    def timestamp_snapshot() -> tuple[object, ...]:
+        with engine.connect() as connection:
+            return (
+                connection.scalar(
+                    select(resume_experience_records.c.updated_at).where(
+                        resume_experience_records.c.candidate_fingerprint == "relevant-low"
+                    )
+                ),
+                connection.scalar(
+                    select(resume_analysis_cache.c.updated_at).where(
+                        resume_analysis_cache.c.candidate_fingerprint == "relevant-low"
+                    )
+                ),
+                connection.scalar(
+                    select(resume_search_hits.c.created_at).where(
+                        resume_search_hits.c.candidate_fingerprint == "relevant-low"
+                    )
+                ),
+                connection.scalar(
+                    select(resume_source_locators.c.created_at).where(
+                        resume_source_locators.c.candidate_fingerprint == "relevant-low"
+                    )
+                ),
+                connection.scalar(select(func.count()).select_from(sensitive_access_events)),
+            )
+
+    before = timestamp_snapshot()
+    login(client)
+    assert client.get("/api/v1/review-queue", params={"scope": "all"}).status_code == 200
+    assert client.get("/api/v1/candidates/relevant-low").status_code == 200
+    assert timestamp_snapshot() == before
 
 
 def test_direct_review_of_analysis_only_candidate_is_atomic(
@@ -170,6 +295,7 @@ def test_direct_review_of_analysis_only_candidate_is_atomic(
 
     assert response.status_code == 200
     assert response.json()["summary"]["revision"] == 1
+    assert response.json()["summary"]["updated_at"] is not None
     with engine.connect() as connection:
         snapshot = (
             connection.execute(
@@ -187,6 +313,8 @@ def test_direct_review_of_analysis_only_candidate_is_atomic(
         )
     assert snapshot["manual_review_status"] == "recommended_contact"
     assert snapshot["manual_review_revision"] == 1
+    response_updated_at = datetime.fromisoformat(response.json()["summary"]["updated_at"])
+    assert response_updated_at == snapshot["updated_at"]
     assert event_count == 1
 
 
@@ -302,9 +430,9 @@ def test_reviewer_is_information_not_a_queue_permission(
         params={"scope": "pending", "reviewer_name": "只读"},
     )
     assert reviewer_name_filter.status_code == 200
-    assert {
-        value["candidate_fingerprint"] for value in reviewer_name_filter.json()["items"]
-    } == {"review-90"}
+    assert {value["candidate_fingerprint"] for value in reviewer_name_filter.json()["items"]} == {
+        "review-90"
+    }
     reviewer_metrics = client.get(
         "/api/v1/dashboard/summary",
         params={"reviewer_name": "只读"},
@@ -520,6 +648,12 @@ def test_review_is_atomic_preserves_ai_and_rejects_stale_revision(
     engine: Engine,
 ) -> None:
     csrf = login(client)
+    with engine.connect() as connection:
+        previous_updated_at = connection.scalar(
+            select(resume_experience_records.c.updated_at).where(
+                resume_experience_records.c.candidate_fingerprint == "relevant-low"
+            )
+        )
     payload = {
         "review_status": "recommended_contact",
         "feedback": "经验匹配，建议尽快沟通。",
@@ -557,6 +691,10 @@ def test_review_is_atomic_preserves_ai_and_rejects_stale_revision(
     assert snapshot["match_score"] == 95
     assert snapshot["manual_suppress_communication"] == 1
     assert snapshot["manual_review_revision"] == 1
+    assert previous_updated_at is not None
+    assert snapshot["updated_at"] > previous_updated_at
+    response_updated_at = datetime.fromisoformat(response.json()["summary"]["updated_at"])
+    assert response_updated_at == snapshot["updated_at"]
     assert len(events) == 1
 
     conflict = client.patch(
@@ -644,7 +782,7 @@ def test_review_feedback_rejects_whitespace_only_value(client: TestClient) -> No
     assert response.json()["code"] == "validation_error"
 
 
-def test_sensitive_access_is_audited_only_after_authorized_detail_read(
+def test_detail_read_is_authorized_without_writing_database_events(
     client: TestClient,
     engine: Engine,
 ) -> None:
@@ -656,7 +794,7 @@ def test_sensitive_access_is_audited_only_after_authorized_detail_read(
 
     with engine.connect() as connection:
         events = connection.execute(select(sensitive_access_events)).mappings().all()
-    assert [event["candidate_fingerprint"] for event in events] == ["relevant-low"]
+    assert events == []
 
 
 def test_dashboard_and_live_report_reflect_latest_review(client: TestClient) -> None:

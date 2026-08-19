@@ -296,11 +296,8 @@ export interface components {
             revision: number;
             /** Has Share Link */
             has_share_link: boolean;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
+            /** Updated At */
+            updated_at: string | null;
         };
         /** DashboardResponse */
         DashboardResponse: {

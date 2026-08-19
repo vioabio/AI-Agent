@@ -85,12 +85,37 @@ def test_same_surname_and_card_are_not_enough_when_resumes_disagree() -> None:
     assert len(deduplicate_candidate_summaries((first, second))) == 2
 
 
+def test_historical_identity_merge_accepts_missing_experience_timestamp() -> None:
+    common_resume = "工作经历：某消费品公司；达人营销负责人；负责达人投放。" * 40
+    without_master = _summary(
+        fingerprint="analysis-only",
+        name="毛先生",
+        score=92,
+        updated_at=None,
+        communication_status="not_sent",
+        experience=common_resume,
+    )
+    with_master = _summary(
+        fingerprint="with-master",
+        name="毛**",
+        score=90,
+        updated_at=datetime(2026, 8, 19, 9, 0),
+        communication_status="sent",
+        experience=f"{common_resume}补充项目经历：年度达人矩阵建设。",
+    )
+
+    deduplicated = deduplicate_candidate_summaries((without_master, with_master))
+
+    assert len(deduplicated) == 1
+    assert deduplicated[0].updated_at == datetime(2026, 8, 19, 9, 0)
+
+
 def _summary(
     *,
     fingerprint: str,
     name: str,
     score: int,
-    updated_at: datetime,
+    updated_at: datetime | None,
     communication_status: str,
     experience: str,
 ) -> CandidateSummary:

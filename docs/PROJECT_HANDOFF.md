@@ -97,6 +97,8 @@ flowchart TD
 
 候选人主记录：最终身份、`experience_hash`、简历正文、主表 AI 状态/分数以及人工处理字段。
 
+候选人列表 `updated_at` 固定来自 `candidate_resume_experience_records.updated_at`；AI缓存、搜索命中和来源定位时间不得作为该字段兜底。详情接口及 `updated_at` 排序使用同一语义；尚无候选人主记录时 API 返回 `null`，查询过程不得为补齐时间而创建主记录。
+
 人工字段：
 
 - `manual_review_status`

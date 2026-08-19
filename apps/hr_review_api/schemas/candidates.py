@@ -26,7 +26,7 @@ class CandidateSummaryResponse(BaseModel):
     reviewer_name: str | None
     revision: int
     has_share_link: bool
-    updated_at: datetime
+    updated_at: datetime | None
 
 
 class CandidatePageResponse(BaseModel):

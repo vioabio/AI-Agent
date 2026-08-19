@@ -545,12 +545,6 @@ class CandidateRepository:
             resume_experience_records.c.manual_review_status,
             "pending_review",
         )
-        updated_at = func.coalesce(
-            resume_experience_records.c.updated_at,
-            resume_analysis_cache.c.updated_at,
-            resume_search_hits.c.created_at,
-            resume_source_locators.c.created_at,
-        )
         communication_status = self._communication_status_expression(
             criteria,
             candidate_fingerprint=candidate_fingerprint,
@@ -566,7 +560,7 @@ class CandidateRepository:
             resume_experience_records.c.manual_review_assignee_id,
             resume_experience_records.c.manual_review_revision,
             review_status.label("review_status"),
-            updated_at.label("updated_at"),
+            resume_experience_records.c.updated_at.label("updated_at"),
             resume_analysis_cache.c.match_result,
             analysis_status.label("analysis_status"),
             match_score.label("match_score"),
