@@ -40,6 +40,7 @@ afterEach(() => {
 test("collapses filters and keeps the populated queue stable across tab changes", async () => {
   let queueCalls = 0;
   const queueUrls: string[] = [];
+  const reportUrls: string[] = [];
   let resolveQueueRefetch: ((response: Response) => void) | undefined;
   vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
     const path = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
@@ -54,11 +55,25 @@ test("collapses filters and keeps the populated queue stable across tab changes"
     if (path.startsWith("/api/v1/dashboard/summary")) {
       return Promise.resolve(jsonResponse({ actionable: 1, pending_review: 1, recommended_contact: 0, contacted: 0, interviewing: 0, rejected: 0, hired: 0 }));
     }
+    if (path.startsWith("/api/v1/reports/live-preview")) {
+      reportUrls.push(path);
+      return Promise.resolve(jsonResponse({
+        ai_relevant: 3,
+        ai_needs_review: 8,
+        ai_not_relevant: 10,
+        actionable_pending: 2,
+        hr_status_counts: {},
+        feedback_candidates_in_window: 1,
+        generated_at: "2026-08-19T10:43:54+08:00",
+      }));
+    }
     if (path === "/api/v1/batches") return Promise.resolve(jsonResponse({ items: [{ batch_id: "batch-1", started_at: "2026-08-18T08:00:00+08:00", ended_at: "2026-08-18T17:00:00+08:00", label: "2026-08-18 17:00 完成" }] }));
     throw new Error(`Unexpected request: ${path}`);
   });
 
-  const { container } = renderApp(<WorkbenchPage user={user} />);
+  const { container } = renderApp(<WorkbenchPage user={user} />, {
+    initialEntries: ["/?job=daren_live_bd_v1"],
+  });
   expect(await screen.findByText("陈女士")).toBeVisible();
   expect(screen.getByRole("tab", { name: "待审核" })).toBeVisible();
   expect(screen.queryByRole("tab", { name: "待我审核" })).not.toBeInTheDocument();
@@ -66,6 +81,15 @@ test("collapses filters and keeps the populated queue stable across tab changes"
   expect(screen.getByRole("columnheader", { name: "审核人" })).toBeVisible();
   expect(queueUrls[0]).toContain("scope=pending");
   expect(queueUrls[0]).not.toContain("batch_id");
+  expect(queueUrls[0]).toContain("job_profile_id=daren_live_bd_v1");
+
+  fireEvent.click(screen.getByRole("button", { name: /日报实时预览/ }));
+  expect(await screen.findByText("未选择批次，已自动展示最新完成批次")).toBeVisible();
+  await waitFor(() => { expect(reportUrls[0]).toContain("batch_id=batch-1"); });
+  expect(reportUrls[0]).not.toContain("job_profile_id");
+  expect(screen.getByText(/全部岗位/)).toBeVisible();
+  expect(await screen.findByText("AI 原始三态")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
 
   fireEvent.click(screen.getByRole("button", { name: "收起筛选栏" }));
   expect(container.querySelector(".sidebar")).toHaveClass("ant-layout-sider-collapsed");
@@ -84,7 +108,7 @@ test("collapses filters and keeps the populated queue stable across tab changes"
   fireEvent.click(await screen.findByText("2026-08-18 17:00 完成"));
   await waitFor(() => { expect(queueUrls.some((url) => url.includes("batch_id=batch-1"))).toBe(true); });
 
-}, 10_000);
+}, 20_000);
 
 function jsonResponse(body: unknown): Response {
   return new Response(JSON.stringify(body), {

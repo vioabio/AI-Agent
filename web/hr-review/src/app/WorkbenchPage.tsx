@@ -44,6 +44,9 @@ export function WorkbenchPage({ user }: { user: User }) {
     queryFn: () => api.queue(params),
     placeholderData: keepPreviousData,
   });
+  const selectedReportBatch = params.batchId
+    ? batches.data?.items.find((batch) => batch.batch_id === params.batchId)
+    : batches.data?.items[0];
   const logout = useMutation({ mutationFn: api.logout, onSuccess: () => { queryClient.clear(); window.location.assign("/login"); } });
   const allowedJobs = ["admin", "recruiting_lead"].includes(user.role) ? allJobs : [...user.allowed_job_profile_ids];
   useEffect(() => { searchRef.current = search; }, [search]);
@@ -137,7 +140,15 @@ export function WorkbenchPage({ user }: { user: User }) {
         </Layout.Content>
       </Layout>
       <CandidateDetailDrawer fingerprint={selected} onClose={() => setSelected(undefined)} canSubmit={user.role !== "read_only"} />
-      <ReportPreviewDrawer open={reportOpen} onClose={() => setReportOpen(false)} batchId={params.batchId} jobProfileId={params.jobProfileId} />
+      <ReportPreviewDrawer
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        batchId={selectedReportBatch?.batch_id}
+        batchLabel={selectedReportBatch?.label}
+        defaultsToLatest={!params.batchId}
+        batchListSettled={batches.isFetched}
+        jobProfileId={params.batchId ? params.jobProfileId : undefined}
+      />
     </Layout>
   );
 }

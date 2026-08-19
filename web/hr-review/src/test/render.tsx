@@ -6,13 +6,13 @@ import { MemoryRouter } from "react-router";
 
 import { theme } from "../app/theme";
 
-export function renderApp(element: ReactElement) {
+export function renderApp(element: ReactElement, options: { initialEntries?: string[] } = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <ConfigProvider theme={theme}>
       <AntApp>
         <QueryClientProvider client={queryClient}>
-          <MemoryRouter>{element}</MemoryRouter>
+          <MemoryRouter initialEntries={options.initialEntries}>{element}</MemoryRouter>
         </QueryClientProvider>
       </AntApp>
     </ConfigProvider>,

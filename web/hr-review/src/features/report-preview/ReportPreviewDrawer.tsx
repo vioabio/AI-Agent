@@ -5,17 +5,44 @@ import { api } from "../../shared/api/client";
 import { queryKeys } from "../../shared/api/queryKeys";
 import { reviewStatusOptions } from "../review-queue/reviewStatuses";
 
-export function ReportPreviewDrawer({ open, onClose, batchId, jobProfileId }: { open: boolean; onClose: () => void; batchId?: string; jobProfileId?: string }) {
+type ReportPreviewDrawerProps = {
+  open: boolean;
+  onClose: () => void;
+  batchId?: string;
+  batchLabel?: string;
+  defaultsToLatest: boolean;
+  batchListSettled: boolean;
+  jobProfileId?: string;
+};
+
+export function ReportPreviewDrawer({
+  open,
+  onClose,
+  batchId,
+  batchLabel,
+  defaultsToLatest,
+  batchListSettled,
+  jobProfileId,
+}: ReportPreviewDrawerProps) {
   const report = useQuery({
     queryKey: queryKeys.report(batchId, jobProfileId),
     queryFn: () => api.liveReport(batchId, jobProfileId),
-    enabled: open,
+    enabled: open && Boolean(batchId),
     refetchInterval: open ? 20_000 : false,
   });
   return (
     <Drawer title="日报实时预览" width={560} open={open} onClose={onClose}>
-      <Alert type="info" showIcon message={batchId ? "实时预览按左侧所选搜索批次读取 MySQL；不会发送日报，也不会修改已发送的飞书卡片。" : "实时预览按最新完成搜索批次读取 MySQL；不会发送日报，也不会修改已发送的飞书卡片。"} />
-      {report.isLoading ? <Skeleton active /> : report.isError ? <Alert type="error" message="日报预览加载失败" /> : report.data ? (
+      {batchId ? (
+        <Alert
+          type="info"
+          showIcon
+          message={defaultsToLatest ? "未选择批次，已自动展示最新完成批次" : "正在展示所选批次"}
+          description={`${batchLabel ?? batchId}${defaultsToLatest ? "（全部岗位）" : ""}；数据只读，不会发送日报或修改已发送的飞书卡片。`}
+        />
+      ) : batchListSettled ? (
+        <Alert type="warning" showIcon message="暂无可用于日报预览的已完成批次" />
+      ) : null}
+      {!batchId ? (!batchListSettled ? <Skeleton active /> : null) : report.isLoading ? <Skeleton active /> : report.isError ? <Alert type="error" message="日报预览加载失败" /> : report.data ? (
         <Space direction="vertical" size={24} className="drawer-section">
           <ReportSection title="AI 原始三态">
             <Statistic title="匹配" value={report.data.ai_relevant} />
