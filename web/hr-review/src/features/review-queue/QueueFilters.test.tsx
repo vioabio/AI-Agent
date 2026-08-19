@@ -13,6 +13,11 @@ test("emits score, reviewer and communication filters", async () => {
   await userEvent.click(screen.getByText("2026-08-18 17:00 完成"));
   expect(onChange).toHaveBeenLastCalledWith("batch", "batch-1");
 
+  await userEvent.click(screen.getByRole("combobox", { name: "AI 结论" }));
+  expect(screen.getByText("匹配")).toBeInTheDocument();
+  expect(screen.getByText("待复核")).toBeInTheDocument();
+  expect(screen.queryByText("不匹配")).not.toBeInTheDocument();
+
   await userEvent.type(screen.getByLabelText("AI 最低分"), "90");
   expect(onChange).toHaveBeenLastCalledWith("minScore", 90);
 

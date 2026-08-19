@@ -70,7 +70,6 @@ export function QueueFilters({ values, batches, allowedJobs, onChange, onReset }
           options={[
             { value: "relevant", label: "匹配" },
             { value: "needs_review", label: "待复核" },
-            { value: "not_relevant", label: "不匹配" },
           ]}
           onChange={(value) => set("match", value)}
         />
