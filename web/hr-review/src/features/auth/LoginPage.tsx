@@ -26,8 +26,10 @@ export function LoginPage() {
   return (
     <main className="login-shell">
       <section className="login-intro">
-        <div className="brand-mark"><SafetyCertificateOutlined /></div>
-        <Typography.Title>猎聘简历审核工作台</Typography.Title>
+        <div className="login-brand">
+          <div className="brand-mark"><SafetyCertificateOutlined /></div>
+          <Typography.Title>猎聘简历审核工作台</Typography.Title>
+        </div>
       </section>
       <Card className="login-card" variant="borderless">
         <Typography.Title level={3}>欢迎回来</Typography.Title>

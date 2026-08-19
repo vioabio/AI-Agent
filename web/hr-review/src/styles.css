@@ -6,9 +6,10 @@ button, input, textarea, select { font: inherit; }
 .login-shell { min-height: 100vh; display: grid; grid-template-columns: minmax(520px, 1fr) 460px; align-items: center; gap: 80px; padding: 8vh 10vw; background: radial-gradient(circle at 18% 22%, rgba(55, 144, 148, .28), transparent 35%), linear-gradient(125deg, #10233f 0 54%, #f4f7f8 54%); }
 .login-intro { color: white; max-width: 610px; }
 .login-intro .ant-typography { color: white; }
-.login-intro h1 { margin-top: 26px; font-size: 42px; line-height: 1.22; }
+.login-brand { display: flex; align-items: center; gap: 18px; }
+.login-intro h1 { margin: 0; font-size: 42px; line-height: 1.22; }
 .brand-mark, .compact-logo { display: grid; place-items: center; color: white; background: #2b7f86; box-shadow: 0 10px 28px rgba(7, 40, 59, .22); }
-.brand-mark { width: 60px; height: 60px; border-radius: 18px; font-size: 28px; }
+.brand-mark { flex: 0 0 60px; width: 60px; height: 60px; border-radius: 18px; font-size: 28px; }
 .login-card { padding: 20px; box-shadow: 0 28px 80px rgba(23, 40, 58, .16); }
 .login-card .ant-alert { margin-bottom: 18px; }
 .workbench-shell { min-height: 100vh; }
