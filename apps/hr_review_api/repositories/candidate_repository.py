@@ -674,6 +674,9 @@ class CandidateRepository:
                 )
                 == criteria.reviewer_id
             )
+        if criteria.reviewer_name:
+            reviewer_term = _escaped_like_term(criteria.reviewer_name)
+            filters.append(hr_users.c.display_name.like(f"%{reviewer_term}%", escape="\\"))
         if criteria.communication_status:
             filters.append(communication_status == criteria.communication_status)
         if criteria.has_share_link is not None:
@@ -1133,6 +1136,10 @@ def _extract_current_company_title(card_text: object, experience: object) -> str
 
 def _communication_status(value: object) -> str:
     return normalize_communication_status(value)
+
+
+def _escaped_like_term(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 def _decode_score_breakdown(value: object) -> tuple[str, ...]:

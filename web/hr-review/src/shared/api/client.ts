@@ -26,7 +26,7 @@ export interface QueueParams {
   minScore?: number;
   maxScore?: number;
   reviewStatus?: string;
-  reviewerId?: number;
+  reviewerName?: string;
   communicationStatus?: string;
   hasShareLink?: boolean;
   keyword?: string;
@@ -55,8 +55,8 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
-  dashboard: (batchId?: string, jobProfileId?: string, reviewerId?: number) =>
-    request<Dashboard>(`/api/v1/dashboard/summary?${filterSearchParams(batchId, jobProfileId, reviewerId)}`),
+  dashboard: (batchId?: string, jobProfileId?: string, reviewerName?: string) =>
+    request<Dashboard>(`/api/v1/dashboard/summary?${filterSearchParams(batchId, jobProfileId, reviewerName)}`),
   liveReport: (batchId?: string, jobProfileId?: string) =>
     request<LiveReport>(`/api/v1/reports/live-preview?${filterSearchParams(batchId, jobProfileId)}`),
 };
@@ -102,18 +102,18 @@ function queueSearchParams(params: QueueParams): URLSearchParams {
   appendOptional(search, "min_score", params.minScore);
   appendOptional(search, "max_score", params.maxScore);
   appendOptional(search, "review_status", params.reviewStatus);
-  appendOptional(search, "reviewer_id", params.reviewerId);
+  appendOptional(search, "reviewer_name", params.reviewerName);
   appendOptional(search, "communication_status", params.communicationStatus);
   appendOptional(search, "has_share_link", params.hasShareLink);
   appendOptional(search, "keyword", params.keyword);
   return search;
 }
 
-function filterSearchParams(batchId?: string, jobProfileId?: string, reviewerId?: number): string {
+function filterSearchParams(batchId?: string, jobProfileId?: string, reviewerName?: string): string {
   const search = new URLSearchParams();
   appendOptional(search, "batch_id", batchId);
   appendOptional(search, "job_profile_id", jobProfileId);
-  appendOptional(search, "reviewer_id", reviewerId);
+  appendOptional(search, "reviewer_name", reviewerName);
   return search.toString();
 }
 

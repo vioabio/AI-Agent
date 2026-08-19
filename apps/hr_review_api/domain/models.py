@@ -35,6 +35,7 @@ class CandidateQueryCriteria:
     max_score: int | None = None
     review_status: str | None = None
     reviewer_id: int | None = None
+    reviewer_name: str | None = None
     communication_status: str | None = None
     has_share_link: bool | None = None
     keyword: str | None = None

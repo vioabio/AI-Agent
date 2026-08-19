@@ -14,10 +14,10 @@ const metrics = [
   ["hired", "已录用", "#287a55"],
 ] as const;
 
-export function MetricCards({ batchId, jobProfileId, reviewerId }: { batchId?: string; jobProfileId?: string; reviewerId?: number }) {
+export function MetricCards({ batchId, jobProfileId, reviewerName }: { batchId?: string; jobProfileId?: string; reviewerName?: string }) {
   const summary = useQuery({
-    queryKey: queryKeys.dashboard(batchId, jobProfileId, reviewerId),
-    queryFn: () => api.dashboard(batchId, jobProfileId, reviewerId),
+    queryKey: queryKeys.dashboard(batchId, jobProfileId, reviewerName),
+    queryFn: () => api.dashboard(batchId, jobProfileId, reviewerName),
     refetchInterval: 20_000,
   });
   return (

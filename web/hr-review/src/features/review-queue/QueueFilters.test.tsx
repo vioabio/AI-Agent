@@ -16,8 +16,8 @@ test("emits score, reviewer and communication filters", async () => {
   await userEvent.type(screen.getByLabelText("AI 最低分"), "90");
   expect(onChange).toHaveBeenLastCalledWith("minScore", 90);
 
-  await userEvent.type(screen.getByLabelText("审核人 ID"), "12");
-  expect(onChange).toHaveBeenLastCalledWith("reviewerId", 12);
+  await userEvent.type(screen.getByLabelText("审核人姓名"), "招聘负责人{Enter}");
+  expect(onChange).toHaveBeenLastCalledWith("reviewerName", "招聘负责人");
 
   await userEvent.click(screen.getByRole("combobox", { name: "沟通状态" }));
   await userEvent.click(screen.getByText("已发送"));

@@ -58,7 +58,7 @@ export function WorkbenchPage({ user }: { user: User }) {
     minScore: params.minScore,
     maxScore: params.maxScore,
     communication: params.communicationStatus,
-    reviewerId: params.reviewerId,
+    reviewerName: params.reviewerName,
     keyword: params.keyword,
     hasLink: params.hasShareLink === undefined ? undefined : String(params.hasShareLink),
   };
@@ -113,7 +113,7 @@ export function WorkbenchPage({ user }: { user: User }) {
           />
         </Layout.Sider>
         <Layout.Content className="workspace">
-          <MetricCards batchId={params.batchId} jobProfileId={params.jobProfileId} reviewerId={params.reviewerId} />
+          <MetricCards batchId={params.batchId} jobProfileId={params.jobProfileId} reviewerName={params.reviewerName} />
           <div className="queue-card">
             <Tabs activeKey={params.scope} items={scopeTabs} onChange={(scope) => patchSearch({ scope })} />
             <CandidateTable
@@ -160,7 +160,7 @@ function queueParams(search: URLSearchParams): QueueParams {
     jobProfileId: search.get("job") ?? undefined,
     matchResult: search.get("match") ?? undefined, reviewStatus: search.get("status") ?? undefined,
     minScore: optionalNumber(search.get("min_score")), maxScore: optionalNumber(search.get("max_score")),
-    reviewerId: optionalNumber(search.get("reviewer")), communicationStatus: search.get("communication") ?? undefined,
+    reviewerName: search.get("reviewer_name") ?? undefined, communicationStatus: search.get("communication") ?? undefined,
     keyword: search.get("keyword") ?? undefined, hasShareLink: hasLink ? hasLink === "true" : undefined,
     scope: normalizeScope(search.get("scope")), page: Number(search.get("page") ?? 1),
     pageSize: Number(search.get("page_size") ?? 20), sortBy: search.get("sort") ?? "updated_at",
@@ -186,7 +186,7 @@ const filterSearchKeys: Record<keyof FilterValues, string> = {
   minScore: "min_score",
   maxScore: "max_score",
   communication: "communication",
-  reviewerId: "reviewer",
+  reviewerName: "reviewer_name",
   keyword: "keyword",
   hasLink: "link",
 };

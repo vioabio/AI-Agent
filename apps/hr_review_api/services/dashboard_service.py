@@ -45,10 +45,12 @@ class DashboardService:
         batch_id: str | None,
         job_profile_id: str | None,
         reviewer_id: int | None,
+        reviewer_name: str | None,
     ) -> DashboardCounts:
         base = CandidateQueryCriteria(
             job_profile_id=job_profile_id,
             reviewer_id=reviewer_id,
+            reviewer_name=reviewer_name,
             review_scope="all",
             page_size=1,
         )

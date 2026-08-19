@@ -11,7 +11,7 @@ export interface FilterValues {
   minScore?: number;
   maxScore?: number;
   communication?: string;
-  reviewerId?: number;
+  reviewerName?: string;
   keyword?: string;
   hasLink?: string;
 }
@@ -32,7 +32,9 @@ const jobLabels: Record<string, string> = {
 export function QueueFilters({ values, batches, allowedJobs, onChange, onReset }: Props) {
   const set = <Key extends keyof FilterValues>(key: Key, value: FilterValues[Key]) => onChange(key, value);
   const [keywordDraft, setKeywordDraft] = useState(values.keyword ?? "");
+  const [reviewerDraft, setReviewerDraft] = useState(values.reviewerName ?? "");
   useEffect(() => { setKeywordDraft(values.keyword ?? ""); }, [values.keyword]);
+  useEffect(() => { setReviewerDraft(values.reviewerName ?? ""); }, [values.reviewerName]);
   return (
     <aside className="filter-panel" aria-label="候选人筛选">
       <Space direction="vertical" size={14} className="filter-stack">
@@ -113,13 +115,17 @@ export function QueueFilters({ values, batches, allowedJobs, onChange, onReset }
         />
         <div>
           <Typography.Text className="filter-label">审核人</Typography.Text>
-          <InputNumber
-            aria-label="审核人 ID"
-            min={1}
-            precision={0}
-            placeholder="输入审核人 ID"
-            value={values.reviewerId}
-            onChange={(value) => set("reviewerId", value ?? undefined)}
+          <Input.Search
+            aria-label="审核人姓名"
+            allowClear
+            placeholder="输入审核人姓名"
+            value={reviewerDraft}
+            onSearch={(value) => set("reviewerName", value.trim() || undefined)}
+            onChange={(event) => {
+              const value = event.target.value;
+              setReviewerDraft(value);
+              if (!value) set("reviewerName", undefined);
+            }}
           />
         </div>
         <FilterSelect

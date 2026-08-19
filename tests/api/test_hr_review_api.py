@@ -297,6 +297,21 @@ def test_reviewer_is_information_not_a_queue_permission(
         "review-90"
     }
 
+    reviewer_name_filter = client.get(
+        "/api/v1/review-queue",
+        params={"scope": "pending", "reviewer_name": "只读"},
+    )
+    assert reviewer_name_filter.status_code == 200
+    assert {
+        value["candidate_fingerprint"] for value in reviewer_name_filter.json()["items"]
+    } == {"review-90"}
+    reviewer_metrics = client.get(
+        "/api/v1/dashboard/summary",
+        params={"reviewer_name": "只读"},
+    )
+    assert reviewer_metrics.status_code == 200
+    assert reviewer_metrics.json()["pending_review"] == 1
+
     legacy_reviewer_filter = client.get(
         "/api/v1/review-queue",
         params={"scope": "pending", "reviewer_id": 1},

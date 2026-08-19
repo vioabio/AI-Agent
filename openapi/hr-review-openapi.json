@@ -344,6 +344,23 @@
             }
           },
           {
+            "name": "reviewer_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Reviewer Name"
+            }
+          },
+          {
             "name": "hr_review_session",
             "in": "cookie",
             "required": false,
@@ -634,6 +651,23 @@
                 }
               ],
               "title": "Reviewer Id"
+            }
+          },
+          {
+            "name": "reviewer_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Reviewer Name"
             }
           },
           {

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 
 from apps.hr_review_api.api.dependencies import get_current_user, get_services
 from apps.hr_review_api.domain.models import AuthenticatedUser
@@ -41,12 +41,14 @@ def dashboard_summary(
     batch_id: str | None = None,
     job_profile_id: str | None = None,
     reviewer_id: int | None = None,
+    reviewer_name: Annotated[str | None, Query(max_length=100)] = None,
 ) -> DashboardResponse:
     result = get_services(request).dashboard.dashboard_service.get_summary(
         user=user,
         batch_id=batch_id,
         job_profile_id=job_profile_id,
         reviewer_id=reviewer_id,
+        reviewer_name=reviewer_name.strip() if reviewer_name else None,
     )
     return DashboardResponse.model_validate(result)
 

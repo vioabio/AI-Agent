@@ -656,6 +656,7 @@ export interface operations {
                 batch_id?: string | null;
                 job_profile_id?: string | null;
                 reviewer_id?: number | null;
+                reviewer_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -765,6 +766,7 @@ export interface operations {
                 max_score?: number | null;
                 review_status?: string | null;
                 reviewer_id?: number | null;
+                reviewer_name?: string | null;
                 communication_status?: string | null;
                 has_share_link?: boolean | null;
                 keyword?: string | null;
