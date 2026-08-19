@@ -40,7 +40,7 @@ def test_job_progress_card_separates_today_and_cumulative_metrics() -> None:
     assert "67 份" in rendered
     assert "61 份" in rendered
     assert "简历不匹配" not in rendered
-    assert "本次暂无90分以上候选人" in rendered
+    assert "本次暂无80分以上候选人" in rendered
 
 
 def test_coze_api_failure_is_not_counted_as_human_review_candidate() -> None:
@@ -58,20 +58,20 @@ def test_coze_api_failure_is_not_counted_as_human_review_candidate() -> None:
     assert select_review_candidates([candidate]) == []
 
 
-def test_only_needs_review_candidates_scoring_at_least_90_enter_review_list() -> None:
+def test_only_needs_review_candidates_scoring_at_least_80_enter_review_list() -> None:
     below_threshold = ReportCandidate(
-        candidate_fingerprint="review-89",
-        candidate_name="89分候选人",
+        candidate_fingerprint="review-79",
+        candidate_name="79分候选人",
         analysis_status="待复核",
         match_result="needs_review",
-        match_score=89,
+        match_score=79,
     )
     at_threshold = ReportCandidate(
-        candidate_fingerprint="review-90",
-        candidate_name="90分候选人",
+        candidate_fingerprint="review-80",
+        candidate_name="80分候选人",
         analysis_status="待复核",
         match_result="needs_review",
-        match_score=90,
+        match_score=80,
     )
 
     assert select_review_candidates([below_threshold, at_threshold]) == [at_threshold]

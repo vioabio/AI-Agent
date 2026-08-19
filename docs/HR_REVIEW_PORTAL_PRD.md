@@ -90,7 +90,7 @@ AI 三态继续使用主项目统一规则：
 
 ```text
 全部 relevant
-+ needs_review 且 match_score >= 90
++ needs_review 且 match_score >= 80
 - Coze API 临时异常产生的伪待复核
 - 已完成 HR 处置的候选人
 ```
@@ -477,7 +477,7 @@ GET   /api/v1/candidates/{candidate_fingerprint}/review-history
 ## 15. 验收标准
 
 1. HR 可以登录并只能看到有权访问的岗位；
-2. 默认队列准确展示全部 `relevant` 和 `needs_review>=90`；
+2. 默认队列准确展示 `match_score>=80` 的 `relevant` 和 `needs_review`；
 3. 候选人详情展示正式链接、简历、AI 结论、证据、搜索来源和沟通状态；
 4. HR 可以提交所有约定状态和必填反馈；
 5. 提交后当前状态和审计历史在同一事务中完成；
@@ -540,7 +540,7 @@ GET   /api/v1/candidates/{candidate_fingerprint}/review-history
 - 唯一业务真值仍为 MySQL；
 - 唯一采集代码源仍为主项目最新代码；
 - 不得从旧会话、旧工作树复制过时代码覆盖主项目；
-- 新工作树开发前必须确认基线包含最新 P1/P2 规则、人工审核字段、报表 90 分口径和双岗位主备 Coze 路由；
+- 新工作树开发前必须确认基线包含最新 P1/P2 规则、人工审核字段、报表 80 分口径和双岗位主备 Coze 路由；
 - 当前主目录存在未提交维护改动时，不能直接从旧 `HEAD` 创建工作树并假设其包含最新状态；
 - 实现期间不得启动或续跑采集进程，不得调用 `--no-resume` 或 `--reset-checkpoint`，不得发送或测试日报。
 
@@ -639,7 +639,7 @@ BuildLiveReportPreview
 
 禁止：
 
-- 在 Repository 中判断 `relevant + needs_review>=90` 等产品规则；
+- 在 Repository 中判断 `match_score>=80` 且 `relevant/needs_review` 等产品规则；
 - 在 Repository 中决定哪些角色有权限；
 - 在 Repository 中发送日报、调用 Coze 或操作手机；
 - 返回一个供上层随意读取任意字段的超大字典；

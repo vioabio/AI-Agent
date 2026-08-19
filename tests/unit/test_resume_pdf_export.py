@@ -71,26 +71,26 @@ def test_report_lists_one_pdf_link_per_job_and_omits_empty_pdf_button() -> None:
     )
 
     assert "达人营销总监：[查看候选人明细及判断依据](https://example.com/daren.pdf)" in markdown
-    assert "财务共享与管理经理：暂无90分以上候选人" in markdown
+    assert "财务共享与管理经理：暂无80分以上候选人" in markdown
 
 
-def test_pdf_status_only_marks_needs_review_at_90_or_above() -> None:
+def test_pdf_status_only_marks_needs_review_at_80_or_above() -> None:
     low_score = ReportCandidate(
-        candidate_fingerprint="review-89",
-        candidate_name="89分候选人",
+        candidate_fingerprint="review-79",
+        candidate_name="79分候选人",
         analysis_status="待复核",
         match_result="needs_review",
-        match_score=89,
+        match_score=79,
     )
     threshold_score = ReportCandidate(
-        candidate_fingerprint="review-90",
-        candidate_name="90分候选人",
+        candidate_fingerprint="review-80",
+        candidate_name="80分候选人",
         analysis_status="待复核",
         match_result="needs_review",
-        match_score=90,
+        match_score=80,
     )
 
-    assert _format_candidate_status(low_score) == "不匹配（未达90分待复核线）"
+    assert _format_candidate_status(low_score) == "不匹配（未达80分待复核线）"
     assert _format_candidate_status(threshold_score) == "待人工复核"
 
 
@@ -150,46 +150,46 @@ def test_pdf_coze_api_failure_never_becomes_below_threshold_mismatch() -> None:
     assert _format_candidate_status(recollection_candidate) == "需重新采集"
 
 
-def test_daily_pdf_includes_only_90_point_relevant_and_review_candidates(
+def test_daily_pdf_includes_only_80_point_relevant_and_review_candidates(
     monkeypatch,
     tmp_path,
 ) -> None:
-    greeted_relevant_below_90 = ReportCandidate(
-        candidate_fingerprint="relevant-82",
+    greeted_relevant_below_80 = ReportCandidate(
+        candidate_fingerprint="relevant-70",
         candidate_name="已打招呼低分匹配候选人",
         match_result="relevant",
-        match_score=82,
+        match_score=70,
         hit_status="sent",
         role_keywords={"达人营销总监"},
     )
-    ungreeted_relevant_below_90 = ReportCandidate(
-        candidate_fingerprint="relevant-89",
+    ungreeted_relevant_below_80 = ReportCandidate(
+        candidate_fingerprint="relevant-79",
         candidate_name="未打招呼低分匹配候选人",
         match_result="relevant",
-        match_score=89,
+        match_score=79,
         hit_status="reviewed",
         role_keywords={"达人营销总监"},
     )
-    ungreeted_relevant_at_90 = ReportCandidate(
-        candidate_fingerprint="relevant-90",
-        candidate_name="90分匹配候选人",
+    ungreeted_relevant_at_80 = ReportCandidate(
+        candidate_fingerprint="relevant-80",
+        candidate_name="80分匹配候选人",
         match_result="relevant",
-        match_score=90,
+        match_score=80,
         hit_status="reviewed",
         role_keywords={"达人营销总监"},
     )
-    review_at_90 = ReportCandidate(
-        candidate_fingerprint="review-90",
+    review_at_80 = ReportCandidate(
+        candidate_fingerprint="review-80",
         candidate_name="待复核候选人",
         match_result="needs_review",
-        match_score=90,
+        match_score=80,
         role_keywords={"达人营销总监"},
     )
-    review_below_90 = ReportCandidate(
-        candidate_fingerprint="review-89",
+    review_below_80 = ReportCandidate(
+        candidate_fingerprint="review-79",
         candidate_name="低分待复核候选人",
         match_result="needs_review",
-        match_score=89,
+        match_score=79,
         role_keywords={"达人营销总监"},
     )
     high_score_not_relevant = ReportCandidate(
@@ -200,11 +200,11 @@ def test_daily_pdf_includes_only_90_point_relevant_and_review_candidates(
         role_keywords={"达人营销总监"},
     )
     candidates = [
-        greeted_relevant_below_90,
-        ungreeted_relevant_below_90,
-        ungreeted_relevant_at_90,
-        review_at_90,
-        review_below_90,
+        greeted_relevant_below_80,
+        ungreeted_relevant_below_80,
+        ungreeted_relevant_at_80,
+        review_at_80,
+        review_below_80,
         high_score_not_relevant,
     ]
     captured: dict[str, dict[str, object]] = {}
@@ -256,8 +256,8 @@ def test_daily_pdf_includes_only_90_point_relevant_and_review_candidates(
     )
 
     daren_pdf = captured["达人营销总监"]
-    assert daren_pdf["candidates"] == [ungreeted_relevant_at_90]
-    assert daren_pdf["review_candidates"] == [review_at_90]
+    assert daren_pdf["candidates"] == [ungreeted_relevant_at_80]
+    assert daren_pdf["review_candidates"] == [review_at_80]
     assert "other_candidates" not in daren_pdf
     assert "recollection_candidates" not in daren_pdf
     assert result["达人营销总监"] is not None

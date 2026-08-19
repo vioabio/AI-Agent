@@ -10,8 +10,8 @@ from liepin_rpa.candidate_decision_rules import (
 )
 
 # Product rule shared by collection prioritization, exports, PDF selection and
-# report metrics. A candidate must be relevant/needs_review and score at least 90.
-ACTIONABLE_MIN_SCORE = 90
+# report metrics. A candidate must be relevant/needs_review and score at least 80.
+ACTIONABLE_MIN_SCORE = 80
 # Compatibility alias for callers whose display copy still refers to the
 # historical needs-review threshold.
 ACTIONABLE_NEEDS_REVIEW_MIN_SCORE = ACTIONABLE_MIN_SCORE

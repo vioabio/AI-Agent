@@ -6,13 +6,13 @@ from liepin_rpa.reporting_rules import (
 )
 
 
-def test_actionable_report_population_requires_candidate_result_and_90_points() -> None:
-    assert ACTIONABLE_NEEDS_REVIEW_MIN_SCORE == 90
-    assert is_actionable_report_result("relevant", 90)
-    assert not is_actionable_report_result("relevant", 89)
+def test_actionable_report_population_requires_candidate_result_and_80_points() -> None:
+    assert ACTIONABLE_NEEDS_REVIEW_MIN_SCORE == 80
+    assert is_actionable_report_result("relevant", 80)
+    assert not is_actionable_report_result("relevant", 79)
     assert not is_actionable_report_result("relevant", None)
-    assert is_actionable_report_result("needs_review", 90)
-    assert not is_actionable_report_result("needs_review", 89)
+    assert is_actionable_report_result("needs_review", 80)
+    assert not is_actionable_report_result("needs_review", 79)
     assert not is_actionable_report_result("not_relevant", 100)
 
 
@@ -24,7 +24,7 @@ def test_explicit_match_result_wins_over_conflicting_legacy_status() -> None:
     )
     assert is_actionable_needs_review_result(
         None,
-        90,
+        80,
         analysis_status="待复核",
     )
     assert not is_not_relevant_result(

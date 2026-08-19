@@ -849,8 +849,8 @@ def seed_database(engine: Engine) -> None:
         )
         candidates = [
             (1, "relevant-low", "匹配", 95),
-            (2, "review-90", "待复核", 90),
-            (3, "review-89", "待复核", 89),
+            (2, "review-90", "待复核", 80),
+            (3, "review-89", "待复核", 79),
             (4, "temporary-failure", "待复核", 99),
             (5, "finance-hidden", "匹配", 95),
             (6, "relevant-under-threshold", "匹配", 70),

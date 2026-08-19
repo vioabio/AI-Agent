@@ -4,29 +4,29 @@ import json
 from datetime import datetime
 from types import SimpleNamespace
 
-from liepin_rpa.search_results_export import (
-    format_hit_status,
-    format_skip_reason,
-    load_executed_keywords_from_logs,
-    load_checkpoint_keywords,
-    split_search_keyword,
-)
 from liepin_rpa.feishu_report import (
     JobPipelineMetrics,
     ReportCandidate,
+    _build_feishu_payload,
+    _build_pipeline_metrics_markdown,
     _build_role_overview_markdown,
     _build_role_summaries,
     _build_summary,
-    _build_feishu_payload,
-    _build_pipeline_metrics_markdown,
     _format_candidate_block,
     _format_review_candidate_block,
     _normalize_candidate_name,
     select_featured_candidates,
-    select_review_candidates,
     select_recollection_candidates,
+    select_review_candidates,
 )
 from liepin_rpa.search_execution.workflow import SearchWorkflowReport
+from liepin_rpa.search_results_export import (
+    format_hit_status,
+    format_skip_reason,
+    load_checkpoint_keywords,
+    load_executed_keywords_from_logs,
+    split_search_keyword,
+)
 
 
 def test_masked_candidate_name_keeps_platform_asterisks() -> None:
@@ -163,7 +163,7 @@ def test_format_status_and_skip_reason_for_sent() -> None:
     assert format_skip_reason("sent", "匹配", "relevant") == ""
 
 
-def test_collect_only_high_score_relevant_candidate_is_featured_and_marked_pending_contact() -> None:
+def test_high_score_relevant_candidate_is_featured_and_marked_pending_contact() -> None:
     candidate = ReportCandidate(
         candidate_fingerprint="fp-1",
         candidate_name="测试候选人",
@@ -207,7 +207,7 @@ def test_needs_review_is_separated_from_not_relevant_and_displayed() -> None:
         candidate_name="低分复核候选人",
         analysis_status="待复核",
         match_result="needs_review",
-        match_score=89,
+        match_score=79,
     )
     report = SearchWorkflowReport(
         total_keywords=1,
@@ -222,17 +222,18 @@ def test_needs_review_is_separated_from_not_relevant_and_displayed() -> None:
     assert summary.needs_review_count == 1
     assert summary.not_relevant_count == 2
     assert select_review_candidates([review, irrelevant, low_score_review]) == [review]
-    assert "待复核原因：有达人投放经验，但管理跨度不明确。" in _format_review_candidate_block(review)
+    rendered_review = _format_review_candidate_block(review)
+    assert "待复核原因：有达人投放经验，但管理跨度不明确。" in rendered_review
 
 
 def test_export_labels_low_score_needs_review_as_below_review_threshold() -> None:
-    assert format_hit_status("reviewed", "待复核", "needs_review", 89) == (
-        "Coze未达90分待复核线，未发送"
+    assert format_hit_status("reviewed", "待复核", "needs_review", 79) == (
+        "Coze未达80分待复核线，未发送"
     )
-    assert format_skip_reason("reviewed", "待复核", "needs_review", 89) == (
-        "Coze分数未达到90分待复核线"
+    assert format_skip_reason("reviewed", "待复核", "needs_review", 79) == (
+        "Coze分数未达到80分待复核线"
     )
-    assert format_hit_status("reviewed", "待复核", "needs_review", 90) == (
+    assert format_hit_status("reviewed", "待复核", "needs_review", 80) == (
         "需人工复核，未发送"
     )
 

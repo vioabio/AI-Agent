@@ -59,7 +59,7 @@ flowchart TD
     J -- 否 --> K["记录拒绝，不调用 AI"]
     J -- 是 --> L["岗位独立 Coze 分析"]
     L --> M{"可行动高价值?"}
-    M -- "relevant 或 needs_review>=90" --> N["尝试正式分享链接；额度不足收藏"]
+    M -- "relevant/needs_review 且分数>=80" --> N["尝试正式分享链接；额度不足收藏"]
     M -- 否 --> O["保留定位与 AI 事实"]
     N --> P{"match_result=relevant?"}
     O --> P
@@ -135,18 +135,18 @@ AI 历史与缓存：候选人 + `experience_hash` + `analysis_version` 唯一�
 
 日报投递幂等、水位、PDF 路径/URL、上传和发送状态。日报候选人历史另存于 `artifacts/daily_report_candidate_history.json`，不是可随意清理的缓存。
 
-## 6. AI、链接和 90 分口径
+## 6. AI、链接和 80 分口径
 
-岗位配置中的 `selection.relevant_score_min=80`、`review_score_min=65` 属于岗位 AI 判定契约；报表的 90 分是另一层“人工待办价值线”，不要混为一谈。
+岗位配置中的 `selection.relevant_score_min=80`、`review_score_min=65` 属于岗位 AI 判定契约；报表的 80 分是另一层“人工待办价值线”，不要混为一谈。
 
 共享代码口径位于 `src/liepin_rpa/reporting_rules.py`：
 
 ```text
-ACTIONABLE_NEEDS_REVIEW_MIN_SCORE = 90
+ACTIONABLE_NEEDS_REVIEW_MIN_SCORE = 80
 
 可行动候选人：
   relevant：全部纳入，不设分数下限
-  needs_review：仅 match_score >= 90
+  needs_review：仅 match_score >= 80
 ```
 
 统一影响：
@@ -319,7 +319,7 @@ logs/                                结构化运行日志与队列输出
 截至 2026-08-17，本轮工作基于并保留下列已有未提交改动：
 
 - AI 三态 `needs_review` 映射与缓存惰性修复；
-- 正式链接策略：`relevant` 全部 + `needs_review>=90`；
+- 正式链接策略：`relevant/needs_review` 且 `match_score>=80`；
 - 人工复核字段、人工抑制沟通和报表；
 - PDF 排除人工处理候选人；
 - 毛先生/袁先生的人工反馈已写入数据库（不在本文记录候选人详细隐私）。

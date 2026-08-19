@@ -384,7 +384,7 @@ def select_featured_candidates(candidates: list[ReportCandidate]) -> list[Report
 
 
 def select_relevant_candidates(candidates: list[ReportCandidate]) -> list[ReportCandidate]:
-    """Return relevant candidates that pass the shared 90-point gate."""
+    """Return relevant candidates that pass the shared actionable-score gate."""
 
     return _select_candidates(candidates, _is_relevant_candidate)
 
@@ -798,14 +798,21 @@ def _build_job_progress_elements(job: JobReportSummary) -> list[dict[str, Any]]:
 def _build_single_job_strategy_markdown(job: JobReportSummary) -> str:
     lines = ["**下一步建议**"]
     if job.relevant_count:
-        lines.append(f"- 已有 {job.relevant_count} 位90分以上明确匹配候选人，建议优先推进沟通。")
+        lines.append(
+            f"- 已有 {job.relevant_count} 位{ACTIONABLE_NEEDS_REVIEW_MIN_SCORE}分以上"
+            "明确匹配候选人，建议优先推进沟通。"
+        )
     if job.needs_review_count:
         lines.append(
-            f"- 完成 {job.needs_review_count} 位90分以上待复核候选人的人工判断，"
+            f"- 完成 {job.needs_review_count} 位{ACTIONABLE_NEEDS_REVIEW_MIN_SCORE}分以上"
+            "待复核候选人的人工判断，"
             "确认是否进入沟通名单。"
         )
     if not job.relevant_count and not job.needs_review_count:
-        lines.append("- 本次暂无90分以上候选人，建议扩大搜索范围或调整搜索词与筛选条件。")
+        lines.append(
+            f"- 本次暂无{ACTIONABLE_NEEDS_REVIEW_MIN_SCORE}分以上候选人，"
+            "建议扩大搜索范围或调整搜索词与筛选条件。"
+        )
     return "\n".join(lines)
 
 
@@ -863,7 +870,9 @@ def _build_detail_documents_markdown(
         if detail_pdf_url:
             lines.append(f"- {job_name}：[查看候选人明细及判断依据]({detail_pdf_url})")
         else:
-            lines.append(f"- {job_name}：暂无90分以上候选人")
+            lines.append(
+                f"- {job_name}：暂无{ACTIONABLE_NEEDS_REVIEW_MIN_SCORE}分以上候选人"
+            )
     return "\n".join(lines)
 
 
@@ -895,20 +904,24 @@ def _build_daily_strategy_markdown(summary: FeishuReportSummary) -> str:
     lines = ["**💡 下一步建议**"]
     if summary.relevant_count:
         lines.append(
-            f"- 达人营销总监：已有 {summary.relevant_count} 位90分以上明确匹配候选人，"
+            f"- 达人营销总监：已有 {summary.relevant_count} 位"
+            f"{ACTIONABLE_NEEDS_REVIEW_MIN_SCORE}分以上明确匹配候选人，"
             "建议优先推进沟通。"
         )
     if summary.needs_review_count:
         lines.append(
-            f"- 达人营销总监：完成 {summary.needs_review_count} 位90分以上待复核"
+            f"- 达人营销总监：完成 {summary.needs_review_count} 位"
+            f"{ACTIONABLE_NEEDS_REVIEW_MIN_SCORE}分以上待复核"
             "候选人的人工判断，确认是否进入沟通名单。"
         )
     if not summary.relevant_count and not summary.needs_review_count:
         lines.append(
-            "- 达人营销总监：本次暂无90分以上候选人，建议扩大搜索范围或调整搜索词与筛选条件。"
+            f"- 达人营销总监：本次暂无{ACTIONABLE_NEEDS_REVIEW_MIN_SCORE}分以上候选人，"
+            "建议扩大搜索范围或调整搜索词与筛选条件。"
         )
     lines.append(
-        "- 财务共享与管理经理：本次暂无90分以上候选人，建议扩大搜索范围或调整搜索词与筛选条件。"
+        f"- 财务共享与管理经理：本次暂无{ACTIONABLE_NEEDS_REVIEW_MIN_SCORE}分以上候选人，"
+        "建议扩大搜索范围或调整搜索词与筛选条件。"
     )
     return "\n".join(lines)
 
