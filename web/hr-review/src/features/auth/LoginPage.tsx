@@ -27,11 +27,7 @@ export function LoginPage() {
     <main className="login-shell">
       <section className="login-intro">
         <div className="brand-mark"><SafetyCertificateOutlined /></div>
-        <Typography.Title>候选人审核与招聘进度工作台</Typography.Title>
-        <Typography.Paragraph>
-          将 AI 初筛事实、HR 人工判断与招聘推进状态汇聚在一个可审计的工作空间。
-        </Typography.Paragraph>
-        <div className="login-note">内部系统 · 所有敏感访问和状态修改均会记录</div>
+        <Typography.Title>猎聘简历审核工作台</Typography.Title>
       </section>
       <Card className="login-card" variant="borderless">
         <Typography.Title level={3}>欢迎回来</Typography.Title>

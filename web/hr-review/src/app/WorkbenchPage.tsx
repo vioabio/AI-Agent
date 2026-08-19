@@ -85,7 +85,7 @@ export function WorkbenchPage({ user }: { user: User }) {
             onClick={() => setFiltersCollapsed((value) => !value)}
           />
           <div className="compact-logo"><TeamOutlined /></div>
-          <div><Typography.Title level={4}>候选人审核与招聘进度工作台</Typography.Title><Typography.Text>AI 初筛事实与 HR 推进状态分离展示</Typography.Text></div>
+          <Typography.Title level={4}>候选人审核与招聘进度工作台</Typography.Title>
         </Space>
         <Space size={12}>
           <Button ghost icon={<BarChartOutlined />} onClick={() => setReportOpen(true)}>日报实时预览</Button>

@@ -75,6 +75,7 @@ test("collapses filters and keeps the populated queue stable across tab changes"
     initialEntries: ["/?job=daren_live_bd_v1"],
   });
   expect(await screen.findByText("陈女士")).toBeVisible();
+  expect(screen.queryByText("AI 初筛事实与 HR 推进状态分离展示")).not.toBeInTheDocument();
   expect(screen.getByRole("tab", { name: "待审核" })).toBeVisible();
   expect(screen.queryByRole("tab", { name: "待我审核" })).not.toBeInTheDocument();
   expect(screen.queryByRole("tab", { name: "全部待审核" })).not.toBeInTheDocument();
