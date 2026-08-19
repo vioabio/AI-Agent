@@ -90,6 +90,7 @@ def test_default_queue_uses_shared_actionable_rules_and_job_permissions(client: 
     assert response.status_code == 200
     fingerprints = {item["candidate_fingerprint"] for item in response.json()["items"]}
     assert fingerprints == {"relevant-low", "review-90"}
+    assert "relevant-under-threshold" not in fingerprints
     assert "temporary-failure" not in fingerprints
     assert "finance-hidden" not in fingerprints
 
@@ -369,6 +370,16 @@ def test_communication_status_uses_normalized_history_in_list_detail_and_filters
 ) -> None:
     with engine.begin() as connection:
         connection.execute(
+            resume_analysis_cache.update()
+            .where(resume_analysis_cache.c.candidate_fingerprint == "review-89")
+            .values(match_score=91)
+        )
+        connection.execute(
+            resume_analysis_cache.update()
+            .where(resume_analysis_cache.c.candidate_fingerprint == "temporary-failure")
+            .values(analysis_reason="测试理由")
+        )
+        connection.execute(
             resume_search_hits.update()
             .where(resume_search_hits.c.candidate_fingerprint == "review-90")
             .values(hit_status="immediate_job_confirmed")
@@ -528,7 +539,7 @@ def test_review_is_atomic_preserves_ai_and_rejects_stale_revision(
             .all()
         )
     assert snapshot["analysis_status"] == "匹配"
-    assert snapshot["match_score"] == 70
+    assert snapshot["match_score"] == 95
     assert snapshot["manual_suppress_communication"] == 1
     assert snapshot["manual_review_revision"] == 1
     assert len(events) == 1
@@ -649,7 +660,7 @@ def test_dashboard_and_live_report_reflect_latest_review(client: TestClient) -> 
     assert summary["actionable"] == 1
     assert summary["pending_review"] == 1
     assert summary["hired"] == 1
-    assert preview["ai_relevant"] == 1
+    assert preview["ai_relevant"] == 2
     assert preview["actionable_pending"] == 1
     assert preview["hr_status_counts"]["hired"] == 1
 
@@ -822,11 +833,12 @@ def seed_database(engine: Engine) -> None:
             ],
         )
         candidates = [
-            (1, "relevant-low", "匹配", 70),
+            (1, "relevant-low", "匹配", 95),
             (2, "review-90", "待复核", 90),
             (3, "review-89", "待复核", 89),
             (4, "temporary-failure", "待复核", 99),
             (5, "finance-hidden", "匹配", 95),
+            (6, "relevant-under-threshold", "匹配", 70),
         ]
         for identifier, fingerprint, status, score in candidates:
             connection.execute(

@@ -40,7 +40,7 @@ class CandidateQueryCriteria:
     keyword: str | None = None
     allowed_job_profile_ids: frozenset[str] = field(default_factory=frozenset)
     actionable_match_results: frozenset[str] = field(default_factory=frozenset)
-    actionable_needs_review_min_score: int | None = None
+    actionable_min_score: int | None = None
     exclude_temporary_ai_failure: bool = False
     exclude_suppressed_report: bool = False
     review_scope: str = "all"

@@ -10,9 +10,11 @@ from liepin_rpa.candidate_decision_rules import (
 )
 
 # Product rule shared by collection prioritization, exports, PDF selection and
-# report metrics. Relevant candidates are actionable at every score; only
-# needs_review candidates are score-gated.
-ACTIONABLE_NEEDS_REVIEW_MIN_SCORE = 90
+# report metrics. A candidate must be relevant/needs_review and score at least 90.
+ACTIONABLE_MIN_SCORE = 90
+# Compatibility alias for callers whose display copy still refers to the
+# historical needs-review threshold.
+ACTIONABLE_NEEDS_REVIEW_MIN_SCORE = ACTIONABLE_MIN_SCORE
 
 
 def is_relevant_result(
@@ -73,11 +75,18 @@ def is_actionable_report_result(
     analysis_status: object = None,
     analysis_reason: object = None,
 ) -> bool:
-    return is_relevant_result(match_result, analysis_status=analysis_status) or (
-        is_actionable_needs_review_result(
-            match_result,
-            match_score,
-            analysis_status=analysis_status,
-            analysis_reason=analysis_reason,
-        )
+    if "Coze API" in str(analysis_reason or ""):
+        return False
+    has_candidate_result = is_relevant_result(
+        match_result,
+        analysis_status=analysis_status,
+    ) or has_needs_review_result(
+        match_result,
+        analysis_status=analysis_status,
     )
+    if not has_candidate_result:
+        return False
+    try:
+        return int(match_score) >= ACTIONABLE_MIN_SCORE
+    except (TypeError, ValueError):
+        return False

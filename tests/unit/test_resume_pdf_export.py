@@ -150,7 +150,7 @@ def test_pdf_coze_api_failure_never_becomes_below_threshold_mismatch() -> None:
     assert _format_candidate_status(recollection_candidate) == "需重新采集"
 
 
-def test_daily_pdf_includes_all_relevant_and_only_90_point_reviews(
+def test_daily_pdf_includes_only_90_point_relevant_and_review_candidates(
     monkeypatch,
     tmp_path,
 ) -> None:
@@ -256,11 +256,7 @@ def test_daily_pdf_includes_all_relevant_and_only_90_point_reviews(
     )
 
     daren_pdf = captured["达人营销总监"]
-    assert daren_pdf["candidates"] == [
-        ungreeted_relevant_at_90,
-        ungreeted_relevant_below_90,
-        greeted_relevant_below_90,
-    ]
+    assert daren_pdf["candidates"] == [ungreeted_relevant_at_90]
     assert daren_pdf["review_candidates"] == [review_at_90]
     assert "other_candidates" not in daren_pdf
     assert "recollection_candidates" not in daren_pdf

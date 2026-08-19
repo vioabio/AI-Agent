@@ -305,8 +305,8 @@ def test_recruitment_progress_keeps_ai_and_hr_metrics_separate(monkeypatch) -> N
         1,
         1,
     )
-    assert snapshot.actionable_pending == 1
-    assert snapshot.hr_status_counts["pending_review"] == 1
+    assert snapshot.actionable_pending == 0
+    assert snapshot.hr_status_counts["pending_review"] == 0
     assert snapshot.hr_status_counts["contacted"] == 1
     assert snapshot.feedback_candidates_in_window == 1
 

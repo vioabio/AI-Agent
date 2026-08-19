@@ -726,20 +726,21 @@ class CandidateRepository:
                 resume_analysis_cache.c.analysis_status == ANALYSIS_STATUS_NEEDS_REVIEW,
             ),
         )
-        if criteria.actionable_needs_review_min_score is None:
-            return relevant
-        review_filters: list[ColumnElement[bool]] = [
-            needs_review,
-            resume_analysis_cache.c.match_score >= criteria.actionable_needs_review_min_score,
+        candidate_result = or_(relevant, needs_review)
+        if criteria.actionable_min_score is None:
+            return candidate_result
+        candidate_filters: list[ColumnElement[bool]] = [
+            candidate_result,
+            resume_analysis_cache.c.match_score >= criteria.actionable_min_score,
         ]
         if criteria.exclude_temporary_ai_failure:
-            review_filters.append(
+            candidate_filters.append(
                 or_(
                     resume_analysis_cache.c.analysis_reason.is_(None),
                     ~resume_analysis_cache.c.analysis_reason.contains("Coze API"),
                 )
             )
-        return or_(relevant, and_(*review_filters))
+        return and_(*candidate_filters)
 
     @staticmethod
     def _review_scope_filters(criteria: CandidateQueryCriteria) -> list[ColumnElement[bool]]:

@@ -6,10 +6,11 @@ from liepin_rpa.reporting_rules import (
 )
 
 
-def test_actionable_report_population_uses_single_90_point_review_gate() -> None:
+def test_actionable_report_population_requires_candidate_result_and_90_points() -> None:
     assert ACTIONABLE_NEEDS_REVIEW_MIN_SCORE == 90
-    assert is_actionable_report_result("relevant", 1)
-    assert is_actionable_report_result("relevant", None)
+    assert is_actionable_report_result("relevant", 90)
+    assert not is_actionable_report_result("relevant", 89)
+    assert not is_actionable_report_result("relevant", None)
     assert is_actionable_report_result("needs_review", 90)
     assert not is_actionable_report_result("needs_review", 89)
     assert not is_actionable_report_result("not_relevant", 100)

@@ -35,6 +35,5 @@ def test_report_history_watermark_uses_same_actionable_population(monkeypatch) -
     monkeypatch.setattr(db_daily_report, "build_report_candidates", lambda _outcomes: candidates)
 
     assert db_daily_report._select_actionable_candidate_fingerprints([]) == {
-        "relevant-low",
         "review-90",
     }

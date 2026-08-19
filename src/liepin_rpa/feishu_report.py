@@ -24,6 +24,7 @@ from liepin_rpa.reporting_rules import (
     ACTIONABLE_NEEDS_REVIEW_MIN_SCORE,
     has_needs_review_result,
     is_actionable_needs_review_result,
+    is_actionable_report_result,
     is_not_relevant_result,
     is_relevant_result,
 )
@@ -383,7 +384,7 @@ def select_featured_candidates(candidates: list[ReportCandidate]) -> list[Report
 
 
 def select_relevant_candidates(candidates: list[ReportCandidate]) -> list[ReportCandidate]:
-    """Return every relevant candidate; score gates only needs_review results."""
+    """Return relevant candidates that pass the shared 90-point gate."""
 
     return _select_candidates(candidates, _is_relevant_candidate)
 
@@ -1100,6 +1101,11 @@ def _is_relevant_candidate(item: ReportCandidate) -> bool:
     return is_relevant_result(
         item.match_result,
         analysis_status=item.analysis_status,
+    ) and is_actionable_report_result(
+        item.match_result,
+        item.match_score,
+        analysis_status=item.analysis_status,
+        analysis_reason=item.analysis_reason,
     )
 
 

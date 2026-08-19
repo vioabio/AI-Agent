@@ -19,7 +19,7 @@ from apps.hr_review_api.domain.models import (
 )
 from apps.hr_review_api.repositories.batch_repository import BatchRepository
 from apps.hr_review_api.repositories.candidate_repository import CandidateRepository
-from liepin_rpa.reporting_rules import ACTIONABLE_NEEDS_REVIEW_MIN_SCORE
+from liepin_rpa.reporting_rules import ACTIONABLE_MIN_SCORE
 
 JOB_PROFILE_IDS = frozenset({"daren_live_bd_v1", "finance_shared_management_v1"})
 
@@ -132,7 +132,14 @@ class CandidateQueryService:
             if batch_id
             else self.completed_batch_ids()
         )
-        actionable_scope = criteria.review_scope in {"mine", "pending"}
+        candidate_scope = criteria.review_scope in {
+            "mine",
+            "pending",
+            "progress",
+            "closed",
+            "all",
+        }
+        pending_scope = criteria.review_scope in {"mine", "pending"}
         return replace(
             criteria,
             batch_id=batch_id,
@@ -142,13 +149,12 @@ class CandidateQueryService:
             batch_end=None,
             allowed_job_profile_ids=allowed_jobs,
             actionable_match_results=(
-                frozenset({"relevant", "needs_review"}) if actionable_scope else frozenset()
+                frozenset({"relevant", "needs_review"}) if candidate_scope else frozenset()
             ),
-            actionable_needs_review_min_score=(
-                ACTIONABLE_NEEDS_REVIEW_MIN_SCORE if actionable_scope else None
-            ),
-            exclude_temporary_ai_failure=actionable_scope,
-            exclude_suppressed_report=actionable_scope,
+            actionable_min_score=(ACTIONABLE_MIN_SCORE if candidate_scope else None),
+            exclude_temporary_ai_failure=candidate_scope,
+            # 已处置候选人仍需出现在推进中/已结束；抑制仅移出待办队列。
+            exclude_suppressed_report=pending_scope,
             current_user_id=user.id,
         )
 

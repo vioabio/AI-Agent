@@ -88,7 +88,17 @@ class DashboardService:
         job_profile_id: str | None,
     ) -> LiveReportCounts:
         report_batch_id = self._report_batch_id(batch_id)
-        base = self.query_service.build_criteria(
+        raw_base = self.query_service.build_criteria(
+            user=user,
+            criteria=CandidateQueryCriteria(
+                job_profile_id=job_profile_id,
+                # 原始三态用于观察 AI 分析分布，不套用候选人准入规则。
+                review_scope="raw",
+                page_size=1,
+            ),
+            batch_id=report_batch_id,
+        )
+        candidate_base = self.query_service.build_criteria(
             user=user,
             criteria=CandidateQueryCriteria(
                 job_profile_id=job_profile_id,
@@ -110,14 +120,14 @@ class DashboardService:
             ai_counts = {
                 result: self.candidates.count_candidates(
                     connection,
-                    replace(base, match_result=result),
+                    replace(raw_base, match_result=result),
                 )
                 for result in ("relevant", "needs_review", "not_relevant")
             }
             hr_counts = {
                 status.value: self.candidates.count_candidates(
                     connection,
-                    replace(base, review_status=status.value),
+                    replace(candidate_base, review_status=status.value),
                 )
                 for status in ReviewStatus
             }
@@ -127,8 +137,8 @@ class DashboardService:
                 connection,
                 since=None,
                 before=None,
-                allowed_job_profile_ids=base.allowed_job_profile_ids,
-                job_profile_id=base.job_profile_id,
+                allowed_job_profile_ids=candidate_base.allowed_job_profile_ids,
+                job_profile_id=candidate_base.job_profile_id,
                 batch_id=report_batch_id,
             )
         return LiveReportCounts(
