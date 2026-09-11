@@ -54,7 +54,7 @@ public class StdioTransport implements McpTransport {
      */
     public StdioTransport(JsonRpcCodec codec, ServerParameters params) {
         this.codec = codec;
-        this.params = params;
+        this.params = validateParams(params);
     }
 
     @Override
@@ -81,7 +81,8 @@ public class StdioTransport implements McpTransport {
             // getOutputStream = 子进程的 stdin（我们向这里写入）
             writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream(), StandardCharsets.UTF_8));
             connected = true;
-            log.info("STDIO 传输已连接: {} {}", params.command, String.join(" ", params.args != null ? params.args : List.of()));
+            log.info("STDIO 传输已连接: command={}, argCount={}", commandName(params.command),
+                    params.args == null ? 0 : params.args.size());
         } catch (IOException e) {
             throw new BusinessException("STDIO 传输连接失败: " + e.getMessage(), e);
         }
@@ -98,7 +99,7 @@ public class StdioTransport implements McpTransport {
             writer.write(requestJson);
             writer.newLine();
             writer.flush();
-            log.debug("STDIO 发送: {}", requestJson);
+            log.debug("STDIO 发送: method={}, requestBytes={}", request.method(), requestJson.length());
 
             // 读：从 stdout 读取一行 JSON-RPC 响应
             String responseJson = reader.readLine();
@@ -107,7 +108,7 @@ public class StdioTransport implements McpTransport {
                 connected = false;
                 throw new BusinessException("STDIO 子进程 stdout 已关闭, 进程可能已退出. 退出码: " + exitCode());
             }
-            log.debug("STDIO 接收: {}", responseJson);
+            log.debug("STDIO 接收: responseBytes={}", responseJson.length());
             return codec.decodeResponse(responseJson);
         } catch (IOException e) {
             connected = false;
@@ -153,6 +154,28 @@ public class StdioTransport implements McpTransport {
 
     private int exitCode() {
         return process != null && !process.isAlive() ? process.exitValue() : -1;
+    }
+
+    private static ServerParameters validateParams(ServerParameters value) {
+        if (value == null || value.command() == null || value.command().isBlank()
+                || value.command().length() > 512) {
+            throw new IllegalArgumentException("STDIO command 不能为空且长度受限");
+        }
+        List<String> args = value.args() == null ? List.of() : List.copyOf(value.args());
+        if (args.size() > 64 || args.stream().anyMatch(item -> item == null || item.length() > 2048)) {
+            throw new IllegalArgumentException("STDIO args 数量或长度超限");
+        }
+        Map<String, String> env = value.env() == null ? Map.of() : Map.copyOf(value.env());
+        if (env.keySet().stream().anyMatch(key -> key == null || !key.matches("[A-Za-z_][A-Za-z0-9_]{0,127}"))) {
+            throw new IllegalArgumentException("STDIO 环境变量名无效");
+        }
+        return new ServerParameters(value.command().trim(), args, env);
+    }
+
+    private static String commandName(String command) {
+        if (command == null || command.isBlank()) return "[empty]";
+        int slash = Math.max(command.lastIndexOf('/'), command.lastIndexOf('\\'));
+        return slash >= 0 ? command.substring(slash + 1) : command;
     }
 
     // ==================== 内部类型 ====================

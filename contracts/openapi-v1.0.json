@@ -1,0 +1,89 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "VIO AI Agent API",
+    "version": "1.0.0-candidate",
+    "description": "Reviewed v1.0 candidate contract used as the v1.1 breaking-change baseline. Runtime export remains the source of truth after review."
+  },
+  "paths": {
+    "/chat/runs": {
+      "post": {
+        "operationId": "createRun",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/CreateRunRequest"}}}},
+        "responses": {"201": {"description": "Run created", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/RunView"}}}}}
+      }
+    },
+    "/chat/runs/{runId}": {
+      "get": {
+        "operationId": "getRun",
+        "parameters": [{"name": "runId", "in": "path", "required": true, "schema": {"type": "string"}}],
+        "responses": {"200": {"description": "Run", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/RunView"}}}}}
+      }
+    },
+    "/chat/runs/{runId}/events": {
+      "get": {
+        "operationId": "getRunEvents",
+        "parameters": [{"name": "runId", "in": "path", "required": true, "schema": {"type": "string"}}, {"name": "afterEventId", "in": "query", "required": false, "schema": {"type": "integer", "format": "int64"}}],
+        "responses": {"200": {"description": "Event page", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/EventPage"}}}}}
+      }
+    },
+    "/chat/runs/{runId}/cancel": {
+      "post": {
+        "operationId": "cancelRun",
+        "parameters": [{"name": "runId", "in": "path", "required": true, "schema": {"type": "string"}}],
+        "responses": {"200": {"description": "Cancelled", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/RunView"}}}}}
+      }
+    },
+    "/pokemon/facts": {
+      "get": {
+        "operationId": "listPokemonFacts",
+        "responses": {"200": {"description": "Facts", "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/PokemonFact"}}}}}}
+      }
+    },
+    "/pokemon/teams": {
+      "get": {
+        "operationId": "listPokemonTeams",
+        "responses": {"200": {"description": "Teams", "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/SavedTeam"}}}}}}
+      },
+      "post": {
+        "operationId": "createPokemonTeam",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/SavedTeamRequest"}}}},
+        "responses": {"201": {"description": "Team", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/SavedTeam"}}}}}
+      }
+    },
+    "/answers/{answerId}": {
+      "get": {
+        "operationId": "getAnswerProjection",
+        "parameters": [{"name": "answerId", "in": "path", "required": true, "schema": {"type": "string"}}, {"name": "X-User-Id", "in": "header", "required": false, "schema": {"type": "string"}}],
+        "responses": {
+          "200": {"description": "Answer projection", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AnswerProjection"}}}},
+          "401": {"description": "Unauthenticated"},
+          "404": {"description": "Not found or not owned"}
+        }
+      }
+    },
+    "/answers/{answerId}/feedback": {
+      "post": {
+        "operationId": "submitAnswerFeedback",
+        "parameters": [{"name": "answerId", "in": "path", "required": true, "schema": {"type": "string"}}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/FeedbackRequest"}}}},
+        "responses": {"201": {"description": "Feedback", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/FeedbackView"}}}}}
+      }
+    },
+    "/health": {"get": {"operationId": "health", "responses": {"200": {"description": "Healthy"}}}},
+    "/ready": {"get": {"operationId": "ready", "responses": {"200": {"description": "Ready"}}}}
+  },
+  "components": {
+    "schemas": {
+      "CreateRunRequest": {"type": "object", "required": ["prompt"], "properties": {"prompt": {"type": "string"}, "conversationId": {"type": "string"}, "gameReleaseId": {"type": "string"}, "battleFormat": {"type": "string"}, "language": {"type": "string"}}},
+      "RunView": {"type": "object", "required": ["runId", "status"], "properties": {"runId": {"type": "string"}, "status": {"type": "string"}, "answer": {"type": "string"}}},
+      "EventPage": {"type": "object", "required": ["events"], "properties": {"events": {"type": "array", "items": {"type": "object"}}, "nextCursor": {"type": "string"}}},
+      "PokemonFact": {"type": "object", "required": ["factId"], "properties": {"factId": {"type": "string"}, "slug": {"type": "string"}, "title": {"type": "string"}}},
+      "SavedTeam": {"type": "object", "required": ["teamId"], "properties": {"teamId": {"type": "string"}, "name": {"type": "string"}}},
+      "SavedTeamRequest": {"type": "object", "required": ["name"], "properties": {"name": {"type": "string"}}},
+      "FeedbackRequest": {"type": "object", "properties": {"feedbackType": {"type": "string"}, "errorType": {"type": "string"}, "evidence": {"type": "object"}}},
+      "FeedbackView": {"type": "object", "required": ["feedbackId", "answerId", "status"], "properties": {"feedbackId": {"type": "string"}, "answerId": {"type": "string"}, "status": {"type": "string"}}},
+      "AnswerProjection": {"type": "object", "required": ["answerId", "runId", "traceId", "lineageStatus"], "properties": {"answerId": {"type": "string"}, "runId": {"type": "string"}, "sessionId": {"type": "string"}, "conversationId": {"type": "string"}, "userId": {"type": "string"}, "traceId": {"type": "string"}, "status": {"type": "string"}, "answer": {"type": "string"}, "gameReleaseId": {"type": "string"}, "dlcId": {"type": "string"}, "battleFormatId": {"type": "string"}, "rulesetVersionId": {"type": "string"}, "dataReleaseId": {"type": "string"}, "knowledgeReleaseId": {"type": "string"}, "indexReleaseId": {"type": "string"}, "contractVersion": {"type": "string"}, "lineageStatus": {"type": "string", "enum": ["COMPLETE", "PARTIAL", "UNTRACEABLE"]}, "answerDigest": {"type": "string"}, "citations": {"type": "array", "items": {"type": "object"}}, "limitations": {"type": "array", "items": {"type": "string"}}}}
+    }
+  }
+}

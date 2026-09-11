@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "v1.1",
+  "producer": "validate-fault-plan",
+  "generatedAt": "2026-09-04T01:57:25.136Z",
+  "gitCommit": "708126a691bd7a789ddb261d11bb464caa96a45e",
+  "input": "tmp/fault-plan-boundary-i0NdvX/plan.json",
+  "inputSha256": "4f2c1f3dd46bb8214d389933674552fe022c719b623295c99aa09e34f63af628",
+  "schema": "config/fault-injection-v1.1.schema.json",
+  "schemaSha256": "b703670aeedee8a24d9d4b4ff86928b79c5daa14de237ce01bf14ebfeb1e70cb",
+  "planId": "vio-v1.1-fault-plan",
+  "planStatus": "pending",
+  "scenarioCount": 4,
+  "scenarioIds": [
+    "model-timeout-01",
+    "database-unavailable-01",
+    "mcp-disconnect-01",
+    "candidate-index-query-failure-01"
+  ],
+  "allowPending": false,
+  "passed": false,
+  "status": "environment-pending",
+  "exitCode": 1,
+  "checks": [
+    {
+      "name": "schemaVersion",
+      "passed": true
+    },
+    {
+      "name": "planId",
+      "passed": true
+    },
+    {
+      "name": "owner",
+      "passed": true
+    },
+    {
+      "name": "status",
+      "passed": true
+    },
+    {
+      "name": "scenarios",
+      "passed": true
+    },
+    {
+      "name": "redaction.persistResponseBodies",
+      "passed": true
+    },
+    {
+      "name": "four-fault-types",
+      "passed": true
+    },
+    {
+      "name": "manual-approval-required",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "warnings": [
+    "plan status 不是 approved；未经过 reviewer 批准，不能进入故障注入或 GA 门禁"
+  ],
+  "redacted": true
+}

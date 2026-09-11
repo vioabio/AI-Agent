@@ -3,15 +3,27 @@ package com.vio.vioaiagent.security;
 import com.vio.vioaiagent.common.RequestContext;
 import com.vio.vioaiagent.common.ResultCode;
 import com.vio.vioaiagent.config.SecurityProperties;
+import com.vio.vioaiagent.security.OidcPrincipalPolicyAdapter;
+import com.vio.vioaiagent.security.PrincipalPolicy;
+import com.vio.vioaiagent.security.PrincipalPolicyDecision;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map;
+import java.util.Set;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -42,11 +54,30 @@ public class ApiKeyAuthInterceptor implements HandlerInterceptor {
     private final TokenStore tokenStore;
     private final SecurityProperties properties;
     private final ObjectMapper objectMapper;
+    private final ClientIpResolver clientIpResolver;
+    /** OIDC policy adapter；为空时保留旧的 API-Key/测试兼容语义。 */
+    private OidcPrincipalPolicyAdapter oidcPolicyAdapter;
 
     public ApiKeyAuthInterceptor(TokenStore tokenStore, SecurityProperties properties) {
+        this(tokenStore, properties, new ClientIpResolver(
+                properties == null ? java.util.List.of() : properties.trustedProxyCidrs()));
+    }
+
+    /** 允许 Spring 和单测复用同一可信代理解析器，同时保留旧构造器。 */
+    public ApiKeyAuthInterceptor(TokenStore tokenStore, SecurityProperties properties,
+                                 ClientIpResolver clientIpResolver) {
         this.tokenStore = tokenStore;
         this.properties = properties;
+        this.clientIpResolver = clientIpResolver == null
+                ? ClientIpResolver.denyForwardedHeaders()
+                : clientIpResolver;
         this.objectMapper = new ObjectMapper();
+    }
+
+    /** Spring 可选注入；旧程序化构造器不需要改变。 */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setOidcPolicyAdapter(OidcPrincipalPolicyAdapter adapter) {
+        this.oidcPolicyAdapter = adapter;
     }
 
     @Override
@@ -64,11 +95,66 @@ public class ApiKeyAuthInterceptor implements HandlerInterceptor {
         }
         RequestContext.setTraceId(traceId);
         RequestContext.setRequestUri(request.getRequestURI());
-        RequestContext.setClientIp(getClientIp(request));
+        String clientIp = clientIpResolver.resolve(request);
+        RequestContext.setClientIp(clientIp);
+
+        // When the OIDC Resource Server has already authenticated a bearer JWT,
+        // preserve that principal and do not require a second API-Key header.
+        // AnonymousAuthenticationToken is intentionally excluded so the local
+        // API-Key compatibility path remains unchanged.
+        Authentication oidc = SecurityContextHolder.getContext().getAuthentication();
+        if (oidc != null && oidc.isAuthenticated() && !(oidc instanceof AnonymousAuthenticationToken)) {
+            PrincipalPolicyDecision policyDecision = oidcPolicyAdapter == null
+                    ? PrincipalPolicyDecision.notApplicable()
+                    : oidcPolicyAdapter.resolve(oidc);
+            if (policyDecision.applicable()) {
+                if (!policyDecision.allowed() || policyDecision.policy() == null) {
+                    RequestContext.clear();
+                    // 身份已经通过 JWT 验证，但租户/角色/工具策略不完整时
+                    // 返回 403；拒绝原因只使用稳定的策略类别，不泄露 claims。
+                    writeForbidden(response, "OIDC 主体未通过租户/角色工具策略");
+                    return false;
+                }
+                PrincipalPolicy policy = policyDecision.policy();
+                RequestContext.setPrincipalId(policy.principalId());
+                RequestContext.setUserId(Long.valueOf(stablePrincipalId("oidc:" + policy.principalId())));
+                RequestContext.setUsername(policy.principalId());
+                RequestContext.setTenantId(policy.tenantId());
+                RequestContext.setRoles(policy.roles());
+                RequestContext.setPrincipalPolicy(policy);
+                RequestContext.setTokenBinding(policy.tokenBinding());
+                // 将短期、无 Secret 的 binding 放入现有 TokenStore，使网关仍
+                // 经过同一 scope/配额/撤销校验，不通过旁路放行 OIDC 工具。
+                if (policy.tokenBinding() != null) tokenStore.register(policy.tokenBinding());
+                return true;
+            }
+            String principal = oidc.getName();
+            RequestContext.setPrincipalId(principal);
+            RequestContext.setUserId(Long.valueOf(stablePrincipalId("oidc:" + principal)));
+            RequestContext.setUsername(principal);
+            RequestContext.setTenantId(null);
+            RequestContext.setRoles(Set.of());
+            RequestContext.setPrincipalPolicy(null);
+            // 线程可能来自上一个 API-Key 请求；OIDC 不能继承旧的短期绑定，
+            // 否则网关会把 stale TokenBinding 误当成当前主体的授权策略。
+            RequestContext.setTokenBinding(null);
+            return true;
+        }
+
+        // 浏览器 CORS 预检不携带业务凭据。放行预检，让 CorsFilter 校验 origin，
+        // 真实 GET/POST/DELETE 请求仍必须经过下面的 API Key 认证。
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            response.setStatus(HttpStatus.NO_CONTENT.value());
+            return true;
+        }
 
         // 提取 API Key
         String apiKey = extractApiKey(request);
         if (apiKey == null || apiKey.isBlank()) {
+            // preHandle 返回 false 时 Spring 不一定会回调当前拦截器的
+            // afterCompletion；显式清理，避免认证失败请求在线程池复用时
+            // 把 trace/principal 泄漏到下一次请求。
+            RequestContext.clear();
             writeUnauthorized(response, "缺少 API Key, 请在 Header 中提供 X-API-Key");
             return false;
         }
@@ -76,14 +162,25 @@ public class ApiKeyAuthInterceptor implements HandlerInterceptor {
         // 验证 API Key
         TokenBinding binding = tokenStore.validate(apiKey);
         if (binding == null) {
-            log.warn("API Key 验证失败: {} (IP: {})", maskKey(apiKey), getClientIp(request));
+            log.warn("API Key 验证失败: {} (IP: {})", maskKey(apiKey), clientIp);
+            RequestContext.clear();
             writeUnauthorized(response, "API Key 无效或已过期");
             return false;
         }
 
-        // 注入用户身份到 RequestContext
-        RequestContext.setUserId(Long.valueOf(binding.tokenId().hashCode() & 0x7FFFFFFF));
+        // 注入用户身份到 RequestContext。不能使用 String.hashCode()：碰撞容易且
+        // 不适合作为跨请求/跨实例的主体键。使用 SHA-256 的前 64 位生成稳定数字
+        // 兼容字段，同时保留 principalId 供角色映射和审计使用；API Key 本身不落上下文。
+        String principalId = stablePrincipalId(binding.tokenId());
+        RequestContext.setPrincipalId(principalId);
+        RequestContext.setUserId(Long.valueOf(principalId));
         RequestContext.setUsername("api-key:" + maskKey(apiKey));
+        RequestContext.setTenantId(null);
+        RequestContext.setRoles(Set.of());
+        RequestContext.setPrincipalPolicy(null);
+        // 将已验证的绑定传给同一请求内的工具治理层；绑定对象只存在于
+        // ThreadLocal，不会把原始 API Key 写入 Run/事件/审计持久化结构。
+        RequestContext.setTokenBinding(binding);
 
         log.debug("API Key 认证通过: {} → 协议: {}", maskKey(apiKey), binding.protocolId());
         return true;
@@ -110,7 +207,7 @@ public class ApiKeyAuthInterceptor implements HandlerInterceptor {
 
         // 方式 2: Authorization: Bearer <key>
         String auth = request.getHeader("Authorization");
-        if (auth != null && auth.toLowerCase().startsWith("bearer ")) {
+        if (auth != null && auth.toLowerCase(Locale.ROOT).startsWith("bearer ")) {
             return auth.substring(7).trim();
         }
 
@@ -131,18 +228,15 @@ public class ApiKeyAuthInterceptor implements HandlerInterceptor {
         response.getWriter().write(objectMapper.writeValueAsString(body));
     }
 
-    /**
-     * 获取客户端真实 IP.
-     */
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isBlank()) {
-            ip = request.getHeader("X-Real-IP");
-        }
-        if (ip == null || ip.isBlank()) {
-            ip = request.getRemoteAddr();
-        }
-        return ip;
+    private void writeForbidden(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpStatus.FORBIDDEN.value());
+        response.setContentType("application/json;charset=UTF-8");
+        Map<String, Object> body = Map.of(
+                "code", ResultCode.FORBIDDEN.getCode(),
+                "message", message,
+                "timestamp", System.currentTimeMillis()
+        );
+        response.getWriter().write(objectMapper.writeValueAsString(body));
     }
 
     /**
@@ -153,5 +247,25 @@ public class ApiKeyAuthInterceptor implements HandlerInterceptor {
             return "***";
         }
         return apiKey.substring(0, 6) + "***";
+    }
+
+    /**
+     * 为 API Key 派生不含秘密内容的稳定主体 ID。
+     *
+     * <p>前 63 位映射到正数 Long，以兼容当前数据库和旧 Controller 的 userId
+     * 字段；SHA-256 将不同令牌的碰撞概率降到可接受范围。</p>
+     */
+    private String stablePrincipalId(String tokenId) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(tokenId.getBytes(StandardCharsets.UTF_8));
+            long value = ByteBuffer.wrap(digest, 0, Long.BYTES).getLong() & Long.MAX_VALUE;
+            // 0 仅作为极低概率的摘要结果保留为合法、可配置的主体值。
+            return Long.toString(value == 0 ? 1 : value);
+        } catch (NoSuchAlgorithmException ex) {
+            // JRE 必须提供 SHA-256；若运行时破坏该保证，应拒绝启动/请求而不是降级
+            // 到易碰撞的 hashCode。
+            throw new IllegalStateException("JRE 不支持 SHA-256，无法建立稳定主体", ex);
+        }
     }
 }

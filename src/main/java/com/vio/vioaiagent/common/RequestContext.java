@@ -1,6 +1,7 @@
 package com.vio.vioaiagent.common;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -13,10 +14,24 @@ public final class RequestContext {
     private static final ThreadLocal<Map<String, Object>> CONTEXT = ThreadLocal.withInitial(ConcurrentHashMap::new);
 
     private static final String KEY_TRACE_ID = "traceId";
+    /** 显式业务 Run 标识；与 traceId 分离，避免两种命名空间混用。 */
+    private static final String KEY_RUN_ID = "runId";
+    /**
+     * 认证适配器生成的稳定主体标识。该值可用于审计/角色映射，不能直接放入响应。
+     */
+    private static final String KEY_PRINCIPAL_ID = "principalId";
     private static final String KEY_USER_ID = "userId";
     private static final String KEY_USERNAME = "username";
     private static final String KEY_REQUEST_URI = "requestUri";
     private static final String KEY_CLIENT_IP = "clientIp";
+    /** 已认证主体所属租户；只保存非 Secret 标识。 */
+    private static final String KEY_TENANT_ID = "tenantId";
+    /** 认证适配器解析出的不可变角色快照。 */
+    private static final String KEY_ROLES = "roles";
+    /** principal→tenant→role→tool 的短期策略快照。 */
+    private static final String KEY_PRINCIPAL_POLICY = "principalPolicy";
+    /** 认证阶段解析出的令牌绑定；仅存于当前请求线程，不会写入持久化 Run。 */
+    private static final String KEY_TOKEN_BINDING = "tokenBinding";
 
     private RequestContext() {
     }
@@ -45,6 +60,29 @@ public final class RequestContext {
 
     public static String getTraceId() {
         return getString(KEY_TRACE_ID);
+    }
+
+    public static void setRunId(String runId) {
+        if (runId == null || runId.isBlank()) CONTEXT.get().remove(KEY_RUN_ID);
+        else set(KEY_RUN_ID, runId.trim());
+    }
+
+    public static String getRunId() {
+        return getString(KEY_RUN_ID);
+    }
+
+    /**
+     * 设置当前请求的稳定主体标识。
+     *
+     * <p>与历史 {@link #getUserId()} 数字兼容字段并存，便于逐步迁移到
+     * OIDC/Session 主体，而不是让业务层继续使用 API Key 本身作为身份。</p>
+     */
+    public static void setPrincipalId(String principalId) {
+        set(KEY_PRINCIPAL_ID, principalId);
+    }
+
+    public static String getPrincipalId() {
+        return getString(KEY_PRINCIPAL_ID);
     }
 
     public static void setUserId(Long userId) {
@@ -77,6 +115,47 @@ public final class RequestContext {
 
     public static String getClientIp() {
         return getString(KEY_CLIENT_IP);
+    }
+
+    public static void setTenantId(String tenantId) {
+        if (tenantId == null || tenantId.isBlank()) CONTEXT.get().remove(KEY_TENANT_ID);
+        else set(KEY_TENANT_ID, tenantId.trim());
+    }
+
+    public static String getTenantId() {
+        return getString(KEY_TENANT_ID);
+    }
+
+    public static void setRoles(Set<String> roles) {
+        if (roles == null || roles.isEmpty()) CONTEXT.get().remove(KEY_ROLES);
+        else set(KEY_ROLES, Set.copyOf(roles));
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Set<String> getRoles() {
+        Object value = CONTEXT.get().get(KEY_ROLES);
+        return value instanceof Set<?> ? (Set<String>) value : Set.of();
+    }
+
+    public static void setPrincipalPolicy(com.vio.vioaiagent.security.PrincipalPolicy policy) {
+        if (policy == null) CONTEXT.get().remove(KEY_PRINCIPAL_POLICY);
+        else set(KEY_PRINCIPAL_POLICY, policy);
+    }
+
+    public static com.vio.vioaiagent.security.PrincipalPolicy getPrincipalPolicy() {
+        return get(KEY_PRINCIPAL_POLICY);
+    }
+
+    public static void setTokenBinding(com.vio.vioaiagent.security.TokenBinding binding) {
+        if (binding == null) {
+            CONTEXT.get().remove(KEY_TOKEN_BINDING);
+        } else {
+            set(KEY_TOKEN_BINDING, binding);
+        }
+    }
+
+    public static com.vio.vioaiagent.security.TokenBinding getTokenBinding() {
+        return get(KEY_TOKEN_BINDING);
     }
 
     // ==================== 生命周期 ====================

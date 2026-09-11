@@ -1,37 +1,54 @@
 groups:
-  - name: vio-ai-agent
+  - name: vio-ai-agent-slo
     rules:
-      - alert: AgentErrorRateHigh
-        expr: rate(error_count_total[5m]) > 0.1
+      # 终态失败率是产品/运行质量信号，不把 HTTP 200 当成成功。
+      - alert: AgentRunFailureRateHigh
+        expr: >-
+          sum(rate(vio_agent_run_total{status=~"failed|timed_out"}[5m]))
+          / clamp_min(sum(rate(vio_agent_run_total[5m])), 1) > 0.05
         for: 5m
         labels:
           severity: critical
         annotations:
-          summary: "Agent 错误率过高 ({{ $value }}/s)"
-          description: "过去 5 分钟 Agent 错误率超过 0.1/s，当前 traceId: {{ $labels.traceId }}"
+          summary: "Agent Run 失败率超过 5%"
+          description: "过去 5 分钟失败/超时 Run 占比超过错误预算。"
 
       - alert: ToolCallSuccessRateLow
-        expr: tool_call_success_total / tool_call_count_total < 0.8
+        expr: >-
+          sum(rate(vio_tool_call_failure_total[5m]))
+          / clamp_min(sum(rate(vio_tool_call_total[5m])), 1) > 0.20
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "工具调用成功率低于 80%"
-          description: "当前成功率: {{ $value | humanizePercentage }}"
+          summary: "工具调用失败率超过 20%"
+          description: "请按 tool gateway、MCP 连接和下游依赖定位。"
 
       - alert: ActiveAgentsNearLimit
-        expr: agent_active_count > 8
+        expr: vio_agent_active > 8
         for: 1m
         labels:
           severity: warning
         annotations:
-          summary: "活跃 Agent 数接近上限 ({{ $value }}/10)"
+          summary: "活跃 Agent 接近并发上限"
+          description: "当前活跃 Agent 数：{{ $value }}。"
 
-      - alert: AgentExecutionDurationHigh
-        expr: histogram_quantile(0.99, rate(agent_execution_duration_bucket[10m])) > 600
+      - alert: AgentRunP95LatencyHigh
+        expr: >-
+          histogram_quantile(0.95,
+            sum(rate(vio_agent_run_duration_seconds_bucket[10m])) by (le)) > 30
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "Agent P99 执行耗时超过 10 分钟"
-          description: "P99 耗时: {{ $value }}s"
+          summary: "Agent Run P95 超过 30 秒"
+          description: "请检查模型、检索、工具和重试耗时。"
+
+      - alert: VioAgentTargetDown
+        expr: up{job="vio-ai-agent"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "VIO Agent Prometheus target 不可用"
+          description: "Prometheus 无法采集 /api/actuator/prometheus。"

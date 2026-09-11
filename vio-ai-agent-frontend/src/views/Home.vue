@@ -7,24 +7,34 @@
 
     <div class="home-cards">
       <!-- 宝可梦大师卡片 -->
-      <div class="home-card game-card" @click="$router.push('/game-master')">
+      <RouterLink class="home-card game-card" to="/game-master">
         <div class="card-icon">🎮</div>
         <h2 class="card-title">AI 宝可梦大师</h2>
         <p class="card-desc">
           全世代宝可梦智能顾问，从GBA红蓝宝石到Switch朱紫/ZA，图鉴查询/对战配招/版本入坑/养成攻略一站式解答。
         </p>
         <span class="card-link">开始对话 →</span>
-      </div>
+      </RouterLink>
+
+      <!-- 领域工作台卡片 -->
+      <RouterLink class="home-card workbench-card" to="/pokemon-workbench">
+        <div class="card-icon">🧭</div>
+        <h2 class="card-title">宝可梦资料工作台</h2>
+        <p class="card-desc">
+          固定游戏与数据版本，查询带来源的图鉴事实、管理训练家队伍、查看活动时效与可追溯会话历史。
+        </p>
+        <span class="card-link">打开工作台 →</span>
+      </RouterLink>
 
       <!-- 超级智能体卡片 -->
-      <div class="home-card agent-card" @click="$router.push('/super-agent')">
+      <RouterLink class="home-card agent-card" to="/super-agent">
         <div class="card-icon">🤖</div>
         <h2 class="card-title">AI 超级智能体</h2>
         <p class="card-desc">
           拥有自主规划能力的 AI 智能体，能够搜索网络、读写文件、生成 PDF，自动分解并完成复杂任务。
         </p>
         <span class="card-link">开始对话 →</span>
-      </div>
+      </RouterLink>
     </div>
 
     <AppFooter />
@@ -85,6 +95,7 @@ useHead({
 }
 
 .home-card {
+  display: block;
   flex: 1;
   min-width: 300px;
   max-width: 380px;
@@ -95,6 +106,8 @@ useHead({
   border: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
   overflow: hidden;
+  color: inherit;
+  text-decoration: none;
 }
 
 .home-card::before {
@@ -123,6 +136,14 @@ useHead({
 
 .agent-card::before {
   background: linear-gradient(135deg, rgba(0, 204, 255, 0.15), rgba(102, 51, 255, 0.1));
+}
+
+.workbench-card {
+  background: linear-gradient(135deg, rgba(255, 203, 5, 0.1), rgba(255, 107, 157, 0.05));
+}
+
+.workbench-card::before {
+  background: linear-gradient(135deg, rgba(255, 203, 5, 0.15), rgba(255, 107, 157, 0.1));
 }
 
 .home-card:hover {

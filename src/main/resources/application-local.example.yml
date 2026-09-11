@@ -34,6 +34,77 @@ spring:
 search-api:
   api-key: your-searchapi-key-here
 
+# 浏览器跨域白名单（只填写完整 origin，不要使用 '*' 或带路径的 URL）
+vio:
+  run:
+    # 本地模板默认不做事件物理清理；需要演练时使用独立 fixture/数据库并显式开启。
+    event-retention-cleanup-enabled: false
+    event-retention-cleanup-interval-ms: 3600000
+    event-retention-cleanup-batch-size: 1000
+    # 模型调用缓存默认关闭；本地不要使用明文/伪加密 codec。
+    model-cache:
+      enabled: false
+      fail-closed: true
+      step-no: 1
+      ttl-seconds: 3600
+      model-version: ''
+      prompt-version: v1.1
+  rag:
+    legacy-memory:
+      # 默认 fail-closed；仅在离线演示明确接受 degraded 空库时改为 true。
+      enabled: false
+    embedding-model: dashscope-text-embedding-v3
+    embedding-dimensions: 1536
+    ingestion:
+      staging-root: ${user.dir}/staging
+  http:
+    cors:
+      allowed-origins:
+        - http://localhost:3000
+        - http://127.0.0.1:3000
+  security:
+    # 本地不连接 Redis；如需本地验证请单独启动脱敏 Redis 并显式切换，
+    # 生产 profile 才允许 backend=redis 自动装配。
+    oidc:
+      # 本地默认关闭；启用时只填测试 IdP 的非 Secret 元数据。
+      enabled: false
+      required: false
+      issuer-uri: https://id.example.test/realms/vio
+      jwks-uri: https://id.example.test/realms/vio/protocol/openid-connect/certs
+      authorization-uri: https://id.example.test/realms/vio/protocol/openid-connect/auth
+      token-uri: https://id.example.test/realms/vio/protocol/openid-connect/token
+      audience: vio-api
+      client-id: vio-web
+      client-secret-ref: secret://oidc/client-secret
+      redirect-uris:
+        - http://localhost:3000/auth/callback
+      scopes: [openid, profile]
+      allowed-algorithms: [RS256]
+      require-pkce: true
+      cookie-secure: false
+      cookie-same-site: Lax
+      policy:
+        # 本地启用 OIDC 时也必须显式提供脱敏 tenant/role/tool 映射；空映射拒绝工具。
+        enabled: true
+        required: true
+        require-tenant: true
+        tenant-claim: tenant_id
+        policy-version: v1
+        binding-ttl-seconds: 300
+        max-requests-per-minute: 60
+        principal-tenants: {}
+        tenant-roles: {}
+        role-tools: {}
+    global-quota-enabled: false
+    global-quota-backend: memory
+  tools:
+    resource-download:
+      # 高危工具默认关闭；若在本地显式打开，仅写入此隔离目录并受配额限制。
+      directory: ${VIO_RESOURCE_DOWNLOAD_DIR:${user.dir}/tmp/download}
+      max-bytes: ${VIO_RESOURCE_DOWNLOAD_MAX_BYTES:20971520}
+      max-total-bytes: ${VIO_RESOURCE_DOWNLOAD_MAX_TOTAL_BYTES:104857600}
+      allowed-media-types: ${VIO_RESOURCE_DOWNLOAD_ALLOWED_MEDIA_TYPES:image/,application/pdf,application/json,text/plain}
+
 logging:
   level:
     org.springframework.ai: INFO

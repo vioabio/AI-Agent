@@ -18,6 +18,12 @@ const routes = [
     name: 'SuperAgent',
     component: () => import('@/views/SuperAgent.vue'),
     meta: { title: 'AI 超级智能体' }
+  },
+  {
+    path: '/pokemon-workbench',
+    name: 'PokemonWorkbench',
+    component: () => import('@/views/PokemonWorkbench.vue'),
+    meta: { title: '宝可梦资料工作台' }
   }
 ]
 
@@ -28,7 +34,11 @@ const router = createRouter({
 
 // 路由守卫：动态设置页面标题
 router.beforeEach((to) => {
-  document.title = to.meta.title || 'VIO AI Agent'
+  // Keep route resolution usable in SSR/unit-test contexts where `document`
+  // is intentionally absent; the browser still receives the same title.
+  if (typeof document !== 'undefined') {
+    document.title = to.meta.title || 'VIO AI Agent'
+  }
 })
 
 export default router

@@ -22,6 +22,9 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
@@ -62,6 +65,23 @@ class McpClientSseTest {
     @EnableAutoConfiguration
     @ComponentScan(basePackageClasses = McpClientSseTest.class)
     static class MinimalTestApp {
+
+        /**
+         * 该测试只验证 MCP SSE 协议，不验证应用认证链。
+         *
+         * <p>最小测试应用不会扫描主应用的 OIDC/API-Key 配置；如果让
+         * Spring Security 默认链接管请求，{@code /mcp/sse} 会被重定向到
+         * 登录页（302），客户端就无法完成 MCP 握手。显式提供一个仅限
+         * 测试上下文的 permit-all 链，避免把协议测试与认证提供方耦合。</p>
+         */
+        @Bean
+        SecurityFilterChain mcpProtocolTestSecurity(HttpSecurity http) throws Exception {
+            return http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                    .csrf(AbstractHttpConfigurer::disable)
+                    .httpBasic(AbstractHttpConfigurer::disable)
+                    .formLogin(AbstractHttpConfigurer::disable)
+                    .build();
+        }
     }
 
     @BeforeEach

@@ -11,6 +11,8 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    cors: true
+    // Vite 只服务本地静态资源，不需要对任意站点开放跨域。
+    // 后端 API 的跨域策略由 CorsConfig 的显式 allowlist 负责。
+    cors: false
   }
 })

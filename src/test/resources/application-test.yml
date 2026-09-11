@@ -8,9 +8,14 @@ spring:
     exclude:
       # 排除 PGVector 自动配置（测试环境无需数据库）
       - org.springframework.ai.autoconfigure.vectorstore.pgvector.PgVectorStoreAutoConfiguration
-      # 排除 spring-ai-alibaba 自动配置（1.0.0-M6.1 与 BOM 覆盖的 Spring AI 1.0.0-M6 版本兼容，但与 1.0.0 GA 不兼容）
-      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAutoConfiguration
-      - com.alibaba.cloud.ai.autoconfigure.prompt.PromptTemplateAutoConfiguration
+      # 排除真实 DashScope 自动配置；测试由 TestChatModelConfig 提供无网络 mock。
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeChatAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeEmbeddingAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeImageAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAudioSpeechAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAudioTranscriptionAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeRerankAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAgentAutoConfiguration
       # 排除所有 Observation 自动配置（M6 版本的 *ObservationFilter 类在 1.0.0 GA 中不存在）
       - org.springframework.ai.autoconfigure.chat.client.ChatClientAutoConfiguration
       - org.springframework.ai.autoconfigure.chat.observation.ChatObservationAutoConfiguration
@@ -28,7 +33,8 @@ spring:
       base-url: http://localhost:19999
     mcp:
       client:
-        enabled: true
+        # 默认测试不启动开发机上的 STDIO/SSE MCP；协议测试在自身的最小上下文中显式启用。
+        enabled: false
         initialized: false
         toolcallback:
           enabled: true
@@ -36,6 +42,12 @@ spring:
 # 禁用 search API
 search-api:
   api-key: test-search-api-key
+
+vio:
+  http:
+    cors:
+      allowed-origins:
+        - http://localhost:3000
 
 # 降低日志级别，减少测试输出噪音
 logging:

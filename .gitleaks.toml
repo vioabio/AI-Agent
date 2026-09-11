@@ -1,0 +1,18 @@
+title = "VIO AI Agent gitleaks policy"
+
+[extend]
+useDefault = true
+
+# 测试/模板令牌没有访问权限，保留用于安全单测和文档示例。
+# 真实密钥仍会被默认规则拦截；不要把本地 application-local.yml 加入仓库。
+[allowlist]
+description = "documented placeholders and test-only token"
+paths = [
+  '''(^|/)(\.env\.example|.*\.example\.(yml|yaml|json)|evaluation/datasets/.*\.jsonl)$''',
+  '''(^|/)document/.*$'''
+]
+regexes = [
+  '''sk-local-dev-001''',
+  '''your-[a-z0-9-]+-here''',
+  '''replace-with-[a-z0-9-]+'''
+]

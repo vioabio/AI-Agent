@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "suiteVersion": "v1.0.0-scaffold",
+  "status": "scaffold",
+  "generatedAt": "2026-09-02",
+  "codeCommit": "set-by-ci",
+  "modelVersion": "set-at-run",
+  "promptVersion": "set-at-run",
+  "dataReleaseId": "set-at-run",
+  "knowledgeReleaseId": "set-at-run",
+  "indexReleaseId": "set-at-run",
+  "suites": [
+    {
+      "suiteId": "fact-v1",
+      "kind": "fact",
+      "file": "datasets/fact-v1.jsonl",
+      "minimumCases": 200,
+      "assertion": "deterministic",
+      "status": "scaffold"
+    },
+    {
+      "suiteId": "calculation-v1",
+      "kind": "calculation",
+      "file": "datasets/calculation-v1.jsonl",
+      "minimumCases": 324,
+      "requiredCoverage": ["single_type_18x18", "dual_type", "immunity", "boundary"],
+      "assertion": "deterministic",
+      "status": "scaffold"
+    },
+    {
+      "suiteId": "legality-v1",
+      "kind": "legality",
+      "file": "datasets/legality-v1.jsonl",
+      "minimumCases": 100,
+      "assertion": "deterministic",
+      "status": "scaffold"
+    },
+    {
+      "suiteId": "rag-v1",
+      "kind": "rag",
+      "file": "datasets/rag-v1.jsonl",
+      "minimumCases": 100,
+      "assertion": "human_label",
+      "requiredMetrics": ["recall_at_5", "citation_correctness", "groundedness"],
+      "status": "scaffold"
+    },
+    {
+      "suiteId": "no-answer-v1",
+      "kind": "no_answer",
+      "file": "datasets/no-answer-v1.jsonl",
+      "minimumCases": 50,
+      "assertion": "human_label",
+      "status": "scaffold"
+    },
+    {
+      "suiteId": "agent-tool-v1",
+      "kind": "agent_tool",
+      "file": "datasets/agent-tool-v1.jsonl",
+      "minimumCases": 50,
+      "assertion": "deterministic",
+      "status": "scaffold"
+    },
+    {
+      "suiteId": "security-redteam-v1",
+      "kind": "security_redteam",
+      "file": "datasets/security-redteam-v1.jsonl",
+      "minimumCases": 100,
+      "assertion": "security_policy",
+      "status": "scaffold"
+    }
+  ],
+  "releaseThresholds": {
+    "fact_task_success_rate": 0.98,
+    "rules_task_success_rate": 0.98,
+    "deterministic_calculation_accuracy": 1.0,
+    "rag_recall_at_5": 0.90,
+    "citation_correctness": 0.95,
+    "no_answer_handling_rate": 0.90,
+    "tool_selection_parameter_accuracy": 0.95,
+    "run_ttft_p95_ms": 2500,
+    "run_duration_p95_ms": 30000,
+    "cancel_effective_p95_ms": 2000
+  }
+}

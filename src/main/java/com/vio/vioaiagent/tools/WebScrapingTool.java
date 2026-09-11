@@ -18,6 +18,9 @@ public class WebScrapingTool {
         try {
             Document document = Jsoup.connect(url)
                     .timeout(10000)
+                    // 网关只校验初始 URL；禁止自动跟随 30x，防止公网地址
+                    // 重定向到本机/内网后形成 SSRF 绕过。
+                    .followRedirects(false)
                     .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
                     .get();
             // 获取页面标题

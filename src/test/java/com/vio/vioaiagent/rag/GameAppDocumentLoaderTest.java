@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.document.Document;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 
@@ -12,6 +14,8 @@ import java.util.List;
  * 文档加载器测试
  */
 @SpringBootTest
+@ActiveProfiles("test")
+@Import(com.vio.vioaiagent.TestChatModelConfig.class)
 class GameAppDocumentLoaderTest {
 
     @Resource

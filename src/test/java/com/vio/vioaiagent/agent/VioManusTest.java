@@ -2,10 +2,12 @@ package com.vio.vioaiagent.agent;
 
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.Tag;
 
 /**
  * VioManus 智能体测试
@@ -22,6 +24,8 @@ import org.springframework.boot.test.context.SpringBootTest;
  * @author vio
  */
 @SpringBootTest
+@Tag("integration")
+@EnabledIfEnvironmentVariable(named = "VIO_RUN_LIVE_TESTS", matches = "true")
 class VioManusTest {
 
     @Resource

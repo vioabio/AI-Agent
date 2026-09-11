@@ -1,6 +1,7 @@
 package com.vio.vioaiagent.observability;
 
 import com.vio.vioaiagent.common.RequestContext;
+import com.vio.vioaiagent.security.ClientIpResolver;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,6 +30,14 @@ import java.util.UUID;
 public class ObservabilityFilter implements Filter {
 
     public static final String HEADER_TRACE_ID = "X-Trace-Id";
+    /** 安全回退：未从 Spring 注入配置时不信任任何转发头。 */
+    private volatile ClientIpResolver clientIpResolver = ClientIpResolver.denyForwardedHeaders();
+
+    /** 与 API-Key 拦截器共享可信代理边界，避免两个入口记录不同的客户端 IP。 */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setClientIpResolver(ClientIpResolver clientIpResolver) {
+        if (clientIpResolver != null) this.clientIpResolver = clientIpResolver;
+    }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -46,7 +55,7 @@ public class ObservabilityFilter implements Filter {
         // 注入上下文
         RequestContext.setTraceId(traceId);
         RequestContext.setRequestUri(httpReq.getRequestURI());
-        RequestContext.setClientIp(getClientIp(httpReq));
+        RequestContext.setClientIp(clientIpResolver.resolve(httpReq));
         org.slf4j.MDC.put("traceId", traceId);
         org.slf4j.MDC.put("uri", httpReq.getRequestURI());
         org.slf4j.MDC.put("method", httpReq.getMethod());
@@ -66,10 +75,4 @@ public class ObservabilityFilter implements Filter {
         }
     }
 
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isBlank()) ip = request.getHeader("X-Real-IP");
-        if (ip == null || ip.isBlank()) ip = request.getRemoteAddr();
-        return ip;
-    }
 }

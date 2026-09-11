@@ -37,15 +37,28 @@ build/
 **/application-local.yml
 **/application-local.yaml
 **/application-local.properties
+**/application-local.yml.*
+**/application-local.yaml.*
+**/application-local.properties.*
 
 # 环境变量文件
 .env
 .env.local
 .env.*.local
+# 通用环境变量文件（保留可提交模板）
+.env.*
+**/.env.*
+!.env.example
+!.env.*.example
+!**/.env.example
+!**/.env.*.example
 
 # MCP Server 配置 — 可能包含第三方 API Key
 # 如需提交模板，请使用 mcp-servers.example.json
 **/mcp-servers.json
+**/mcp-servers.json.*
+# 测试使用的空 MCP fixture 不含凭据，必须随源码进入干净 checkout。
+!src/test/resources/mcp-servers.json
 
 # 代理配置
 http.proxy/
@@ -57,3 +70,9 @@ https.proxy/
 # 临时文件
 tmp/
 *.kryo
+
+# v1.0 本地验收证据（按需归档到外部制品库）
+artifacts/
+
+# 运行期审计日志只进入受控日志系统，不进入源码仓库。
+logs/audit/*.jsonl

@@ -1,6 +1,8 @@
 # 编译输出
 /target
 /build
+/artifacts
+/evaluation/runs
 
 # 前端项目（独立部署，不打包进后端镜像）
 /vio-ai-agent-frontend
@@ -55,6 +57,18 @@ logs
 .env
 .env.local
 .env.*.local
+**/.env
+**/.env.*
+
+# 本地密钥配置。Docker 只读取 .dockerignore，不能依赖 .gitignore 防泄漏。
+**/application-local.yml
+**/application-local.yaml
+**/application-local.properties
+**/mcp-servers.json
+**/application-local.yml.*
+**/application-local.yaml.*
+**/application-local.properties.*
+**/mcp-servers.json.*
 
 # Maven Wrapper jar（Docker 中直接用 mvn）
 .mvn/wrapper/maven-wrapper.jar

@@ -1,6 +1,6 @@
 package com.vio.vioaiagent.tools;
 
-import cn.hutool.http.HttpUtil;
+import cn.hutool.http.HttpRequest;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
@@ -28,10 +28,15 @@ public class WebSearchTool {
             @ToolParam(description = "Search query keyword") String query) {
         Map<String, Object> paramMap = new HashMap<>();
         paramMap.put("q", query);
-        paramMap.put("api_key", apiKey);
         paramMap.put("engine", "baidu");
         try {
-            String response = HttpUtil.get(SEARCH_API_URL, paramMap);
+            // SearchAPI 也支持 Authorization: Bearer；不要把密钥拼进 URL，
+            // 避免被代理、访问日志或异常堆栈记录。
+            String response = HttpRequest.get(SEARCH_API_URL)
+                    .form(paramMap)
+                    .header("Authorization", "Bearer " + apiKey)
+                    .execute()
+                    .body();
             JSONObject jsonObject = JSONUtil.parseObj(response);
             JSONArray organicResults = jsonObject.getJSONArray("organic_results");
             if (organicResults == null || organicResults.isEmpty()) {

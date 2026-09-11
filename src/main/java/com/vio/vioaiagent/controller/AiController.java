@@ -3,6 +3,8 @@ package com.vio.vioaiagent.controller;
 import com.vio.vioaiagent.agent.BaseAgent;
 import com.vio.vioaiagent.agent.VioManus;
 import com.vio.vioaiagent.app.GameApp;
+import com.vio.vioaiagent.common.RequestContext;
+import com.vio.vioaiagent.tools.governance.ToolExecutionGateway;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,8 +14,11 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -26,6 +31,18 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/ai")
 public class AiController {
+
+    /**
+     * Legacy VioManus GET chain is retained only for local compatibility.  Production
+     * traffic must use the persisted /chat/runs API so ownership, cancellation and
+     * event cursors are enforced consistently.
+     */
+    @Value("${vio.legacy.manus.enabled:true}")
+    private boolean legacyManusEnabled = true;
+
+    /** 旧链路即使被显式打开，也必须按认证主体绑定 session，避免 stop IDOR。 */
+    @Value("${vio.security.enabled:false}")
+    private boolean securityEnabled;
 
     @Resource
     private GameApp gameApp;
@@ -159,7 +176,12 @@ public class AiController {
     @Autowired(required = false)
     private java.util.concurrent.Executor agentReasoningExecutor;
 
+    @Autowired(required = false)
+    private ToolExecutionGateway toolExecutionGateway;
+
     private final java.util.concurrent.ConcurrentHashMap<String, BaseAgent> activeAgents =
+            new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.concurrent.ConcurrentHashMap<String, String> activeAgentOwners =
             new java.util.concurrent.ConcurrentHashMap<>();
 
     private final com.vio.vioaiagent.orchestration.AgentConcurrencyGuard concurrencyGuard =
@@ -171,12 +193,17 @@ public class AiController {
     @GetMapping(value = "/manus/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter doChatWithManus(
             @Parameter(description = "用户任务描述") String message) {
+        requireLegacyManusEnabled();
+        String owner = currentOwner();
         // 并发控制：超限时快速拒绝
         concurrencyGuard.acquire();
 
         VioManus vioManus = new VioManus(allTools, toolCallbackProvider, dashscopeChatModel);
+        // 动态 MCP 回调也必须在真正执行前经过统一治理网关；本地工具已在 ToolRegistration 中包装。
+        vioManus.setToolExecutionGateway(toolExecutionGateway);
         String sessionId = java.util.UUID.randomUUID().toString().substring(0, 8);
         activeAgents.put(sessionId, vioManus);
+        activeAgentOwners.put(sessionId, owner);
 
         SseEmitter emitter = new SseEmitter(300000L);
         java.util.concurrent.CompletableFuture.runAsync(() -> {
@@ -184,15 +211,15 @@ public class AiController {
                 emitter.send("[SESSION:" + sessionId + "]");
                 vioManus.runStream(message, emitter);
             } catch (Exception e) {
-                activeAgents.remove(sessionId);
+                removeLegacyAgent(sessionId);
                 try { emitter.completeWithError(e); } catch (Exception ignored) {}
             } finally {
-                activeAgents.remove(sessionId);
+                removeLegacyAgent(sessionId);
                 concurrencyGuard.release();
             }
         }, agentReasoningExecutor != null ? agentReasoningExecutor : Runnable::run);
-        emitter.onCompletion(() -> activeAgents.remove(sessionId));
-        emitter.onTimeout(() -> { activeAgents.remove(sessionId); vioManus.stop(); });
+        emitter.onCompletion(() -> removeLegacyAgent(sessionId));
+        emitter.onTimeout(() -> { removeLegacyAgent(sessionId); vioManus.stop(); });
         return emitter;
     }
 
@@ -200,11 +227,46 @@ public class AiController {
     @GetMapping("/manus/stop")
     public String stopManus(
             @Parameter(description = "会话 ID（来自 /manus/chat 返回的第一条消息）") String sessionId) {
-        BaseAgent agent = activeAgents.remove(sessionId);
+        requireLegacyManusEnabled();
+        if (sessionId == null || sessionId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "sessionId 不能为空");
+        }
+        // 不在收到 cancel 时提前移除注册表，避免并发清理与重复 cancel 产生竞态。
+        // 真正的移除统一由 completion/timeout/finally 路径完成，因此重复 cancel 是幂等的。
+        String caller = currentOwner();
+        String owner = activeAgentOwners.get(sessionId);
+        if (owner != null && !owner.equals(caller)) {
+            // 不向其他主体泄露 session 是否存在。
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "会话不存在");
+        }
+        BaseAgent agent = activeAgents.get(sessionId);
         if (agent != null) {
             agent.stop();
-            return "已停止会话: " + sessionId;
+            return "已请求停止会话: " + sessionId;
         }
-        return "未找到运行中的会话: " + sessionId;
+        return "会话已结束或不存在: " + sessionId;
+    }
+
+    private void requireLegacyManusEnabled() {
+        if (!legacyManusEnabled) {
+            throw new ResponseStatusException(HttpStatus.GONE,
+                    "旧版 Manus 链路已关闭，请使用 /chat/runs");
+        }
+    }
+
+    private String currentOwner() {
+        String principal = RequestContext.getPrincipalId();
+        if (principal != null && !principal.isBlank()) return principal;
+        Long userId = RequestContext.getUserId();
+        if (userId != null) return String.valueOf(userId);
+        if (securityEnabled) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "缺少认证身份");
+        }
+        return "anonymous";
+    }
+
+    private void removeLegacyAgent(String sessionId) {
+        activeAgents.remove(sessionId);
+        activeAgentOwners.remove(sessionId);
     }
 }

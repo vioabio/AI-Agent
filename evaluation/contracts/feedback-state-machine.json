@@ -1,0 +1,44 @@
+{
+  "contractVersion": "v1",
+  "entity": "correction_case",
+  "states": [
+    "SUBMITTED",
+    "TRIAGED",
+    "IN_REVIEW",
+    "APPROVED",
+    "REJECTED",
+    "PUBLISHED",
+    "VERIFIED",
+    "CLOSED"
+  ],
+  "terminalStates": ["CLOSED"],
+  "transitions": [
+    {"from": "SUBMITTED", "to": "TRIAGED", "roles": ["operator", "quality"]},
+    {"from": "TRIAGED", "to": "IN_REVIEW", "roles": ["operator", "quality"]},
+    {"from": "IN_REVIEW", "to": "APPROVED", "roles": ["reviewer", "quality"]},
+    {"from": "IN_REVIEW", "to": "REJECTED", "roles": ["reviewer", "quality"]},
+    {"from": "APPROVED", "to": "PUBLISHED", "roles": ["publisher"]},
+    {"from": "PUBLISHED", "to": "VERIFIED", "roles": ["operator", "quality"]},
+    {"from": "VERIFIED", "to": "CLOSED", "roles": ["operator", "quality"]},
+    {"from": "REJECTED", "to": "CLOSED", "roles": ["operator", "quality"]}
+  ],
+  "requiredFields": [
+    "feedbackId",
+    "answerId",
+    "traceId",
+    "errorType",
+    "evidence",
+    "userId",
+    "dataReleaseId",
+    "knowledgeReleaseId",
+    "indexReleaseId",
+    "createdAt",
+    "updatedAt"
+  ],
+  "invariants": [
+    "每次状态变更必须记录操作者、原因和 traceId",
+    "发布前必须关联修复版本和定向评测结果",
+    "用户只能读取自己的反馈；运营操作需要 RBAC",
+    "终态 CLOSED 不允许再次进入运行态"
+  ]
+}

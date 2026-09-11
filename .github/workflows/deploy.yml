@@ -1,16 +1,42 @@
-name: Deploy
+name: Release candidate
 
 on:
   workflow_dispatch:
+    inputs:
+      run_compose_smoke:
+        description: '在临时 Runner 执行 Compose 冒烟（不等于生产部署）'
+        required: false
+        default: true
+        type: boolean
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
-  deploy:
+  release-gate:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      VIO_API_KEY: ${{ secrets.VIO_API_KEY }}
+      VIO_CORS_ALLOWED_ORIGINS: ${{ secrets.VIO_CORS_ALLOWED_ORIGINS }}
+      AI_DASHSCOPE_API_KEY: ${{ secrets.AI_DASHSCOPE_API_KEY }}
+      SEARCH_API_KEY: ${{ secrets.SEARCH_API_KEY }}
+      VIO_FEEDBACK_OPERATOR_ID: ${{ secrets.VIO_FEEDBACK_OPERATOR_ID }}
+      VIO_FEEDBACK_OPERATOR_ROLE: ${{ secrets.VIO_FEEDBACK_OPERATOR_ROLE || 'operator' }}
+      VIO_FEEDBACK_ENABLED: 'true'
+      VIO_MEMORY_ENABLED: 'false'
+      GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+      VIO_AGENT_V1_ENABLED: 'true'
+      VIO_RAG_PGVECTOR_ENABLED: 'true'
+      VIO_MCP_ENABLED: 'false'
+      MCP_ENABLED: 'false'
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -19,19 +45,90 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build Backend JAR
-        run: ./mvnw clean package -DskipTests
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: vio-ai-agent-frontend/package-lock.json
 
-      - name: Build Frontend
+      # 严格模式在样本不足、报告缺失或阈值不达标时失败，后续步骤不会执行。
+      - name: Strict evaluation gate
+        run: node tools/v1.1-quality-gate.mjs --mode=release --manifest evaluation/v1.1/manifest.ready.json --dictionary evaluation/v1.1/metric-dictionary.json --report artifacts/v1.1/eval/release-report.json
+
+      - name: Backend tests
+        run: ./mvnw -B -ntp test
+
+      - name: Frontend install and build
         working-directory: vio-ai-agent-frontend
         run: |
           npm ci
+          npm run security:contract
+          npm run version:check
+          npm run openapi:diff
+          npm run lint
+          npm run typecheck
+          npm run test:contract
           npm run build
 
-      - name: Docker Compose Up
-        run: docker compose up -d --build
-
-      - name: Health Check
+      - name: Build immutable candidate images
         run: |
-          sleep 30
-          curl -f http://localhost:8123/api/health || exit 1
+          docker build --pull --label org.opencontainers.image.revision=${GITHUB_SHA} \
+            -t vio-ai-agent:${GITHUB_SHA} .
+          docker build --pull --label org.opencontainers.image.revision=${GITHUB_SHA} \
+            -t vio-ai-agent-frontend:${GITHUB_SHA} ./vio-ai-agent-frontend
+
+      - name: Generate release metadata (digest + versions)
+        run: |
+          BACKEND_DIGEST=$(docker image inspect vio-ai-agent:${GITHUB_SHA} --format '{{.Id}}')
+          FRONTEND_DIGEST=$(docker image inspect vio-ai-agent-frontend:${GITHUB_SHA} --format '{{.Id}}')
+          node evaluation/create-release-manifest.mjs \
+            --release ${GITHUB_REF_NAME} \
+            --backendDigest "$BACKEND_DIGEST" \
+            --frontendDigest "$FRONTEND_DIGEST" \
+            --output artifacts/v1.1/release/legacy-release-metadata.json
+
+      - name: Validate Compose topology
+        run: |
+          docker compose config --quiet
+          docker compose --profile monitoring config --quiet
+
+      - name: Compose smoke (preflight only)
+        if: ${{ github.event_name == 'push' || inputs.run_compose_smoke }}
+        run: |
+          docker compose up -d --build
+          trap 'docker compose down -v' EXIT
+          for attempt in {1..36}; do
+            if curl --fail --silent http://localhost:8123/api/actuator/health/readiness >/dev/null; then break; fi
+            if [ "$attempt" -eq 36 ]; then
+              docker compose ps
+              docker compose logs --no-color --tail=200 vio-ai-agent
+              exit 1
+            fi
+            sleep 5
+          done
+          curl --fail --silent http://localhost:8123/api/health >/dev/null
+          curl --fail --silent http://localhost:8123/api/ready >/dev/null
+          curl --fail --silent http://127.0.0.1/ >/dev/null
+
+          # 最小业务探针：确认同源代理注入认证头，并验证 Run 的创建、显式
+          # 取消和事件读取契约。不会等待外部模型完成，也不会写入生产环境。
+          RUN_PAYLOAD=$(jq -nc --arg conversationId "release-smoke-${GITHUB_RUN_ID}" \
+            '{prompt:"release smoke",conversationId:$conversationId,gameReleaseId:"scarlet-violet",battleFormat:"casual-singles",language:"zh-CN",timeoutSeconds:30}')
+          RUN_ID=$(curl --fail --silent -X POST http://127.0.0.1/api/chat/runs \
+            -H 'Content-Type: application/json' \
+            --data "$RUN_PAYLOAD" \
+            | jq -er '.runId')
+          test -n "$RUN_ID"
+          curl --fail --silent -X POST "http://127.0.0.1/api/chat/runs/$RUN_ID/cancel" \
+            -H 'Content-Type: application/json' \
+            --data '{"reason":"release_smoke"}' >/dev/null
+          curl --fail --silent "http://127.0.0.1/api/chat/runs/$RUN_ID/events?afterEventId=0" \
+            | jq -e '.events | type == "array"' >/dev/null
+
+      - name: Upload immutable release evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: vio-release-${{ github.sha }}
+          path: artifacts/v1.1/release/
+          if-no-files-found: error

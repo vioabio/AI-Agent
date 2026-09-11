@@ -58,14 +58,19 @@ public class SseTransport implements McpTransport {
      */
     public SseTransport(JsonRpcCodec codec, String baseUrl, String sseEndpoint) {
         this.codec = codec;
-        this.baseUrl = baseUrl;
+        URI validatedBase = McpEndpointPolicy.validateBase(baseUrl);
+        this.baseUrl = validatedBase.toString();
         this.sseEndpoint = sseEndpoint != null ? sseEndpoint : "/mcp/sse";
         this.messageEndpoint = "/mcp/message";
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
         this.restClient = RestClient.builder()
-                .baseUrl(baseUrl)
+                // Use the validated/trimmed origin.  Passing the raw constructor
+                // argument here would reintroduce whitespace or an unnormalised
+                // URL after the policy check and make the HTTP client boundary
+                // differ from the endpoint that was audited.
+                .baseUrl(this.baseUrl)
                 .build();
     }
 
@@ -84,7 +89,7 @@ public class SseTransport implements McpTransport {
         try {
             // SSE 连接握手：服务端返回的第一个事件包含 session 端点 URI
             String sseUrl = baseUrl + sseEndpoint;
-            log.info("建立 SSE 连接: {}", sseUrl);
+            log.info("建立 SSE 连接: host={}, path={}", URI.create(sseUrl).getHost(), URI.create(sseUrl).getPath());
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(sseUrl))
@@ -128,7 +133,7 @@ public class SseTransport implements McpTransport {
 
         try {
             String requestJson = codec.encode(request);
-            log.debug("SSE POST 发送: {} → {}", sessionMessageUri, requestJson);
+            log.debug("SSE POST 发送: method={}, requestBytes={}", request.method(), requestJson.length());
 
             // POST JSON-RPC 请求到 message 端点
             String responseJson = restClient.post()
@@ -141,7 +146,7 @@ public class SseTransport implements McpTransport {
             if (responseJson == null) {
                 throw new BusinessException("SSE 响应为空");
             }
-            log.debug("SSE 接收: {}", responseJson);
+            log.debug("SSE 接收: responseBytes={}", responseJson.length());
             return codec.decodeResponse(responseJson);
         } catch (Exception e) {
             throw new BusinessException("SSE 通信失败: " + e.getMessage(), e);
@@ -173,9 +178,6 @@ public class SseTransport implements McpTransport {
             data = data.substring(5).trim();
         }
         // 如果是相对路径, 补全为绝对 URI
-        if (data.startsWith("/")) {
-            return baseUrl + data;
-        }
-        return data;
+        return McpEndpointPolicy.validateSessionEndpoint(baseUrl, data).toString();
     }
 }

@@ -5,9 +5,11 @@ import com.vio.vioaiagent.advisor.ReReadingAdvisor;
 import com.vio.vioaiagent.chatmemory.FileBasedChatMemory;
 import com.vio.vioaiagent.rag.GameAppRagCustomAdvisorFactory;
 import com.vio.vioaiagent.rag.QueryRewriter;
+import com.vio.vioaiagent.tools.governance.ToolExecutionGateway;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
@@ -131,14 +133,20 @@ public class GameApp {
 
     // AI 宝可梦知识库问答功能
 
+    /**
+     * 本地演示使用内存向量库，生产 profile 不创建该 Bean；因此必须可选注入，
+     * 运行时再回退到版本化 PGVector，避免生产启动因按名称注入失败。
+     */
     @Lazy
-    @Resource
+    @Autowired(required = false)
+    @Qualifier("gameAppVectorStore")
     private VectorStore gameAppVectorStore;
 
     @Autowired(required = false)
     private Advisor gameAppRagCloudAdvisor;
 
     @Autowired(required = false)
+    @Qualifier("versionedPgVectorStore")
     private VectorStore pgVectorVectorStore;
 
     @Resource
@@ -162,7 +170,7 @@ public class GameApp {
                 // 开启日志，便于观察效果
                 .advisors(new MyLoggerAdvisor())
                 // 应用 RAG 知识库问答
-                .advisors(new QuestionAnswerAdvisor(gameAppVectorStore))
+                .advisors(new QuestionAnswerAdvisor(ragVectorStore()))
                 // 应用 RAG 检索增强服务（基于云知识库服务）
 //                .advisors(gameAppRagCloudAdvisor)
                 // 应用 RAG 检索增强服务（基于 PgVector 向量存储）
@@ -193,9 +201,15 @@ public class GameApp {
                 .prompt()
                 .user(rewrittenMessage)
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
-                .advisors(new QuestionAnswerAdvisor(gameAppVectorStore))
+                .advisors(new QuestionAnswerAdvisor(ragVectorStore()))
                 .stream()
                 .content();
+    }
+
+    private VectorStore ragVectorStore() {
+        if (gameAppVectorStore != null) return gameAppVectorStore;
+        if (pgVectorVectorStore != null) return pgVectorVectorStore;
+        throw new IllegalStateException("RAG 向量存储未配置；请启用本地 gameAppVectorStore 或生产 PGVector");
     }
 
     // AI 调用工具能力
@@ -247,6 +261,10 @@ public class GameApp {
     @Autowired(required = false)
     private ToolCallbackProvider toolCallbackProvider;
 
+    /** 兼容端点使用 Provider 语法时仍复用统一治理网关。 */
+    @Autowired(required = false)
+    private ToolExecutionGateway toolExecutionGateway;
+
     /**
      * AI 对话（调用 MCP 服务）
      *
@@ -261,7 +279,7 @@ public class GameApp {
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
                 // 开启日志，便于观察效果
                 .advisors(new MyLoggerAdvisor())
-                .toolCallbacks(toolCallbackProvider)
+                .toolCallbacks(governedMcpTools())
                 .call()
                 .chatResponse();
         String content = chatResponse.getResult().getOutput().getText();
@@ -283,8 +301,16 @@ public class GameApp {
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
                 // 开启日志，便于观察效果
                 .advisors(new MyLoggerAdvisor())
-                .toolCallbacks(toolCallbackProvider)
+                .toolCallbacks(governedMcpTools())
                 .stream()
                 .content();
+    }
+
+    private ToolCallback[] governedMcpTools() {
+        if (toolCallbackProvider == null) {
+            return new ToolCallback[0];
+        }
+        ToolCallback[] callbacks = toolCallbackProvider.getToolCallbacks();
+        return toolExecutionGateway == null ? callbacks : toolExecutionGateway.wrap(callbacks);
     }
 }

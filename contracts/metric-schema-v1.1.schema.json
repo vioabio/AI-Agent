@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vio.invalid/contracts/metric-schema-v1.1.schema.json",
+  "title": "VIO v1.1 normalized metric schema",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schemaVersion", "producer", "status", "source", "sourceSha256", "metrics", "redaction"],
+  "properties": {
+    "schemaVersion": {"const": "v1.1"},
+    "producer": {"const": "validate-metric-dictionary"},
+    "commit": {"type": "string", "minLength": 1},
+    "gitCommit": {"type": "string", "minLength": 1},
+    "generatedAt": {"type": "string", "format": "date-time"},
+    "source": {"type": "string", "minLength": 1},
+    "sourceSha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
+    "dictionaryVersion": {"const": "v1.1"},
+    "status": {"enum": ["ready", "pending-review", "blocked"]},
+    "immutable": {"type": "boolean"},
+    "metrics": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/metric"}},
+    "redaction": {"$ref": "#/$defs/redaction"},
+    "errors": {"type": "array", "items": {"type": "string"}},
+    "warnings": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {
+    "metric": {
+      "type": "object",
+      "required": ["metricId", "type", "formula", "denominator", "query", "window", "minRequests", "thresholdVersion", "owner", "severity", "alertThreshold", "rollbackCondition"],
+      "properties": {
+        "metricId": {"type": "string", "pattern": "^[a-z][a-z0-9_]{2,127}$"},
+        "type": {"enum": ["product_kpi", "diagnostic", "slo", "cost"]},
+        "formula": {"type": "string", "minLength": 1},
+        "denominator": {"type": "string", "minLength": 1},
+        "query": {"type": "string", "minLength": 1},
+        "window": {"type": "string", "minLength": 1},
+        "minRequests": {"type": "integer", "minimum": 1},
+        "thresholdVersion": {"type": "string", "minLength": 1},
+        "owner": {"type": "string", "minLength": 1},
+        "severity": {"enum": ["blocker", "warning", "info"]},
+        "alertThreshold": {"type": "string", "minLength": 1},
+        "rollbackCondition": {"type": "string", "minLength": 1},
+        "evaluationPhase": {"enum": ["n6a", "n6b"]},
+        "blocking": {"type": "boolean"},
+        "exclusions": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "redaction": {
+      "type": "object",
+      "required": ["sensitiveValuesPersisted", "rules"],
+      "properties": {
+        "sensitiveValuesPersisted": {"const": false},
+        "rules": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    }
+  }
+}

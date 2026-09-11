@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -74,5 +75,24 @@ class ParameterMaskerTest {
     void shouldHandleNullAndEmpty() {
         assertNull(masker.mask(null));
         assertTrue(masker.mask(Map.of()).isEmpty());
+    }
+
+    @Test
+    @DisplayName("嵌套对象和列表中的敏感字段也应被脱敏")
+    void shouldMaskNestedContainers() {
+        Map<String, Object> params = Map.of(
+                "request", Map.of(
+                        "query", "pikachu",
+                        "credentials", Map.of("apiKey", "sk-nested-secret")),
+                "items", List.of(Map.of("password", "nested-password")));
+
+        Map<String, Object> masked = masker.mask(params);
+        Map<?, ?> request = (Map<?, ?>) masked.get("request");
+        Map<?, ?> credentials = (Map<?, ?>) request.get("credentials");
+        List<?> items = (List<?>) masked.get("items");
+
+        assertEquals("pikachu", request.get("query"));
+        assertEquals(ParameterMasker.REDACTED, credentials.get("apiKey"));
+        assertEquals(ParameterMasker.REDACTED, ((Map<?, ?>) items.get(0)).get("password"));
     }
 }

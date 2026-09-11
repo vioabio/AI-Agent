@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -27,7 +28,7 @@ import java.util.List;
 @Slf4j
 public class PathGuard {
 
-    private final List<String> allowedRoots;
+    private final List<Path> allowedRoots;
 
     /**
      * 从安全配置属性构造路径围栏.
@@ -35,9 +36,7 @@ public class PathGuard {
      * @param properties 安全配置（allowedPaths 为白名单根目录列表）
      */
     public PathGuard(SecurityProperties properties) {
-        this.allowedRoots = properties.allowedPaths() != null
-                ? List.copyOf(properties.allowedPaths())
-                : List.of();
+        this.allowedRoots = normalizeRoots(properties.allowedPaths());
         log.info("路径围栏已初始化, 白名单根目录: {}", allowedRoots);
     }
 
@@ -45,7 +44,7 @@ public class PathGuard {
      * 构造路径围栏（直接指定白名单）.
      */
     public PathGuard(List<String> allowedRoots) {
-        this.allowedRoots = List.copyOf(allowedRoots);
+        this.allowedRoots = normalizeRoots(allowedRoots);
     }
 
     /**
@@ -59,41 +58,36 @@ public class PathGuard {
             throw new SecurityException("文件路径不能为空");
         }
 
-        Path path = Path.of(filePath).normalize();
+        final Path raw;
+        try {
+            raw = Path.of(filePath);
+        } catch (RuntimeException ex) {
+            throw new SecurityException("文件路径格式无效");
+        }
 
-        // 1. 路径穿越检测 — 拦截 ../
-        for (Path component : path) {
+        // 1. 必须在 normalize 之前检查 ..。先 normalize 再检查会把
+        // ../../secret 变成 secret，从而让相对路径绕过围栏。
+        for (Path component : raw) {
             if ("..".equals(component.toString())) {
-                log.warn("路径穿越拦截: {} → {}", filePath, path);
+                log.warn("路径穿越拦截: {}", filePath);
                 throw new SecurityException("禁止使用 '..' 进行路径穿越: " + filePath);
             }
         }
 
-        // 2. 绝对路径外逃检测
-        if (path.isAbsolute()) {
-            if (!isUnderAllowedRoot(path)) {
-                log.warn("路径越权拦截: {} → {}", filePath, path);
-                throw new SecurityException("路径越权: " + filePath);
-            }
+        // 2. 相对路径也必须解析到某个白名单根目录；不能因为没有盘符
+        // 就默认允许访问当前工作目录。
+        Path path = raw.isAbsolute()
+                ? raw.normalize()
+                : resolveRelative(raw);
+        if (!isUnderAllowedRoot(path)) {
+            log.warn("路径越权拦截: {}", filePath);
+            throw new SecurityException("路径越权: " + filePath);
         }
 
-        // 3. 符号链接检测
-        try {
-            if (Files.exists(path) && Files.isSymbolicLink(path)) {
-                Path target = Files.readSymbolicLink(path);
-                Path resolved = (path.getParent() != null)
-                        ? path.getParent().resolve(target).normalize()
-                        : target.normalize();
-                if (!isUnderAllowedRoot(resolved.toAbsolutePath())) {
-                    log.warn("符号链接逃逸拦截: {} → {}", path, resolved);
-                    throw new SecurityException("符号链接指向非授权目录: " + path);
-                }
-            }
-        } catch (IOException e) {
-            log.warn("路径符号链接检查失败: {} — {}", path, e.getMessage());
-            // 无法确认时保守拒绝
-            throw new SecurityException("无法验证路径安全性: " + path);
-        }
+        // 3. 符号链接检测：不仅检查最终文件，还检查写入目标的父目录。
+        // 对尚不存在的文件，解析最近存在的祖先，防止“可信父目录的
+        // symlink -> 非白名单目录”逃逸。
+        verifyRealPath(path);
     }
 
     /**
@@ -101,12 +95,61 @@ public class PathGuard {
      */
     private boolean isUnderAllowedRoot(Path path) {
         Path absolute = path.toAbsolutePath().normalize();
-        for (String root : allowedRoots) {
-            Path rootPath = Path.of(root).toAbsolutePath().normalize();
+        for (Path rootPath : allowedRoots) {
             if (absolute.startsWith(rootPath)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private Path resolveRelative(Path relative) {
+        for (Path root : allowedRoots) {
+            Path candidate = root.resolve(relative).normalize();
+            if (candidate.startsWith(root)) return candidate;
+        }
+        throw new SecurityException("相对路径没有可用的白名单根目录");
+    }
+
+    private void verifyRealPath(Path candidate) {
+        for (Path root : allowedRoots) {
+            if (!candidate.startsWith(root)) continue;
+            // 白名单根目录可能在应用首次启动时尚未创建；此时先依赖
+            // 词法边界，目录创建本身仍应由受控工具负责。
+            if (!Files.exists(root, LinkOption.NOFOLLOW_LINKS)) return;
+            try {
+                Path realRoot = root.toRealPath();
+                Path existing = candidate;
+                while (existing != null && !Files.exists(existing, LinkOption.NOFOLLOW_LINKS)) {
+                    existing = existing.getParent();
+                }
+                if (existing == null) return;
+                Path realExisting = existing.toRealPath();
+                if (!realExisting.startsWith(realRoot)) {
+                    log.warn("符号链接逃逸拦截: {}", candidate);
+                    throw new SecurityException("符号链接指向非授权目录");
+                }
+                return;
+            } catch (IOException ex) {
+                log.warn("路径符号链接检查失败: {} — {}", candidate, ex.getMessage());
+                throw new SecurityException("无法验证路径安全性");
+            }
+        }
+        throw new SecurityException("路径越权");
+    }
+
+    private List<Path> normalizeRoots(List<String> roots) {
+        if (roots == null || roots.isEmpty()) return List.of();
+        return roots.stream()
+                .filter(root -> root != null && !root.isBlank())
+                .map(root -> {
+                    try {
+                        return Path.of(root).toAbsolutePath().normalize();
+                    } catch (RuntimeException ex) {
+                        throw new IllegalArgumentException("白名单根目录格式无效", ex);
+                    }
+                })
+                .distinct()
+                .toList();
     }
 }

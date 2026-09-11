@@ -1,6 +1,11 @@
 package com.vio.vioaiagent.security;
 
-import java.util.HashMap;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -41,13 +46,68 @@ public class ParameterMasker {
             return params;
         }
 
-        Map<String, Object> masked = new HashMap<>(params);
-        for (String key : params.keySet()) {
-            if (isSensitive(key)) {
-                masked.put(key, REDACTED);
+        Set<Object> visiting = Collections.newSetFromMap(new IdentityHashMap<>());
+        return maskMap(params, visiting);
+    }
+
+    /**
+     * 审计参数可能包含嵌套对象、列表或数组。只处理顶层字段会让
+     * {@code {"credentials":{"apiKey":"..."}}} 原样进入日志，因此所有
+     * 容器都必须递归复制并脱敏；循环引用使用固定占位符终止遍历。
+     */
+    private Map<String, Object> maskMap(Map<?, ?> source, Set<Object> visiting) {
+        if (!visiting.add(source)) {
+            return Map.of("$cycle", REDACTED);
+        }
+        try {
+            Map<String, Object> masked = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : source.entrySet()) {
+                String key = String.valueOf(entry.getKey());
+                Object value = entry.getValue();
+                // 容器字段（例如 credentials）不能整体替换为字符串，否则会
+                // 丢失对其内部 password/apiKey 的递归脱敏；标量敏感值才直接
+                // 替换，容器继续安全地向下遍历。
+                masked.put(key, isSensitive(key) && !isContainer(value)
+                        ? REDACTED
+                        : maskValue(value, visiting));
+            }
+            return masked;
+        } finally {
+            visiting.remove(source);
+        }
+    }
+
+    private Object maskValue(Object value, Set<Object> visiting) {
+        if (value == null) return null;
+        if (value instanceof Map<?, ?> map) return maskMap(map, visiting);
+        if (value instanceof Iterable<?> iterable) {
+            if (!visiting.add(value)) return REDACTED;
+            try {
+                List<Object> masked = new ArrayList<>();
+                for (Object item : iterable) masked.add(maskValue(item, visiting));
+                return Collections.unmodifiableList(masked);
+            } finally {
+                visiting.remove(value);
             }
         }
-        return masked;
+        if (value.getClass().isArray()) {
+            if (!visiting.add(value)) return REDACTED;
+            try {
+                List<Object> masked = new ArrayList<>();
+                for (int i = 0; i < Array.getLength(value); i++) {
+                    masked.add(maskValue(Array.get(value, i), visiting));
+                }
+                return Collections.unmodifiableList(masked);
+            } finally {
+                visiting.remove(value);
+            }
+        }
+        return value;
+    }
+
+    private boolean isContainer(Object value) {
+        return value instanceof Map<?, ?> || value instanceof Iterable<?>
+                || (value != null && value.getClass().isArray());
     }
 
     /**
@@ -57,7 +117,20 @@ public class ParameterMasker {
         if (fieldName == null) {
             return false;
         }
-        String lower = fieldName.toLowerCase();
-        return SENSITIVE_KEYWORDS.stream().anyMatch(lower::contains);
+        String normalized = fieldName.toLowerCase()
+                .replaceAll("[^a-z0-9]", "");
+        // 仅对完整词或常见后缀命中，避免把普通字段（如 credentials 中的
+        // "key" 子串、monkey 等）误判为整段敏感值。
+        return SENSITIVE_KEYWORDS.stream().anyMatch(keyword -> {
+            String token = keyword.replaceAll("[^a-z0-9]", "");
+            if (token.equals("key")) {
+                return normalized.equals("key")
+                        || normalized.endsWith("apikey")
+                        || normalized.endsWith("accesskey")
+                        || normalized.endsWith("secretkey")
+                        || normalized.endsWith("privatekey");
+            }
+            return normalized.equals(token) || normalized.endsWith(token);
+        });
     }
 }

@@ -1,0 +1,2 @@
+{"caseId":"legal-0001","suite":"legality","input":{"teamSize":6,"duplicateSpecies":false,"movesPerMember":[4,4,4,4,4,4]},"expected":{"legal":true},"assertion":"deterministic","versions":{"gameReleaseId":"sv-v1","rulesetVersionId":"rules-v1","dataReleaseId":"data-v1"}}
+{"caseId":"legal-0002","suite":"legality","input":{"teamSize":7,"duplicateSpecies":false,"movesPerMember":[4,4,4,4,4,4,4]},"expected":{"legal":false,"reason":"TEAM_SIZE_EXCEEDED"},"assertion":"deterministic","versions":{"gameReleaseId":"sv-v1","rulesetVersionId":"rules-v1","dataReleaseId":"data-v1"}}

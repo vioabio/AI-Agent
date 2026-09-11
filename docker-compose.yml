@@ -1,73 +1,177 @@
-version: '3.8'
+# VIO AI Agent v1.0 本地/演示拓扑。
+#
+# Secret 只从环境或外部 Secret Store 注入；故意不提供公开默认密码。
+# 启动前至少设置 DB_PASSWORD、VIO_API_KEY、AI_DASHSCOPE_API_KEY、
+# SEARCH_API_KEY、VIO_CORS_ALLOWED_ORIGINS、VIO_FEEDBACK_OPERATOR_ID；启用 monitoring profile 时再设置
+# GRAFANA_ADMIN_PASSWORD。
 services:
-  # PostgreSQL + PGVector
   postgres:
     image: pgvector/pgvector:pg16
+    restart: unless-stopped
     environment:
       POSTGRES_DB: vio_agent
       POSTGRES_USER: vio
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-vio123}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U vio"]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 10s
-      retries: 5
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks: [vio]
 
-  # 后端主应用
   vio-ai-agent:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    init: true
     ports:
-      - "8123:8123"
+      - "127.0.0.1:8123:8123"
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_PASSWORD: ${DB_PASSWORD:-vio123}
-      AI_DASHSCOPE_API_KEY: ${AI_DASHSCOPE_API_KEY}
-      SEARCH_API_KEY: ${SEARCH_API_KEY}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
+      VIO_API_KEY: ${VIO_API_KEY:?VIO_API_KEY must be set}
+      VIO_CORS_ALLOWED_ORIGINS: ${VIO_CORS_ALLOWED_ORIGINS:?VIO_CORS_ALLOWED_ORIGINS must be set}
+      AI_DASHSCOPE_API_KEY: ${AI_DASHSCOPE_API_KEY:?AI_DASHSCOPE_API_KEY must be set}
+      SEARCH_API_KEY: ${SEARCH_API_KEY:?SEARCH_API_KEY must be set}
+      VIO_FEEDBACK_OPERATOR_ID: ${VIO_FEEDBACK_OPERATOR_ID:?VIO_FEEDBACK_OPERATOR_ID must be set}
+      VIO_FEEDBACK_OPERATOR_ROLE: ${VIO_FEEDBACK_OPERATOR_ROLE:-operator}
+      VIO_FEEDBACK_ENABLED: ${VIO_FEEDBACK_ENABLED:-true}
+      VIO_MEMORY_ENABLED: ${VIO_MEMORY_ENABLED:-false}
+      VIO_AGENT_V1_ENABLED: ${VIO_AGENT_V1_ENABLED:?VIO_AGENT_V1_ENABLED must be set}
+      VIO_RAG_PGVECTOR_ENABLED: ${VIO_RAG_PGVECTOR_ENABLED:?VIO_RAG_PGVECTOR_ENABLED must be set}
+      VIO_MCP_ENABLED: ${VIO_MCP_ENABLED:-false}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/vio_agent
+      SPRING_DATASOURCE_USERNAME: vio
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8123/api/health"]
-      interval: 30s
-      retries: 3
+      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8123/api/actuator/health/readiness || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 45s
+    networks: [vio]
 
-  # 前端 Nginx
   frontend:
-    build: ./vio-ai-agent-frontend
-    ports:
-      - "80:80"
+    build:
+      context: ./vio-ai-agent-frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
     depends_on:
-      - vio-ai-agent
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/"]
-      interval: 30s
-      retries: 3
-
-  # 监控（可选，通过 profiles 启用）
-  prometheus:
-    image: prom/prometheus:latest
+      vio-ai-agent:
+        condition: service_healthy
+    environment:
+      # 仅在 Nginx 容器内注入；API Key 不进入浏览器、URL 或前端构建产物。
+      VIO_BACKEND_API_KEY: ${VIO_API_KEY:?VIO_API_KEY must be set}
+      # nginx:alpine 官方 entrypoint 使用正则过滤器限制可替换的环境变量；
+      # Compose 中 "$$" 转义为容器内正则结尾 "$"。只替换后端令牌，保留
+      # Nginx 自身的 $host/$remote_addr/$scheme 等运行时变量。
+      NGINX_ENVSUBST_FILTER: ^VIO_BACKEND_API_KEY$$
     ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - "127.0.0.1:80:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://127.0.0.1:8080/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks: [vio]
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    restart: unless-stopped
     profiles: [monitoring]
+    depends_on:
+      vio-ai-agent:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://127.0.0.1:9090/-/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks: [vio]
 
   grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3001:3000"
+    image: grafana/grafana:11.2.0
+    restart: unless-stopped
     profiles: [monitoring]
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      # 监控 profile 是可选的，不能让基础 compose config 因此变量缺失而失败。
+      # profile 真正启动时由 entrypoint 显式拒绝空值，仍不提供公开默认密码。
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        if [ -z "$${GF_SECURITY_ADMIN_PASSWORD:-}" ]; then
+          echo "GRAFANA_ADMIN_PASSWORD must be set when monitoring profile is enabled" >&2
+          exit 1
+        fi
+        exec /run.sh
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana-dashboard.json:/var/lib/grafana/dashboards/vio-ai-agent.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [vio]
 
   alertmanager:
-    image: prom/alertmanager:latest
-    ports:
-      - "9093:9093"
-    volumes:
-      - ./alert-rules.yml:/etc/alertmanager/alert-rules.yml
+    image: prom/alertmanager:v0.27.0
+    restart: unless-stopped
     profiles: [monitoring]
+    ports:
+      - "127.0.0.1:9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://127.0.0.1:9093/-/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks: [vio]
 
 volumes:
   pgdata:
+  prometheus_data:
+  grafana_data:
+  alertmanager_data:
+
+networks:
+  vio:
+    driver: bridge

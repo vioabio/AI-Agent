@@ -2,12 +2,16 @@ package com.vio.vioaiagent.app;
 
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.Tag;
 
 import java.util.UUID;
 
 @SpringBootTest
+@Tag("integration")
+@EnabledIfEnvironmentVariable(named = "VIO_RUN_LIVE_TESTS", matches = "true")
 class GameAppTest {
 
     @Resource

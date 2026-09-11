@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "v1.1",
+  "fixtureId": "pokemon-sv-minimal-v1",
+  "status": "candidate",
+  "scope": "仅用于 N0/N1 隔离 smoke，不是生产全量主数据",
+  "source": {
+    "sourceId": "vio-curated-repository-fixture",
+    "urls": [
+      "https://www.pokemon.com/us/pokedex",
+      "https://scarletviolet.pokemon.com/"
+    ],
+    "license": "待领域负责人及许可审核",
+    "reviewStatus": "pending",
+    "reviewer": null,
+    "reviewedAt": null,
+    "redacted": true
+  },
+  "canonicalVersions": {
+    "gameReleaseId": "pokemon-scarlet-violet",
+    "dlcId": "the-hidden-treasure-of-area-zero",
+    "language": "zh-CN",
+    "dataReleaseId": "pokemon-scarlet-violet-data-v1",
+    "battleFormatId": "casual-singles",
+    "rulesetVersionId": "casual-v1",
+    "rulesetVersionIds": ["story-v1", "casual-v1", "vgc-ruleset-v1"]
+  },
+  "gameReleases": [
+    {
+      "id": "pokemon-scarlet-violet",
+      "name": "宝可梦朱/紫（最小 fixture）",
+      "patchNo": "fixture-pending-review",
+      "language": "zh-CN"
+    }
+  ],
+  "dataReleases": [
+    {
+      "id": "pokemon-scarlet-violet-data-v1",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "sourceUrl": "https://www.pokemon.com/us/pokedex",
+      "checksum": "fixture-manifest-sha256",
+      "status": "FIXTURE_CANDIDATE"
+    }
+  ],
+  "species": [
+    {"id": 6, "nationalNo": 6, "nameZh": "喷火龙", "slug": "charizard"},
+    {"id": 25, "nationalNo": 25, "nameZh": "皮卡丘", "slug": "pikachu"},
+    {"id": 133, "nationalNo": 133, "nameZh": "伊布", "slug": "eevee"}
+  ],
+  "forms": [
+    {"id": 6001, "speciesId": 6, "formKey": "default", "nameZh": "喷火龙"},
+    {"id": 25001, "speciesId": 25, "formKey": "default", "nameZh": "皮卡丘"},
+    {"id": 13301, "speciesId": 133, "formKey": "default", "nameZh": "伊布"}
+  ],
+  "formFacts": [
+    {"formId": 6001, "dataReleaseId": "pokemon-scarlet-violet-data-v1", "type1": "火", "type2": "飞行", "hp": 78, "attack": 84, "defense": 78, "spAttack": 109, "spDefense": 85, "speed": 100},
+    {"formId": 25001, "dataReleaseId": "pokemon-scarlet-violet-data-v1", "type1": "电", "type2": null, "hp": 35, "attack": 55, "defense": 40, "spAttack": 50, "spDefense": 50, "speed": 90},
+    {"formId": 13301, "dataReleaseId": "pokemon-scarlet-violet-data-v1", "type1": "一般", "type2": null, "hp": 55, "attack": 55, "defense": 50, "spAttack": 45, "spDefense": 65, "speed": 55}
+  ],
+  "moves": [
+    {"id": 1001, "moveKey": "thunderbolt", "dataReleaseId": "pokemon-scarlet-violet-data-v1", "nameZh": "十万伏特", "power": 90, "type": "电"},
+    {"id": 1002, "moveKey": "flamethrower", "dataReleaseId": "pokemon-scarlet-violet-data-v1", "nameZh": "喷射火焰", "power": 90, "type": "火"},
+    {"id": 1003, "moveKey": "quick-attack", "dataReleaseId": "pokemon-scarlet-violet-data-v1", "nameZh": "电光一闪", "power": 40, "type": "一般"}
+  ],
+  "rulesets": [
+    {"id": "story-v1", "gameReleaseId": "pokemon-scarlet-violet", "name": "剧情规则（fixture）", "enabled": true},
+    {"id": "casual-v1", "gameReleaseId": "pokemon-scarlet-violet", "name": "休闲规则（fixture）", "enabled": true},
+    {"id": "vgc-ruleset-v1", "gameReleaseId": "pokemon-scarlet-violet", "name": "VGC 规则（待审核）", "enabled": false}
+  ],
+  "availability": [
+    {"formId": 6001, "dataReleaseId": "pokemon-scarlet-violet-data-v1", "rulesetId": "casual-v1", "available": true},
+    {"formId": 25001, "dataReleaseId": "pokemon-scarlet-violet-data-v1", "rulesetId": "casual-v1", "available": true},
+    {"formId": 13301, "dataReleaseId": "pokemon-scarlet-violet-data-v1", "rulesetId": "casual-v1", "available": true}
+  ]
+}

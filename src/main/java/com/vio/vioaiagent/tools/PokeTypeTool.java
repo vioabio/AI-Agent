@@ -1,9 +1,11 @@
 package com.vio.vioaiagent.tools;
 
+import com.vio.vioaiagent.pokemon.calculator.TypeEffectivenessCalculator;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.Map;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -15,6 +17,8 @@ import java.util.Set;
  * @author vio
  */
 public class PokeTypeTool {
+
+    private final TypeEffectivenessCalculator calculator = new TypeEffectivenessCalculator();
 
     /** 属性克制表：攻击属性 → {防御属性 → 倍率} */
     private static final Map<String, Map<String, Double>> TYPE_CHART = Map.ofEntries(
@@ -54,7 +58,7 @@ public class PokeTypeTool {
                     Map.entry("火", 0.5), Map.entry("毒", 0.5), Map.entry("钢", 0.5)))
     );
 
-    private static final Set<String> ALL_TYPES = Set.of(
+    private static final List<String> ALL_TYPES = List.of(
             "一般", "火", "水", "电", "草", "冰", "格斗", "毒", "地面",
             "飞行", "超能力", "虫", "岩石", "幽灵", "龙", "恶", "钢", "妖精"
     );
@@ -63,15 +67,12 @@ public class PokeTypeTool {
     public String checkTypeEffectiveness(
             @ToolParam(description = "攻击方属性（中文），如'火'、'水'、'电'") String attackType,
             @ToolParam(description = "防御方属性（中文），如'草'、'飞行'、'龙'") String defendType) {
-        if (!ALL_TYPES.contains(attackType)) {
-            return "未知攻击属性: " + attackType + "。支持的属性: " + String.join(", ", ALL_TYPES);
+        final double multiplier;
+        try {
+            multiplier = calculator.calculate(attackType, defendType);
+        } catch (IllegalArgumentException ex) {
+            return ex.getMessage() + "。支持的属性: " + String.join(", ", ALL_TYPES);
         }
-        if (!ALL_TYPES.contains(defendType)) {
-            return "未知防御属性: " + defendType + "。支持的属性: " + String.join(", ", ALL_TYPES);
-        }
-
-        Double multiplier = TYPE_CHART.getOrDefault(attackType, Map.of())
-                .getOrDefault(defendType, 1.0);
         String desc = switch ((int)(multiplier * 10)) {
             case 20 -> "效果拔群！2x 伤害";
             case 5 -> "效果一般…0.5x 伤害";
@@ -84,20 +85,21 @@ public class PokeTypeTool {
     @Tool(description = "查询某攻击属性对所有18种防御属性的克制关系一览表")
     public String getTypeChart(
             @ToolParam(description = "要查询的攻击属性（中文）") String attackType) {
+        attackType = attackType == null ? null : attackType.trim();
         if (!ALL_TYPES.contains(attackType)) {
             return "未知属性: " + attackType + "。支持的属性: " + String.join(", ", ALL_TYPES);
         }
         Map<String, Double> defenders = TYPE_CHART.getOrDefault(attackType, Map.of());
         StringBuilder sb = new StringBuilder(attackType + " 属性的攻击克制关系:\n");
         sb.append("克制(2x): ");
-        defenders.entrySet().stream().filter(e -> e.getValue() == 2.0)
-                .forEach(e -> sb.append(e.getKey()).append(" "));
+        ALL_TYPES.stream().filter(type -> defenders.getOrDefault(type, 1.0) == 2.0)
+                .forEach(type -> sb.append(type).append(" "));
         sb.append("\n抵抗(0.5x): ");
-        defenders.entrySet().stream().filter(e -> e.getValue() == 0.5)
-                .forEach(e -> sb.append(e.getKey()).append(" "));
+        ALL_TYPES.stream().filter(type -> defenders.getOrDefault(type, 1.0) == 0.5)
+                .forEach(type -> sb.append(type).append(" "));
         sb.append("\n免疫(0x): ");
-        defenders.entrySet().stream().filter(e -> e.getValue() == 0.0)
-                .forEach(e -> sb.append(e.getKey()).append(" "));
+        ALL_TYPES.stream().filter(type -> defenders.getOrDefault(type, 1.0) == 0.0)
+                .forEach(type -> sb.append(type).append(" "));
         sb.append("\n普通(1x): ");
         ALL_TYPES.stream().filter(t -> !defenders.containsKey(t))
                 .forEach(t -> sb.append(t).append(" "));

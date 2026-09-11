@@ -27,7 +27,7 @@ import java.util.Map;
  * @author vio
  */
 @Slf4j
-public class AuditLogger {
+public class AuditLogger implements ToolAuditSink {
 
     private final ParameterMasker masker;
     private final ObjectMapper mapper;
@@ -43,7 +43,11 @@ public class AuditLogger {
      *
      * @param entry 审计条目
      */
-    public void log(AuditEntry entry) {
+    @Override
+    public void record(AuditEntry entry) {
+        if (entry == null) {
+            throw new IllegalArgumentException("审计条目不能为空");
+        }
         // 脱敏参数
         Map<String, Object> maskedParams = masker.mask(entry.params());
 
@@ -65,7 +69,21 @@ public class AuditLogger {
             writer.write(mapper.writeValueAsString(maskedEntry) + "\n");
             writer.flush();
         } catch (IOException e) {
-            log.error("审计日志写入失败: {}", filename, e);
+            // typed sink 必须把失败传给治理网关；旧的 log(...) 入口会在
+            // 下方兼容性包装中吞掉异常，避免改变既有本地调用方语义。
+            throw new AuditWriteException("本地审计日志写入失败", e);
+        }
+    }
+
+    /**
+     * 旧版兼容入口：本地 JSONL 日志失败仍不向旧调用方抛出异常。
+     * 新的生产工具治理链调用 {@link #record(AuditEntry)}，因此不会丢失失败信号。
+     */
+    public void log(AuditEntry entry) {
+        try {
+            record(entry);
+        } catch (RuntimeException ex) {
+            log.error("审计日志写入失败", ex);
         }
     }
 

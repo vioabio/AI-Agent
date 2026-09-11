@@ -1,7 +1,14 @@
 <template>
   <div class="chat-room">
     <!-- 消息列表 -->
-    <div class="message-list" ref="messageListRef">
+    <div
+      class="message-list"
+      ref="messageListRef"
+      role="log"
+      aria-label="聊天消息"
+      aria-live="polite"
+      aria-relevant="additions text"
+    >
       <div
         v-for="(msg, index) in messages"
         :key="index"
@@ -27,7 +34,12 @@
       </div>
 
       <!-- 思考中动画 -->
-      <div v-if="connectionStatus === 'connecting'" class="message-row assistant-row">
+      <div
+        v-if="connectionStatus === 'connecting' || connectionStatus === 'reconnecting'"
+        class="message-row assistant-row"
+        role="status"
+        aria-live="polite"
+      >
         <AiAvatarFallback :aiType="aiType" />
         <div class="message-bubble assistant-bubble thinking-bubble">
           <span class="dot"></span>
@@ -37,20 +49,32 @@
       </div>
     </div>
 
+    <!-- v1.0 结构化 Run 回放；未传入 run 时完全兼容旧聊天页面。 -->
+    <RunTimeline
+      v-if="runViewModel"
+      :run="runViewModel"
+      @cancel="$emit('cancel-run', $event)"
+      @reconnect="$emit('reconnect-run', $event)"
+      @approve="$emit('approve-run', $event)"
+      @feedback="$emit('feedback', $event)"
+    />
+
     <!-- 输入区域 -->
     <div class="input-area">
       <textarea
         v-model="inputText"
         @keydown.enter.exact.prevent="doSend"
         placeholder="输入你的消息，Enter 发送..."
-        :disabled="connectionStatus === 'connecting'"
+        aria-label="输入消息"
+        :disabled="isBusy"
         ref="inputRef"
         rows="2"
       ></textarea>
       <button
         class="send-btn"
+        type="button"
         @click="doSend"
-        :disabled="!inputText.trim() || connectionStatus === 'connecting'"
+        :disabled="!inputText.trim() || isBusy"
       >
         发送
       </button>
@@ -59,20 +83,24 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, computed } from 'vue'
 import AiAvatarFallback from '@/components/AiAvatarFallback.vue'
+import RunTimeline from '@/components/RunTimeline.vue'
 
 const props = defineProps({
   messages: { type: Array, required: true },
   connectionStatus: { type: String, default: 'idle' },
-  aiType: { type: String, default: 'game' } // 'game' | 'super'
+  aiType: { type: String, default: 'game' }, // 'game' | 'super'
+  runViewModel: { type: Object, default: null }
 })
 
-const emit = defineEmits(['send-message'])
+const emit = defineEmits(['send-message', 'cancel-run', 'reconnect-run', 'approve-run', 'feedback'])
 
 const inputText = ref('')
 const messageListRef = ref(null)
 const inputRef = ref(null)
+const busyStatuses = new Set(['creating', 'connecting', 'connected', 'reconnecting', 'waiting_approval'])
+const isBusy = computed(() => busyStatuses.has(props.connectionStatus))
 
 // 新消息自动滚动到底部
 watch(
@@ -102,7 +130,7 @@ watch(
 
 function doSend() {
   const text = inputText.value.trim()
-  if (!text || props.connectionStatus === 'connecting') return
+  if (!text || isBusy.value) return
   emit('send-message', text)
   inputText.value = ''
   nextTick(() => inputRef.value?.focus())

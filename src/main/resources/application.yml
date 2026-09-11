@@ -11,6 +11,9 @@ spring:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
       - org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration
+  flyway:
+    # 本地 profile 没有数据库；生产 profile 显式打开并执行版本化迁移。
+    enabled: ${FLYWAY_ENABLED:false}
   ai:
     dashscope:
       # 🔒 API Key 请在 application-local.yml 中配置（该文件已被 .gitignore 忽略）
@@ -25,6 +28,9 @@ spring:
         model: gemma3:1b
     mcp:
       client:
+        # MCP 必须显式 opt-in；仅设置 vio.mcp.enabled 不足以阻止
+        # Spring AI 客户端读取本地配置并尝试连接外部服务。
+        enabled: ${VIO_MCP_ENABLED:${MCP_ENABLED:false}}
         sse:
           connections:
             server1:
@@ -42,6 +48,26 @@ server:
   port: 8123
   servlet:
     context-path: /api
+
+# Actuator 是 Prometheus 的唯一采集入口；/metrics 仅保留诊断 JSON 快照。
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState
+  metrics:
+    tags:
+      application: ${spring.application.name}
 
 springdoc:
   swagger-ui:
@@ -62,17 +88,134 @@ search-api:
 # ==================== 安全配置 ====================
 # 默认关闭，生产环境通过 application-prod.yml 覆盖为 true
 vio:
+  http:
+    cors:
+      # 仅允许本地前端开发源；生产 profile 必须通过 VIO_CORS_ALLOWED_ORIGINS 覆盖。
+      # 这里故意不支持 '*'，因为 credentials=true 时会泄漏 Cookie/API 权限。
+      allowed-origins:
+        - http://localhost:3000
+        - http://127.0.0.1:3000
+  # ==================== v1.0 灰度开关 ====================
+  # 默认全部关闭；启用前必须完成对应里程碑验收并保留回退证据。
+  agent:
+    v1:
+      enabled: false
+  legacy:
+    # 本地保留旧 /ai/** 兼容链；生产配置默认关闭并返回 410。
+    ai:
+      enabled: true
+    manus:
+      enabled: true
+  rag:
+    pgvector:
+      enabled: false
+    legacy-memory:
+      # 仅允许本地/测试显式选择“初始化失败后返回空内存库”的兼容降级。
+      # 默认关闭，避免 RAG 空库静默返回无依据答案。
+      enabled: ${VIO_RAG_LEGACY_MEMORY_ENABLED:false}
+    ingestion:
+      staging-root: ${VIO_RAG_INGESTION_STAGING_ROOT:${user.dir}/staging}
+      # 持久 Job worker 默认关闭；开启前必须完成 N1 两实例、DLQ 和 outbox 现场验收。
+      worker-enabled: ${VIO_RAG_INGESTION_WORKER_ENABLED:false}
+      worker-poll-ms: ${VIO_RAG_INGESTION_WORKER_POLL_MS:1000}
+      worker-batch-size: ${VIO_RAG_INGESTION_WORKER_BATCH_SIZE:1}
+      outbox-batch-size: ${VIO_RAG_INGESTION_OUTBOX_BATCH_SIZE:50}
+  pokemon:
+    activity:
+      # 活动来源最长可接受年龄；服务会以当前时钟重算 freshness。
+      max-freshness-days: ${VIO_ACTIVITY_MAX_FRESHNESS_DAYS:7}
+      fixture:
+        # 脱敏 fixture 仅供本地 smoke，默认关闭。
+        enabled: ${VIO_ACTIVITY_FIXTURE_ENABLED:false}
+        location: ${VIO_ACTIVITY_FIXTURE_LOCATION:file:data/v1.1-fixture/activity-notices.json}
+  mcp:
+    enabled: false
+  tools:
+    high-risk:
+      enabled: false
+    resource-download:
+      # 资源下载仅供显式开启的管理工具使用；配额为单实例最后一道防线。
+      directory: ${VIO_RESOURCE_DOWNLOAD_DIR:${user.dir}/tmp/download}
+      max-bytes: ${VIO_RESOURCE_DOWNLOAD_MAX_BYTES:20971520}
+      max-total-bytes: ${VIO_RESOURCE_DOWNLOAD_MAX_TOTAL_BYTES:104857600}
+      allowed-media-types: ${VIO_RESOURCE_DOWNLOAD_ALLOWED_MEDIA_TYPES:image/,application/pdf,application/json,text/plain}
   security:
     enabled: false
-    # API Keys 列表 (key: "描述:协议ID")
-    api-keys:
-      "sk-local-dev-001": "本地开发令牌:default"
+    # 仅当 socket 对端命中这些可信代理 IP/CIDR 时才解析 X-Forwarded-For/X-Real-IP；
+    # 留空表示忽略所有转发头，避免客户端伪造 IP 绕过配额或污染审计。
+    trusted-proxy-cidrs: ${VIO_TRUSTED_PROXY_CIDRS:}
+    # OIDC 默认关闭；生产 profile 将 required 设为 true，未注入完整契约时拒绝启动。
+    # 这里只登记非 Secret 元数据，client secret 只能使用 Secret Store 引用。
+    oidc:
+      enabled: ${VIO_OIDC_ENABLED:false}
+      required: ${VIO_OIDC_REQUIRED:false}
+      issuer-uri: ${VIO_OIDC_ISSUER_URI:}
+      jwks-uri: ${VIO_OIDC_JWKS_URI:}
+      authorization-uri: ${VIO_OIDC_AUTHORIZATION_URI:}
+      token-uri: ${VIO_OIDC_TOKEN_URI:}
+      audience: ${VIO_OIDC_AUDIENCE:}
+      client-id: ${VIO_OIDC_CLIENT_ID:}
+      client-secret-ref: ${VIO_OIDC_CLIENT_SECRET_REF:}
+      redirect-uris: ${VIO_OIDC_REDIRECT_URIS:}
+      scopes: [openid, profile]
+      allowed-algorithms: [RS256]
+      require-pkce: ${VIO_OIDC_REQUIRE_PKCE:true}
+      session-idle-timeout-seconds: ${VIO_OIDC_SESSION_IDLE_TIMEOUT_SECONDS:1800}
+      session-absolute-timeout-seconds: ${VIO_OIDC_SESSION_ABSOLUTE_TIMEOUT_SECONDS:28800}
+      cookie-secure: ${VIO_OIDC_COOKIE_SECURE:true}
+      cookie-same-site: ${VIO_OIDC_COOKIE_SAME_SITE:Lax}
+      cookie-name: ${VIO_OIDC_COOKIE_NAME:VIO_SESSION}
+      subject-claim: ${VIO_OIDC_SUBJECT_CLAIM:sub}
+      role-claim: ${VIO_OIDC_ROLE_CLAIM:roles}
+      clock-skew-seconds: ${VIO_OIDC_CLOCK_SKEW_SECONDS:60}
+      policy:
+        # OIDC 工具授权必须有显式 tenant→role 映射；空映射按 fail-closed 拒绝。
+        enabled: ${VIO_OIDC_POLICY_ENABLED:true}
+        required: ${VIO_OIDC_POLICY_REQUIRED:true}
+        require-tenant: ${VIO_OIDC_POLICY_REQUIRE_TENANT:true}
+        tenant-claim: ${VIO_OIDC_TENANT_CLAIM:tenant_id}
+        policy-version: ${VIO_OIDC_POLICY_VERSION:v1}
+        binding-ttl-seconds: ${VIO_OIDC_POLICY_BINDING_TTL_SECONDS:300}
+        max-requests-per-minute: ${VIO_OIDC_POLICY_MAX_REQUESTS_PER_MINUTE:60}
+        principal-tenants: {}
+        tenant-roles: {}
+        role-tools: {}
+    global-quota-enabled: ${VIO_GLOBAL_QUOTA_ENABLED:false}
+    # 本地/测试默认使用 JVM 内存桶；生产切换为 jdbc 或显式验收后的 redis。
+    global-quota-backend: ${VIO_GLOBAL_QUOTA_BACKEND:memory}
+    # API Keys 必须由本地忽略配置/环境变量显式注入，不提供可猜测的默认令牌。
+    api-keys: {}
     # 文件操作允许的根目录
     allowed-paths:
       - ${user.dir}/tmp
     # 额外禁止的命令模式（内建 9 条已包含, 此处追加自定义）
     blocked-commands: []
+  resource:
+    cursor:
+      # 生产环境必须显式注入；本地安全关闭时由配置类生成工作区绑定的开发密钥。
+      secret: ${VIO_RESOURCE_CURSOR_SECRET:}
+      ttl-seconds: ${VIO_RESOURCE_CURSOR_TTL_SECONDS:900}
   # ==================== 编排配置 ====================
+  # v1.1 Run 耐久化（默认安全关闭，完成 N2 现场验收后再开启）
+  run:
+    durable-resume: ${VIO_RUN_DURABLE_RESUME:false}
+    event-broker-enabled: ${VIO_EVENT_BROKER_ENABLED:false}
+    outbox-poll-ms: ${VIO_OUTBOX_POLL_MS:1000}
+    lease-ttl-seconds: ${VIO_RUN_LEASE_TTL_SECONDS:30}
+    heartbeat-seconds: ${VIO_RUN_HEARTBEAT_SECONDS:10}
+    event-retention-days: ${VIO_EVENT_RETENTION_DAYS:30}
+    # 事件清理默认关闭；完成备份/恢复与 retention 现场演练后再显式开启。
+    event-retention-cleanup-enabled: ${VIO_EVENT_RETENTION_CLEANUP_ENABLED:false}
+    event-retention-cleanup-interval-ms: ${VIO_EVENT_RETENTION_CLEANUP_INTERVAL_MS:3600000}
+    event-retention-cleanup-batch-size: ${VIO_EVENT_RETENTION_CLEANUP_BATCH_SIZE:1000}
+    # 模型响应缓存默认关闭；开启前必须注入受控 KMS codec、模型版本和 Prompt 版本。
+    model-cache:
+      enabled: ${VIO_MODEL_INVOCATION_CACHE_ENABLED:false}
+      fail-closed: ${VIO_MODEL_INVOCATION_CACHE_FAIL_CLOSED:true}
+      step-no: ${VIO_MODEL_INVOCATION_CACHE_STEP_NO:1}
+      ttl-seconds: ${VIO_MODEL_INVOCATION_CACHE_TTL_SECONDS:3600}
+      model-version: ${VIO_MODEL_VERSION:}
+      prompt-version: ${VIO_PROMPT_VERSION:v1.1}
   orchestration:
     # 会话状态机（默认关闭）
     session-state:
@@ -88,6 +231,14 @@ vio:
     enabled: false
     short-term-max-tokens: 4000
     recall-top-k: 5
+    # 仅在显式启用记忆时注入；不要把真实密钥提交到仓库。
+    encryption-key: ${VIO_MEMORY_ENCRYPTION_KEY:}
+    key-version: ${VIO_MEMORY_KEY_VERSION:v1}
+    default-ttl-days: ${VIO_MEMORY_DEFAULT_TTL_DAYS:30}
+  feedback:
+    enabled: ${VIO_FEEDBACK_ENABLED:true}
+    # 本地兼容链可关闭；prod profile 强制覆盖为 true。
+    require-lineage: ${VIO_FEEDBACK_REQUIRE_LINEAGE:false}
 
 # 修改日志级别，查看 Spring AI 更多调用细节
 logging:

@@ -4,6 +4,9 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.vio.vioaiagent.agent.model.AgentState;
+import com.vio.vioaiagent.tools.governance.ToolExecutionContext;
+import com.vio.vioaiagent.tools.governance.ToolExecutionContextHolder;
+import com.vio.vioaiagent.tools.governance.ToolExecutionGateway;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +24,7 @@ import org.springframework.ai.tool.ToolCallbackProvider;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -49,6 +53,9 @@ public class ToolCallAgent extends ReActAgent {
 
     private ToolCallbackProvider toolCallbackProvider;
 
+    /** 可选治理网关；本地工具通常已在 ToolRegistration 中包装，MCP 工具在此补齐。 */
+    private ToolExecutionGateway toolExecutionGateway;
+
     private ChatResponse toolCallChatResponse;
 
     private ToolCallingManager toolCallingManager;
@@ -73,6 +80,10 @@ public class ToolCallAgent extends ReActAgent {
         this.toolCallbackProvider = toolCallbackProvider;
     }
 
+    public void setToolExecutionGateway(ToolExecutionGateway toolExecutionGateway) {
+        this.toolExecutionGateway = toolExecutionGateway;
+    }
+
     private ToolCallback[] getMergedTools() {
         if (toolCallbackProvider == null) {
             return availableTools;
@@ -80,6 +91,9 @@ public class ToolCallAgent extends ReActAgent {
         ToolCallback[] mcpTools = toolCallbackProvider.getToolCallbacks();
         if (mcpTools == null || mcpTools.length == 0) {
             return availableTools;
+        }
+        if (toolExecutionGateway != null) {
+            mcpTools = toolExecutionGateway.wrap(mcpTools);
         }
         ToolCallback[] merged = Arrays.copyOf(availableTools,
                 availableTools.length + mcpTools.length);
@@ -163,8 +177,36 @@ public class ToolCallAgent extends ReActAgent {
 
         // 1. 执行工具调用
         Prompt prompt = new Prompt(getMessageList(), this.chatOptions);
-        ToolExecutionResult toolExecutionResult =
-                toolCallingManager.executeToolCalls(prompt, toolCallChatResponse);
+        // RunService 会在异步 worker 中预置完整上下文；不要再次从 RequestContext 生成新的 run/trace。
+        // 兼容旧版 /ai/manus 端点：它不经过 Run Service 时没有预置上下文，
+        // 仍然要生成受限的请求级上下文，不能因为治理接入而 NPE。
+        ToolExecutionContext inherited = ToolExecutionContextHolder.current();
+        if (inherited == null) {
+            inherited = ToolExecutionContext.fromRequest();
+        }
+        ToolExecutionContext parentContext = inherited;
+        AtomicBoolean approvalRequired = new AtomicBoolean(false);
+        ToolExecutionContext context = parentContext.withEventSink(event -> {
+            if ("approval.required".equals(event.eventType())) {
+                approvalRequired.set(true);
+            }
+            // 保留上游 Run 事件接收器，再写一条调试日志。
+            parentContext.eventSink().accept(event);
+            log.debug("工具治理事件: {} {}", event.eventType(), event.toolName());
+        });
+        ToolExecutionContextHolder.set(context);
+        ToolExecutionResult toolExecutionResult;
+        try {
+            toolExecutionResult = toolCallingManager.executeToolCalls(prompt, toolCallChatResponse);
+        } finally {
+            ToolExecutionContextHolder.clear();
+        }
+
+        // HITL 不是普通工具文本：暂停当前 Agent loop，由 RunService 将 Run 置为
+        // WAITING_APPROVAL；审批通过后从同一 Run 重新调度，拒绝则进入失败终态。
+        if (approvalRequired.get()) {
+            setState(AgentState.FINISHED);
+        }
 
         // 2. 更新消息上下文
         setMessageList(toolExecutionResult.conversationHistory());
