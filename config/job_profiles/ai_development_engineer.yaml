@@ -1,0 +1,110 @@
+status: "active_rotating_batch"
+id: "ai_development_engineer_v1"
+title: "AI开发工程师"
+source_jd_title: "AI开发工程师"
+analysis_provider: "openai_compatible"
+analysis_prompt_path: "config/prompts/ai_development_engineer_v1.txt"
+education: "统招本科及以上，计算机、软件工程、人工智能、数据科学等相关专业"
+experience:
+  backend_years_min: 3
+selection:
+  relevant_score_min: 80
+  review_score_min: 65
+  score_breakdown_limits:
+    industry_depth: 30
+    beauty_continuity: 20
+    role_evidence: 50
+search_pack_scheduling: "interleaved"
+search_packs:
+  - id: "ai_application_development"
+    label: "AI开发工程师"
+    include_unbranded: true
+    terms:
+      - "AI开发工程师"
+      - "AI应用开发工程师"
+      - "大模型应用开发工程师"
+      - "LLM应用开发工程师"
+      - "AIGC开发工程师"
+      - "生成式AI开发工程师"
+      - "AI产品研发工程师"
+      - "AI全栈开发工程师"
+    brands: []
+  - id: "ai_backend_engineering"
+    label: "AI开发工程师"
+    include_unbranded: true
+    terms:
+      - "AI后端开发工程师"
+      - "Python AI开发工程师"
+      - "Java AI开发工程师"
+      - "大模型后端开发工程师"
+      - "AI平台开发工程师"
+      - "AI中台开发工程师"
+      - "AI接口开发工程师"
+      - "AI工程化工程师"
+    brands: []
+  - id: "agent_rag_workflow"
+    label: "AI开发工程师"
+    include_unbranded: true
+    terms:
+      - "智能体开发工程师"
+      - "AI Agent开发工程师"
+      - "RAG开发工程师"
+      - "LangChain开发工程师"
+      - "LangGraph开发工程师"
+      - "AI工作流开发工程师"
+      - "Function Calling开发工程师"
+      - "MCP开发工程师"
+    brands: []
+  - id: "business_integration"
+    label: "AI开发工程师"
+    include_unbranded: true
+    terms:
+      - "企业AI应用开发工程师"
+      - "AI系统集成开发工程师"
+      - "AI自动化开发工程师"
+      - "AI解决方案开发工程师"
+      - "医疗AI开发工程师"
+      - "医美AI开发工程师"
+      - "大健康AI开发工程师"
+      - "AI业务应用工程师"
+    brands: []
+card_screening:
+  minimum_score: 8
+  enforce_age_range: false
+  required_any_positive_groups: ["ai_application"]
+  required_any_support_groups: ["backend", "workflow", "engineering"]
+  positive_groups:
+    - id: "ai_application"
+      weight: 5
+      terms: ["大模型", "LLM", "AIGC", "生成式AI", "AI应用", "AI开发", "RAG", "Agent", "智能体", "Function Calling", "MCP"]
+    - id: "backend"
+      weight: 5
+      terms: ["Python", "Java", "后端", "FastAPI", "Flask", "Django", "Spring Boot", "微服务", "RESTful", "API开发"]
+    - id: "workflow"
+      weight: 4
+      terms: ["Workflow", "工作流", "LangChain", "LangGraph", "Dify", "Coze", "扣子", "n8n", "Airflow"]
+    - id: "engineering"
+      weight: 3
+      terms: ["MySQL", "PostgreSQL", "Redis", "消息队列", "Docker", "K8s", "Kubernetes", "部署", "上线", "系统集成"]
+    - id: "delivery"
+      weight: 2
+      terms: ["从0到1", "从 0 到 1", "技术方案", "独立负责", "生产环境", "上线运维", "代码评审"]
+    - id: "healthcare"
+      weight: 1
+      terms: ["医疗", "医美", "医院", "大健康", "HIS", "EMR"]
+  negative_groups:
+    - id: "non_engineering_role"
+      weight: -8
+      terms: ["纯产品", "产品运营", "销售", "客服", "数据标注", "行政", "网络运维", "桌面运维"]
+  broad_title_terms: ["AI工程师", "算法工程师", "后端开发工程师", "Python工程师", "Java工程师", "AI产品经理", "解决方案工程师"]
+  required_direction_terms: ["大模型", "LLM", "AIGC", "生成式AI", "AI应用", "AI开发", "RAG", "Agent", "智能体", "Function Calling", "MCP"]
+  selection_paths:
+    - id: "ai_backend"
+      all_of_groups: ["ai_application", "backend"]
+    - id: "ai_workflow_engineering"
+      all_of_groups: ["ai_application", "workflow"]
+      any_of_groups: ["engineering", "backend"]
+    - id: "ai_production_engineering"
+      all_of_groups: ["ai_application", "engineering"]
+      any_of_groups: ["backend", "delivery"]
+  target_brand_bonus: 0
