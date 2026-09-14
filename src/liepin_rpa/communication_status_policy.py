@@ -4,7 +4,9 @@ from typing import Literal
 
 CommunicationStatus = Literal["sent", "previously_contacted", "failed", "not_sent"]
 
-SENT_HIT_STATUSES = frozenset({"sent", "immediate_job_confirmed"})
+# Historical `sent` and new `message_sent` are verified successful sends.
+# `immediate_job_confirmed` only proves job selection and is never a send success.
+SENT_HIT_STATUSES = frozenset({"sent", "message_sent"})
 PREVIOUSLY_CONTACTED_HIT_STATUSES = frozenset(
     {
         "skipped_recent_continue",
@@ -12,12 +14,14 @@ PREVIOUSLY_CONTACTED_HIT_STATUSES = frozenset(
         "already_contacted",
         "previously_contacted",
         "historically_contacted",
+        "skipped_global_cooldown",
     }
 )
 PREVIOUSLY_CONTACTED_PREFIXES = (
     "already_contacted:",
     "previously_contacted:",
     "historically_contacted:",
+    "skipped_global_cooldown:",
 )
 FAILED_HIT_STATUSES = frozenset(
     {
@@ -39,8 +43,6 @@ _STATUS_PRIORITY: dict[CommunicationStatus, int] = {
 
 
 def normalize_communication_status(value: object) -> CommunicationStatus:
-    """将采集流水原始状态归一为 HR 页面稳定的四态。"""
-
     status = str(value or "").strip().lower()
     if status in SENT_HIT_STATUSES:
         return "sent"
@@ -59,20 +61,14 @@ def normalize_communication_status(value: object) -> CommunicationStatus:
 
 
 def is_sent_hit_status(value: object) -> bool:
-    """返回原始命中状态是否代表真实沟通已经成功。"""
-
     return normalize_communication_status(value) == "sent"
 
 
 def communication_status_priority(value: object) -> int:
-    """历史命中合并时，成功沟通不得被后续普通浏览或失败记录降级。"""
-
     return _STATUS_PRIORITY[normalize_communication_status(value)]
 
 
 def prefer_communication_hit_status(current: object, candidate: object) -> str:
-    """在两条原始命中状态中选择能保留更多沟通事实的一条。"""
-
     current_value = str(current or "")
     candidate_value = str(candidate or "")
     if communication_status_priority(candidate_value) >= communication_status_priority(

@@ -1,41 +1,295 @@
-from apps.hr_review_api.repositories.candidate_repository import _communication_status
+from types import SimpleNamespace
+
+from sqlalchemy import create_engine, insert
+
+from liepin_rpa import db as db_module
 from liepin_rpa.communication_status_policy import (
     normalize_communication_status,
     prefer_communication_hit_status,
 )
+from liepin_rpa.db import (
+    get_candidate_record_by_experience_hash,
+    metadata,
+    resume_analysis_cache,
+    resume_experience_records,
+    resume_search_hits,
+    resume_source_locators,
+    was_analyzed_in_prior_batch_within_days,
+    was_contacted_within_days,
+)
 
 
-def test_normalize_communication_status_covers_persisted_raw_states() -> None:
-    expected = {
-        "sent": "sent",
-        "immediate_job_confirmed": "sent",
-        "skipped_recent_continue": "previously_contacted",
-        "continue_without_db_record": "previously_contacted",
-        "already_contacted:historical": "previously_contacted",
-        "send_failed:message_sending_disabled": "failed",
-        "communication_button_not_found": "failed",
-        "job_selection_not_handled": "failed",
-        "post_job_selection_chat_not_detected": "failed",
-        "input_verification_failed": "failed",
-        "reviewed": "not_sent",
-        "needs_review": "not_sent",
-        "not_relevant": "not_sent",
-        "manual_review_suppressed:resume_rejected": "not_sent",
-        "job_intent_city_rejected": "not_sent",
-        None: "not_sent",
+def test_real_send_statuses_exclude_immediate_job_confirmation() -> None:
+    assert normalize_communication_status("sent") == "sent"
+    assert normalize_communication_status("message_sent") == "sent"
+    assert normalize_communication_status("immediate_job_confirmed") == "not_sent"
+    assert prefer_communication_hit_status("message_sent", "reviewed") == "message_sent"
+
+
+def test_global_cooldown_uses_only_real_sent_events_across_jobs(monkeypatch) -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    metadata.create_all(engine)
+    with engine.begin() as connection:
+        connection.execute(
+            insert(resume_search_hits).values(
+                id=1,
+                candidate_fingerprint="global-candidate",
+                candidate_name="脱敏候选人",
+                search_keyword="达人营销负责人",
+                hit_status="immediate_job_confirmed",
+            )
+        )
+    monkeypatch.setattr(db_module, "get_engine", lambda _settings: engine)
+    settings = SimpleNamespace()
+    assert not was_contacted_within_days(
+        settings,  # type: ignore[arg-type]
+        candidate_fingerprint="global-candidate",
+        days=7,
+    )
+
+    with engine.begin() as connection:
+        connection.execute(
+            insert(resume_search_hits).values(
+                id=2,
+                candidate_fingerprint="global-candidate",
+                candidate_name="脱敏候选人",
+                search_keyword="财务共享与管理经理",
+                hit_status="message_sent",
+            )
+        )
+
+    assert was_contacted_within_days(
+        settings,  # type: ignore[arg-type]
+        candidate_fingerprint="global-candidate",
+        days=7,
+    )
+
+
+def test_recent_analysis_cooldown_only_uses_valid_results_from_prior_batches(
+    monkeypatch,
+) -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    metadata.create_all(engine)
+    with engine.begin() as connection:
+        connection.execute(
+            insert(resume_search_hits),
+            [
+                {
+                    "id": 1,
+                    "candidate_fingerprint": "prior-candidate",
+                    "search_keyword": "达人营销负责人",
+                    "search_batch_id": "batch-old",
+                    "hit_status": "reviewed",
+                },
+                {
+                    "id": 2,
+                    "candidate_fingerprint": "same-batch-candidate",
+                    "search_keyword": "达人营销负责人",
+                    "search_batch_id": "batch-new",
+                    "hit_status": "reviewed",
+                },
+                {
+                    "id": 3,
+                    "candidate_fingerprint": "transient-candidate",
+                    "search_keyword": "达人营销负责人",
+                    "search_batch_id": "batch-old",
+                    "hit_status": "reviewed",
+                },
+            ],
+        )
+        connection.execute(
+            insert(resume_analysis_cache),
+            [
+                {
+                    "id": 1,
+                    "candidate_fingerprint": "prior-candidate",
+                    "experience_hash": "hash-prior",
+                    "analysis_version": "v1",
+                    "analysis_status": "匹配",
+                    "match_result": "relevant",
+                    "match_score": 95,
+                },
+                {
+                    "id": 2,
+                    "candidate_fingerprint": "same-batch-candidate",
+                    "experience_hash": "hash-same",
+                    "analysis_version": "v1",
+                    "analysis_status": "匹配",
+                    "match_result": "relevant",
+                    "match_score": 95,
+                },
+                {
+                    "id": 3,
+                    "candidate_fingerprint": "transient-candidate",
+                    "experience_hash": "hash-transient",
+                    "analysis_version": "v1",
+                    "analysis_status": "待复核",
+                    "match_result": "needs_review",
+                    "match_score": None,
+                    "analysis_reason": "Coze API 临时异常",
+                },
+            ],
+        )
+    monkeypatch.setattr(db_module, "get_engine", lambda _settings: engine)
+    settings = SimpleNamespace()
+
+    assert was_analyzed_in_prior_batch_within_days(
+        settings,  # type: ignore[arg-type]
+        candidate_fingerprint="prior-candidate",
+        days=7,
+        current_search_batch_id="batch-new",
+    )
+    assert not was_analyzed_in_prior_batch_within_days(
+        settings,  # type: ignore[arg-type]
+        candidate_fingerprint="same-batch-candidate",
+        days=7,
+        current_search_batch_id="batch-new",
+    )
+    assert not was_analyzed_in_prior_batch_within_days(
+        settings,  # type: ignore[arg-type]
+        candidate_fingerprint="transient-candidate",
+        days=7,
+        current_search_batch_id="batch-new",
+    )
+
+
+def test_recent_analysis_cooldown_resolves_historical_fingerprint_by_resume_hash(
+    monkeypatch,
+) -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    metadata.create_all(engine)
+    with engine.begin() as connection:
+        connection.execute(
+            insert(resume_experience_records),
+            [
+                {
+                    "id": 1,
+                    "candidate_fingerprint": "masked-name-fingerprint",
+                    "candidate_name": "李**",
+                    "experience_hash": "newer-resume-hash",
+                    "experience": "newer resume snapshot",
+                },
+                {
+                    "id": 2,
+                    "candidate_fingerprint": "full-name-fingerprint",
+                    "candidate_name": "李昌浩",
+                    "experience_hash": "shared-historical-hash",
+                    "experience": "historical resume snapshot",
+                },
+            ],
+        )
+        connection.execute(
+            insert(resume_analysis_cache),
+            [
+                {
+                    "id": 1,
+                    "candidate_fingerprint": "masked-name-fingerprint",
+                    "experience_hash": "shared-historical-hash",
+                    "analysis_version": "v1",
+                    "analysis_status": "不匹配",
+                    "match_result": "not_relevant",
+                    "match_score": 0,
+                },
+                {
+                    "id": 2,
+                    "candidate_fingerprint": "full-name-fingerprint",
+                    "experience_hash": "shared-historical-hash",
+                    "analysis_version": "v2",
+                    "analysis_status": "匹配",
+                    "match_result": "relevant",
+                    "match_score": 89,
+                },
+            ],
+        )
+        connection.execute(
+            insert(resume_search_hits),
+            [
+                {
+                    "id": 1,
+                    "candidate_fingerprint": "masked-name-fingerprint",
+                    "search_keyword": "财务共享中心负责人",
+                    "search_batch_id": "batch-old",
+                    "hit_status": "not_relevant",
+                },
+                {
+                    "id": 2,
+                    "candidate_fingerprint": "full-name-fingerprint",
+                    "search_keyword": "财务共享中心总监",
+                    "search_batch_id": "batch-new",
+                    "hit_status": "sent",
+                },
+            ],
+        )
+    monkeypatch.setattr(db_module, "get_engine", lambda _settings: engine)
+    settings = SimpleNamespace()
+
+    assert was_analyzed_in_prior_batch_within_days(
+        settings,  # type: ignore[arg-type]
+        candidate_fingerprint="full-name-fingerprint",
+        days=7,
+        current_search_batch_id="batch-new",
+    )
+    canonical = get_candidate_record_by_experience_hash(
+        settings,  # type: ignore[arg-type]
+        "shared-historical-hash",
+    )
+    assert canonical is not None
+    assert canonical["candidate_fingerprint"] in {
+        "masked-name-fingerprint",
+        "full-name-fingerprint",
     }
 
-    for raw_status, normalized in expected.items():
-        assert normalize_communication_status(raw_status) == normalized
-        assert _communication_status(raw_status) == normalized
 
-
-def test_successful_communication_is_not_downgraded_by_later_review() -> None:
-    assert prefer_communication_hit_status("sent", "reviewed") == "sent"
-    assert (
-        prefer_communication_hit_status("immediate_job_confirmed", "send_failed:retry")
-        == "immediate_job_confirmed"
+def test_recent_analysis_cooldown_matches_identity_alias_across_jobs(monkeypatch) -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    metadata.create_all(engine)
+    prior_experience = (
+        "候选人信息：年龄：35岁；李先生；财务共享、总账核算、资金管理与团队建设。"
+        * 20
     )
-    assert prefer_communication_hit_status("reviewed", "skipped_recent_continue") == (
-        "skipped_recent_continue"
+    current_experience = prior_experience.replace("李先生", "李**")
+    with engine.begin() as connection:
+        connection.execute(
+            insert(resume_analysis_cache).values(
+                id=11,
+                candidate_fingerprint="historical-alias",
+                experience_hash="historical-hash",
+                experience=prior_experience,
+                analysis_version="v1",
+                analysis_status="匹配",
+                match_result="relevant",
+                match_score=88,
+            )
+        )
+        connection.execute(
+            insert(resume_source_locators).values(
+                id=11,
+                candidate_fingerprint="historical-alias",
+                candidate_name="李先生",
+                job_profile_id="finance_shared_management_v1",
+                search_keyword="财务共享经理",
+                candidate_card_text="李先生 35岁 本科 40-45K 集团财务经理",
+                locator_quality="snapshot",
+            )
+        )
+        connection.execute(
+            insert(resume_search_hits).values(
+                id=11,
+                candidate_fingerprint="historical-alias",
+                search_keyword="财务共享经理",
+                search_batch_id="batch-old",
+                hit_status="not_relevant",
+            )
+        )
+    monkeypatch.setattr(db_module, "get_engine", lambda _settings: engine)
+
+    assert was_analyzed_in_prior_batch_within_days(
+        SimpleNamespace(),  # type: ignore[arg-type]
+        candidate_fingerprint="new-daren-fingerprint",
+        days=7,
+        current_search_batch_id="batch-new",
+        candidate_name="李**",
+        candidate_age=35,
+        candidate_card_text="李** 35岁 本科 40-45K 集团财务经理",
+        experience=current_experience,
     )
