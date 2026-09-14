@@ -67,14 +67,15 @@ def test_window_hit_map_counts_new_message_status_only_in_its_own_batch() -> Non
 def test_report_history_watermark_uses_same_actionable_population(monkeypatch) -> None:
     candidates = [
         ReportCandidate("relevant-low", "低分匹配", match_result="relevant", match_score=40),
-        ReportCandidate("review-80", "80分待复核", match_result="needs_review", match_score=80),
-        ReportCandidate("review-79", "79分待复核", match_result="needs_review", match_score=79),
+        ReportCandidate("review-90", "90分待复核", match_result="needs_review", match_score=90),
+        ReportCandidate("review-89", "89分待复核", match_result="needs_review", match_score=89),
         ReportCandidate("not-relevant", "不匹配", match_result="not_relevant", match_score=99),
     ]
     monkeypatch.setattr(db_daily_report, "build_report_candidates", lambda _outcomes: candidates)
 
     assert db_daily_report._select_actionable_candidate_fingerprints([]) == {
-        "review-80",
+        "relevant-low",
+        "review-90",
     }
 
 
