@@ -58,13 +58,3 @@ build/
 **/mcp-servers.json.*
 # 测试使用的空 MCP fixture 不含凭据，必须随源码进入干净 checkout。
 !src/test/resources/mcp-servers.json
-
-# 代理配置
-http.proxy/
-https.proxy/
-
-# 二进制缓存文件
-*.kryo
-
-# 运行期审计日志只进入受控日志系统，不进入源码仓库。
-logs/audit/*.jsonl
