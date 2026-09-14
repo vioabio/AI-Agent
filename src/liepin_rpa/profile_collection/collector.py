@@ -103,14 +103,34 @@ class CandidateProfileCollector:
         stagnant_swipe_count = 0
         last_swipe_fingerprint: tuple[str, ...] | None = None
         reached_bottom = False
+        confirmed_profile_page = False
+        profile_package = self._current_package()
 
         for iteration_index in range(1, self.max_iterations + 1):
             hierarchy_text = self.device.dump_hierarchy_text()
             detection = self.detector.detect_from_xml_text(hierarchy_text)
-            if detection.state != PageState.CANDIDATE_PROFILE:
-                raise RuntimeError(
+            if detection.state == PageState.CANDIDATE_PROFILE:
+                confirmed_profile_page = True
+            elif not self._is_confirmed_profile_continuation(
+                detection_state=detection.state,
+                confirmed_profile_page=confirmed_profile_page,
+                profile_package=profile_package,
+            ):
+                raise ProfileCollectionRecoverableError(
                     "Current page is not candidate profile. "
                     f"Detected {detection.state.value} ({detection.matched_signature})."
+                )
+            else:
+                LOGGER.info(
+                    "Continuing profile collection after a scrolled detail page lost its header signature",
+                    extra={
+                        "event": "candidate_profile_scrolled_continuation",
+                        "context": {
+                            "iteration": iteration_index,
+                            "detected_state": detection.state.value,
+                            "profile_package": profile_package,
+                        },
+                    },
                 )
 
             root = ElementTree.fromstring(hierarchy_text)
@@ -255,6 +275,35 @@ class CandidateProfileCollector:
             raise ProfileCollectionRecoverableError(
                 f"Profile swipe failed after recovery attempt: {exc}"
             ) from exc
+
+    def _is_confirmed_profile_continuation(
+        self,
+        *,
+        detection_state: PageState,
+        confirmed_profile_page: bool,
+        profile_package: str | None,
+    ) -> bool:
+        """顶部特征滚出屏幕后，只在同一应用内延续已确认的详情页采集。"""
+
+        if not confirmed_profile_page or detection_state != PageState.UNKNOWN:
+            return False
+        current_package = self._current_package()
+        return bool(
+            profile_package
+            and current_package
+            and current_package == profile_package
+        )
+
+    def _current_package(self) -> str | None:
+        try:
+            current_app = self.device.current_app()
+        except (AdbCommandError, DeviceConnectionError):
+            return None
+        if not isinstance(current_app, dict):
+            return None
+        package = current_app.get("package") or current_app.get("packageName")
+        cleaned = str(package or "").strip()
+        return cleaned or None
 
     def _settle_wait(self, minimum_seconds: float | None = None) -> None:
         base_seconds = random.uniform(self.settle_seconds, 5.0)

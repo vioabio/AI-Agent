@@ -278,8 +278,8 @@ def test_coze_primary_api_failure_falls_back_to_backup_workflow(
             return SimpleNamespace(
                 data=(
                     '{"beauty_relevant":true,"match_result":"relevant",'
-                    '"match_score":90,"score_breakdown":{"industry_depth":30,'
-                    '"beauty_continuity":30,"role_evidence":30},'
+                        '"match_score":90,"score_breakdown":{"industry_depth":32,'
+                        '"beauty_continuity":23,"role_evidence":35},'
                     '"analysis_reason":"strong evidence",'
                     '"evidence_summary":["target-role evidence"]}'
                 )
@@ -376,8 +376,8 @@ def test_coze_valid_needs_review_does_not_use_backup(
             return SimpleNamespace(
                 data=(
                     '{"beauty_relevant":false,"match_result":"needs_review",'
-                    '"match_score":90,"score_breakdown":{"industry_depth":30,'
-                    '"beauty_continuity":30,"role_evidence":30},'
+                        '"match_score":90,"score_breakdown":{"industry_depth":32,'
+                        '"beauty_continuity":23,"role_evidence":35},'
                     '"analysis_reason":"manual evidence check required",'
                     '"evidence_summary":["ambiguous evidence"]}'
                 )

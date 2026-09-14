@@ -7,9 +7,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
 
+from liepin_rpa.batch_trace import stable_batch_job_id
+
 
 BATCH_STATE_FILENAME = "search_workflow_batches.json"
-DUAL_JOB_ORDER = ("daren_live_bd_v1", "finance_shared_management_v1")
+DUAL_JOB_ORDER = ("finance_shared_management_v1", "daren_live_bd_v1")
+LEGACY_DUAL_JOB_ORDER = ("daren_live_bd_v1", "finance_shared_management_v1")
 SHANGHAI_TIMEZONE = timezone(timedelta(hours=8))
 
 
@@ -50,7 +53,7 @@ class SearchBatchStateStore:
         if not isinstance(active, dict):
             if job_id != DUAL_JOB_ORDER[0]:
                 raise SearchBatchStateError(
-                    "The finance job cannot start a new report batch before the talent job."
+                    "The talent job cannot start a new report batch before the finance job."
                 )
             active = self._new_batch(now)
             payload["active_batch"] = active
@@ -58,11 +61,12 @@ class SearchBatchStateStore:
         jobs = active.get("jobs")
         if not isinstance(jobs, dict):
             raise SearchBatchStateError("Active search batch has invalid job state.")
-        if job_id == DUAL_JOB_ORDER[1]:
-            first_job = jobs.get(DUAL_JOB_ORDER[0])
+        job_order = _job_order_for_batch(active)
+        if job_id == job_order[1]:
+            first_job = jobs.get(job_order[0])
             if not isinstance(first_job, dict) or first_job.get("status") != "completed":
                 raise SearchBatchStateError(
-                    "The finance job cannot start until the talent job is complete."
+                    f"Job `{job_id}` cannot start until `{job_order[0]}` is complete."
                 )
 
         job = jobs.get(job_id)
@@ -74,6 +78,13 @@ class SearchBatchStateStore:
                 f"Job `{job_id}` is already bound to checkpoint `{recorded_checkpoint}`."
             )
         job["checkpoint_file"] = checkpoint_file
+        expected_batch_job_id = stable_batch_job_id(str(active.get("batch_id") or ""), job_id)
+        recorded_batch_job_id = str(job.get("batch_job_id") or "")
+        if recorded_batch_job_id and recorded_batch_job_id != expected_batch_job_id:
+            raise SearchBatchStateError(
+                f"Job `{job_id}` has an invalid batch_job_id for its parent batch."
+            )
+        job["batch_job_id"] = expected_batch_job_id
         if job.get("status") != "completed":
             job["status"] = "running"
             if not job.get("started_at"):
@@ -109,11 +120,12 @@ class SearchBatchStateStore:
         job["status"] = "completed"
         job["completed_at"] = now
         active["updated_at"] = now
-        if job_id == DUAL_JOB_ORDER[-1]:
+        job_order = _job_order_for_batch(active)
+        if job_id == job_order[-1]:
             if any(
                 not isinstance(jobs.get(required_job), dict)
                 or jobs[required_job].get("status") != "completed"
-                for required_job in DUAL_JOB_ORDER
+                for required_job in job_order
             ):
                 raise SearchBatchStateError(
                     "The report batch cannot complete until both jobs are complete."
@@ -277,14 +289,17 @@ class SearchBatchStateStore:
         return dict(batch)
 
     def _new_batch(self, started_at: str, *, batch_id: str | None = None) -> dict[str, object]:
+        resolved_batch_id = batch_id or uuid.uuid4().hex
         return {
-            "batch_id": batch_id or uuid.uuid4().hex,
+            "batch_id": resolved_batch_id,
             "status": "running",
+            "job_order": list(DUAL_JOB_ORDER),
             "started_at": started_at,
             "ended_at": None,
             "updated_at": started_at,
             "jobs": {
                 job_id: {
+                    "batch_job_id": stable_batch_job_id(resolved_batch_id, job_id),
                     "status": "pending",
                     "checkpoint_file": "",
                     "started_at": None,
@@ -324,6 +339,17 @@ class SearchBatchStateStore:
     def _validate_job_id(job_id: str) -> None:
         if job_id not in DUAL_JOB_ORDER:
             raise SearchBatchStateError(f"Job `{job_id}` is not part of the dual-job batch.")
+
+
+def _job_order_for_batch(batch: dict[str, object]) -> tuple[str, str]:
+    """新批次财务优先；没有顺序字段的历史批次继续沿用旧顺序。"""
+
+    raw_order = batch.get("job_order")
+    if isinstance(raw_order, list):
+        normalized = tuple(str(job_id) for job_id in raw_order)
+        if len(normalized) == 2 and set(normalized) == set(DUAL_JOB_ORDER):
+            return normalized
+    return LEGACY_DUAL_JOB_ORDER
 
 
 def _format_local_datetime(value: datetime) -> str:

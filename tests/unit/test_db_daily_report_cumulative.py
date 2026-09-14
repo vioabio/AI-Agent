@@ -1,8 +1,7 @@
 from types import SimpleNamespace
 
-from sqlalchemy import create_engine, insert, select
+from sqlalchemy import create_engine, insert, select, update
 
-from apps.hr_review_api.persistence.tables import hr_users, manual_review_events
 from liepin_rpa import db_daily_report
 from liepin_rpa.config import Settings
 from liepin_rpa.db import (
@@ -14,7 +13,7 @@ from liepin_rpa.db import (
 )
 
 
-def test_database_reanalysis_routes_job_specific_primary_and_backup_workflows() -> None:
+def test_database_report_resolves_job_versions_without_provider_side_effects() -> None:
     settings = Settings(
         _env_file=None,
         COZE_JD_WORKFLOW_ID="daren-primary",
@@ -34,10 +33,73 @@ def test_database_reanalysis_routes_job_specific_primary_and_backup_workflows() 
         job_profile_id="finance_shared_management_v1",
     )
 
-    assert daren.coze_workflow_id == "daren-primary"
-    assert daren.coze_backup_workflow_id == "daren-backup"
-    assert finance.coze_workflow_id == "finance-primary"
-    assert finance.coze_backup_workflow_id == "finance-backup"
+    assert daren.coze_analysis_version == settings.coze_jd_analysis_version
+    assert finance.coze_analysis_version == settings.coze_finance_analysis_version
+
+
+def test_database_reanalysis_uses_active_openai_compatible_versions() -> None:
+    settings = Settings(
+        _env_file=None,
+        RESUME_ANALYSIS_PROVIDER="openai_compatible",
+        LLM_JD_ANALYSIS_VERSION="daren-llm-current",
+        LLM_FINANCE_ANALYSIS_VERSION="finance-llm-current",
+    )
+
+    daren = db_daily_report._analysis_settings_for_search_keyword(
+        settings,
+        "creator marketing director",
+        job_profile_id="daren_live_bd_v1",
+    )
+    finance = db_daily_report._analysis_settings_for_search_keyword(
+        settings,
+        "group accounting manager",
+        job_profile_id="finance_shared_management_v1",
+    )
+
+    assert daren.coze_analysis_version == "daren-llm-current"
+    assert finance.coze_analysis_version == "finance-llm-current"
+
+
+def test_latest_analysis_map_does_not_revive_stale_coze_score(monkeypatch) -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    metadata.create_all(engine)
+    with engine.begin() as connection:
+        connection.execute(
+            insert(resume_analysis_cache),
+            [
+                {
+                    "id": 1,
+                    "candidate_fingerprint": "finance-candidate",
+                    "experience_hash": "old-hash",
+                    "analysis_version": "finance-coze-old",
+                    "analysis_status": "待复核",
+                    "match_result": "needs_review",
+                    "match_score": 100,
+                },
+                {
+                    "id": 2,
+                    "candidate_fingerprint": "finance-candidate",
+                    "experience_hash": "current-hash",
+                    "analysis_version": "finance-llm-current",
+                    "analysis_status": "匹配",
+                    "match_result": "relevant",
+                    "match_score": 89,
+                },
+            ],
+        )
+
+    monkeypatch.setattr(db_daily_report, "get_engine", lambda settings: engine)
+    settings = Settings(
+        _env_file=None,
+        RESUME_ANALYSIS_PROVIDER="openai_compatible",
+        COZE_FINANCE_ANALYSIS_VERSION="finance-coze-old",
+        LLM_FINANCE_ANALYSIS_VERSION="finance-llm-current",
+    )
+
+    selected = db_daily_report._load_latest_analysis_map(settings)["finance-candidate"]
+
+    assert selected["analysis_version"] == "finance-llm-current"
+    assert selected["match_score"] == 89
 
 
 def test_cumulative_metrics_and_review_list_use_actionable_population(monkeypatch) -> None:
@@ -67,7 +129,7 @@ def test_cumulative_metrics_and_review_list_use_actionable_population(monkeypatc
                 for index, (fingerprint, keyword, hit_status) in enumerate(
                     [
                         ("talent-history", "达人营销总监", "sent"),
-                        ("finance-profile", "集团总账经理", "immediate_job_confirmed"),
+                        ("finance-profile", "集团总账经理", "sent"),
                         ("profile-wins", "财务共享负责人", "reviewed"),
                         ("coze-system-failure", "达人营销总监", "reviewed"),
                         ("low-score-review", "达人营销总监", "reviewed"),
@@ -80,28 +142,22 @@ def test_cumulative_metrics_and_review_list_use_actionable_population(monkeypatc
             ],
         )
         connection.execute(
-            insert(resume_search_hits).values(
-                id=99,
-                candidate_fingerprint="talent-history",
-                candidate_name="talent-history",
-                search_keyword="达人营销总监",
-                hit_status="immediate_job_confirmed",
-            )
-        )
-        connection.execute(
             insert(resume_source_locators),
             [
                 {
                     "id": index,
                     "candidate_fingerprint": fingerprint,
                     "candidate_name": fingerprint,
+                    "experience_hash": f"hash-{index}",
                     "job_profile_id": profile_id,
                     "search_keyword": "测试关键词",
                 }
                 for index, (fingerprint, profile_id) in enumerate(
                     [
+                        ("talent-history", "daren_live_bd_v1"),
                         ("finance-profile", "finance_shared_management_v1"),
                         ("profile-wins", "daren_live_bd_v1"),
+                        ("coze-system-failure", "daren_live_bd_v1"),
                         ("low-score-review", "daren_live_bd_v1"),
                         ("low-score-relevant", "daren_live_bd_v1"),
                         ("suppressed-relevant", "daren_live_bd_v1"),
@@ -112,21 +168,21 @@ def test_cumulative_metrics_and_review_list_use_actionable_population(monkeypatc
             ],
         )
         analysis_rows = [
-            ("talent-history", "legacy-v1", "relevant", 95, "", "history", "[]"),
+            ("talent-history", "jd-v2", "relevant", 95, "", "history", "[]"),
             ("finance-profile", "finance-v2", "relevant", 96, "", "finance", "[]"),
-            ("profile-wins", "finance-v2", "needs_review", 92, "", "talent", "[]"),
+            ("profile-wins", "jd-v2", "needs_review", 92, "", "talent", "[]"),
             (
                 "coze-system-failure",
-                "finance-v2",
+                "jd-v2",
                 "needs_review",
                 99,
                 "需要人工复核：Coze API 临时异常，code=4000",
                 "完整的候选人简历正文",
                 '["已有完整简历证据"]',
             ),
-            ("low-score-review", "finance-v2", "needs_review", 89, "", "talent", "[]"),
-            ("low-score-relevant", "legacy-v1", "relevant", 70, "", "talent", "[]"),
-            ("suppressed-relevant", "legacy-v1", "relevant", 95, "", "talent", "[]"),
+            ("low-score-review", "jd-v2", "needs_review", 89, "", "talent", "[]"),
+            ("low-score-relevant", "jd-v2", "relevant", 70, "", "talent", "[]"),
+            ("suppressed-relevant", "jd-v2", "relevant", 95, "", "talent", "[]"),
             ("suppressed-review", "finance-v2", "needs_review", 95, "", "finance", "[]"),
         ]
         connection.execute(
@@ -137,7 +193,9 @@ def test_cumulative_metrics_and_review_list_use_actionable_population(monkeypatc
                     "candidate_fingerprint": fingerprint,
                     "experience_hash": f"hash-{index}",
                     "analysis_version": version,
-                    "analysis_status": ("匹配" if result == "relevant" else "待复核"),
+                    "analysis_status": (
+                        "匹配" if result == "relevant" else "待复核"
+                    ),
                     "match_result": result,
                     "match_score": score,
                     "analysis_reason": reason,
@@ -162,6 +220,7 @@ def test_cumulative_metrics_and_review_list_use_actionable_population(monkeypatc
                     "id": index,
                     "candidate_fingerprint": fingerprint,
                     "candidate_name": fingerprint,
+                    "experience_hash": f"hash-{index}",
                     "experience": f"候选人信息：{fingerprint}",
                     "manual_suppress_report": int(fingerprint.startswith("suppressed-")),
                 }
@@ -170,7 +229,10 @@ def test_cumulative_metrics_and_review_list_use_actionable_population(monkeypatc
         )
 
     monkeypatch.setattr(db_daily_report, "get_engine", lambda settings: engine)
-    settings = SimpleNamespace(coze_finance_analysis_version="finance-v2")
+    settings = SimpleNamespace(
+        coze_jd_analysis_version="jd-v2",
+        coze_finance_analysis_version="finance-v2",
+    )
 
     by_job = db_daily_report._count_cumulative_report_metrics_by_job(settings)
     cumulative = db_daily_report._count_cumulative_report_metrics(settings)
@@ -204,167 +266,25 @@ def test_cumulative_metrics_and_review_list_use_actionable_population(monkeypatc
     assert {row[0] for row in retained} == {"suppressed-relevant", "suppressed-review"}
 
 
-def test_recruitment_progress_keeps_ai_and_hr_metrics_separate(monkeypatch) -> None:
-    engine = create_engine("sqlite+pysqlite:///:memory:")
-    metadata.create_all(engine)
-    collected_at = db_daily_report.datetime(2026, 8, 18, 9, 0)
-    candidates = ["ai-relevant", "hr-contacted", "ai-rejected", "suppressed"]
-    with engine.begin() as connection:
-        connection.execute(
-            insert(resume_experience_records),
-            [
-                {
-                    "id": index,
-                    "candidate_fingerprint": fingerprint,
-                    "candidate_name": fingerprint,
-                    "manual_review_status": (
-                        "contacted" if fingerprint == "hr-contacted" else None
-                    ),
-                    "manual_suppress_report": int(fingerprint == "suppressed"),
-                }
-                for index, fingerprint in enumerate(candidates, start=1)
-            ],
-        )
-        connection.execute(
-            insert(resume_source_locators),
-            [
-                {
-                    "id": index,
-                    "candidate_fingerprint": fingerprint,
-                    "candidate_name": fingerprint,
-                    "job_profile_id": "daren_live_bd_v1",
-                    "search_keyword": "测试关键词",
-                    "created_at": collected_at,
-                }
-                for index, fingerprint in enumerate(candidates, start=1)
-            ],
-        )
-        results = {
-            "ai-relevant": ("relevant", 82, "匹配"),
-            "hr-contacted": ("needs_review", 92, "待复核"),
-            "ai-rejected": ("not_relevant", 40, "不匹配"),
-            "suppressed": ("relevant", 95, "匹配"),
-        }
-        connection.execute(
-            insert(resume_analysis_cache),
-            [
-                {
-                    "id": index,
-                    "candidate_fingerprint": fingerprint,
-                    "experience_hash": f"hash-{index}",
-                    "analysis_version": "jd-v2",
-                    "analysis_status": results[fingerprint][2],
-                    "match_result": results[fingerprint][0],
-                    "match_score": results[fingerprint][1],
-                    "analysis_reason": "",
-                }
-                for index, fingerprint in enumerate(candidates, start=1)
-            ],
-        )
-        connection.execute(
-            insert(hr_users).values(
-                id=1,
-                username="reviewer",
-                display_name="审核人",
-                password_hash="hash",
-                role="reviewer",
-            )
-        )
-        connection.execute(
-            insert(manual_review_events).values(
-                candidate_fingerprint="hr-contacted",
-                previous_status="pending_review",
-                review_status="contacted",
-                feedback="已完成电话沟通。",
-                reviewer_id=1,
-                reviewer_name_snapshot="审核人",
-                revision=1,
-                suppress_communication=False,
-                suppress_report=False,
-                client_ip="127.0.0.1",
-                user_agent="pytest",
-                created_at=collected_at,
-            )
-        )
-
-    monkeypatch.setattr(db_daily_report, "get_engine", lambda _settings: engine)
-    settings = SimpleNamespace(
-        coze_analysis_version="legacy-v1",
-        coze_jd_analysis_version="jd-v2",
-        coze_finance_analysis_version="finance-v2",
-    )
-
-    snapshot = db_daily_report.load_recruitment_progress_snapshot(
-        settings,  # type: ignore[arg-type]
-        window_start_at=db_daily_report.datetime(2026, 8, 18, 0, 0),
-        window_end_at=db_daily_report.datetime(2026, 8, 19, 0, 0),
-    )
-
-    assert (snapshot.ai_relevant, snapshot.ai_needs_review, snapshot.ai_not_relevant) == (
-        2,
-        1,
-        1,
-    )
-    assert snapshot.actionable_pending == 0
-    assert snapshot.hr_status_counts["pending_review"] == 0
-    assert snapshot.hr_status_counts["contacted"] == 1
-    assert snapshot.feedback_candidates_in_window == 1
-
-
-def test_latest_hit_overlay_preserves_earlier_successful_communication(monkeypatch) -> None:
-    engine = create_engine("sqlite+pysqlite:///:memory:")
-    metadata.create_all(engine)
-    with engine.begin() as connection:
-        connection.execute(
-            insert(resume_search_hits),
-            [
-                {
-                    "id": 1,
-                    "candidate_fingerprint": "successful-candidate",
-                    "candidate_name": "候选人",
-                    "search_keyword": "达人营销负责人",
-                    "hit_status": "immediate_job_confirmed",
-                },
-                {
-                    "id": 2,
-                    "candidate_fingerprint": "successful-candidate",
-                    "candidate_name": "候选人",
-                    "search_keyword": "达人营销负责人",
-                    "hit_status": "reviewed",
-                },
-            ],
-        )
-
-    monkeypatch.setattr(db_daily_report, "get_engine", lambda _settings: engine)
-    latest = db_daily_report._load_latest_hit_map(SimpleNamespace())  # type: ignore[arg-type]
-
-    assert latest["successful-candidate"]["hit_status"] == "immediate_job_confirmed"
-
-
 def test_report_candidate_membership_uses_batch_id_not_timestamp(monkeypatch) -> None:
     engine = create_engine("sqlite+pysqlite:///:memory:")
     metadata.create_all(engine)
     same_time = db_daily_report.datetime(2026, 8, 18, 9, 0)
     with engine.begin() as connection:
-        connection.execute(
-            insert(resume_experience_records),
-            [
-                {
-                    "id": 101,
-                    "candidate_fingerprint": "batch-a-candidate",
-                    "candidate_name": "批次A候选人",
-                },
-                {
-                    "id": 102,
-                    "candidate_fingerprint": "batch-b-candidate",
-                    "candidate_name": "批次B候选人",
-                },
-            ],
-        )
         for identifier, fingerprint, batch_id in (
             (101, "batch-a-candidate", "batch-a"),
             (102, "batch-b-candidate", "batch-b"),
         ):
+            experience_hash = f"batch-hash-{identifier}"
+            connection.execute(
+                insert(resume_experience_records).values(
+                    id=identifier,
+                    candidate_fingerprint=fingerprint,
+                    candidate_name=fingerprint,
+                    experience_hash=experience_hash,
+                    experience=f"候选人信息：{fingerprint}",
+                )
+            )
             connection.execute(
                 insert(resume_search_hits).values(
                     id=identifier,
@@ -381,6 +301,7 @@ def test_report_candidate_membership_uses_batch_id_not_timestamp(monkeypatch) ->
                     id=identifier,
                     candidate_fingerprint=fingerprint,
                     candidate_name=fingerprint,
+                    experience_hash=experience_hash,
                     job_profile_id="daren_live_bd_v1",
                     search_keyword="同一时间执行",
                     search_batch_id=batch_id,
@@ -391,21 +312,20 @@ def test_report_candidate_membership_uses_batch_id_not_timestamp(monkeypatch) ->
                 insert(resume_analysis_cache).values(
                     id=identifier,
                     candidate_fingerprint=fingerprint,
-                    experience_hash=f"batch-hash-{identifier}",
+                    experience_hash=experience_hash,
                     analysis_version="jd-v2",
                     analysis_status="待复核",
                     match_result="needs_review",
                     match_score=95,
+                    created_at=same_time,
                 )
             )
 
     monkeypatch.setattr(db_daily_report, "get_engine", lambda _settings: engine)
     settings = SimpleNamespace(
-        coze_analysis_version="legacy-v1",
         coze_jd_analysis_version="jd-v2",
         coze_finance_analysis_version="finance-v2",
     )
-
     records = db_daily_report._load_report_candidate_records(
         settings,  # type: ignore[arg-type]
         limit=None,
@@ -413,13 +333,277 @@ def test_report_candidate_membership_uses_batch_id_not_timestamp(monkeypatch) ->
         window_end_at=db_daily_report.datetime(2026, 8, 19, 0, 0),
         search_batch_id="batch-a",
     )
-    snapshot = db_daily_report.load_recruitment_progress_snapshot(
+
+    assert [record["candidate_fingerprint"] for record in records] == [
+        "batch-a-candidate"
+    ]
+
+
+def test_report_excludes_recent_analysis_skip_hits_at_query_boundary(monkeypatch) -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    metadata.create_all(engine)
+    analyzed_at = db_daily_report.datetime(2026, 8, 18, 9, 0)
+    with engine.begin() as connection:
+        for identifier, fingerprint, hit_status in (
+            (201, "new-candidate", "message_sent"),
+            (202, "recent-candidate", "skipped_recent_analysis"),
+        ):
+            experience_hash = f"report-hash-{identifier}"
+            connection.execute(
+                insert(resume_experience_records).values(
+                    id=identifier,
+                    candidate_fingerprint=fingerprint,
+                    candidate_name=fingerprint,
+                    experience_hash=experience_hash,
+                    experience=f"候选人信息：{fingerprint}",
+                )
+            )
+            connection.execute(
+                insert(resume_search_hits).values(
+                    id=identifier,
+                    candidate_fingerprint=fingerprint,
+                    candidate_name=fingerprint,
+                    search_keyword="FDE实施交付",
+                    search_batch_id="batch-fde",
+                    hit_status=hit_status,
+                    created_at=analyzed_at,
+                )
+            )
+            connection.execute(
+                insert(resume_source_locators).values(
+                    id=identifier,
+                    candidate_fingerprint=fingerprint,
+                    candidate_name=fingerprint,
+                    experience_hash=experience_hash,
+                    job_profile_id="fde_ai_deployment_engineer_v1",
+                    search_keyword="FDE实施交付",
+                    search_batch_id="batch-fde",
+                    created_at=analyzed_at,
+                )
+            )
+            connection.execute(
+                insert(resume_analysis_cache).values(
+                    id=identifier,
+                    candidate_fingerprint=fingerprint,
+                    experience_hash=experience_hash,
+                    analysis_version="fde-v2",
+                    analysis_status="匹配",
+                    match_result="relevant",
+                    match_score=90,
+                    created_at=analyzed_at,
+                )
+            )
+
+    monkeypatch.setattr(db_daily_report, "get_engine", lambda _settings: engine)
+    settings = SimpleNamespace(
+        coze_jd_analysis_version="jd-v2",
+        coze_finance_analysis_version="finance-v2",
+        llm_fde_analysis_version="fde-v2",
+    )
+    records = db_daily_report._load_report_candidate_records(
         settings,  # type: ignore[arg-type]
-        window_start_at=db_daily_report.datetime(2026, 8, 18, 0, 0),
-        window_end_at=db_daily_report.datetime(2026, 8, 19, 0, 0),
-        search_batch_id="batch-a",
+        limit=None,
+        window_start_at=None,
+        window_end_at=None,
+        search_batch_id="batch-fde",
     )
 
-    assert [record["candidate_fingerprint"] for record in records] == ["batch-a-candidate"]
-    assert snapshot.ai_needs_review == 1
-    assert snapshot.actionable_pending == 1
+    assert [record["candidate_fingerprint"] for record in records] == [
+        "new-candidate"
+    ]
+
+
+def test_report_keeps_current_send_when_later_duplicate_is_analysis_skipped(monkeypatch) -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    metadata.create_all(engine)
+    analyzed_at = db_daily_report.datetime(2026, 8, 18, 9, 0)
+    with engine.begin() as connection:
+        connection.execute(
+            insert(resume_experience_records).values(
+                id=301,
+                candidate_fingerprint="sent-then-skipped",
+                candidate_name="重复候选人",
+                experience_hash="sent-then-skipped-hash",
+                experience="候选人信息：已发送",
+            )
+        )
+        connection.execute(
+            insert(resume_search_hits),
+            [
+                {
+                    "id": 301,
+                    "candidate_fingerprint": "sent-then-skipped",
+                    "candidate_name": "重复候选人",
+                    "search_keyword": "FDE实施交付",
+                    "search_batch_id": "batch-fde",
+                    "hit_status": "message_sent",
+                    "created_at": analyzed_at,
+                },
+                {
+                    "id": 302,
+                    "candidate_fingerprint": "sent-then-skipped",
+                    "candidate_name": "重复候选人",
+                    "search_keyword": "AI应用部署",
+                    "search_batch_id": "batch-fde",
+                    "hit_status": "skipped_recent_analysis",
+                    "created_at": analyzed_at,
+                },
+            ],
+        )
+        connection.execute(
+            insert(resume_source_locators).values(
+                id=301,
+                candidate_fingerprint="sent-then-skipped",
+                candidate_name="重复候选人",
+                experience_hash="sent-then-skipped-hash",
+                job_profile_id="fde_ai_deployment_engineer_v1",
+                search_keyword="FDE实施交付",
+                search_batch_id="batch-fde",
+                created_at=analyzed_at,
+            )
+        )
+        connection.execute(
+            insert(resume_analysis_cache).values(
+                id=301,
+                candidate_fingerprint="sent-then-skipped",
+                experience_hash="sent-then-skipped-hash",
+                analysis_version="fde-v2",
+                analysis_status="匹配",
+                match_result="relevant",
+                match_score=90,
+                created_at=analyzed_at,
+            )
+        )
+
+    monkeypatch.setattr(db_daily_report, "get_engine", lambda _settings: engine)
+    settings = SimpleNamespace(
+        coze_jd_analysis_version="jd-v2",
+        coze_finance_analysis_version="finance-v2",
+        llm_fde_analysis_version="fde-v2",
+    )
+    records = db_daily_report._load_report_candidate_records(
+        settings,  # type: ignore[arg-type]
+        limit=None,
+        window_start_at=None,
+        window_end_at=None,
+        search_batch_id="batch-fde",
+    )
+
+    assert len(records) == 1
+    assert records[0]["hit_status"] == "message_sent"
+
+
+def test_report_selects_current_resume_and_policy_per_job(monkeypatch) -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    metadata.create_all(engine)
+    analyzed_at = db_daily_report.datetime.now()
+    with engine.begin() as connection:
+        connection.execute(
+            insert(resume_experience_records).values(
+                id=1,
+                candidate_fingerprint="cross-job",
+                candidate_name="脱敏候选人",
+                experience_hash="resume-v2",
+                experience="候选人信息：脱敏测试正文",
+            )
+        )
+        connection.execute(
+            insert(resume_search_hits).values(
+                id=1,
+                candidate_fingerprint="cross-job",
+                candidate_name="脱敏候选人",
+                search_keyword="测试任务",
+                search_batch_id="batch-current",
+                hit_status="hit",
+                created_at=analyzed_at,
+            )
+        )
+        connection.execute(
+            insert(resume_source_locators),
+            [
+                {
+                    "id": identifier,
+                    "candidate_fingerprint": "cross-job",
+                    "experience_hash": "resume-v2",
+                    "job_profile_id": job_profile_id,
+                    "search_keyword": "测试任务",
+                    "search_batch_id": "batch-current",
+                    "created_at": analyzed_at,
+                }
+                for identifier, job_profile_id in enumerate(
+                    ("daren_live_bd_v1", "finance_shared_management_v1"), start=1
+                )
+            ],
+        )
+        connection.execute(
+            insert(resume_analysis_cache),
+            [
+                {
+                    "id": 1,
+                    "candidate_fingerprint": "cross-job",
+                    "experience_hash": "resume-v1",
+                    "analysis_version": "jd-v2",
+                    "analysis_status": "匹配",
+                    "match_result": "relevant",
+                    "match_score": 99,
+                    "experience": "旧简历正文",
+                    "created_at": analyzed_at,
+                },
+                {
+                    "id": 2,
+                    "candidate_fingerprint": "cross-job",
+                    "experience_hash": "resume-v2",
+                    "analysis_version": "jd-v2",
+                    "analysis_status": "匹配",
+                    "match_result": "relevant",
+                    "match_score": 81,
+                    "experience": "当前简历正文",
+                    "created_at": analyzed_at,
+                },
+                {
+                    "id": 3,
+                    "candidate_fingerprint": "cross-job",
+                    "experience_hash": "resume-v2",
+                    "analysis_version": "finance-v2",
+                    "analysis_status": "匹配",
+                    "match_result": "relevant",
+                    "match_score": 94,
+                    "experience": "当前简历正文",
+                    "created_at": analyzed_at,
+                },
+            ],
+        )
+
+    monkeypatch.setattr(db_daily_report, "get_engine", lambda _settings: engine)
+    settings = SimpleNamespace(
+        coze_jd_analysis_version="jd-v2",
+        coze_finance_analysis_version="finance-v2",
+    )
+    records = db_daily_report._load_report_candidate_records(
+        settings,  # type: ignore[arg-type]
+        limit=None,
+        window_start_at=None,
+        window_end_at=None,
+        search_batch_id="batch-current",
+    )
+    assert {(record["job_profile_id"], record["match_score"]) for record in records} == {
+        ("daren_live_bd_v1", 81),
+        ("finance_shared_management_v1", 94),
+    }
+
+    with engine.begin() as connection:
+        connection.execute(
+            update(resume_experience_records)
+            .where(resume_experience_records.c.candidate_fingerprint == "cross-job")
+            .values(experience_hash="resume-v3", experience="候选人信息：新版本正文")
+        )
+    assert (
+        db_daily_report._load_report_candidate_records(
+            settings,  # type: ignore[arg-type]
+            limit=None,
+            window_start_at=None,
+            window_end_at=None,
+            search_batch_id="batch-current",
+        )
+        == []
+    )

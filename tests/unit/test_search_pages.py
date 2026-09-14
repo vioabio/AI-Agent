@@ -19,6 +19,9 @@ class _FakeSearchDevice:
     def dump_hierarchy_text(self) -> str:
         return "<hierarchy />"
 
+    def device_info(self) -> dict[str, int]:
+        return {"displayWidth": 1080, "displayHeight": 2388}
+
 
 def test_jd_search_submits_effective_query_instead_of_pack_label(monkeypatch) -> None:
     device = _FakeSearchDevice()
@@ -40,3 +43,24 @@ def test_jd_search_submits_effective_query_instead_of_pack_label(monkeypatch) ->
     navigator.submit_exact_search(seed, ElementTree.Element("hierarchy"))
 
     assert device.sent_text == "种草营销负责人 珀莱雅"
+
+
+def test_dismisses_non_clickable_resume_share_sheet() -> None:
+    device = _FakeSearchDevice()
+    navigator = SearchPageNavigator(device=device, detector=object(), settle_seconds=0)
+    root = ElementTree.fromstring(
+        """
+        <hierarchy>
+          <node package="com.lietou.mishu" text="温馨提示" />
+          <node package="com.lietou.mishu" text="复制链接" />
+          <node package="com.lietou.mishu" text="取消" clickable="false"
+                bounds="[0,2100][1080,2200]" />
+        </hierarchy>
+        """
+    )
+
+    tapped: list[tuple[int, int]] = []
+    device.tap = lambda x, y: tapped.append((x, y))  # type: ignore[method-assign]
+
+    assert navigator.dismiss_interruption_if_present(root) is True
+    assert tapped == [(540, 2150)]

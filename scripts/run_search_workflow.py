@@ -7,6 +7,7 @@ import random
 import sys
 import uuid
 import warnings
+from datetime import datetime
 from pathlib import Path
 
 warnings.filterwarnings(
@@ -29,6 +30,7 @@ from liepin_rpa.report_batch import (
     DUAL_JOB_ORDER,
     SearchBatchStateStore,
 )
+from liepin_rpa.batch_trace import stable_batch_job_id
 from liepin_rpa.search_execution.catalog import FrozenKeywordCatalog
 from liepin_rpa.search_execution.result_filter import ResultPageFilter
 from liepin_rpa.search_execution.workflow import (
@@ -90,6 +92,14 @@ def parse_args() -> argparse.Namespace:
         "--send-report",
         action="store_true",
         help="Send a database daily report after the search workflow finishes.",
+    )
+    parser.add_argument(
+        "--standalone-job",
+        action="store_true",
+        help=(
+            "Run the selected job outside the dual-job report batch. "
+            "This explicit mode never permits --send-report."
+        ),
     )
     parser.add_argument(
         "--no-send-message",
@@ -197,9 +207,23 @@ def build_catalog_key(seeds: list[SearchTaskSeed]) -> str:
 def _resolve_batch_job_id(settings) -> str | None:
     if settings.selection_mode != "jd_smart":
         return None
-    profile = load_job_profile(settings.workflow_job_profile_path)
-    job_id = str(profile.get("id") or "")
+    job_id = _resolve_job_profile_id(settings)
     return job_id if job_id in DUAL_JOB_ORDER else None
+
+
+def _resolve_job_profile_id(settings) -> str | None:
+    if settings.selection_mode != "jd_smart":
+        return None
+    profile = load_job_profile(settings.workflow_job_profile_path)
+    job_id = str(profile.get("id") or "").strip()
+    return job_id or None
+
+
+def resolve_effective_batch_job_id(settings, *, standalone_job: bool) -> str | None:
+    """Return the dual-job batch id unless an explicit standalone run was requested."""
+    if standalone_job:
+        return None
+    return _resolve_batch_job_id(settings)
 
 
 def _is_current_job_checkpoint_complete(args: argparse.Namespace) -> bool:
@@ -213,16 +237,72 @@ def _is_current_job_checkpoint_complete(args: argparse.Namespace) -> bool:
     )
 
 
+def resolve_finished_run_status(
+    *,
+    exit_code: int,
+    is_batch_job: bool,
+    checkpoint_complete: bool,
+) -> str:
+    """进程正常返回不等于批次完成，checkpoint 才是完成事实来源。"""
+
+    if exit_code != 0:
+        return "failed"
+    if not checkpoint_complete:
+        return "interrupted"
+    return "completed"
+
+
+def resolve_standalone_batch_context(
+    *,
+    state_path: Path,
+    checkpoint_file: str,
+    job_profile_id: str | None,
+    run_id: str,
+) -> tuple[str, str, datetime]:
+    """复用同一 checkpoint 上一次独立运行的批次身份。"""
+
+    try:
+        previous = json.loads(state_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        previous = {}
+    previous_context = previous.get("context") if isinstance(previous, dict) else None
+    if isinstance(previous_context, dict):
+        previous_checkpoint = str(previous_context.get("checkpoint_file") or "")
+        previous_profile = str(previous_context.get("job_profile_id") or "")
+        previous_batch_id = str(previous_context.get("search_batch_id") or "")
+        previous_batch_job_id = str(previous_context.get("search_batch_job_id") or "")
+        if (
+            Path(previous_checkpoint) == Path(checkpoint_file)
+            and previous_profile == (job_profile_id or "")
+            and previous_batch_id.startswith("standalone-")
+            and previous_batch_job_id
+        ):
+            started_at = datetime.fromtimestamp(int(previous.get("started_at") or 0))
+            return previous_batch_id, previous_batch_job_id, started_at
+
+    batch_id = f"standalone-{job_profile_id or 'job'}-{run_id[:12]}"
+    batch_job_id = stable_batch_job_id(batch_id, job_profile_id or "standalone")
+    return batch_id, batch_job_id, datetime.now()
+
+
 def _run_main(
     args: argparse.Namespace,
     settings,
     *,
     search_batch_id: str | None = None,
+    search_batch_job_id: str | None = None,
+    batch_started_at: datetime | None = None,
 ) -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
     checkpoint_store = WorkflowCheckpointStore(Path(args.checkpoint_file))
     write_to_db, send_messages = resolve_run_permissions(args)
+    if write_to_db and settings.selection_mode == "jd_smart" and (
+        not search_batch_id or not search_batch_job_id or batch_started_at is None
+    ):
+        raise ValueError(
+            "JD smart database writes require parent batch, batch job, and batch start facts"
+        )
     if args.reset_checkpoint:
         checkpoint_store.reset()
     configure_logging(
@@ -341,6 +421,7 @@ def _run_main(
             ),
             jd_card_min_score=settings.workflow_jd_card_min_score,
             search_batch_id=search_batch_id,
+            search_batch_job_id=search_batch_job_id,
         ),
         checkpoint_store=checkpoint_store,
         checkpoint_catalog_key=catalog_key,
@@ -409,7 +490,17 @@ def main() -> int:
     run_id = uuid.uuid4().hex
     lease_path = settings.artifacts_dir / "search_workflow.lock"
     state_store = WorkflowRunStateStore(settings.artifacts_dir / "search_workflow_run_state.json")
-    batch_job_id = _resolve_batch_job_id(settings)
+    if args.standalone_job and args.send_report:
+        raise ValueError("--standalone-job cannot be combined with --send-report")
+    standalone_writes, _ = resolve_run_permissions(args)
+    # 独立岗位（例如 FDE）不进入双岗位批次，但仍需保留批次链路以便
+    # 简历明细、AI 结果和沟通记录可按一次运行进行追踪。这里生成独立
+    # 的 parent/job id，不修改双岗位批次状态。
+    batch_job_id = resolve_effective_batch_job_id(
+        settings,
+        standalone_job=args.standalone_job,
+    )
+    job_profile_id = _resolve_job_profile_id(settings)
     if args.send_report and batch_job_id is not None:
         raise ValueError(
             "--send-report cannot run inside a dual-job search batch. "
@@ -421,6 +512,8 @@ def main() -> int:
         else None
     )
     batch_id: str | None = None
+    search_batch_job_id: str | None = None
+    batch_started_at: datetime | None = None
     try:
         lease = ProcessLease.acquire(
             lease_path,
@@ -438,21 +531,45 @@ def main() -> int:
                 checkpoint_file=args.checkpoint_file,
             )
             batch_id = str(batch.get("batch_id") or "")
+            batch_started_at = datetime.fromisoformat(str(batch.get("started_at") or ""))
+            jobs = batch.get("jobs")
+            job_state = jobs.get(batch_job_id) if isinstance(jobs, dict) else None
+            if not isinstance(job_state, dict):
+                raise ValueError("active batch is missing the current job state")
+            search_batch_job_id = str(job_state.get("batch_job_id") or "")
+        elif args.standalone_job and standalone_writes:
+            batch_id, search_batch_job_id, batch_started_at = resolve_standalone_batch_context(
+                state_path=state_store.path,
+                checkpoint_file=args.checkpoint_file,
+                job_profile_id=job_profile_id,
+                run_id=run_id,
+            )
         state_store.mark_started(
             run_id=run_id,
             context={
                 "checkpoint_file": args.checkpoint_file,
                 "search_batch_id": batch_id,
-                "search_batch_job_id": batch_job_id,
+                "search_batch_job_id": search_batch_job_id,
+                "job_profile_id": job_profile_id,
             },
         )
         try:
-            exit_code = _run_main(args, settings, search_batch_id=batch_id)
+            exit_code = _run_main(
+                args,
+                settings,
+                search_batch_id=batch_id,
+                search_batch_job_id=search_batch_job_id,
+                batch_started_at=batch_started_at,
+            )
         except KeyboardInterrupt:
             state_store.mark_finished(
                 run_id=run_id,
                 status="interrupted",
-                context={"search_batch_id": batch_id, "search_batch_job_id": batch_job_id},
+                context={
+                    "search_batch_id": batch_id,
+                    "search_batch_job_id": search_batch_job_id,
+                    "job_profile_id": job_profile_id,
+                },
             )
             raise
         except Exception as exc:
@@ -462,18 +579,20 @@ def main() -> int:
                 context={
                     "error": str(exc)[:500],
                     "search_batch_id": batch_id,
-                    "search_batch_job_id": batch_job_id,
+                    "search_batch_job_id": search_batch_job_id,
+                    "job_profile_id": job_profile_id,
                 },
             )
             raise
         else:
             batch_completed = False
+            checkpoint_complete = _is_current_job_checkpoint_complete(args)
             if (
                 exit_code == 0
                 and batch_store is not None
                 and batch_job_id is not None
                 and batch_id
-                and _is_current_job_checkpoint_complete(args)
+                and checkpoint_complete
             ):
                 batch = batch_store.mark_job_completed(
                     batch_id=batch_id,
@@ -483,12 +602,18 @@ def main() -> int:
                 batch_completed = batch.get("status") == "completed"
             state_store.mark_finished(
                 run_id=run_id,
-                status="completed",
+                status=resolve_finished_run_status(
+                    exit_code=exit_code,
+                    is_batch_job=batch_store is not None and batch_job_id is not None,
+                    checkpoint_complete=checkpoint_complete,
+                ),
                 context={
                     "exit_code": exit_code,
                     "search_batch_id": batch_id,
-                    "search_batch_job_id": batch_job_id,
+                    "search_batch_job_id": search_batch_job_id,
+                    "job_profile_id": job_profile_id,
                     "search_batch_completed": batch_completed,
+                    "checkpoint_complete": checkpoint_complete,
                 },
             )
             return exit_code

@@ -3,7 +3,7 @@ param(
     [ValidatePattern('^\d{8}$')]
     [string]$RunDate = (Get-Date -Format "yyyyMMdd"),
     [int]$DarenExpectedKeywords = 96,
-    [int]$FinanceExpectedKeywords = 22,
+    [int]$FinanceExpectedKeywords = 42,
     [int]$MaxAbnormalResumeAttempts = 3
 )
 
@@ -219,12 +219,55 @@ if ($actualFinanceKeywordCount -ne $FinanceExpectedKeywords) {
 }
 
 Write-QueueLog "queue watcher started run_date=$RunDate daren_expected=$DarenExpectedKeywords finance_expected=$FinanceExpectedKeywords"
-if (-not (Complete-Job "daren_live_bd" $darenCheckpoint $darenProfile $DarenExpectedKeywords)) {
-    exit 1
+$jobsById = @{
+    "finance_shared_management_v1" = @{
+        Name = "finance_shared_management"
+        Checkpoint = $financeCheckpoint
+        Profile = $financeProfile
+        ExpectedKeywords = $FinanceExpectedKeywords
+    }
+    "daren_live_bd_v1" = @{
+        Name = "daren_live_bd"
+        Checkpoint = $darenCheckpoint
+        Profile = $darenProfile
+        ExpectedKeywords = $DarenExpectedKeywords
+    }
 }
-Write-QueueLog "first job completed; switching to finance"
-if (-not (Complete-Job "finance_shared_management" $financeCheckpoint $financeProfile $FinanceExpectedKeywords)) {
-    exit 2
+$jobOrder = @("finance_shared_management_v1", "daren_live_bd_v1")
+$batchStatePath = Join-Path $projectRoot "artifacts\search_workflow_batches.json"
+if (Test-Path -LiteralPath $batchStatePath) {
+    $batchState = Get-Content -LiteralPath $batchStatePath -Raw | ConvertFrom-Json
+    if ($null -ne $batchState.active_batch) {
+        if ($null -ne $batchState.active_batch.job_order) {
+            $recordedOrder = @($batchState.active_batch.job_order | ForEach-Object { [string]$_ })
+            if (
+                $recordedOrder.Count -ne 2 -or
+                $recordedOrder -notcontains "finance_shared_management_v1" -or
+                $recordedOrder -notcontains "daren_live_bd_v1"
+            ) {
+                throw "Active search batch has an invalid job_order"
+            }
+            $jobOrder = $recordedOrder
+        }
+        else {
+            $jobOrder = @("daren_live_bd_v1", "finance_shared_management_v1")
+            Write-QueueLog "legacy active batch detected; preserving daren-first order"
+        }
+    }
+}
+
+for ($index = 0; $index -lt $jobOrder.Count; $index++) {
+    $jobId = $jobOrder[$index]
+    $job = $jobsById[$jobId]
+    if ($null -eq $job) {
+        throw "Unsupported queued job id: $jobId"
+    }
+    if (-not (Complete-Job $job.Name $job.Checkpoint $job.Profile $job.ExpectedKeywords)) {
+        exit ($index + 1)
+    }
+    if ($index -eq 0) {
+        Write-QueueLog "first job completed; switching to $($jobsById[$jobOrder[1]].Name)"
+    }
 }
 Write-QueueLog "all queued jobs completed"
 exit 0

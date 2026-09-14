@@ -14,6 +14,8 @@ from liepin_rpa.ui_controls import (
     has_result_filter_bar,
     find_search_box,
     find_search_submit,
+    node_label,
+    parse_bounds,
 )
 
 SEARCH_INTERRUPTION_DISMISS_LABELS = (
@@ -239,11 +241,48 @@ class SearchPageNavigator:
 
     def dismiss_interruption_if_present(self, root: ElementTree.Element) -> bool:
         center = find_clickable_labeled_center(root, SEARCH_INTERRUPTION_DISMISS_LABELS)
-        if center is None:
+        if center is not None:
+            self._log(
+                "search_interruption_dismiss",
+                "Dismissed interruption dialog during search flow",
+            )
+            self.device.tap(*center)
+            return True
+
+        # Liepin's resume-share bottom sheet is rendered as an accessibility
+        # overlay.  Its nodes are sometimes non-clickable, so the page
+        # detector reports UNKNOWN and the normal interruption selector cannot
+        # close it.  Prefer the bottom-most Cancel node and fall back to the
+        # stable bottom-sheet action position when the node has no bounds.
+        labels = [node_label(node) for node in root.iter("node")]
+        share_markers = ("温馨提示", "复制链接", "招聘目的")
+        if "取消" not in labels or not any(marker in " ".join(labels) for marker in share_markers):
             return False
+        cancel_nodes = []
+        for node in root.iter("node"):
+            if node_label(node) != "取消":
+                continue
+            bounds = node.attrib.get("bounds", "")
+            try:
+                parsed = parse_bounds(bounds)
+            except (TypeError, ValueError):
+                parsed = None
+            if parsed is not None:
+                cancel_nodes.append(parsed)
+        if cancel_nodes:
+            cancel_nodes.sort(key=lambda item: item.y1, reverse=True)
+            center = cancel_nodes[0].center
+        else:
+            try:
+                info = self.device.device_info()
+                width = int(info.get("displayWidth") or info.get("width") or 1080)
+                height = int(info.get("displayHeight") or info.get("height") or 2388)
+            except Exception:
+                width, height = 1080, 2388
+            center = (width // 2, int(height * 0.90))
         self._log(
-            "search_interruption_dismiss",
-            "Dismissed interruption dialog during search flow",
+            "share_sheet_dismiss",
+            "Dismissed Liepin resume-share bottom sheet before continuing search",
         )
         self.device.tap(*center)
         return True

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
 
+from liepin_rpa.batch_trace import stable_batch_job_id
 from liepin_rpa.db_daily_report import _build_report_window, _to_database_local_datetime
 from liepin_rpa.report_batch import (
     NoUnreportedSearchBatchError,
@@ -27,29 +29,34 @@ def test_dual_job_batch_survives_resume_and_finishes_after_second_job(tmp_path) 
     store = SearchBatchStateStore(tmp_path / "batches.json", now_provider=lambda: next(times))
 
     started = store.begin_or_resume(
-        job_id="daren_live_bd_v1",
-        checkpoint_file="artifacts/daren.json",
+        job_id="finance_shared_management_v1",
+        checkpoint_file="artifacts/finance.json",
     )
     resumed = store.begin_or_resume(
-        job_id="daren_live_bd_v1",
-        checkpoint_file="artifacts/daren.json",
+        job_id="finance_shared_management_v1",
+        checkpoint_file="artifacts/finance.json",
     )
     assert resumed["batch_id"] == started["batch_id"]
     assert resumed["started_at"] == "2026-08-15T09:00:00"
+    started_jobs = started["jobs"]
+    assert isinstance(started_jobs, dict)
+    assert started_jobs["finance_shared_management_v1"]["batch_job_id"] == stable_batch_job_id(
+        str(started["batch_id"]), "finance_shared_management_v1"
+    )
 
     store.mark_job_completed(
         batch_id=str(started["batch_id"]),
+        job_id="finance_shared_management_v1",
+        checkpoint_file="artifacts/finance.json",
+    )
+    store.begin_or_resume(
         job_id="daren_live_bd_v1",
         checkpoint_file="artifacts/daren.json",
     )
-    store.begin_or_resume(
-        job_id="finance_shared_management_v1",
-        checkpoint_file="artifacts/finance.json",
-    )
     completed = store.mark_job_completed(
         batch_id=str(started["batch_id"]),
-        job_id="finance_shared_management_v1",
-        checkpoint_file="artifacts/finance.json",
+        job_id="daren_live_bd_v1",
+        checkpoint_file="artifacts/daren.json",
     )
 
     assert completed["status"] == "completed"
@@ -58,13 +65,50 @@ def test_dual_job_batch_survives_resume_and_finishes_after_second_job(tmp_path) 
     assert window.ended_at == datetime(2026, 8, 15, 16, 30, 0)
 
 
-def test_finance_job_cannot_start_without_first_job(tmp_path) -> None:
+def test_daren_job_cannot_start_without_first_job(tmp_path) -> None:
     store = SearchBatchStateStore(tmp_path / "batches.json")
     with pytest.raises(SearchBatchStateError, match="cannot start"):
         store.begin_or_resume(
-            job_id="finance_shared_management_v1",
-            checkpoint_file="artifacts/finance.json",
+            job_id="daren_live_bd_v1",
+            checkpoint_file="artifacts/daren.json",
         )
+
+
+def test_legacy_active_batch_keeps_daren_first_order(tmp_path) -> None:
+    state_path = tmp_path / "batches.json"
+    state_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "active_batch": {
+                    "batch_id": "legacy-batch",
+                    "status": "running",
+                    "started_at": "2026-08-20T09:00:00",
+                    "updated_at": "2026-08-20T09:00:00",
+                    "jobs": {
+                        "daren_live_bd_v1": {
+                            "status": "running",
+                            "checkpoint_file": "artifacts/daren.json",
+                        },
+                        "finance_shared_management_v1": {
+                            "status": "pending",
+                            "checkpoint_file": "",
+                        },
+                    },
+                },
+                "completed_batches": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    store = SearchBatchStateStore(state_path)
+
+    resumed = store.begin_or_resume(
+        job_id="daren_live_bd_v1",
+        checkpoint_file="artifacts/daren.json",
+    )
+
+    assert resumed["batch_id"] == "legacy-batch"
 
 
 def test_report_defaults_to_latest_completed_batch(tmp_path) -> None:
@@ -94,8 +138,8 @@ def test_default_report_refuses_previous_batch_while_new_batch_is_active(tmp_pat
         ended_at=datetime(2026, 8, 13, 23, 2, 4),
     )
     store.begin_or_resume(
-        job_id="daren_live_bd_v1",
-        checkpoint_file="artifacts/next-daren.json",
+        job_id="finance_shared_management_v1",
+        checkpoint_file="artifacts/next-finance.json",
     )
 
     with pytest.raises(SearchBatchStateError, match="not complete"):
@@ -110,8 +154,8 @@ def test_unreported_batch_remains_reportable_while_next_search_is_active(tmp_pat
         ended_at=datetime(2026, 8, 13, 23, 2, 4),
     )
     store.begin_or_resume(
-        job_id="daren_live_bd_v1",
-        checkpoint_file="artifacts/next-daren.json",
+        job_id="finance_shared_management_v1",
+        checkpoint_file="artifacts/next-finance.json",
     )
 
     window = store.latest_unreported_completed_window()
@@ -143,8 +187,8 @@ def test_reported_batch_is_skipped_idempotently(tmp_path) -> None:
 def test_no_pending_batch_while_search_runs_requests_retry(tmp_path) -> None:
     store = SearchBatchStateStore(tmp_path / "search_workflow_batches.json")
     store.begin_or_resume(
-        job_id="daren_live_bd_v1",
-        checkpoint_file="artifacts/daren.json",
+        job_id="finance_shared_management_v1",
+        checkpoint_file="artifacts/finance.json",
     )
 
     with pytest.raises(SearchBatchNotReadyError, match="still running"):

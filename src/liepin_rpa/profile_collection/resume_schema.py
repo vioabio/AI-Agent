@@ -10,7 +10,7 @@ from typing import Any
 DATE_RANGE_PATTERN = re.compile(
     r"(?P<start>\d{4}(?:\.\d{1,2})?)-(?P<end>至今|\d{4}(?:\.\d{1,2})?)(?:\((?P<duration>[^)]*)\))?"
 )
-EDUCATION_DATE_PATTERN = re.compile(r"\d{4}\.\d{1,2}-\d{4}\.\d{1,2}")
+EDUCATION_DATE_PATTERN = re.compile(r"^\d{4}\.\d{1,2}-\d{4}\.\d{1,2}$")
 AGE_PATTERN = re.compile(r"(\d{1,2})岁")
 WORK_YEARS_PATTERN = re.compile(r"工作(\d{1,2})年")
 ACHIEVEMENT_HINT_PATTERN = re.compile(
@@ -38,6 +38,16 @@ IGNORED_LINES = {
     "展开全部",
 }
 DEGREE_HINTS = ("本科", "大专", "硕士", "博士", "MBA", "EMBA", "统招")
+EDUCATION_ADMISSION_LABELS = {
+    "统招": "统招",
+    "全日制": "统招",
+    "非统招": "非统招",
+    "非全日制": "非统招",
+}
+EDUCATION_SCHOOL_TAGS = {"985", "211", "双一流"}
+UNIFIED_BACHELOR_QUALIFIED = "qualified"
+UNIFIED_BACHELOR_NOT_QUALIFIED = "not_qualified"
+UNIFIED_BACHELOR_UNKNOWN = "unknown"
 INVALID_CANDIDATE_NAME_TOKENS = (
     "活跃",
     "回复快",
@@ -59,6 +69,16 @@ CANDIDATE_INTERACTION_HINT_TOKENS = (
 CANDIDATE_NAME_PATTERN = re.compile(
     r"^(?:[\u4e00-\u9fff·]{1,8}(?:先生|女士)|[\u4e00-\u9fff]{1,4}[*＊xX]{1,4}|[\u4e00-\u9fff·]{2,6})$"
 )
+CANDIDATE_CARD_SUMMARY_PATTERN = re.compile(
+    r"^(?P<name>[\u4e00-\u9fff·]{1,8}(?:先生|女士)|[\u4e00-\u9fff]{1,4}[*＊xX]{1,4})\s+"
+    r"(?:在线|今日活跃|今天活跃|刚刚活跃|近期开聊)\s+"
+    r"[\u4e00-\u9fff]{2,12}\s+\d{2}岁\s+"
+    r"(?:大专|本科|硕士|博士|MBA|EMBA)\s+\d{1,2}年(?:\s+.*)?$",
+    re.IGNORECASE,
+)
+CROSS_CANDIDATE_CONTAMINATION_WARNING = (
+    "检测到详情页末尾混入其他候选人卡片，已截断污染内容。"
+)
 
 
 def build_candidate_resume_schema(
@@ -79,14 +99,24 @@ def build_candidate_resume_schema(
     iterations = debug_payload.get("iterations", [])
 
     basic_info = parse_basic_info(sections)
+    collected_lines, contamination_warning = _trim_cross_candidate_card_tail(
+        collected_lines,
+        current_candidate_name=basic_info.get("name"),
+    )
     experiences, experience_warnings = parse_work_experiences(collected_lines, iterations)
     education_experiences, education_warnings = parse_education_experiences(collected_lines)
+    education_admission_type = highest_education_admission_type(education_experiences)
+    unified_bachelor_requirement = evaluate_unified_bachelor_requirement(
+        education_experiences
+    )
     skills = parse_skills(sections, basic_info.get("self_description"))
     candidate_id = build_candidate_id(basic_info)
 
     screenshots = [str(Path(item["screenshot_path"])) for item in iterations if item.get("screenshot_path")]
     xml_files = [str(Path(item["hierarchy_path"])) for item in iterations if item.get("hierarchy_path")]
     warnings = experience_warnings + education_warnings
+    if contamination_warning:
+        warnings.append(contamination_warning)
     parse_status = "SUCCESS"
     if warnings:
         parse_status = "PARTIAL"
@@ -110,6 +140,8 @@ def build_candidate_resume_schema(
             "city": basic_info.get("city"),
             "work_years": basic_info.get("work_years"),
             "education": basic_info.get("education"),
+            "education_admission_type": education_admission_type,
+            "unified_bachelor_requirement": unified_bachelor_requirement,
             "current_company": basic_info.get("current_company"),
             "current_position": basic_info.get("current_position"),
             "expected_position": basic_info.get("expected_position"),
@@ -133,6 +165,30 @@ def build_candidate_resume_schema(
             "requires_manual_review": parse_status != "SUCCESS",
         },
     }
+
+
+def _trim_cross_candidate_card_tail(
+    lines: list[str],
+    *,
+    current_candidate_name: str | None,
+) -> tuple[list[str], str | None]:
+    """Drop recommendation-card text accidentally collected below a resume.
+
+    Liepin can expose the next candidates after the end of a detail page. The
+    compact card header is structurally different from resume sections, so it
+    provides a conservative boundary. A header for the current candidate is
+    retained to avoid trimming a legitimate profile header.
+    """
+
+    normalized_current_name = sanitize_candidate_name(current_candidate_name)
+    for index, line in enumerate(lines):
+        match = CANDIDATE_CARD_SUMMARY_PATTERN.fullmatch(line)
+        if match is None:
+            continue
+        detected_name = sanitize_candidate_name(match.group("name"))
+        if detected_name and detected_name != normalized_current_name:
+            return lines[:index], CROSS_CANDIDATE_CONTAMINATION_WARNING
+    return lines, None
 
 
 def parse_basic_info(sections: dict[str, list[str]]) -> dict[str, Any]:
@@ -315,33 +371,148 @@ def parse_education_experiences(lines: list[str]) -> tuple[list[dict[str, Any]],
     for index, line in enumerate(lines):
         if not EDUCATION_DATE_PATTERN.search(line):
             continue
-        previous_values = previous_meaningful_lines(lines, index, 3)
-        if not previous_values:
+        block_values = previous_education_block_lines(lines, index)
+        if not block_values:
             continue
-        school_name = previous_values[-3] if len(previous_values) >= 3 else previous_values[0]
-        major_or_degree = previous_values[-1]
-        if not any(hint in major_or_degree for hint in DEGREE_HINTS) and not any(
-            hint in school_name for hint in DEGREE_HINTS
-        ):
+        degree = detect_degree(" ".join(block_values))
+        if degree is None:
             continue
+        degree_line = next(
+            (value for value in reversed(block_values) if detect_degree(value) is not None),
+            "",
+        )
+        admission_type = next(
+            (
+                normalized
+                for value in block_values
+                if (normalized := normalize_education_admission_type(value)) is not None
+            ),
+            None,
+        )
+        school_tags = [value for value in block_values if value in EDUCATION_SCHOOL_TAGS]
+        school_name = next(
+            (
+                value
+                for value in reversed(block_values)
+                if value not in EDUCATION_SCHOOL_TAGS
+                and normalize_education_admission_type(value) is None
+                and detect_degree(value) is None
+                and looks_like_school_name(value)
+            ),
+            None,
+        )
         start_date, end_date = parse_simple_date_range(line)
-        degree = detect_degree(" ".join(previous_values[-2:]))
-        major = extract_major(previous_values[-2:])
+        major = extract_major([degree_line])
         items.append(
             {
                 "education_id": f"edu_{len(items) + 1:03d}",
                 "school_name": value_or_none(school_name),
                 "major": value_or_none(major),
                 "degree": value_or_none(degree),
+                "admission_type": admission_type,
+                "school_tags": school_tags,
                 "start_date": start_date,
                 "end_date": end_date,
-                "raw_text": " ".join(previous_values[-3:] + [line]).strip(),
+                "raw_text": " ".join(
+                    [
+                        value
+                        for value in (
+                            school_name,
+                            admission_type,
+                            *school_tags,
+                            degree_line,
+                            line,
+                        )
+                        if value
+                    ]
+                ).strip(),
             }
         )
 
     if not items:
         warnings.append("未识别到可结构化的教育经历。")
     return items, warnings
+
+
+def previous_education_block_lines(lines: list[str], index: int) -> list[str]:
+    """读取教育卡片日期之前的同卡片字段，保留统招和学校标签。"""
+
+    values: list[str] = []
+    cursor = index - 1
+    while cursor >= 0 and len(values) < 10:
+        candidate = normalize_text(lines[cursor])
+        if candidate in SECTION_MARKERS or EDUCATION_DATE_PATTERN.search(candidate):
+            break
+        if candidate and candidate not in IGNORED_LINES:
+            values.append(candidate)
+        cursor -= 1
+    values.reverse()
+    return values
+
+
+def normalize_education_admission_type(value: str | None) -> str | None:
+    normalized = normalize_text(value)
+    return EDUCATION_ADMISSION_LABELS.get(normalized)
+
+
+def highest_education_admission_type(items: list[dict[str, Any]]) -> str | None:
+    ranked = [
+        (education_degree_rank(item.get("degree")), item.get("admission_type"))
+        for item in items
+    ]
+    if not ranked:
+        return None
+    admission_type = max(ranked, key=lambda item: item[0])[1]
+    return str(admission_type) if admission_type else None
+
+
+def evaluate_unified_bachelor_requirement(items: object) -> str:
+    """判断是否存在手机教育卡片明确标注的统招本科及以上经历。"""
+
+    if not isinstance(items, list) or not items:
+        return UNIFIED_BACHELOR_UNKNOWN
+    for item in items:
+        if not isinstance(item, dict) or education_degree_rank(item.get("degree")) < 3:
+            continue
+        if item.get("admission_type") == "统招":
+            return UNIFIED_BACHELOR_QUALIFIED
+    return UNIFIED_BACHELOR_NOT_QUALIFIED
+
+
+def education_degree_rank(value: object) -> int:
+    return {
+        "中专": 1,
+        "专科": 2,
+        "大专": 2,
+        "本科": 3,
+        "MBA": 4,
+        "EMBA": 4,
+        "MBA/EMBA": 4,
+        "硕士": 4,
+        "博士": 5,
+    }.get(str(value or ""), 0)
+
+
+def looks_like_school_name(value: str | None) -> bool:
+    normalized = normalize_text(value)
+    if not normalized or len(normalized) > 60:
+        return False
+    folded = normalized.casefold()
+    return any(
+        token in folded
+        for token in (
+            "大学",
+            "学院",
+            "学校",
+            "中学",
+            "职校",
+            "技校",
+            "university",
+            "college",
+            "institute",
+            "school",
+        )
+    )
 
 
 def parse_skills(sections: dict[str, list[str]], self_description: str | None) -> list[str]:
@@ -516,7 +687,7 @@ def detect_degree(value: str) -> str | None:
 def extract_major(values: list[str]) -> str | None:
     for value in values:
         cleaned = normalize_text(value)
-        if any(hint in cleaned for hint in DEGREE_HINTS):
+        if detect_degree(cleaned) is not None:
             parts = [part.strip() for part in cleaned.split("·") if part.strip()]
             if len(parts) >= 2:
                 return parts[-1] if detect_degree(parts[0]) else parts[0]

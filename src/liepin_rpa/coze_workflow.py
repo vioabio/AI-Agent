@@ -4,33 +4,38 @@ import hashlib
 import json
 import random
 import time
-from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Any, Mapping
+from typing import Any
 
 from cozepy import Coze, TokenAuth
 from cozepy.exception import CozeAPIError
 from cozepy.request import SyncHTTPClient
 
-from liepin_rpa.candidate_decision_rules import (
-    MATCH_RESULT_NEEDS_REVIEW,
-    VALID_MATCH_RESULTS,
-    beauty_relevance_matches_result,
-    is_relevant_match_result,
+from liepin_rpa.analysis_contract import (
+    ANALYSIS_TRANSIENT_CACHE_TTL,
+    DEFAULT_ANALYSIS_CONTRACT,
+    EXPECTED_SCORE_BREAKDOWN_KEYS,
+    AnalysisContract,
+    ResumeAnalysisResult,
+    analysis_result_from_payload,
+    build_needs_review_result,
+    is_transient_analysis_review,
+    normalize_match_result,
+    normalize_match_score,
+    normalize_score_breakdown,
+    normalize_string_field,
+    normalize_string_list,
+    parse_analysis_payload,
+    transient_analysis_cache_retry_due,
+    validate_analysis_payload,
 )
 from liepin_rpa.config import Settings
 from liepin_rpa.logging_utils import get_logger
 
 LOGGER = get_logger(__name__)
 COZE_MAX_ATTEMPTS = 4
-COZE_TRANSIENT_CACHE_TTL = timedelta(minutes=10)
+COZE_TRANSIENT_CACHE_TTL = ANALYSIS_TRANSIENT_CACHE_TTL
 COZE_RETRYABLE_CODES = {429, 5000, 5001, 5002, 5003, 5004, 5005}
 COZE_NEEDS_REVIEW_CODES = {4000}
-EXPECTED_SCORE_BREAKDOWN_KEYS = {
-    "beauty_continuity",
-    "industry_depth",
-    "role_evidence",
-}
 COZE_RESUME_RECORD_FIELDS = (
     "id",
     "candidate_name",
@@ -49,16 +54,7 @@ COZE_FIELD_MAX_CHARS = {
 COZE_COMPACT_WHITESPACE_FIELDS = {"experience"}
 
 
-@dataclass(slots=True)
-class CozeMatchResult:
-    matched: bool
-    match_result: str | None
-    match_score: int | None
-    score_breakdown: dict[str, int]
-    analysis_reason: str | None
-    evidence_summary: list[str]
-    raw_data: str
-    parsed_payload: dict[str, Any]
+CozeMatchResult = ResumeAnalysisResult
 
 
 class CozeWorkflowExecutionFailure(RuntimeError):
@@ -80,6 +76,7 @@ def analyze_resume_record_with_coze(
     settings: Settings,
     *,
     resume_record: dict[str, object],
+    analysis_contract: AnalysisContract = DEFAULT_ANALYSIS_CONTRACT,
 ) -> CozeMatchResult:
     if not settings.coze_api_token:
         raise RuntimeError("COZE_API_TOKEN is not configured")
@@ -131,6 +128,7 @@ def analyze_resume_record_with_coze(
                 resume_record=resume_record,
                 parameters=parameters,
                 request_fingerprint=request_fingerprint,
+                analysis_contract=analysis_contract,
             )
         except CozeWorkflowExecutionFailure as exc:
             last_failure = exc
@@ -193,6 +191,7 @@ def _run_workflow_with_retries(
     resume_record: dict[str, object],
     parameters: dict[str, object],
     request_fingerprint: str,
+    analysis_contract: AnalysisContract,
 ) -> CozeMatchResult:
     last_error: Exception | None = None
     for attempt in range(1, COZE_MAX_ATTEMPTS + 1):
@@ -204,7 +203,10 @@ def _run_workflow_with_retries(
             )
             raw_data = workflow.data or ""
             parsed_payload = _parse_workflow_data(raw_data)
-            validation_errors = _validate_coze_payload(parsed_payload)
+            validation_errors = _validate_coze_payload(
+                parsed_payload,
+                contract=analysis_contract,
+            )
             if validation_errors:
                 last_error = CozePayloadValidationError("; ".join(validation_errors))
                 LOGGER.warning(
@@ -271,12 +273,7 @@ def _run_workflow_with_retries(
             source="api_error",
         ) from last_error
 
-    match_result = _normalize_match_result(parsed_payload)
-    match_score = _normalize_match_score(parsed_payload)
-    score_breakdown = _normalize_score_breakdown(parsed_payload)
-    analysis_reason = _normalize_string_field(parsed_payload, "analysis_reason")
-    evidence_summary = _normalize_string_list(parsed_payload, "evidence_summary")
-    matched = is_relevant_match_result(match_result)
+    result = analysis_result_from_payload(parsed_payload, raw_data=raw_data)
     LOGGER.info(
         "Completed Coze analysis",
         extra={
@@ -286,21 +283,12 @@ def _run_workflow_with_retries(
                 "candidate_name": resume_record.get("candidate_name"),
                 "workflow_id": workflow_id,
                 "workflow_role": workflow_role,
-                "matched": matched,
-                "match_result": match_result,
+                "matched": result.matched,
+                "match_result": result.match_result,
             },
         },
     )
-    return CozeMatchResult(
-        matched=matched,
-        match_result=match_result,
-        match_score=match_score,
-        score_breakdown=score_breakdown,
-        analysis_reason=analysis_reason,
-        evidence_summary=evidence_summary,
-        raw_data=raw_data,
-        parsed_payload=parsed_payload,
-    )
+    return result
 
 
 def _build_coze_workflow_parameters(resume_record: dict[str, object]) -> dict[str, object]:
@@ -364,7 +352,11 @@ def _summarize_coze_parameters(
         max_chars = COZE_FIELD_MAX_CHARS.get(field_name)
         if max_chars is None:
             continue
-        original_value = _coze_string_value(original_record.get(field_name)).replace("\x00", "").strip()
+        original_value = (
+            _coze_string_value(original_record.get(field_name))
+            .replace("\x00", "")
+            .strip()
+        )
         if field_name in COZE_COMPACT_WHITESPACE_FIELDS:
             original_value = " ".join(original_value.split())
         if len(original_value) > max_chars:
@@ -375,56 +367,14 @@ def _summarize_coze_parameters(
     }
 
 
-def _parse_workflow_data(raw_data: str) -> dict[str, Any]:
-    if not raw_data:
-        return {}
-    try:
-        payload = json.loads(raw_data)
-    except json.JSONDecodeError:
-        return {}
-    if isinstance(payload, dict):
-        return payload
-    return {}
+_parse_workflow_data = parse_analysis_payload
 
 
 class CozePayloadValidationError(ValueError):
     """Raised when Coze returns syntactically valid but unsafe analysis JSON."""
 
 
-def _validate_coze_payload(payload: dict[str, Any]) -> list[str]:
-    errors: list[str] = []
-    if not payload:
-        return ["payload is empty or not a JSON object"]
-    if not isinstance(payload.get("beauty_relevant"), bool):
-        errors.append("beauty_relevant must be boolean")
-    match_result = _normalize_match_result(payload)
-    if match_result not in VALID_MATCH_RESULTS:
-        errors.append("match_result must be relevant, not_relevant, or needs_review")
-    elif not beauty_relevance_matches_result(
-        payload.get("beauty_relevant"),
-        match_result,
-    ):
-        errors.append("beauty_relevant must be true exactly when match_result is relevant")
-    if not _normalize_string_field(payload, "analysis_reason"):
-        errors.append("analysis_reason must be a non-empty string")
-    if not isinstance(payload.get("evidence_summary"), list):
-        errors.append("evidence_summary must be an array")
-    score = _normalize_match_score(payload)
-    if score is None:
-        errors.append("match_score must be an integer between 0 and 100")
-    score_breakdown = payload.get("score_breakdown")
-    if not isinstance(score_breakdown, dict):
-        errors.append("score_breakdown must be an object")
-    else:
-        actual_keys = set(score_breakdown)
-        if actual_keys != EXPECTED_SCORE_BREAKDOWN_KEYS:
-            errors.append("score_breakdown must contain exactly the expected dimensions")
-        normalized_breakdown = _normalize_score_breakdown(payload)
-        if len(normalized_breakdown) != len(EXPECTED_SCORE_BREAKDOWN_KEYS):
-            errors.append("score_breakdown values must be integers between 0 and 100")
-        elif score is not None and sum(normalized_breakdown.values()) != score:
-            errors.append("match_score must equal the sum of score_breakdown")
-    return errors
+_validate_coze_payload = validate_analysis_payload
 
 
 def _build_needs_review_result(
@@ -433,130 +383,20 @@ def _build_needs_review_result(
     reason: str,
     source: str = "payload_validation",
 ) -> CozeMatchResult:
-    analysis_reason = f"需要人工复核：Coze 输出结构校验失败，系统未使用该结果直接排序。{reason}"
-    if source == "api_error":
-        analysis_reason = f"需要人工复核：Coze API 临时异常，系统未进行自动匹配判断。{reason}"
-    payload: dict[str, Any] = {
-        "beauty_relevant": False,
-        "match_result": MATCH_RESULT_NEEDS_REVIEW,
-        "match_score": None,
-        "score_breakdown": {},
-        "analysis_reason": analysis_reason,
-        "evidence_summary": [],
-    }
-    return CozeMatchResult(
-        matched=False,
-        match_result=MATCH_RESULT_NEEDS_REVIEW,
-        match_score=None,
-        score_breakdown={},
-        analysis_reason=analysis_reason,
-        evidence_summary=[],
+    return build_needs_review_result(
         raw_data=raw_data,
-        parsed_payload=payload,
+        reason=reason,
+        provider_label="Coze",
+        source=source,
     )
 
 
-def is_transient_coze_api_review(result: CozeMatchResult | None) -> bool:
-    return bool(
-        result is not None
-        and result.match_result == MATCH_RESULT_NEEDS_REVIEW
-        and "Coze API 临时异常" in (result.analysis_reason or "")
-    )
+is_transient_coze_api_review = is_transient_analysis_review
 
 
-def transient_coze_cache_retry_due(
-    result: CozeMatchResult | None,
-    cache_record: Mapping[str, object] | None,
-    *,
-    now: datetime | None = None,
-    ttl: timedelta = COZE_TRANSIENT_CACHE_TTL,
-) -> bool:
-    """Return true when a cached transient API failure should be analyzed again."""
-    if not is_transient_coze_api_review(result):
-        return False
-    if cache_record is None:
-        return True
-    cached_at = _coerce_cache_datetime(
-        cache_record.get("updated_at") or cache_record.get("created_at")
-    )
-    if cached_at is None:
-        return True
-    resolved_now = _coerce_cache_datetime(now or datetime.now())
-    if resolved_now is None:
-        return True
-    return resolved_now - cached_at >= ttl
-
-
-def _coerce_cache_datetime(value: object) -> datetime | None:
-    if isinstance(value, datetime):
-        parsed = value
-    elif isinstance(value, str) and value.strip():
-        try:
-            parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
-        except ValueError:
-            return None
-    else:
-        return None
-    if parsed.tzinfo is not None:
-        parsed = parsed.astimezone().replace(tzinfo=None)
-    return parsed
-
-
-def _normalize_match_result(payload: dict[str, Any]) -> str | None:
-    value = payload.get("match_result")
-    if not isinstance(value, str):
-        return None
-    normalized = value.strip()
-    return normalized or None
-
-
-def _normalize_match_score(payload: dict[str, Any]) -> int | None:
-    value = payload.get("match_score")
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value if 0 <= value <= 100 else None
-    if isinstance(value, float) and value.is_integer():
-        normalized = int(value)
-        return normalized if 0 <= normalized <= 100 else None
-    if isinstance(value, str):
-        stripped = value.strip()
-        if stripped.isdigit():
-            normalized = int(stripped)
-            return normalized if 0 <= normalized <= 100 else None
-    return None
-
-
-def _normalize_score_breakdown(payload: dict[str, Any]) -> dict[str, int]:
-    value = payload.get("score_breakdown")
-    if not isinstance(value, dict):
-        return {}
-    result: dict[str, int] = {}
-    for key, raw in value.items():
-        if not isinstance(key, str):
-            continue
-        normalized = _normalize_match_score({"match_score": raw})
-        if normalized is not None:
-            result[key] = normalized
-    return result
-
-
-def _normalize_string_field(payload: dict[str, Any], field_name: str) -> str | None:
-    value = payload.get(field_name)
-    if not isinstance(value, str):
-        return None
-    normalized = value.strip()
-    return normalized or None
-
-
-def _normalize_string_list(payload: dict[str, Any], field_name: str) -> list[str]:
-    value = payload.get(field_name)
-    if not isinstance(value, list):
-        return []
-    result: list[str] = []
-    for item in value:
-        if isinstance(item, str):
-            normalized = item.strip()
-            if normalized:
-                result.append(normalized)
-    return result
+transient_coze_cache_retry_due = transient_analysis_cache_retry_due
+_normalize_match_result = normalize_match_result
+_normalize_match_score = normalize_match_score
+_normalize_score_breakdown = normalize_score_breakdown
+_normalize_string_field = normalize_string_field
+_normalize_string_list = normalize_string_list

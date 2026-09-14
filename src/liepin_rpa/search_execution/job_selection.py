@@ -7,7 +7,13 @@ from xml.etree import ElementTree
 from liepin_rpa.device.client import DeviceClient
 from liepin_rpa.ui_controls import BoundsBox, iter_app_nodes, node_label, parse_bounds
 
-JobRoleGroup = Literal["daren_live", "brand_market", "finance_shared"]
+JobRoleGroup = Literal[
+    "daren_live",
+    "brand_market",
+    "finance_shared",
+    "fde",
+    "ai_development",
+]
 
 DAREN_LIVE_SEARCH_KEYWORDS = frozenset(
     (
@@ -72,6 +78,14 @@ FINANCE_SHARED_OPTION_MARKERS = (
     "财务共享经理",
     "财务共享中心经理",
 )
+FDE_OPTION_MARKERS = (
+    "AI前沿部署工程师",
+    "FDE工程师",
+    "FDE",
+)
+AI_DEVELOPMENT_OPTION_MARKERS = (
+    "AI开发工程师",
+)
 DISABLED_JOB_OPTION_MARKERS = ("\u5b89\u548c\u989c",)
 
 
@@ -89,7 +103,8 @@ def choose_job_before_chat_if_present(
     option_center = find_role_option_center(
         root,
         role_group,
-        allow_position_fallback=role_group != "finance_shared",
+        allow_position_fallback=role_group
+        not in {"finance_shared", "fde", "ai_development"},
     )
     if option_center is None:
         return False
@@ -111,6 +126,10 @@ def classify_role_group(role_keyword: str) -> JobRoleGroup:
     normalized = _normalize_role_keyword(role_keyword)
     if any(marker in normalized for marker in ("财务共享", "集团财务", "财务管理经理")):
         return "finance_shared"
+    if "AI前沿部署工程师" in normalized or "FDE" in normalized.upper():
+        return "fde"
+    if "AI开发工程师" in normalized:
+        return "ai_development"
     if normalized in DAREN_LIVE_SEARCH_KEYWORDS:
         return "daren_live"
     if normalized in BRAND_MARKET_SEARCH_KEYWORDS:
@@ -137,6 +156,8 @@ def find_role_option_center(
         "daren_live": DAREN_LIVE_OPTION_MARKERS,
         "brand_market": BRAND_MARKET_OPTION_MARKERS,
         "finance_shared": FINANCE_SHARED_OPTION_MARKERS,
+        "fde": FDE_OPTION_MARKERS,
+        "ai_development": AI_DEVELOPMENT_OPTION_MARKERS,
     }[role_group]
     labeled = _find_option_by_markers(root, markers)
     if labeled is not None:

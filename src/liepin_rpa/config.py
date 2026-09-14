@@ -12,10 +12,7 @@ warnings.filterwarnings(
     message=".*authlib\\.jose module is deprecated, please use joserfc instead\\..*",
 )
 
-try:
-    from cozepy import COZE_CN_BASE_URL
-except Exception:  # pragma: no cover - optional import during bootstrap
-    COZE_CN_BASE_URL = "https://api.coze.cn"
+COZE_CN_BASE_URL = "https://api.coze.cn"
 
 
 class Settings(BaseSettings):
@@ -67,6 +64,34 @@ class Settings(BaseSettings):
     coze_finance_analysis_version: str = Field(
         default="2026-08-13-finance-shared-management-v2",
         alias="COZE_FINANCE_ANALYSIS_VERSION",
+    )
+    resume_analysis_provider: str = Field(
+        default="coze",
+        alias="RESUME_ANALYSIS_PROVIDER",
+    )
+    llm_base_url: str = Field(
+        default="https://llm.zhimei.cloud/v1",
+        alias="LLM_BASE_URL",
+    )
+    llm_api_key: SecretStr | None = Field(default=None, alias="LLM_API_KEY")
+    llm_model: str | None = Field(default=None, alias="LLM_MODEL")
+    llm_timeout_seconds: float = Field(default=240.0, alias="LLM_TIMEOUT_SECONDS")
+    llm_max_attempts: int = Field(default=4, alias="LLM_MAX_ATTEMPTS", ge=1, le=8)
+    llm_jd_analysis_version: str = Field(
+        default="2026-08-19-daren-live-bd-llm-v2",
+        alias="LLM_JD_ANALYSIS_VERSION",
+    )
+    llm_finance_analysis_version: str = Field(
+        default="2026-08-18-finance-shared-management-llm-v1",
+        alias="LLM_FINANCE_ANALYSIS_VERSION",
+    )
+    llm_fde_analysis_version: str = Field(
+        default="2026-09-02-fde-healthcare-deployment-llm-v2",
+        alias="LLM_FDE_ANALYSIS_VERSION",
+    )
+    llm_ai_development_analysis_version: str = Field(
+        default="2026-08-28-ai-development-engineer-llm-v2",
+        alias="LLM_AI_DEVELOPMENT_ANALYSIS_VERSION",
     )
     feishu_bot_webhook: str | None = Field(default=None, alias="FEISHU_BOT_WEBHOOK")
     feishu_test_bot_webhook: str | None = Field(default=None, alias="FEISHU_TEST_BOT_WEBHOOK")

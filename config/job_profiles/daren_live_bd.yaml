@@ -1,9 +1,13 @@
 id: "daren_live_bd_v1"
 title: "达人营销与达播负责人"
 source_jd_title: "达人营销总监/达播总监/达播负责人"
+analysis_prompt_path: "docs/coze_daren_marketing_prompt_v3.txt"
 location: "上海-黄浦区"
 required_job_intent_city: "上海"
 education: "全日制本科及以上"
+education_requirement:
+  minimum_degree: "本科"
+  require_unified_admission: true
 experience:
   related_years_min: 10
   management_years_min: 5
@@ -11,6 +15,10 @@ selection:
   relevant_score_min: 80
   review_score_min: 65
   require_both_business_tracks_for_relevant: true
+  score_breakdown_limits:
+    industry_depth: 25
+    beauty_continuity: 15
+    role_evidence: 60
 search_pack_scheduling: "interleaved"
 search_packs:
   - id: "daren_kol"

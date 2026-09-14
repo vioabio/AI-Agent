@@ -28,6 +28,7 @@ from liepin_rpa.reporting_rules import (
     is_not_relevant_result,
     is_relevant_result,
 )
+from liepin_rpa.communication_status_policy import is_sent_hit_status
 
 PDF_FONT_NAME = "MicrosoftYaHei"
 PDF_BOLD_FONT_NAME = "MicrosoftYaHeiBold"
@@ -80,7 +81,7 @@ def export_featured_resume_pdf(
         leftMargin=14 * mm,
         rightMargin=14 * mm,
         topMargin=14 * mm,
-        bottomMargin=14 * mm,
+        bottomMargin=8 * mm,
         title=f"{job_name}候选人简历" if job_name else "匹配候选人简历",
         author="Liepin RPA",
     )
@@ -190,7 +191,7 @@ def _build_styles() -> dict[str, ParagraphStyle]:
             parent=sample["Normal"],
             fontName=PDF_FONT_NAME,
             fontSize=10,
-            leading=16,
+            leading=15,
             textColor=colors.HexColor("#111827"),
             firstLineIndent=0,
             spaceAfter=4,
@@ -200,7 +201,7 @@ def _build_styles() -> dict[str, ParagraphStyle]:
             parent=sample["Normal"],
             fontName=PDF_FONT_NAME,
             fontSize=9.6,
-            leading=15,
+            leading=14,
             leftIndent=8,
             firstLineIndent=-8,
             textColor=colors.HexColor("#111827"),
@@ -362,7 +363,7 @@ def _looks_like_item(text: str) -> bool:
 
 
 def _format_hit_status(hit_status: str) -> str:
-    if hit_status == "sent":
+    if hit_status in {"sent", "message_sent"}:
         return "已打招呼"
     if hit_status == "immediate_job_confirmed":
         return "已确认打招呼岗位"
@@ -399,7 +400,8 @@ def _format_candidate_status(candidate: ReportCandidate) -> str:
         analysis_status=candidate.analysis_status,
     ):
         if (
-            candidate.hit_status in {"sent", "immediate_job_confirmed", "skipped_recent_continue"}
+            is_sent_hit_status(candidate.hit_status)
+            or candidate.hit_status in {"immediate_job_confirmed", "skipped_recent_continue"}
             or candidate.hit_status.startswith("send_failed:")
         ):
             return _format_hit_status(candidate.hit_status)

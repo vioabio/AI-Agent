@@ -17,6 +17,15 @@ def test_finance_shared_role_uses_finance_job_group() -> None:
     assert classify_role_group("财务共享与管理经理") == "finance_shared"
 
 
+def test_fde_role_uses_dedicated_job_group() -> None:
+    assert classify_role_group("AI前沿部署工程师（FDE）") == "fde"
+
+
+def test_ai_development_role_uses_dedicated_job_group() -> None:
+    assert classify_role_group("AI开发工程师") == "ai_development"
+    assert classify_role_group("Python AI开发工程师") == "ai_development"
+
+
 def test_finance_job_matches_live_job_title_without_position_fallback() -> None:
     root = ElementTree.fromstring(
         """
@@ -54,6 +63,79 @@ def test_finance_job_does_not_fallback_to_unrelated_position() -> None:
         find_role_option_center(
             root,
             "finance_shared",
+            allow_position_fallback=False,
+        )
+        is None
+    )
+
+
+def test_fde_job_requires_an_explicit_matching_position() -> None:
+    root = ElementTree.fromstring(
+        """
+        <hierarchy>
+          <node package="com.lietou.mishu" clickable="true" bounds="[0,363][1080,614]"
+                text="AI前沿部署工程师&#10;上海-黄浦区&#10;本科&#10;2年以上" />
+          <node package="com.lietou.mishu" clickable="true" bounds="[0,614][1080,864]"
+                text="市场运营总监" />
+        </hierarchy>
+        """
+    )
+
+    assert find_role_option_center(root, "fde", allow_position_fallback=False) == (540, 488)
+
+
+def test_fde_job_does_not_fallback_to_unrelated_position() -> None:
+    root = ElementTree.fromstring(
+        """
+        <hierarchy>
+          <node package="com.lietou.mishu" clickable="true" bounds="[0,363][1080,614]"
+                text="市场运营总监" />
+          <node package="com.lietou.mishu" clickable="true" bounds="[0,614][1080,864]"
+                text="财务共享及管理经理" />
+        </hierarchy>
+        """
+    )
+
+    assert find_role_option_center(root, "fde", allow_position_fallback=False) is None
+
+
+def test_ai_development_job_matches_exact_live_job_without_position_fallback() -> None:
+    root = ElementTree.fromstring(
+        """
+        <hierarchy>
+          <node package="com.lietou.mishu" clickable="true" bounds="[20,360][1060,616]"
+                text="AI前沿部署工程师（FDE）" />
+          <node package="com.lietou.mishu" clickable="true" bounds="[20,650][1060,906]"
+                text="AI开发工程师" />
+          <node package="com.lietou.mishu" clickable="true" bounds="[20,940][1060,1196]"
+                text="财务共享与管理经理" />
+        </hierarchy>
+        """
+    )
+
+    assert find_role_option_center(
+        root,
+        "ai_development",
+        allow_position_fallback=False,
+    ) == (540, 778)
+
+
+def test_ai_development_job_does_not_fallback_to_fde_or_other_position() -> None:
+    root = ElementTree.fromstring(
+        """
+        <hierarchy>
+          <node package="com.lietou.mishu" clickable="true" bounds="[20,360][1060,616]"
+                text="AI前沿部署工程师（FDE）" />
+          <node package="com.lietou.mishu" clickable="true" bounds="[20,650][1060,906]"
+                text="市场运营总监" />
+        </hierarchy>
+        """
+    )
+
+    assert (
+        find_role_option_center(
+            root,
+            "ai_development",
             allow_position_fallback=False,
         )
         is None

@@ -66,6 +66,11 @@ def parse_args() -> argparse.Namespace:
         help="Send to FEISHU_TEST_BOT_WEBHOOK and do not advance the official report watermark.",
     )
     parser.add_argument(
+        "--pdf-sent-only",
+        action="store_true",
+        help="Only include candidates with a verified sent communication in the detail PDF.",
+    )
+    parser.add_argument(
         "--wait-for-search",
         action="store_true",
         help="Wait for an active search workflow to finish before producing the report.",
@@ -121,6 +126,7 @@ def main() -> int:
                 batch_id=args.batch_id,
                 feishu_webhook_override=feishu_webhook_override,
                 advance_watermark=not args.test_webhook,
+                pdf_sent_only=args.pdf_sent_only,
             )
         except NoUnreportedSearchBatchError as exc:
             print(

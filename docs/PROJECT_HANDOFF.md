@@ -1,6 +1,6 @@
 # 猎聘简历自动化项目交接
 
-更新日期：2026-08-17
+更新日期：2026-08-27
 
 唯一代码源：`D:\jianlizhuanqu`
 
@@ -10,9 +10,13 @@
 
 ## 1. 一分钟接手摘要
 
-这是 Windows 上运行的单手机猎聘 RPA。主入口 `scripts/run_search_workflow.py` 通过 ADB/uiautomator2 操作猎聘 App，按岗位配置生成 `jd_smart` 搜索词，执行卡片筛选、详情简历采集、上海意向硬过滤、Coze 分析、分享链接/收藏和相关候选人沟通，最后将事实写入 MySQL。
+这是 Windows 上运行的单手机猎聘 RPA。主入口 `scripts/run_search_workflow.py` 通过 ADB/uiautomator2 操作猎聘 App，按岗位配置生成 `jd_smart` 搜索词，执行卡片筛选、详情简历采集、上海意向硬过滤、手机教育卡片统招本科硬过滤、AI 分析、分享链接/收藏和相关候选人沟通，最后将事实写入 MySQL。
 
-双岗位由 `scripts/run_serial_job_queue.ps1` 串行守护：先完成达人 96 个搜索词，再运行财务 22 个搜索词。任何时候只能有一个真实 `run_search_workflow.py` 手机采集实例。日报是独立链路，默认不应由搜索任务触发。
+当前每日定时任务在 FDE 与 AI 开发工程师之间按批次交叉运行。一个批次只绑定一个岗位、一个岗位配置和一个 checkpoint；两个岗位都使用 OpenAI-compatible 模型分析，不进入历史达人/财务双岗位批次。
+
+`LiepinRpaDailySearch` 继续执行 `scripts/run_daily_search.ps1`。调度器依据最近一次 `search_workflow_run_state.json` 决定岗位：未完成时只续跑原岗位，完成后下一批切换到另一个岗位。FDE 为 40 个搜索词，checkpoint 为 `artifacts/fde_ai_deployment_engineer_<yyyyMMdd>_checkpoint.json`；AI 开发工程师为 32 个搜索词，checkpoint 为 `artifacts/ai_development_engineer_<yyyyMMdd>_checkpoint.json`。两者都必须带 `--standalone-job`。任何时候只能有一个真实 `run_search_workflow.py` 手机采集实例。日报是独立链路，搜索任务不得触发日报。
+
+候选人另有 7 天 AI 分析冷却：同一候选人在此前批次 7 天内已有有效三态分析时，本批只保留详情定位和命中审计，不重复调用 AI、不自动沟通，也不进入本批日报/PDF。同一批次内重复出现不触发该冷却，避免把本批首次分析结果从日报中误删；API 临时异常不算有效分析。
 
 截至本文更新，本地 `master` 最近提交为：
 
@@ -22,34 +26,46 @@
 
 分支当时比 `origin/master` 超前 1 个本地提交，并存在有意保留的未提交 P2 维护代码和文档。接手者第一条命令应为 `git status -sb`；禁止 `git reset --hard`、禁止用旧工作树覆盖。
 
-## 2. 当前双岗位配置
+## 2. 当前每日岗位配置
 
 | 执行顺序 | 业务岗位 | `job_profile_id` | 配置文件 | 生成搜索词 |
 |---|---|---|---|---:|
-| 1 | 达人营销与达播负责人 | `daren_live_bd_v1` | `config/job_profiles/daren_live_bd.yaml` | 96 |
-| 2 | 财务共享与管理经理 | `finance_shared_management_v1` | `config/job_profiles/finance_shared_management.yaml` | 22 |
+| 1 | AI前沿部署工程师（FDE） | `fde_ai_deployment_engineer_v1` | `config/job_profiles/fde_ai_deployment_engineer_draft.yaml` | 40 |
 
-关键词数已用 `generate_jd_smart_search_task_seeds()` 离线验证。达人目录包含达人/KOL、达播、资源商务、社交内容四类搜索包；财务目录包含财务共享、集团核算、财务变革三类搜索包。
+关键词数已用 `generate_jd_smart_search_task_seeds()` 离线验证。FDE 目录包含核心 AI 岗位、交付与解决方案、工程技术栈、医疗 AI 四类搜索包。
 
-两岗共同硬规则：求职意向必须明确为上海。不通过时保留已取得的定位/链接事实，但不调用 AI、不沟通。财务岗位另在卡片与详情层执行最高 35 岁限制。
+历史达人、财务配置与串行脚本暂时保留用于人工回溯，但不再由每日 Windows 定时任务调用。
 
-两岗独立选择 Coze：
+当前默认分析服务：
+
+- `RESUME_ANALYSIS_PROVIDER=openai_compatible`；
+- OpenAI 兼容 Base URL 为 `https://llm.zhimei.cloud/v1`，模型为 `gpt-5.5`；
+- API Key 只保存在被 Git 忽略的本机 `.env`，不得进入代码、日志、文档或提交；
+- 财务提示词为 `config/prompts/finance_shared_management_v3.txt`；
+- 达人提示词继续复用 `docs/coze_daren_marketing_prompt_v3.txt`，文件名为历史命名；
+- FDE 提示词为 `config/prompts/fde_ai_deployment_engineer_v1.txt`，岗位配置强制使用 `openai_compatible`；
+- 两岗分别使用 `LLM_JD_ANALYSIS_VERSION` 和 `LLM_FINANCE_ANALYSIS_VERSION`，避免与旧 Coze 缓存混用；
+- `src/liepin_rpa/analysis_gateway.py` 负责供应商选择，`openai_compatible_analysis.py` 负责 Chat Completions 调用，`analysis_contract.py` 负责统一三态与 JSON 校验。
+- 评分契约从岗位配置的 `selection` 读取：达人分项上限为 `25/15/60`，财务为 `35/25/40`，两岗 `relevant_score_min` 当前均为 `80`；不得再用财务上限校验达人输出。
+- 达人契约修复后的分析版本为 `2026-08-19-daren-live-bd-llm-v2`，用于隔离旧版错误校验产生的缓存；财务分析版本不变。
+
+旧 Coze 适配器和以下路由配置暂时保留用于回滚，但在当前 OpenAI 兼容模式下不会调用：
 
 - 达人主工作流：`COZE_JD_WORKFLOW_ID=7672983390107680787`；备用：`COZE_JD_BACKUP_WORKFLOW_ID=7674892283636514831`；
 - 财务主工作流：`COZE_FINANCE_WORKFLOW_ID=7673041123845193743`；备用：`COZE_FINANCE_BACKUP_WORKFLOW_ID=7674892681508962319`；
 - 两岗分别使用 `COZE_JD_ANALYSIS_VERSION` 与 `COZE_FINANCE_ANALYSIS_VERSION`；
 - `finance_shared_management.yaml` 通过 `coze_workflow_key: finance` 明确路由。
 
-工作流 ID 是非密钥路由配置，必须与岗位一起维护。不要把两岗的主/备工作流、分析版本或岗位配置混用；本文不记录任何 token、数据库凭据或 webhook 值。
+工作流 ID 是非密钥路由配置。不要把两岗的提示词、分析版本或岗位配置混用；本文不记录任何 API Key、token、数据库凭据或 webhook 值。
 
 ## 3. 端到端流程
 
 ```mermaid
 flowchart TD
-    A["串行队列校验目录与断点"] --> B["达人岗位 96 个搜索词"]
-    B --> C{"96/96 + 无 in_progress + 进程退出 + 锁释放 + 状态完成?"}
+    A["串行队列校验目录与断点"] --> B["财务岗位 42 个搜索词"]
+    B --> C{"42/42 + 无 in_progress + 进程退出 + 锁释放 + 状态完成?"}
     C -- 否 --> B
-    C -- 是 --> D["财务岗位 22 个搜索词"]
+    C -- 是 --> D["达人岗位 96 个搜索词"]
     D --> E["结果卡片前置筛选"]
     E --> F["进入详情并写定位快照"]
     F --> G["完整简历采集与身份归一"]
@@ -57,9 +73,9 @@ flowchart TD
     H -- 是 --> I["写命中流水，不再 AI/沟通"]
     H -- 否 --> J{"上海意向/岗位硬规则通过?"}
     J -- 否 --> K["记录拒绝，不调用 AI"]
-    J -- 是 --> L["岗位独立 Coze 分析"]
+    J -- 是 --> L["岗位独立 AI 分析"]
     L --> M{"可行动高价值?"}
-    M -- "relevant/needs_review 且分数>=80" --> N["尝试正式分享链接；额度不足收藏"]
+    M -- "relevant 或 needs_review>=90" --> N["尝试正式分享链接；额度不足收藏"]
     M -- 否 --> O["保留定位与 AI 事实"]
     N --> P{"match_result=relevant?"}
     O --> P
@@ -84,7 +100,10 @@ flowchart TD
 去重策略：
 
 - checkpoint 的 `completed_keyword_keys` 防止同一目录续跑时重复执行已完成搜索词；
-- 数据库按 `candidate_fingerprint`、`experience_hash` 和分析版本复用身份与 AI 缓存；
+- 数据库优先按 `candidate_fingerprint`、`experience_hash` 和分析版本复用身份与 AI 缓存；
+- 当姓名脱敏形式或简历正文轻微更新导致两者都变化时，只在“同岗位、同年龄、
+  姓名兼容、卡片核心文本相似度不低于 0.85、简历正文相似度不低于 0.8、且唯一命中一个历史
+  fingerprint”全部成立时复用历史身份；证据缺失、冲突或多重命中均不自动合并；
 - 历史已沟通候选人和页面“继续沟通”状态受保护，不能重复发送；
 - 人工处理后 `manual_suppress_communication=1`，后续命中详情归一身份后跳过 AI 和沟通；
 - 报告候选人历史文件防止同一可行动候选人在后续增量日报重复出现。
@@ -96,8 +115,6 @@ flowchart TD
 ### 5.1 `candidate_resume_experience_records`
 
 候选人主记录：最终身份、`experience_hash`、简历正文、主表 AI 状态/分数以及人工处理字段。
-
-候选人列表 `updated_at` 固定来自 `candidate_resume_experience_records.updated_at`；AI缓存、搜索命中和来源定位时间不得作为该字段兜底。详情接口及 `updated_at` 排序使用同一语义；尚无候选人主记录时 API 返回 `null`，查询过程不得为补齐时间而创建主记录。
 
 人工字段：
 
@@ -137,18 +154,18 @@ AI 历史与缓存：候选人 + `experience_hash` + `analysis_version` 唯一�
 
 日报投递幂等、水位、PDF 路径/URL、上传和发送状态。日报候选人历史另存于 `artifacts/daily_report_candidate_history.json`，不是可随意清理的缓存。
 
-## 6. AI、链接和 80 分口径
+## 6. AI、链接和 90 分口径
 
-岗位配置中的 `selection.relevant_score_min=80`、`review_score_min=65` 属于岗位 AI 判定契约；报表的 80 分是另一层“人工待办价值线”，不要混为一谈。
+岗位配置中的 `selection.relevant_score_min=80`、`review_score_min=65` 属于岗位 AI 判定契约；报表另有岗位独立的“人工待办价值线”：达人营销总监为 90 分，财务共享与管理经理为 80 分，不要与 AI 判定契约混为一谈。
 
 共享代码口径位于 `src/liepin_rpa/reporting_rules.py`：
 
 ```text
-ACTIONABLE_NEEDS_REVIEW_MIN_SCORE = 80
+ACTIONABLE_NEEDS_REVIEW_MIN_SCORE = 90
 
 可行动候选人：
   relevant：全部纳入，不设分数下限
-  needs_review：仅 match_score >= 80
+  needs_review：仅 match_score >= 90
 ```
 
 统一影响：
@@ -168,7 +185,20 @@ ACTIONABLE_NEEDS_REVIEW_MIN_SCORE = 80
 
 排除只影响当前/累计可行动列表和待复核统计，不删除历史 AI 记录。
 
-## 7. Coze 失败策略
+## 7. AI 分析失败策略
+
+### 7.1 当前 OpenAI 兼容模型
+
+- 使用官方 OpenAI Python SDK 的 `chat.completions` 和自定义 `base_url`；
+- 请求强制 JSON Object，返回后仍执行本地字段、三态、分项上限、总分和布尔一致性校验；
+- 分项上限和 `relevant` 门槛由当前岗位配置传入分析适配器，OpenAI 与保留的 Coze 回滚链路使用同一契约；
+- HTTP 408/409/429、5xx、连接和超时异常进入最多 4 次重试；401/403 等非可重试错误直接中断，避免批量产生伪待复核；
+- 可重试 API 异常耗尽后安全降级为临时 `needs_review`，10 分钟后允许重新分析；
+- 模型输出结构连续不合法时降级为普通 `needs_review`，不得沟通；
+- 实测该反代的 `gpt-5.5` 延迟较高，客户端单次超时为 240 秒；不得因为超时把候选人写成不匹配；
+- `scripts/check_openai_compatible_resume_analysis.py` 只使用虚构样本检查模型契约，不读取数据库、不启动手机、不发送日报。
+
+### 7.2 保留的 Coze 兼容策略
 
 `src/liepin_rpa/coze_workflow.py` 当前事实：
 
@@ -207,11 +237,13 @@ checkpoint 以 `catalog_key` 绑定当前目录，核心字段为 `completed_key
 
 `run_state` 状态包括 `running`、`completed`、`failed`、`interrupted`，但单看它不足以宣布完成：必须同时核验进程退出、锁不存在、checkpoint 满额且无 `in_progress_keyword`。
 
-已知风险：关键词/设备连续错误熔断会让 runner 提前 `break`，外层仍可能写 `run_state=completed`。因此当前完成判定必须以 checkpoint 满额为最高优先级；这是 P3 待修项。
+运行语义已修复：搜索子任务即使进程返回 0，只要 checkpoint 未满额，
+`run_state` 就写为 `interrupted`，非零退出写为 `failed`；只有 checkpoint 满额才写
+`completed`。完成判定仍以 checkpoint 满额为最高优先级，并同时核验进程、锁和批次状态。
 
-### 8.2 串行队列安全门
+### 8.2 FDE 每日任务安全门
 
-参数化队列会先离线验证 96/22 目录数量；每岗完成需要：
+FDE 运行器先离线验证 40 个搜索词；完成需要：
 
 ```text
 completed_keyword_keys == expected
@@ -222,7 +254,7 @@ AND 搜索进程退出
 AND search_workflow.lock 不存在
 ```
 
-队列最多按 `MaxAbnormalResumeAttempts` 对无风险的非零退出续跑。风险日志存在时停止。当前队列自身没有独立互斥锁，所以启动前还必须检查真实 PowerShell `-File scripts\run_serial_job_queue.ps1` 进程，避免两个观察器竞争。
+运行器最多执行 3 次安全断点续跑。风险日志存在、真实搜索进程存在或锁仍存在时停止，不会启动第二个手机实例。
 
 ## 9. 风险事件与人工介入
 
@@ -269,10 +301,10 @@ git log -5 --oneline
 ### 11.2 离线验证关键词数
 
 ```powershell
-.\.venv\Scripts\python.exe -c "from pathlib import Path; from liepin_rpa.task_generation.generator import generate_jd_smart_search_task_seeds as g; print(len(g(Path('config/job_profiles/daren_live_bd.yaml')))); print(len(g(Path('config/job_profiles/finance_shared_management.yaml'))))"
+.\.venv\Scripts\python.exe -c "from pathlib import Path; from liepin_rpa.task_generation.generator import generate_jd_smart_search_task_seeds as g; print(len(g(Path('config/job_profiles/fde_ai_deployment_engineer_draft.yaml'))))"
 ```
 
-期望输出为 `96`、`22`。
+期望输出为 `40`。
 
 ### 11.3 测试
 
@@ -287,11 +319,10 @@ git diff --check
 ### 11.4 运行命令模板（仅在明确授权且完成安全检查后）
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\run_serial_job_queue.ps1 `
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\run_fde_search.ps1 `
   -RunDate yyyyMMdd `
-  -DarenExpectedKeywords 96 `
-  -FinanceExpectedKeywords 22 `
-  -MaxAbnormalResumeAttempts 3
+  -ExpectedKeywords 40 `
+  -MaxResumeAttempts 3
 ```
 
 正式续跑不得添加 `--no-resume`、`--reset-checkpoint` 或任何日报参数。
@@ -299,10 +330,14 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\run_serial_job_q
 ## 12. 代码结构
 
 ```text
-config/job_profiles/                 双岗位 JD、搜索包和卡片规则
+config/job_profiles/                 岗位 JD、搜索包和卡片规则
 config/selectors/                    页面选择器
 scripts/run_search_workflow.py       单岗位搜索入口
-scripts/run_serial_job_queue.ps1     双岗位串行队列
+scripts/run_daily_search.ps1         Windows 每日搜索任务入口
+scripts/run_single_ai_job_search.ps1 FDE/AI开发工程师通用单岗位断点续跑与安全门
+scripts/run_fde_search.ps1           FDE 兼容入口
+scripts/run_ai_development_search.ps1 AI开发工程师兼容入口
+scripts/run_serial_job_queue.ps1     历史达人/财务串行队列（定时任务不再调用）
 src/liepin_rpa/search_execution/     搜索、卡片、详情、AI与沟通编排
 src/liepin_rpa/profile_collection/   简历采集和姓名/正文结构化
 src/liepin_rpa/db.py                 表结构、读写、身份和人工处置
@@ -321,7 +356,7 @@ logs/                                结构化运行日志与队列输出
 截至 2026-08-17，本轮工作基于并保留下列已有未提交改动：
 
 - AI 三态 `needs_review` 映射与缓存惰性修复；
-- 正式链接策略：`relevant/needs_review` 且 `match_score>=80`；
+- 正式链接策略：`relevant` 全部 + `needs_review>=90`；
 - 人工复核字段、人工抑制沟通和报表；
 - PDF 排除人工处理候选人；
 - 毛先生/袁先生的人工反馈已写入数据库（不在本文记录候选人详细隐私）。
@@ -329,7 +364,7 @@ logs/                                结构化运行日志与队列输出
 本轮新增/调整：
 
 - `src/liepin_rpa/reporting_rules.py` 共享口径；
-- 所有低分 `relevant` 进入 PDF、当天/岗位匹配统计和报告水位；
+- 达人低于 90 分、财务低于 80 分的 `relevant` 不进入 PDF、当天/岗位匹配统计或报告水位；
 - 高分 `not_relevant` 不会被补采链接脚本误选；
 - 累计、按岗位和历史待复核查询过滤 `manual_suppress_report`；
 - PDF 仍正确区分已打招呼和匹配未打招呼；
@@ -349,7 +384,8 @@ logs/                                结构化运行日志与队列输出
 
 按优先级：
 
-1. **run_state 熔断语义**：熔断提前结束仍可能显示 completed；应让 runner 返回明确非零/blocked 状态。
+1. **历史身份审计**：新命中已支持强证据复用历史 fingerprint；既有重复记录仍应先
+   只读审计，再由人工确认是否回填，不执行自动批量合并或删除。
 2. **队列缺少独立锁**：搜索锁防第二个手机实例，但不能防两个串行观察器。
 3. **指标来源混合**：部分浏览量和关键词数来自日志，不如数据库事件表稳定。
 4. **运行时数据库补列**：应引入正式 migration，避免生产库字段漂移。
