@@ -68,26 +68,84 @@ jobs:
         run: ./mvnw -B -ntp -DrunIntegration -DskipITs=false verify
 
       - name: Assert integration tests actually ran
+        shell: pwsh
         run: |
-          set -euo pipefail
-          reports=$(find target/failsafe-reports -name 'TEST-*.xml' 2>/dev/null | wc -l)
-          if [ "$reports" -eq 0 ]; then
-            echo "::error::Failsafe 没有生成任何报告：integration profile 未真正执行任何 IT"
+          # 用真正的 XML 解析而不是 grep（S0/B02）：
+          #   - Surefire/Failsafe 报告里的类名是**全限定名**
+          #     （name="com.vio.vioaiagent.run.PostgresRunPersistenceIT"），
+          #     原实现 grep name="PostgresRunPersistenceIT" 永远匹配不到，
+          #     会让 CI 在报告完全合法时误报失败；
+          #   - 原实现直接累加 tests 属性，没有扣除 skipped，于是"全部跳过"
+          #     也会被统计成"已执行"，门禁形同虚设。
+          # GitHub ubuntu-latest runner 预装 PowerShell 7，可直接使用 [xml]。
+          $ErrorActionPreference = 'Stop'
+
+          $reportDir = 'target/failsafe-reports'
+          if (-not (Test-Path $reportDir)) {
+            Write-Host "::error::Failsafe 未生成报告目录 $reportDir：integration profile 未执行任何 IT"
             exit 1
-          fi
-          # 统计所有 IT 的用例总数；0 用例同样视为门禁失效。
-          total=$(grep -ho 'tests="[0-9]\+"' target/failsafe-reports/TEST-*.xml \
-            | grep -o '[0-9]\+' | awk '{s+=$1} END {print s+0}')
-          echo "failsafe reports=$reports executed IT cases=$total"
-          if [ "$total" -eq 0 ]; then
-            echo "::error::Failsafe 报告存在但 0 个用例被执行，门禁形同虚设"
+          }
+
+          $files = Get-ChildItem -Path $reportDir -Filter 'TEST-*.xml' -File
+          if ($files.Count -eq 0) {
+            Write-Host "::error::Failsafe 报告目录为空：integration profile 未真正执行任何 IT"
             exit 1
-          fi
-          # 数据库 IT 必须真的跑过，而不是被 disabledWithoutDocker 静默跳过。
-          if ! grep -q 'name="PostgresRunPersistenceIT"' target/failsafe-reports/TEST-*.xml; then
-            echo "::error::未找到 PostgresRunPersistenceIT 报告，真实数据库验证缺失"
+          }
+
+          $totalTests = 0; $totalRun = 0; $totalSkipped = 0; $totalFailures = 0; $totalErrors = 0
+          $classes = @()
+          foreach ($file in $files) {
+            $suite = ([xml](Get-Content -Raw -Path $file.FullName)).testsuite
+            $tests     = [int]$suite.tests
+            $skipped   = [int]$suite.skipped
+            $failures  = [int]$suite.failures
+            $errors    = [int]$suite.errors
+            # "实际执行"必须扣除 skipped：被 @EnabledIfEnvironmentVariable 或
+            # disabledWithoutDocker 跳过的用例不算执行过。
+            $executed  = $tests - $skipped
+
+            $totalTests += $tests; $totalRun += $executed; $totalSkipped += $skipped
+            $totalFailures += $failures; $totalErrors += $errors
+            $classes += [pscustomobject]@{
+              Name = $suite.name; Tests = $tests; Executed = $executed
+              Skipped = $skipped; Failures = $failures; Errors = $errors
+            }
+          }
+
+          $classes | Sort-Object Name | Format-Table -AutoSize | Out-String | Write-Host
+          Write-Host "failsafe reports=$($files.Count) tests=$totalTests executed=$totalRun skipped=$totalSkipped failures=$totalFailures errors=$totalErrors"
+
+          if (($totalFailures + $totalErrors) -gt 0) {
+            Write-Host "::error::IT 存在失败或错误：failures=$totalFailures errors=$totalErrors"
             exit 1
-          fi
+          }
+          if ($totalRun -eq 0) {
+            Write-Host "::error::所有 IT 均被跳过，0 个用例实际执行，门禁形同虚设"
+            exit 1
+          }
+
+          # 数据库 IT 必须**实际执行**，而不是被 disabledWithoutDocker 静默跳过。
+          # 按全限定名匹配（B02 的核心修正）。
+          $dbClass = $classes | Where-Object { $_.Name -like '*PostgresRunPersistenceIT' }
+          if (-not $dbClass) {
+            Write-Host "::error::未找到 PostgresRunPersistenceIT 报告，真实数据库验证缺失"
+            exit 1
+          }
+          if ($dbClass.Executed -lt 4) {
+            Write-Host "::error::PostgresRunPersistenceIT 实际执行 $($dbClass.Executed) 条，少于预期的 4 条（可能因 Docker 不可用被跳过）"
+            exit 1
+          }
+          Write-Host "PostgresRunPersistenceIT executed=$($dbClass.Executed) skipped=$($dbClass.Skipped)"
+
+      - name: Upload backend test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          if-no-files-found: warn
+          path: |
+            target/surefire-reports
+            target/failsafe-reports
 
       - name: v1.1 producer and contract tests
         run: node --test tools/*.test.mjs evaluation/*.test.mjs

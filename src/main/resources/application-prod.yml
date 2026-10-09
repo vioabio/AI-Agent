@@ -4,15 +4,11 @@
 # 注意：不要提交 API Key 等敏感信息到此文件
 # ============================================================
 
-# demo 是 prod 的受限演示覆盖层：先套用本文件的全部生产硬约束，
-# 再由 application-demo.yml 显式放开身份与游标密钥两处缺口。
-# 单独激活 demo 即同时激活 prod+demo，避免出现“忘了带 prod”的半配置环境。
+# demo 是 prod 的受限演示覆盖层：由 application-demo.yml 通过
+# spring.config.import 导入本文件，再覆盖身份与游标两处。
+# group 的定义**不在任何地方**——见 application-demo.yml 中的两轮实测记录
+# （profile group 无法给出可控的覆盖顺序）。改动时请同步 DemoProfileActivationTest。
 spring:
-  # 注意：YAML 同一文档中重复的顶层键会被后者静默覆盖，
-  # 因此 profile group 必须与下面的 datasource 合并写在同一个 spring 节点内。
-  profiles:
-    group:
-      demo: prod,demo
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME:vio}

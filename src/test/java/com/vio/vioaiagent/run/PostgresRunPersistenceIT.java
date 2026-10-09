@@ -7,6 +7,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.postgresql.ds.PGSimpleDataSource;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -16,29 +17,35 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 真实 PostgreSQL 集成测试（升级方案 F14）。
+ * 真实 PostgreSQL 集成测试（升级方案 F14 / S0 收尾 R00）。
  *
- * <p>为什么需要它：仓库此前声明了 Testcontainers 依赖，却没有任何 {@code *IT} 用例，
- * 也没有任何测试真正连过 PostgreSQL。于是单元测试全绿**不能**证明
- * Flyway 迁移、唯一约束、CAS 与租约语义可用——这些恰恰只在真实数据库上成立。
- *
- * <p>覆盖三件“只有真库才能证明”的事实：
+ * <p>本类在 S0 首次编写时存在三处**源码可确定的缺陷**（见进度核查 B03），
+ * 已在本轮修正：
  * <ol>
- *   <li>22 个 Flyway 迁移能在空库上完整执行，且关键表真实存在；</li>
- *   <li>同一 Run 的终态事件受唯一约束保护（重复写入必须被拒绝，防重复计费/重复投影）；</li>
- *   <li>幂等键 claim 具备正确语义：同键同参复用、同键异参冲突。</li>
+ *   <li>表名写错：迁移实际创建 {@code agent_event} / {@code agent_event_outbox}，
+ *       原测试断言的是不存在的 {@code agent_run_event} / {@code agent_run_outbox}；</li>
+ *   <li>列名写错：终态事件类型列是 {@code type}，原测试用的 {@code event_type} 不存在；</li>
+ *   <li>缺少父记录：{@code agent_run.conversation_id} 有指向 {@code conversation(id)}
+ *       的外键，原测试直接插 Run 必然违反外键。</li>
  * </ol>
+ * 另外原实现用 {@code catch (RuntimeException)} 兜底终态断言，会把 SQL 写错
+ * 当成"约束生效"，因此改为精确断言数据库约束名。
  *
- * <p>运行方式：{@code ./mvnw -Pintegration-tests -DskipITs=false verify}。
- * Docker 不可用时 Testcontainers 会让本类跳过而不是失败，避免本地无 Docker 即红灯；
- * CI 侧另有断言检查 Failsafe 真实执行数量，防止“0 tests, build success”被当成通过。
+ * <p>覆盖四件只有真库才能证明的事实：迁移链完整、终态唯一约束、
+ * Run 的用户归属隔离、幂等 claim 的所有权语义。
+ *
+ * <p>运行：{@code ./mvnw -Pintegration-tests verify}（需要可用的 Docker 与镜像仓库）。
  */
 @Testcontainers(disabledWithoutDocker = true)
 @Tag("integration")
@@ -53,8 +60,18 @@ class PostgresRunPersistenceIT {
                     .withUsername("vio_it")
                     .withPassword("vio_it_password");
 
+    /** 迁移链上真实存在的关键表；使用真实名称，避免再次出现"断言不存在的表"。 */
+    private static final List<String> EXPECTED_TABLES = List.of(
+            "conversation", "agent_run", "agent_event", "chat_message",
+            "agent_event_outbox", "agent_event_retention",
+            "agent_checkpoint", "agent_run_lease", "agent_effect_ledger", "model_invocation_cache",
+            "hitl_approval", "audit_event", "global_quota_counter", "memory_entry",
+            "answer_projection", "api_idempotency_record", "favorite", "saved_team",
+            "user_feedback", "knowledge_ingestion_job", "flyway_schema_history");
+
     private static JdbcTemplate jdbc;
     private static JdbcRunRepository runs;
+    private static JdbcConversationRepository conversations;
     private static JdbcEventRepository events;
     private static JdbcIdempotencyStore idempotency;
 
@@ -70,24 +87,22 @@ class PostgresRunPersistenceIT {
                 .locations("classpath:db/migration")
                 .load();
         var result = flyway.migrate();
-
         assertTrue(result.migrationsExecuted > 0, "空库必须实际执行迁移，否则本测试没有验证到迁移链");
 
+        // 与生产一致：只依赖迁移后的真实 schema，不额外造表。
         jdbc = new JdbcTemplate(dataSource);
         runs = new JdbcRunRepository(jdbc);
+        conversations = new JdbcConversationRepository(jdbc);
         events = new JdbcEventRepository(jdbc, new ObjectMapper());
         idempotency = new JdbcIdempotencyStore(jdbc, new ObjectMapper());
     }
 
-    @Test
-    @DisplayName("Flyway 迁移链在真实 PostgreSQL 上完整执行且关键表存在")
-    void flywayMigrationsApplyOnRealPostgres() {
-        List<String> expectedTables = List.of(
-                "agent_run", "agent_run_event", "agent_run_outbox", "agent_checkpoint",
-                "tool_effect_ledger", "hitl_approval", "audit_event", "global_quota_counter",
-                "user_memory", "answer_projection", "flyway_schema_history");
+    // ==================== 迁移链 ====================
 
-        for (String table : expectedTables) {
+    @Test
+    @DisplayName("22 个迁移在空库完整执行，关键表真实存在且无失败记录")
+    void flywayMigrationsApplyOnRealPostgres() {
+        for (String table : EXPECTED_TABLES) {
             Integer count = jdbc.queryForObject(
                     "select count(*) from information_schema.tables where table_schema='public' and table_name=?",
                     Integer.class, table);
@@ -95,90 +110,277 @@ class PostgresRunPersistenceIT {
             assertEquals(1, count, () -> "迁移后缺少关键表: " + table);
         }
 
-        // 迁移历史必须全部成功，避免“表在但迁移半途失败”的假象。
         Integer failed = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = false", Integer.class);
         assertEquals(0, failed, "不应存在失败的迁移记录");
+
+        Integer applied = jdbc.queryForObject(
+                "select count(*) from flyway_schema_history where success = true", Integer.class);
+        assertNotNull(applied);
+        assertTrue(applied >= 22, () -> "期望至少 22 条成功迁移，实际 " + applied);
     }
 
     @Test
-    @DisplayName("Run 持久化与按用户读取：跨用户不可见")
-    void runIsPersistedAndScopedToUser() {
-        AgentRun run = sampleRun("it-run-scope", "user-alpha", "idem-scope");
-        run.transitionTo(AgentRunStatus.RUNNING);
-        runs.save(run);
+    @DisplayName("终态唯一性由真实部分唯一索引 uq_agent_event_single_terminal 保证")
+    void terminalUniquenessIsEnforcedByRealIndex() {
+        Integer indexCount = jdbc.queryForObject("""
+                select count(*) from pg_indexes
+                where schemaname='public' and tablename='agent_event'
+                  and indexname='uq_agent_event_single_terminal'
+                """, Integer.class);
+        assertEquals(1, indexCount, "终态唯一索引必须真实存在，否则跨实例可能写出两个终态");
 
-        assertTrue(runs.findById("it-run-scope").isPresent());
-        assertTrue(runs.findByIdForUser("it-run-scope", "user-alpha").isPresent());
-        assertFalse(runs.findByIdForUser("it-run-scope", "user-beta").isPresent(),
-                "跨主体读取必须为空，避免越权读取他人 Run");
-    }
-
-    @Test
-    @DisplayName("终态事件唯一约束：同一 Run 不能写入两个终态事件")
-    void duplicateTerminalEventIsRejected() {
-        AgentRun run = sampleRun("it-run-terminal", "user-alpha", "idem-terminal");
-        run.transitionTo(AgentRunStatus.RUNNING);
-        runs.save(run);
-
-        events.appendNext(AgentEvent.of(1, AgentEventType.RUN_STARTED,
+        AgentRun run = persistRunningRun("run-it-terminal", "user-it-terminal", "idem-it-terminal");
+        events.appendNext(AgentEvent.of(1, AgentEventType.RUN_CREATED,
                 run.sessionId(), run.id(), run.traceId(), Map.of()));
         events.appendNext(AgentEvent.of(2, AgentEventType.RUN_COMPLETED,
                 run.sessionId(), run.id(), run.traceId(), Map.of("answerId", "a-1")));
-
         assertTrue(events.hasTerminalEvent(run.id()), "写入终态后必须能被识别");
 
-        // 第二个终态事件必须被数据库约束拒绝：否则重复投递会重复投影答案。
-        try {
-            events.appendNext(AgentEvent.of(3, AgentEventType.RUN_FAILED,
-                    run.sessionId(), run.id(), run.traceId(), Map.of()));
-            // 未抛异常说明约束缺失；退一步校验终态数量，避免测试因实现差异而假绿。
-            Integer terminals = jdbc.queryForObject(
-                    "select count(*) from agent_run_event where run_id = ? and event_type in "
-                            + "('run.completed','run.failed','run.cancelled','run.timed_out')",
-                    Integer.class, run.id());
-            assertEquals(1, terminals, "同一 Run 的终态事件必须唯一");
-        } catch (RuntimeException expected) {
-            assertTrue(events.hasTerminalEvent(run.id()));
-        }
+        // 直接以显式 eventId 插入第二个终态，必须被数据库唯一索引拒绝。
+        // 精确断言约束名，避免把 SQL 语句错误误判为"约束生效"。
+        DataIntegrityViolationException violation = assertThrows(DataIntegrityViolationException.class,
+                () -> events.append(AgentEvent.of(3, AgentEventType.RUN_FAILED,
+                        run.sessionId(), run.id(), run.traceId(), Map.of("errorType", "it"))),
+                "同一 Run 的第二个终态事件必须被唯一索引拒绝");
+        assertNotNull(violation.getMostSpecificCause());
+        assertTrue(violation.getMostSpecificCause().getMessage()
+                        .contains("uq_agent_event_single_terminal"),
+                () -> "应命中终态唯一索引，实际错误: " + violation.getMostSpecificCause().getMessage());
 
-        // 事件游标必须连续可重放。
+        // appendNext 在数据库层短路：不会写出第二个终态，也不会回退序号。
+        events.appendNext(AgentEvent.of(3, AgentEventType.RUN_FAILED,
+                run.sessionId(), run.id(), run.traceId(), Map.of("errorType", "it-next")));
+        Integer terminals = jdbc.queryForObject("""
+                select count(*) from agent_event
+                where run_id = ? and type in ('run.completed','run.failed','run.cancelled','run.timed_out')
+                """, Integer.class, run.id());
+        assertEquals(1, terminals, "appendNext 不得写出第二个终态事件");
+
         assertEquals(2, events.lastEventId(run.id()));
         assertEquals(2, events.findAfter(run.id(), 0).size());
         assertEquals(1, events.findAfter(run.id(), 1).size());
     }
 
+    // ==================== 归属隔离 ====================
+
     @Test
-    @DisplayName("幂等 claim：同键同参复用，同键异参冲突")
-    void idempotencyClaimSemantics() {
+    @DisplayName("Run 按用户与会话归属隔离，跨主体读取不可见")
+    void runIsScopedToUserAndConversation() {
+        AgentRun run = persistRunningRun("run-it-scope", "user-it-alpha", "idem-it-scope");
+
+        assertTrue(runs.findById(run.id()).isPresent());
+        assertTrue(runs.findByIdForUser(run.id(), "user-it-alpha").isPresent());
+        assertFalse(runs.findByIdForUser(run.id(), "user-it-beta").isPresent(),
+                "跨主体读取必须为空，避免越权读取他人 Run");
+
+        // 会话软删除后，Run 必须同样不可见（恢复/超时路径共用同一归属门禁）。
+        conversations.deleteForUser(run.conversationId(), "user-it-alpha");
+        assertFalse(runs.findById(run.id()).isPresent(),
+                "会话软删除后 Run 不应再可见，否则后台任务会继续写已删除会话");
+    }
+
+    @Test
+    @DisplayName("agent_run.conversation_id 外键真实生效，孤立 Run 无法写入")
+    void orphanRunIsRejectedByForeignKey() {
+        AgentRun orphan = AgentRun.create("run-it-orphan", "session-it-orphan", "conversation-does-not-exist",
+                "user-it-orphan", "孤立 Run", "scarlet-violet", "casual-singles", "rules-1", "zh-CN",
+                "trace-it-orphan", "idem-it-orphan", Instant.now().plus(Duration.ofMinutes(10)));
+        assertThrows(DataIntegrityViolationException.class, () -> runs.save(orphan),
+                "缺少父会话时必须违反外键，证明 fixture 必须显式建会话");
+    }
+
+    // ==================== 幂等语义（S0/B04） ====================
+
+    @Test
+    @DisplayName("幂等 claim：首次取得所有权为 accepted，重复为 replay，异参为 conflict")
+    void idempotencyClaimOwnershipSemantics() {
         String scope = "it-idem-scope";
         String key = "it-idem-key-" + System.nanoTime();
         Instant now = Instant.now();
 
-        // JDBC 实现先 INSERT 再回读：首次成功占位后返回的是 replay（携带已占位记录），
-        // 由调用方通过 complete() 写入真实响应体。因此这里断言的是
-        // “首次即占位成功且可复用”，而不是 accepted 标志。
+        // S0/B04 的回归断言：首次必须返回 accepted（取得占位所有权）。
+        // 修复前 JDBC 实现首次返回 replay，导致 createRun 抛
+        // IDEMPOTENCY_IN_PROGRESS，带新幂等键的首次创建永远失败。
         IdempotencyStore.Claim first = idempotency.claim(scope, key, "hash-a", Duration.ofHours(1), now);
-        assertFalse(first.conflict(), "首次 claim 不应判定为冲突");
-        assertTrue(first.replay(), "首次 claim 必须完成占位并返回可复用记录");
-        assertTrue(first.record().isPresent(), "占位后必须能读到记录");
-        assertEquals("hash-a", first.record().orElseThrow().requestHash());
+        assertTrue(first.accepted(), "首次 claim 必须取得所有权（accepted）");
+        assertFalse(first.replay(), "首次 claim 不能是 replay");
+        assertFalse(first.conflict(), "首次 claim 不能是 conflict");
 
+        // 第二次同键同参：未取得所有权，返回可复用的既有记录。
         IdempotencyStore.Claim replay = idempotency.claim(scope, key, "hash-a", Duration.ofHours(1), now);
-        assertFalse(replay.conflict());
-        assertTrue(replay.replay(), "同键同参必须复用既有记录，而不是再次执行");
-        assertEquals(first.record().orElseThrow().requestHash(),
-                replay.record().orElseThrow().requestHash());
+        assertFalse(replay.accepted(), "重复 claim 不应再次取得所有权");
+        assertTrue(replay.replay(), "同键同参必须复用既有记录");
+        assertTrue(replay.record().isPresent());
 
+        // 同键不同请求体：必须判定冲突，避免串用幂等键。
         IdempotencyStore.Claim conflict = idempotency.claim(scope, key, "hash-b", Duration.ofHours(1), now);
-        assertTrue(conflict.conflict(), "同键不同请求体必须判定为冲突，避免串用幂等键");
-        assertFalse(conflict.replay(), "冲突结果不得被当成可复用记录");
+        assertTrue(conflict.conflict(), "同键不同请求体必须判定为冲突");
+
+        // 完成后回放应带回已落库的响应体。
+        idempotency.complete(scope, key, "hash-a", 201, Map.of("runId", "run-it-idem"), now);
+        IdempotencyStore.Claim afterComplete = idempotency.claim(scope, key, "hash-a", Duration.ofHours(1), now);
+        assertTrue(afterComplete.replay(), "完成后必须回放已提交结果");
+        assertEquals("run-it-idem", afterComplete.record().orElseThrow().responseBody().get("runId"));
     }
 
-    private AgentRun sampleRun(String runId, String userId, String idempotencyKey) {
-        return AgentRun.create(runId, "session-" + runId, "conversation-" + runId, userId,
+    @Test
+    @DisplayName("两实例并发争抢同一幂等键：恰好一个获得所有权")
+    void concurrentClaimGrantsExactlyOneOwner() throws Exception {
+        String scope = "it-idem-race";
+        String key = "it-idem-race-" + System.nanoTime();
+        Instant now = Instant.now();
+        int contenders = 4;
+
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(contenders);
+        var barrier = new java.util.concurrent.CyclicBarrier(contenders);
+        var claims = new java.util.concurrent.ConcurrentLinkedQueue<IdempotencyStore.Claim>();
+        try {
+            for (int i = 0; i < contenders; i++) {
+                pool.submit(() -> {
+                    try {
+                        barrier.await();
+                        claims.add(idempotency.claim(scope, key, "hash-race", Duration.ofHours(1), now));
+                    } catch (Exception ex) {
+                        throw new IllegalStateException(ex);
+                    }
+                });
+            }
+            pool.shutdown();
+            assertTrue(pool.awaitTermination(30, java.util.concurrent.TimeUnit.SECONDS), "并发 claim 未在超时内完成");
+        } finally {
+            pool.shutdownNow();
+        }
+
+        long owners = claims.stream().filter(IdempotencyStore.Claim::accepted).count();
+        assertEquals(1, owners, () -> "并发下必须恰好一个实例取得所有权，实际 " + owners
+                + "；claims=" + claims.stream()
+                .map(c -> "accepted=" + c.accepted() + ",replay=" + c.replay() + ",conflict=" + c.conflict())
+                .toList());
+        assertEquals(contenders - 1, claims.stream().filter(IdempotencyStore.Claim::replay).count(),
+                "未取得所有权的实例应得到 replay，而不是再次执行");
+
+        // 数据库里也必须只有一行占位，避免出现重复的 IN_PROGRESS 孤儿。
+        Integer rows = jdbc.queryForObject(
+                "select count(*) from api_idempotency_record where scope=? and idempotency_key=?",
+                Integer.class, scope, key);
+        assertEquals(1, rows, "同一幂等键只能存在一行占位记录");
+    }
+
+    @Test
+    @DisplayName("过期占位会被清理，不再永久阻塞该幂等键")
+    void expiredClaimDoesNotBlockForever() {
+        String scope = "it-idem-expired";
+        String key = "it-idem-expired-" + System.nanoTime();
+        Instant now = Instant.now();
+
+        IdempotencyStore.Claim first = idempotency.claim(scope, key, "hash-x", Duration.ofSeconds(1), now);
+        assertTrue(first.accepted());
+
+        // 超过 TTL 后再次请求：过期占位应被清理，重新取得所有权。
+        Instant later = now.plusSeconds(120);
+        IdempotencyStore.Claim renewed = idempotency.claim(scope, key, "hash-y", Duration.ofHours(1), later);
+        assertTrue(renewed.accepted(),
+                "过期占位必须被清理，否则该幂等键会永久返回 IN_PROGRESS 孤儿");
+    }
+
+    // ==================== createRun 幂等主链（S0/B04） ====================
+
+    /**
+     * 端到端复现 S0/B04：用真实 JDBC 幂等存储走一遍 {@code createRun}。
+     *
+     * <p>修复前 {@code JdbcIdempotencyStore.claim()} 首次即返回 {@code replay}，
+     * 而 {@code createRun} 把「replay 且找不到已提交 Run」解释为
+     * {@code IDEMPOTENCY_IN_PROGRESS}，于是**带新幂等键的首次创建永远失败**。
+     * 内存实现首次返回 accepted，所以离线单测全绿也发现不了这个缺陷——
+     * 只有接真实 JDBC 幂等存储才会暴露。
+     */
+    @Test
+    @DisplayName("createRun 主链：首次幂等键必须真正创建 Run，而不是报 IN_PROGRESS")
+    void createRunWithNewIdempotencyKeyCreatesRun() {
+        String userId = "user-it-create";
+        String idempotencyKey = "idem-it-create-" + System.nanoTime();
+        String conversationId = "conversation-it-create-" + System.nanoTime();
+
+        InMemoryRunRepository inMemoryRuns = new InMemoryRunRepository();
+        InMemoryEventRepository inMemoryEvents = new InMemoryEventRepository();
+        InMemoryConversationRepository inMemoryConversations = new InMemoryConversationRepository();
+        InMemoryChatMessageRepository inMemoryMessages = new InMemoryChatMessageRepository();
+
+        ExecutorService worker = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        PokemonAgentRunService service = new PokemonAgentRunService(inMemoryRuns, inMemoryEvents,
+                inMemoryConversations, inMemoryMessages, context -> "集成测试答案",
+                worker, scheduler);
+        // 关键：使用真实 JDBC 幂等存储，这是 B04 的触发条件。
+        service.setIdempotencyStore(idempotency);
+        try {
+            CreateRunCommand command = new CreateRunCommand(userId, "session-it-create", conversationId,
+                    "首次创建测试", "scarlet-violet", "casual-singles", "rules-1", "zh-CN",
+                    "trace-it-create", idempotencyKey, Duration.ofSeconds(20));
+
+            RunView created = service.createRun(command);
+            assertNotNull(created, "带新幂等键的首次创建必须成功返回 Run");
+            assertTrue(created.runId() != null && !created.runId().isBlank());
+
+            // 同键同参重放：必须返回同一个 Run，而不是新建第二个。
+            RunView replayed = service.createRun(command);
+            assertEquals(created.runId(), replayed.runId(),
+                    "同键同参重放必须返回同一 Run，不能重复创建");
+            assertEquals(1, inMemoryRuns.findActive().size(),
+                    "同键重放不得产生第二个 Run");
+
+            // 同键不同请求体：必须判定冲突。
+            CreateRunCommand conflicting = new CreateRunCommand(userId, "session-it-create", conversationId,
+                    "内容不同的请求", "scarlet-violet", "casual-singles", "rules-1", "zh-CN",
+                    "trace-it-create", idempotencyKey, Duration.ofSeconds(20));
+            assertThrows(IdempotencyConflictException.class, () -> service.createRun(conflicting),
+                    "同键不同请求体必须判定冲突，避免串用幂等键");
+
+            // 主链必须继续推进到终态，证明首次创建确实被执行而不是卡在 IN_PROGRESS。
+            AgentEvent completed = RunTestAwait.awaitTerminalEvent(inMemoryEvents, created.runId());
+            assertEquals(AgentEventType.RUN_COMPLETED, completed.type());
+
+            // 数据库里的幂等记录必须已完成（201），不是残留的 102 IN_PROGRESS 孤儿。
+            Integer status = jdbc.queryForObject("""
+                    select response_status from api_idempotency_record
+                    where scope = ? and idempotency_key = ?
+                    """, Integer.class, createScopeFor(userId), idempotencyKey);
+            assertNotNull(status);
+            assertTrue(status != 102,
+                    "首次创建完成后幂等记录必须被 complete() 收敛，不能残留 102 IN_PROGRESS");
+        } finally {
+            service.shutdown();
+            scheduler.shutdownNow();
+        }
+    }
+
+    /** 与 PokemonAgentRunService.createIdempotencyScope 保持一致的 scope 约定。 */
+    private static String createScopeFor(String userId) {
+        return "run:create:" + userId;
+    }
+
+    // ==================== 辅助 ====================
+
+    /**
+     * 按真实外键顺序落库：先建父会话，再建 Run 并推进到 RUNNING。
+     *
+     * <p>{@code agent_run.conversation_id} 有外键，且 {@code JdbcRunRepository} 不代建会话，
+     * 因此测试必须像 {@code PokemonAgentRunService.ensureConversation} 那样显式建会话。
+     */
+    private AgentRun persistRunningRun(String runId, String userId, String idempotencyKey) {
+        String conversationId = "conversation-" + runId;
+        Instant now = Instant.now();
+        conversations.save(new Conversation(conversationId, userId, "IT 会话 " + runId, now, now));
+
+        AgentRun run = AgentRun.create(runId, "session-" + runId, conversationId, userId,
                 "真实 PostgreSQL 集成测试", "scarlet-violet", "casual-singles", "rules-1", "zh-CN",
                 "dlc-1", "data-1", "knowledge-1", "index-1", "v1.1",
-                "trace-" + runId, idempotencyKey, Instant.now().plus(Duration.ofMinutes(10)));
+                "trace-" + runId, idempotencyKey, now.plus(Duration.ofMinutes(10)));
+        runs.save(run);
+        run.transitionTo(AgentRunStatus.RUNNING);
+        runs.save(run);
+        assertEquals(AgentRunStatus.RUNNING, runs.findById(runId).orElseThrow().status());
+        return run;
     }
 }

@@ -100,15 +100,49 @@ test('demo profile 成对放开 OIDC，且不提供游标密钥默认值', () =>
     'demo 不得内置游标签名密钥默认值，缺失应由启动契约给出字段级错误');
 });
 
-test('prod profile 保持 fail-closed 默认并让 demo 叠加 prod', () => {
+test('prod profile 保持 fail-closed 默认，且不提供游标密钥默认值', () => {
   assert.match(prodText, /enabled:\s*\$\{VIO_OIDC_ENABLED:false\}/,
     'prod 的 OIDC 默认不得为 true，避免未接入 IdP 时静默失败');
   assert.match(prodText, /required:\s*\$\{VIO_OIDC_REQUIRED:true\}/,
     'prod 必须保持 required=true，防止共享 API Key 被当作生产身份契约');
-  assert.match(prodText, /group:\s*\n\s+demo:\s*prod,demo/,
-    'prod 必须声明 spring.profiles.group.demo=prod,demo，避免 demo 丢掉生产硬约束');
   assert.match(prodText, /secret:\s*\$\{VIO_RESOURCE_CURSOR_SECRET\}/,
     'prod 的游标签名密钥不得有默认值');
+});
+
+test('demo 使用自包含装配：不得再用 profile group 或 config.import', () => {
+  // 回归防护（S0/B01）：三种"继承 prod"的机制实测都会让 demo 的放开被 prod 静默覆盖：
+  //   1) group 写在 application-prod.yml → 单独激活 demo 时 group 不生效；
+  //   2) group 写在 application.yml → prod 文档排在 demo 之上，oidc.required 仍为 true；
+  //   3) spring.config.import → 被导入文档同样排在导入者之上。
+  // 因此 demo 必须自包含，且不得残留这些机制（否则会重新引入不可控的排序）。
+  //
+  // 注意两点，都是本测试第一次写成时踩过的坑：
+  //   1) 注释里必然会提到这些机制名 → 匹配前先剥掉注释行；
+  //   2) 不能只匹配 /^\s*group:$/ —— Actuator 的
+  //      management.endpoint.health.group 也是同样的缩进写法，会误报。
+  //      必须锚定 spring.profiles 之下的 group。
+  const stripComments = (text) =>
+    text.split('\n').filter((line) => !line.trimStart().startsWith('#')).join('\n');
+  const demoKeys = stripComments(demoText);
+  const prodKeys = stripComments(prodText);
+  const hasProfileGroup = (text) => /^\s{4}group:\s*$/m.test(text);
+
+  assert.doesNotMatch(demoKeys, /^\s*profiles:\s*$/m,
+    'demo 不得声明 spring.profiles（profile group 会引入不可控的文档排序）');
+  assert.doesNotMatch(demoKeys, /^\s*import:\s/m, 'demo 不得使用 spring.config.import 继承 prod');
+  assert.ok(!hasProfileGroup(prodKeys), 'prod 不得声明 spring.profiles.group');
+
+  // 自包含必须自己打开 JDBC：application.yml 默认排除了 DataSource/JdbcTemplate，
+  // 不在这里清空就会静默回落到 @Profile("!prod") 的内存仓储（重启即丢数据）。
+  const demoAutoconfigureBlock = demoKeys.slice(
+    demoKeys.indexOf('autoconfigure:'), demoKeys.indexOf('datasource:'));
+  assert.ok(demoAutoconfigureBlock.length > 0, 'demo 必须显式声明 spring.autoconfigure.exclude');
+  assert.doesNotMatch(demoAutoconfigureBlock, /DataSourceAutoConfiguration/,
+    'demo 不得排除 DataSourceAutoConfiguration，否则仓储回落内存实现');
+  assert.doesNotMatch(demoAutoconfigureBlock, /JdbcTemplateAutoConfiguration/,
+    'demo 不得排除 JdbcTemplateAutoConfiguration');
+  assert.match(demoKeys, /^\s{2}datasource:/m, 'demo 必须显式声明数据源');
+  assert.match(demoKeys, /^\s{2}flyway:/m, 'demo 必须显式声明 Flyway');
 });
 
 test('prod profile 文档不得声称缺项会在启动时被校验（占位符解析更早失败）', () => {

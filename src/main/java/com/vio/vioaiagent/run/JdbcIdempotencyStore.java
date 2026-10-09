@@ -29,18 +29,34 @@ public class JdbcIdempotencyStore implements IdempotencyStore {
     public Claim claim(String scope, String key, String requestHash, Duration ttl, Instant now) {
         validate(scope, key, requestHash, ttl);
         Instant point = now == null ? Instant.now() : now;
+        // 先清掉已过期占位，让过期的 IN_PROGRESS 不阻塞新的首次请求。
         jdbc.update("DELETE FROM api_idempotency_record WHERE scope=? AND idempotency_key=? AND expires_at <= ?",
                 scope, key, timestamp(point));
         Optional<IdempotencyRecord> current = find(scope, key);
         if (current.isEmpty()) {
-            jdbc.update("""
+            // 首次占位：以 INSERT 是否真正插入作为"取得所有权"的判据。
+            //
+            // 原实现插入后重新读取，再按 hash 相等返回 replay，导致**首次**请求
+            // 就被调用方（createRun/resolveCancel）判定为"另一实例仍在处理"，
+            // 从而抛 IDEMPOTENCY_IN_PROGRESS，永远建不出资源（S0/B04）。
+            // 内存实现 InMemoryIdempotencyStore 首次返回 acceptedClaim()，
+            // 这里必须与之保持一致：accepted 表示"本次调用获得占位所有权"。
+            int inserted = jdbc.update("""
                     INSERT INTO api_idempotency_record(scope, idempotency_key, request_hash, response_status,
                         response_body, created_at, expires_at)
                     VALUES (?, ?, ?, 102, '{"state":"IN_PROGRESS"}'::jsonb, ?, ?)
                     ON CONFLICT (scope, idempotency_key) DO NOTHING
                     """, scope, key, requestHash, timestamp(point), timestamp(point.plus(ttl)));
+            if (inserted == 1) return Claim.acceptedClaim();
+            // 未插入说明并发实例已抢先占位；回读后按 hash 判定 replay/conflict，
+            // 不能把"没抢到"当成"没有记录"。
             current = find(scope, key);
-            if (current.isEmpty()) return Claim.acceptedClaim();
+            if (current.isEmpty()) {
+                // 极端竞态（占位行在本事务间隙被删除）：不返回 accepted，
+                // 否则两个实例会同时认为自己拥有该幂等键。
+                return Claim.replay(new IdempotencyRecord(scope, key, requestHash, 102,
+                        Map.of("state", "IN_PROGRESS"), point, point.plus(ttl)));
+            }
         }
         return current.get().requestHash().equals(requestHash) ? Claim.replay(current.get()) : Claim.conflict(current.get());
     }

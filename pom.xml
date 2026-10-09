@@ -65,6 +65,22 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
         </dependency>
+        <!--
+          OIDC 浏览器登录（Authorization Code + PKCE，F03/S1）。
+
+          只引入 spring-security-oauth2-client 这一层，而不是
+          spring-boot-starter-oauth2-client：后者会额外拖入
+          spring-boot-starter-web / tomcat-embed-core，而本项目已通过
+          spring-boot-starter-web 显式管理这些依赖，重复引入只增加版本面。
+
+          该库提供 OAuth2AuthorizationRequestRedirectFilter（授权码跳转）、
+          OAuth2LoginAuthenticationFilter（回调换取 token）与 PKCE 支持；
+          Resource Server 依赖（oauth2-jose/oauth2-core）已存在，用于 JWT 验签。
+        -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-client</artifactId>
+        </dependency>
         <!-- Actuator + Prometheus：生产指标使用标准 exposition 格式。 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

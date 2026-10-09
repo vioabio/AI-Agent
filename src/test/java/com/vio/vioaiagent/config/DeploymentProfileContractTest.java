@@ -11,6 +11,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -77,17 +78,36 @@ class DeploymentProfileContractTest {
                 "demo 也不得内置密钥值，缺失时应由启动契约给出字段级错误");
     }
 
+    /**
+     * demo 是**自包含**装配，不使用 profile group。
+     *
+     * <p>本测试原先断言 {@code spring.profiles.group.demo=prod,demo} 存在——那是个
+     * 已被证伪的设计：实测该 group 在单独激活 demo 时不生效（active profiles 只有
+     * {@code [demo]}），而 group 挪到基础文档或改用 {@code spring.config.import}
+     * 又会让 prod 的文档排在 demo 之上、把 demo 的放开全部覆盖。
+     * 详见 {@code DemoProfileActivationTest} 与 {@code application-demo.yml} 的实测记录。
+     *
+     * <p>因此这里改为断言自包含装配的两个硬要求：不得残留 group（否则会重新引入
+     * 不可控的文档排序），且必须显式打开 JDBC 持久化（否则静默回落内存仓储）。
+     */
     @Test
-    @DisplayName("prod 声明 demo 为 prod+demo 的 profile group")
-    void demoProfileGroupIncludesProd() {
-        Map<String, Object> spring = asMap(load(PROD).get("spring"));
-        Map<String, Object> profiles = asMapNullable(spring.get("profiles"));
-        assertNotNull(profiles, "prod 必须声明 spring.profiles.group 以保证 demo 叠加 prod");
+    @DisplayName("demo 使用自包含装配：无 profile group，且显式打开 JDBC 持久化")
+    void demoIsSelfContainedWithoutProfileGroup() {
+        Map<String, Object> demoSpring = asMap(load(DEMO).get("spring"));
 
-        Object group = asMap(profiles).get("group");
-        assertNotNull(group, "prod 必须声明 spring.profiles.group.demo");
-        assertEquals("prod,demo", asMap(group).get("demo"),
-                "demo 必须自动叠加 prod，否则演示环境会丢掉生产硬约束");
+        assertNull(asMapNullable(demoSpring.get("profiles")),
+                "demo 不得再用 spring.profiles.group：三种继承机制实测都会让 demo 的放开被 prod 静默覆盖");
+
+        // 自包含必须自己打开 JDBC：application.yml 默认排除了 DataSource/JdbcTemplate。
+        Map<String, Object> autoconfigure = asMapNullable(demoSpring.get("autoconfigure"));
+        assertNotNull(autoconfigure, "demo 必须显式声明 spring.autoconfigure.exclude");
+        String excludes = String.valueOf(asMap(autoconfigure).get("exclude"));
+        assertFalse(excludes.contains("DataSourceAutoConfiguration"),
+                "demo 不得排除 DataSourceAutoConfiguration，否则仓储会回落到内存实现、重启丢数据");
+        assertFalse(excludes.contains("JdbcTemplateAutoConfiguration"),
+                "demo 不得排除 JdbcTemplateAutoConfiguration");
+        assertNotNull(demoSpring.get("datasource"), "demo 必须显式声明数据源");
+        assertNotNull(demoSpring.get("flyway"), "demo 必须显式声明 Flyway");
     }
 
     @Test
@@ -100,12 +120,16 @@ class DeploymentProfileContractTest {
         assertNotNull(legacy, "demo 若要放开 /ai/** 必须显式声明，不能靠 prod 默认值猜测");
         assertTrue(asMap(legacy.get("ai")).get("enabled").toString().contains("true"));
 
-        // 高风险工具与 MCP 不得因为“演示”而被放开：这两项涉及进程/网络边界。
-        Map<String, Object> prodVio = asMap(load(PROD).get("vio"));
-        assertFalse(demoVio.containsKey("mcp"),
-                "demo 不得覆盖 vio.mcp，避免意外放宽远端工具边界");
-        assertFalse(demoVio.containsKey("tools"),
-                "demo 不得覆盖 vio.tools，高危工具必须继续默认关闭");
+        // 风险边界不得因为“演示”而放开。自包含装配会显式写出这些键，
+        // 因此断言的是**取值**而不是“键不存在”。
+        assertEquals("${VIO_HIGH_RISK_TOOLS_ENABLED:false}",
+                asMap(asMapNullable(demoVio.get("tools")).get("high-risk")).get("enabled"),
+                "demo 不得放开高危工具：涉及进程/网络边界");
+        assertEquals("${VIO_MCP_ENABLED:false}", asMap(demoVio.get("mcp")).get("enabled"),
+                "demo 不得放开 MCP：涉及远端工具信任边界");
+        assertEquals("${VIO_RAG_LEGACY_MEMORY_ENABLED:false}",
+                asMap(asMapNullable(demoVio.get("rag")).get("legacy-memory")).get("enabled"),
+                "demo 不得允许旧内存库静默降级");
     }
 
     // ==================== YAML 读取辅助 ====================
