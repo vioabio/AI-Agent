@@ -74,6 +74,14 @@ test('OIDC 与游标密钥在 compose 中显式映射（F01 的两个缺口）',
     assert.ok(backend.includes(`${key}:`), `compose 缺少 OIDC 变量映射: ${key}`);
   }
 
+  // R01：只把 client secret 的**引用**传进去还不够，解析它所需的环境变量也必须映射，
+  // 否则打开 OIDC 后容器内解析失败（按设计拒绝启动，不会退化成空密钥）。
+  assert.ok(backend.includes('VIO_OIDC_CLIENT_SECRET_REF:'),
+    'compose 缺少 VIO_OIDC_CLIENT_SECRET_REF 映射');
+  assert.ok(backend.includes('VIO_OIDC_SECRET_OIDC_CLIENT_SECRET:'),
+    'compose 缺少 client secret 解析变量 VIO_OIDC_SECRET_OIDC_CLIENT_SECRET：'
+      + 'OidcClientSecretResolver 按 secret://<name> → VIO_OIDC_SECRET_<NAME 大写> 取值');
+
   // 事件通道与配额后端也必须有显式映射，避免「开了开关却没有实现」的误判。
   for (const key of ['VIO_EVENT_BROKER_ENABLED', 'VIO_GLOBAL_QUOTA_ENABLED',
     'VIO_GLOBAL_QUOTA_BACKEND', 'VIO_RUN_DURABLE_RESUME']) {

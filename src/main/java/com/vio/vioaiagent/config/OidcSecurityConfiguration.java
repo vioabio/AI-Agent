@@ -1,13 +1,19 @@
 package com.vio.vioaiagent.config;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.HttpSessionOAuth2AuthorizationRequestRepository;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
@@ -17,12 +23,17 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -57,13 +68,33 @@ public class OidcSecurityConfiguration {
     }
 
     /**
-     * Resource-server filter chain.  It is deliberately fail-closed when OIDC is
-     * enabled, while the disabled branch permits all requests so the existing
-     * MVC API-Key interceptor remains the default local/test path.
+     * OIDC 过滤链。
+     *
+     * <p>启用时同时装配两条身份路径，二者职责不同：
+     * <ul>
+     *   <li><b>浏览器会话</b>（R01）：Authorization Code + PKCE，登录后身份存放在
+     *       HttpOnly 会话 cookie 中；这是多人使用的正路，避免共享 API Key 变成一个
+     *       主体。</li>
+     *   <li><b>Bearer JWT</b>：保留给服务账号与 API 客户端，仍走 Resource Server 验签。</li>
+     * </ul>
+     * 关闭 OIDC 时整条链 permitAll，让既有 MVC API-Key 拦截器继续作为默认路径，
+     * 本地/测试行为不变。
+     *
+     * <p>两个容易踩错的地方：
+     * <ol>
+     *   <li>会话策略必须是 {@code IF_REQUIRED}。原先的 {@code STATELESS} 会让
+     *       oauth2Login 的授权请求/回调无法通过会话关联，登录在回调阶段必然失败；</li>
+     *   <li>未认证时的默认行为是 302 跳转到 IdP。这对浏览器正确，但会让前端
+     *       fetch/SSE 拿到一个跨域重定向而不是 401。因此按请求类型分流：
+     *       API 客户端得到 401 JSON，浏览器导航得到跳转。</li>
+     * </ol>
      */
     @Bean
-    public SecurityFilterChain oidcSecurityFilterChain(HttpSecurity http,
-                                                       ObjectProvider<CorsProperties> corsProvider)
+    public SecurityFilterChain oidcSecurityFilterChain(
+            HttpSecurity http,
+            ObjectProvider<CorsProperties> corsProvider,
+            ObjectProvider<ClientRegistrationRepository> clientRegistrationProvider,
+            ObjectProvider<OidcClientSecretResolver> secretResolverProvider)
             throws Exception {
         if (!properties.enabled()) {
             http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
@@ -80,6 +111,7 @@ public class OidcSecurityConfiguration {
         // Keep the cookie/header names aligned with the existing browser adapter.
         csrfRepository.setCookieName("CSRF-TOKEN");
         csrfRepository.setHeaderName("X-CSRF-TOKEN");
+
         http.authorizeHttpRequests(auth -> auth
                         // Platform probes must not require an end-user JWT.
                         // `/ready/details` remains protected by the MVC
@@ -87,15 +119,119 @@ public class OidcSecurityConfiguration {
                         // framework-level permit rule.
                         .requestMatchers("/health", "/ready", "/ready/details",
                                 "/actuator/health/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        // 登录入口与 IdP 回调必须匿名可达：
+                        // 回调本身是对 IdP 的响应，请求里不可能带本应用的会话。
+                        .requestMatchers("/oauth2/authorization/**", "/login/oauth2/code/**",
+                                "/logout", "/error").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth.jwt(jwt ->
                         jwt.jwtAuthenticationConverter(oidcJwtAuthenticationConverter())))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .csrf(csrf -> csrf.csrfTokenRepository(csrfRepository))
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                        .sessionFixation(fixation -> fixation.changeSessionId()))
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(csrfRepository)
+                        // 显式声明登出豁免。Spring Security 的默认忽略列表包含 /logout，
+                        // 但一旦显式配置 csrfTokenRepository，默认列表就不再自动生效——
+                        // 结果会让「退出登录」返回 403，把用户卡在已登录状态。
+                        // 这里保持最小豁免：仅登出，其余状态变更仍要求 X-CSRF-TOKEN。
+                        .ignoringRequestMatchers(new AntPathRequestMatcher("/logout")))
+                // 必须在 CsrfFilter 之前：先做 Origin 边界，再校验 CSRF token。
                 .addFilterBefore(new OidcOriginFilter(allowedOrigins), CsrfFilter.class)
+                .exceptionHandling(handling -> handling
+                        .authenticationEntryPoint(apiAwareAuthenticationEntryPoint())
+                        .accessDeniedHandler(apiAwareAccessDeniedHandler()))
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .invalidateHttpSession(true)
+                        .clearAuthentication(true)
+                        .deleteCookies(properties.cookieName(), "CSRF-TOKEN", "JSESSIONID")
+                        .logoutSuccessHandler((request, response, authentication) ->
+                                response.setStatus(HttpStatus.NO_CONTENT.value())))
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable);
+
+        ClientRegistrationRepository registrations = clientRegistrationProvider.getIfAvailable();
+        if (registrations == null) {
+            throw new IllegalStateException(
+                    "OIDC 已启用但缺少 ClientRegistrationRepository；"
+                            + "浏览器登录无法工作。请检查 clientId/authorizationUri/tokenUri/"
+                            + "redirectUris 与 client secret 注入是否完整。");
+        }
+        http.oauth2Login(login -> login
+                .clientRegistrationRepository(registrations)
+                .authorizationEndpoint(endpoint -> endpoint
+                        .authorizationRequestRepository(
+                                new HttpSessionOAuth2AuthorizationRequestRepository()))
+                .loginPage("/oauth2/authorization/" + OidcClientRegistrationFactory.REGISTRATION_ID));
         return http.build();
+    }
+
+    /**
+     * 未认证请求的分流处理。
+     *
+     * <p>判定依据是请求是否期望 JSON/SSE 而不是 HTML：前端以 fetch/EventSource 访问
+     * {@code /api/**}，拿到 302 跳转会被当成 CORS 失败或"神秘空响应"；
+     * 而浏览器直接导航（Accept 含 text/html）应当被送到 IdP。
+     */
+    private AuthenticationEntryPoint apiAwareAuthenticationEntryPoint() {
+        LoginUrlAuthenticationEntryPoint browserRedirect =
+                new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/"
+                        + OidcClientRegistrationFactory.REGISTRATION_ID);
+        return (request, response, authException) -> {
+            if (expectsApiResponse(request)) {
+                writeProblem(response, HttpStatus.UNAUTHORIZED,
+                        "UNAUTHENTICATED", "需要通过 OIDC 登录或提供 Bearer token");
+                return;
+            }
+            browserRedirect.commence(request, response, authException);
+        };
+    }
+
+    /** 已认证但权限不足：API 客户端得到 403 JSON，浏览器仍返回 403（不暴露跳转）。 */
+    private AccessDeniedHandler apiAwareAccessDeniedHandler() {
+        return (request, response, accessDeniedException) ->
+                writeProblem(response, HttpStatus.FORBIDDEN,
+                        "FORBIDDEN", "当前主体无权访问该资源");
+    }
+
+    /**
+     * 判断调用方期望结构化响应。
+     *
+     * <p>只依据明确的信号（SSE、fetch 的 Accept、XHR 头），不靠 URL 猜测：
+     * 浏览器点击链接导航到 {@code /api/...} 也应得到跳转而不是 JSON。
+     */
+    private static boolean expectsApiResponse(HttpServletRequest request) {
+        String accept = request.getHeader("Accept");
+        if (accept != null && accept.contains(MediaType.TEXT_EVENT_STREAM_VALUE)) return true;
+        if (request.getHeader("X-Requested-With") != null) return true;
+        if (accept == null) return true; // curl/脚本默认无 Accept，按 API 处理
+        return !accept.contains(MediaType.TEXT_HTML_VALUE);
+    }
+
+    private static void writeProblem(HttpServletResponse response, HttpStatus status,
+                                     String code, String message) throws IOException {
+        response.setStatus(status.value());
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"code\":" + status.value()
+                + ",\"error\":\"" + code + "\",\"message\":\"" + message + "\"}");
+    }
+
+    /**
+     * OIDC 客户端注册（R01）。仅在启用时装配，避免关闭 OIDC 的部署被迫提供
+     * clientId/secret。
+     *
+     * <p>只使用显式 URI，不做 OIDC Discovery：启动期不应产生到 IdP 的网络请求。
+     */
+    @Bean
+    @ConditionalOnProperty(prefix = "vio.security.oidc", name = "enabled", havingValue = "true")
+    public ClientRegistrationRepository oidcClientRegistrationRepository(
+            ObjectProvider<OidcClientSecretResolver> secretResolverProvider) {
+        OidcClientSecretResolver resolver = secretResolverProvider.getIfAvailable();
+        if (resolver == null) {
+            throw new IllegalStateException("缺少 OidcClientSecretResolver，无法解析 client secret 引用");
+        }
+        return OidcClientRegistrationFactory.create(properties, resolver);
     }
 
     @Bean

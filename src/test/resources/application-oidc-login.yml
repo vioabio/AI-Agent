@@ -1,0 +1,77 @@
+# ============================================================
+# R01 OIDC 浏览器登录专用测试 Profile
+# ============================================================
+# 只被 OidcBrowserLoginHttpTest 激活（@ActiveProfiles({"test","oidc-login"})）。
+#
+# 目的：在没有真实 IdP 的前提下，验证「授权请求构造」与「未认证分流」两段逻辑。
+# 授权请求阶段不会发生网络访问（尚未到 token 交换），因此这些断言可以离线稳定成立。
+#
+# 真实 IdP 的 token 交换、id_token 验签、JWKS 轮换、跨实例会话撤销 **不在** 本 profile
+# 覆盖范围内，属于 staging 验收项；不要用本 profile 的绿灯替代现场证据。
+#
+# 这里的所有 URI 与密钥都是本地夹具，不指向任何真实身份提供方。
+spring:
+  ai:
+    dashscope:
+      api-key: oidc-login-test-model-key
+
+search-api:
+  api-key: oidc-login-test-search-key
+
+vio:
+  security:
+    enabled: true
+    oidc:
+      enabled: true
+      # required 与 enabled 必须一致，否则 OidcProperties 判定冲突并拒绝启动。
+      required: true
+      # 非生产场景允许 http://localhost 类回调；issuer/JWKS 仍要求 HTTPS。
+      issuer-uri: https://id.example.com/realms/vio
+      jwks-uri: https://id.example.com/realms/vio/protocol/openid-connect/certs
+      authorization-uri: https://id.example.com/realms/vio/auth
+      token-uri: https://id.example.com/realms/vio/token
+      audience: vio-api
+      client-id: vio-web
+      # 只接受 Secret Store 引用；实际值由 OidcClientSecretResolver 从环境变量读取。
+      # 对应环境变量 VIO_OIDC_SECRET_OIDC_CLIENT_SECRET，见 src/test/resources/application.properties。
+      client-secret-ref: secret://oidc/client-secret
+      redirect-uris:
+        - http://127.0.0.1:8123/api/login/oauth2/code/vio
+      scopes: [openid, profile]
+      allowed-algorithms: [RS256]
+      require-pkce: true
+      # 测试用非 Secure cookie，避免 http 回环下无法建立会话。
+      cookie-secure: false
+      cookie-name: VIO_SESSION
+      subject-claim: sub
+      role-claim: roles
+      policy:
+        enabled: true
+        required: true
+        # 夹具策略：显式映射主体→租户、租户→角色、角色→工具。
+        # 真实环境必须由配置中心注入，不能使用这里的示例值。
+        require-tenant: true
+        tenant-claim: tenant_id
+        policy-version: v1-test
+        binding-ttl-seconds: 300
+        max-requests-per-minute: 60
+        principal-tenants:
+          "user-alice": tenant-a
+        tenant-roles:
+          tenant-a:
+            - trainer
+        role-tools:
+          trainer:
+            - web_search
+  resource:
+    cursor:
+      secret: oidc-login-test-cursor-secret-not-a-production-value
+      ttl-seconds: 900
+  # 测试不需要真实 MCP/高危工具/记忆。
+  mcp:
+    enabled: false
+  tools:
+    high-risk:
+      enabled: false
+  memory:
+    enabled: false

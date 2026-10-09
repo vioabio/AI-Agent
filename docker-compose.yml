@@ -76,6 +76,12 @@ services:
       VIO_OIDC_AUDIENCE: ${VIO_OIDC_AUDIENCE:-}
       VIO_OIDC_CLIENT_ID: ${VIO_OIDC_CLIENT_ID:-}
       VIO_OIDC_CLIENT_SECRET_REF: ${VIO_OIDC_CLIENT_SECRET_REF:-}
+      # R01：解析 client secret 引用所需的环境变量。命名规则由
+      # OidcClientSecretResolver 固定：secret://<name> → VIO_OIDC_SECRET_<NAME 大写>。
+      # 刻意不做静默兜底：缺失时应用拒绝启动，避免用空密钥反复换 token。
+      VIO_OIDC_SECRET_OIDC_CLIENT_SECRET: ${VIO_OIDC_SECRET_OIDC_CLIENT_SECRET:-}
+      # 回调地址必须与 IdP 登记值完全一致，且带 context-path：
+      # https://<host>/api/login/oauth2/code/vio
       VIO_OIDC_REDIRECT_URIS: ${VIO_OIDC_REDIRECT_URIS:-}
       VIO_OIDC_COOKIE_SECURE: ${VIO_OIDC_COOKIE_SECURE:-false}
       # 事件通道与配额后端：显式映射，避免“开了开关却没有实现”的误判。
