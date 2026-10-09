@@ -29,6 +29,12 @@ jobs:
       VIO_RAG_PGVECTOR_ENABLED: "false"
       VIO_MCP_ENABLED: "false"
       MCP_ENABLED: "false"
+      # F01：资源游标签名密钥不再有默认值，compose 启动前必须显式提供，
+      # 否则 StartupContractValidator 会按设计拒绝启动。
+      VIO_RESOURCE_CURSOR_SECRET: ci-only-cursor-secret
+      # F01：compose 使用 demo profile（prod 的受限演示覆盖层）。
+      # prod 默认 OIDC_REQUIRED=true，未接入真实 OIDC 时会 fail-closed 拒绝启动。
+      SPRING_PROFILES_ACTIVE: demo
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,6 +58,36 @@ jobs:
 
       - name: Backend tests
         run: ./mvnw -B -ntp test
+
+      # F14：真实 PostgreSQL 集成测试此前从未被执行——pom 声明了 Testcontainers，
+      # 但没有任何 *IT 用例，且 Failsafe 只能发现 *IT/IT*/*ITCase 命名。
+      # 这里用 -DrunIntegration 激活 integration-tests profile（该 profile 才会把
+      # skipITs 置为 false；仅用 -P 会被 pom 中 skipITs=true 覆盖），
+      # 并在下一步断言“确实有 IT 被执行”，避免 “0 tests, build success” 被当成门禁通过。
+      - name: Backend integration tests (Failsafe, real PostgreSQL)
+        run: ./mvnw -B -ntp -DrunIntegration -DskipITs=false verify
+
+      - name: Assert integration tests actually ran
+        run: |
+          set -euo pipefail
+          reports=$(find target/failsafe-reports -name 'TEST-*.xml' 2>/dev/null | wc -l)
+          if [ "$reports" -eq 0 ]; then
+            echo "::error::Failsafe 没有生成任何报告：integration profile 未真正执行任何 IT"
+            exit 1
+          fi
+          # 统计所有 IT 的用例总数；0 用例同样视为门禁失效。
+          total=$(grep -ho 'tests="[0-9]\+"' target/failsafe-reports/TEST-*.xml \
+            | grep -o '[0-9]\+' | awk '{s+=$1} END {print s+0}')
+          echo "failsafe reports=$reports executed IT cases=$total"
+          if [ "$total" -eq 0 ]; then
+            echo "::error::Failsafe 报告存在但 0 个用例被执行，门禁形同虚设"
+            exit 1
+          fi
+          # 数据库 IT 必须真的跑过，而不是被 disabledWithoutDocker 静默跳过。
+          if ! grep -q 'name="PostgresRunPersistenceIT"' target/failsafe-reports/TEST-*.xml; then
+            echo "::error::未找到 PostgresRunPersistenceIT 报告，真实数据库验证缺失"
+            exit 1
+          fi
 
       - name: v1.1 producer and contract tests
         run: node --test tools/*.test.mjs evaluation/*.test.mjs

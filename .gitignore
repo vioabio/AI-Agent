@@ -46,3 +46,7 @@ build/
 **/mcp-servers.json.*
 # 测试使用的空 MCP fixture 不含凭据，必须随源码进入干净 checkout。
 !src/test/resources/mcp-servers.json
+
+# 本地工具链（S0 补齐）：缺失 JDK 时按需下载到工作区的 Temurin 运行时。
+# 体积约 190MB 且与平台绑定，必须忽略；同时避免 git stash -u 把整个 JDK 卷进 stash。
+.tools/

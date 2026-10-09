@@ -4,14 +4,12 @@ import com.vio.vioaiagent.rag.contract.AnswerContract;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Run 完成时必须把稳定 answerId 和投影血缘写入 completion 事件。 */
@@ -55,15 +53,16 @@ class PokemonAgentRunServiceAnswerProjectionTest {
             assertEquals("data-1", created.dataReleaseId());
             assertEquals("v1.1", created.contractVersion());
             assertEquals("COMPLETE", created.lineageStatus());
-            awaitTerminal(service, created.runId());
+
+            // 等待终态事件本身，而不是只等状态：服务端先落库状态、再追加 RUN_COMPLETED，
+            // 只轮询状态会偶发地在事件写入前就继续执行（见 RunTestAwait 说明）。
+            AgentEvent completed = RunTestAwait.awaitTerminalEvent(events, created.runId());
+            assertEquals(AgentEventType.RUN_COMPLETED, completed.type());
 
             AnswerProjection projection = projections.findByRunId(created.runId()).orElseThrow();
             assertEquals("answer-" + created.runId(), projection.answerId());
             assertEquals(AnswerProjection.LineageStatus.COMPLETE, projection.lineageStatus());
             assertEquals("data-1", projection.dataReleaseId());
-            AgentEvent completed = events.findAfter(created.runId(), 0).stream()
-                    .filter(item -> item.type() == AgentEventType.RUN_COMPLETED).findFirst().orElse(null);
-            assertNotNull(completed);
             assertEquals(projection.answerId(), completed.payload().get("answerId"));
             assertEquals(projection.lineageStatus().name(), completed.payload().get("lineageStatus"));
             assertEquals("data-1", completed.payload().get("dataReleaseId"));
@@ -74,14 +73,5 @@ class PokemonAgentRunServiceAnswerProjectionTest {
         } finally {
             service.shutdown();
         }
-    }
-
-    private void awaitTerminal(PokemonAgentRunService service, String runId) throws InterruptedException {
-        Instant deadline = Instant.now().plusSeconds(3);
-        while (Instant.now().isBefore(deadline)) {
-            if (service.findRun(runId, "user-1").orElseThrow().status().isTerminal()) return;
-            Thread.sleep(10);
-        }
-        assertEquals(AgentRunStatus.COMPLETED, service.findRun(runId, "user-1").orElseThrow().status());
     }
 }

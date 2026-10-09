@@ -410,6 +410,23 @@ public class ResourceController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Result.error(401, "缺少认证身份"));
     }
 
+    /**
+     * 资源不存在**或不属于当前主体**统一返回 404。
+     *
+     * <p>{@code @ExceptionHandler} 只作用于声明它的控制器：{@code AgentRunController}
+     * 上针对 {@code RunNotFoundException} 的 404 映射不会覆盖本控制器。缺少这个处理器时，
+     * {@code GET /conversations/{id}} 在跨主体访问或资源不存在时会冒泡到
+     * {@code GlobalExceptionHandler} 变成 500，既不符合接口契约，也让“无权访问”
+     * 与“服务端故障”无法区分（F02 端到端测试发现）。
+     *
+     * <p>刻意不区分「不存在」与「无权访问」：两者都返回 404，
+     * 避免通过状态码差异探测其他主体的资源是否存在。
+     */
+    @org.springframework.web.bind.annotation.ExceptionHandler(RunNotFoundException.class)
+    public ResponseEntity<Result<Void>> resourceNotFound() {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Result.error(404, "资源不存在或无权访问"));
+    }
+
     @org.springframework.web.bind.annotation.ExceptionHandler(IdempotencyConflictException.class)
     public ResponseEntity<Result<Void>> idempotencyConflict() {
         return ResponseEntity.status(HttpStatus.CONFLICT)

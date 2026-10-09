@@ -257,6 +257,23 @@
                     <excludedGroups>integration</excludedGroups>
                 </configuration>
             </plugin>
+            <!--
+              Failsafe 装配说明（升级方案 F14）：
+              真实 IT 必须能被执行，且“0 用例”不能算通过。
+
+              * 默认 skipITs=true：常规 `mvnw test` 不跑真实依赖的集成测试。
+              * 启用方式（两种都支持）：
+                  mvnw -Pintegration-tests verify       # 显式激活 profile
+                  mvnw -DrunIntegration verify          # 属性激活（等价）
+                两种写法都会把 skipITs 置为 false。只写 -DskipITs=false 也可以，
+                但推荐用 profile，便于同时表达其他 IT 期配置。
+              * groups=integration：只跑 @Tag("integration") 的类，避免把离线单测跑两遍。
+              * 用例发现依赖命名：类名必须是 *IT / IT* / *ITCase。
+                历史类名 GameAppTest、VioManusTest 不符合该规则，
+                因此即使启用了 profile 也永远不会执行；已重命名为 GameAppIT、VioManusIT。
+              * 未设置 VIO_RUN_LIVE_TESTS=true 时，真实模型 IT 会主动跳过；
+                CI 另行断言 Failsafe 报告中的实际用例数，防止假绿。
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
@@ -297,7 +314,14 @@
         </profile>
         <profile>
             <id>integration-tests</id>
-            <activation><property><name>runIntegration</name></property></activation>
+            <!--
+              同时支持 -Pintegration-tests 与 -DrunIntegration 两种激活方式：
+              属性激活覆盖命令行，显式 -P 也能工作。
+              该 profile 的唯一职责是把 skipITs 置为 false。
+            -->
+            <activation>
+                <property><name>runIntegration</name></property>
+            </activation>
             <properties><skipITs>false</skipITs></properties>
         </profile>
     </profiles>

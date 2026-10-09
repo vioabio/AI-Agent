@@ -1,0 +1,56 @@
+# ============================================================
+# 演示 / 隔离验收 Profile（--spring.profiles.active=demo）
+# ============================================================
+# 定位：受控、隔离、单人/小团队的**非生产**演示环境。
+#
+# 为什么需要这个文件（升级方案 F01）
+# ---------------------------------
+# application-prod.yml 默认 OIDC_ENABLED=false 且 OIDC_REQUIRED=true，
+# 这是有意的 fail-closed：防止把共享 API Key 的身份模式误当成生产部署。
+# 但 docker-compose.yml 原先直接使用 prod，且没有注入任何 OIDC 变量，
+# 于是按文档启动必然在 Bean 初始化阶段直接失败。
+#
+# 正确做法不是把 required 全局改成 false（那会让生产也能用共享 Key 上线），
+# 而是把“演示”显式建模为独立 profile：它继承 prod 的全部硬约束，只放开
+# 身份模式与游标签名密钥这两处，并强制要求显式注入演示密钥。
+#
+# 本 profile 通过 application-prod.yml 中的 profile group 自动叠加 prod，
+# 因此数据库、CORS、限流、审计、事件保留等生产约束仍然生效。
+#
+# 禁止事项
+# --------
+# - 不得用于正式生产发布（生产必须 VIO_OIDC_ENABLED=true 接入真实 OIDC）。
+# - 不得把 VIO_API_KEY 当作多用户身份：共享 Key 会被所有浏览器复用为同一主体。
+# - 不要在此文件写入真实密钥；密钥一律由环境/Secret Store 注入。
+
+vio:
+  security:
+    enabled: true
+    oidc:
+      # 演示使用 API Key 过渡身份；required 必须同步为 false，
+      # 否则 OidcProperties 会判定 enabled/required 冲突并阻止启动。
+      enabled: ${VIO_OIDC_ENABLED:false}
+      required: ${VIO_OIDC_REQUIRED:false}
+      # 演示环境即便启用 OIDC 也允许非 HTTPS 回调，仅供本地联调；
+      # 生产仍由 prod 的 HTTPS 校验强制。
+      cookie-secure: ${VIO_OIDC_COOKIE_SECURE:false}
+    # 演示仍需最小可用的跨实例配额语义；默认留在 jdbc 过渡实现。
+    global-quota-enabled: ${VIO_GLOBAL_QUOTA_ENABLED:false}
+    global-quota-backend: ${VIO_GLOBAL_QUOTA_BACKEND:jdbc}
+
+  resource:
+    cursor:
+      # 与 prod 一致：不提供默认值。演示环境也必须由环境变量显式注入，
+      # 缺失时由 StartupContractValidator 给出字段级错误，而不是启动到一半失败。
+      secret: ${VIO_RESOURCE_CURSOR_SECRET:}
+      ttl-seconds: ${VIO_RESOURCE_CURSOR_TTL_SECONDS:900}
+
+  legacy:
+    ai:
+      # 演示保留旧 /ai/** 兼容链，便于对比新旧入口行为；
+      # 生产仍由 prod 的 false 关闭并返回 410 提示迁移。
+      enabled: ${VIO_LEGACY_AI_ENABLED:true}
+
+logging:
+  level:
+    com.vio.vioaiagent: INFO

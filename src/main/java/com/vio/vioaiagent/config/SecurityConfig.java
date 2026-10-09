@@ -15,6 +15,8 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.util.List;
+
 /**
  * 安全配置 — 注册安全拦截器和围栏 Bean.
  *
@@ -37,6 +39,51 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 @EnableConfigurationProperties(SecurityProperties.class)
 public class SecurityConfig implements WebMvcConfigurer {
+
+    /**
+     * 需要认证的业务路径模式。
+     *
+     * <p>这份列表同时是「哪些路由进入身份适配层」的唯一事实来源：
+     * {@link ApiKeyAuthInterceptor} 是当前唯一填充 {@code RequestContext} 主体信息的位置，
+     * 任何未命中的业务路由都会让 {@code RequestContext.getPrincipalId()} 为空，
+     * 从而在 {@code ResourceController.owner()} 处抛 401（即使调用方持有合法凭据）。
+     *
+     * <p>因此该列表必须覆盖所有对外业务根路径。新增控制器时必须同步补充，
+     * 否则 {@code SecurityRouteCoverageTest} 会枚举控制器源码中的全部映射并让构建红灯，
+     * 避免再次出现“手写路径漏项”的静默缺口。
+     * 运行期行为由 {@code ResourceIdentityHttpTest} 用真实 HTTP 过滤链验证。
+     */
+    public static final List<String> AUTHENTICATED_PATH_PATTERNS = List.of(
+            "/ai/**",          // 历史兼容链
+            "/chat/**",        // 现代 Run 主链
+            "/hitl/**",        // 人工审批
+            "/knowledge/**",   // 知识生命周期
+            "/answers/**",     // 答案投影与反馈
+            "/admin/**",       // 运营接口
+            "/metrics/**",     // 诊断快照，安全开启时不得匿名暴露
+            "/pokemon/**",     // 领域事实/计算/队伍
+            "/memory/**",      // 用户记忆
+            "/conversations/**", // 会话资源（N2/N4）
+            "/teams/**",         // 队伍资源（N2/N4；/pokemon/teams 由 /pokemon/** 覆盖）
+            "/favorites/**",     // 收藏资源（N2/N4）
+            "/ready/details"     // 就绪明细需要探针凭据
+    );
+
+    /**
+     * 明确公开的无凭据路径。
+     *
+     * <p>探针与文档接口必须匿名可用；业务路径不得加入此列表。
+     * 该列表需要显式且最小，公开面扩大必须经过评审。
+     */
+    public static final List<String> PUBLIC_PATH_PATTERNS = List.of(
+            "/health",
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            // Spring Boot 探针端点（readiness/liveness）；不带 /details 后缀，
+            // 与上面的 /ready/details 精确路径区分开。
+            "/ready",
+            "/actuator/**"
+    );
 
     private final SecurityProperties securityProperties;
     private final boolean legacyAiEnabled;
@@ -75,18 +122,12 @@ public class SecurityConfig implements WebMvcConfigurer {
                     .order(0);
         }
         registry.addInterceptor(apiKeyAuthInterceptor())
-                // /ai/** 是兼容旧接口；/chat/**、/hitl/**、/knowledge/**、/pokemon/**、
-                // /answers/** 和 /admin/** 是 v1.0/v1.1 业务/运营主链；/metrics/** 是诊断快照，
-                // 不能在生产安全开关开启时匿名暴露。
+                // 业务路径统一取自 AUTHENTICATED_PATH_PATTERNS：该常量是身份接线
+                // 的唯一事实来源，新增根路径必须在此登记，否则 RequestContext 不会
+                // 被填充（见 SecurityRouteCoverageTest 的映射回归）。
                 // context-path=/api 由容器处理，MVC 这里不能重复写 /api。
-                .addPathPatterns("/ai/**", "/chat/**", "/hitl/**", "/knowledge/**",
-                        "/answers/**", "/admin/**", "/metrics/**", "/pokemon/**", "/memory/**",
-                        "/ready/details")
-                .excludePathPatterns(
-                        "/health",
-                        "/swagger-ui/**",
-                        "/v3/api-docs/**"
-                )
+                .addPathPatterns(AUTHENTICATED_PATH_PATTERNS)
+                .excludePathPatterns(PUBLIC_PATH_PATTERNS)
                 .order(1);
     }
 

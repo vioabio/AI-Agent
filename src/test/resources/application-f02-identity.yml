@@ -1,0 +1,35 @@
+# ============================================================
+# F02 身份接线端到端测试专用 Profile
+# ============================================================
+# 只被 ResourceIdentityHttpTest 激活（@ActiveProfiles({"test","f02-identity"})）。
+#
+# 两个不同的 API Key 用来验证「认证派生主体」而不是「共享代理身份」：
+# TokenStore 以 API Key 字符串本身作为 tokenId，再经 SHA-256 派生稳定主体 ID，
+# 因此两个 Key 必然映射到两个不同主体。这样跨主体隔离断言才有意义。
+#
+# 这些是本地测试夹具，不是生产凭据，不参与任何真实环境部署。
+vio:
+  security:
+    enabled: true
+    api-keys:
+      "sk-f02-alpha-0123456789": "F02 测试主体 alpha:default"
+      "sk-f02-beta-9876543210": "F02 测试主体 beta:default"
+    allowed-paths:
+      - ${user.dir}/tmp
+    blocked-commands: []
+    # 测试不注入可信代理，转发头一律不可信。
+    trusted-proxy-cidrs:
+  resource:
+    cursor:
+      # 资源游标签名密钥；测试用固定值，生产必须由 Secret Store 注入且无默认值。
+      secret: "f02-identity-test-cursor-secret-not-a-production-value"
+      ttl-seconds: 900
+  # 本测试只验证身份接线，不启动 Run 执行链，显式关闭候选主链以缩小上下文。
+  agent:
+    v1:
+      enabled: false
+  legacy:
+    ai:
+      enabled: false
+    manus:
+      enabled: false

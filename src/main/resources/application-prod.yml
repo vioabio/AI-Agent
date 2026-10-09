@@ -3,7 +3,16 @@
 # 覆盖 application.yml 中的默认配置
 # 注意：不要提交 API Key 等敏感信息到此文件
 # ============================================================
+
+# demo 是 prod 的受限演示覆盖层：先套用本文件的全部生产硬约束，
+# 再由 application-demo.yml 显式放开身份与游标密钥两处缺口。
+# 单独激活 demo 即同时激活 prod+demo，避免出现“忘了带 prod”的半配置环境。
 spring:
+  # 注意：YAML 同一文档中重复的顶层键会被后者静默覆盖，
+  # 因此 profile group 必须与下面的 datasource 合并写在同一个 spring 节点内。
+  profiles:
+    group:
+      demo: prod,demo
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME:vio}
@@ -123,8 +132,16 @@ vio:
     # 只信任 ingress/reverse-proxy 的明确 IP/CIDR；未配置时安全地忽略转发头。
     trusted-proxy-cidrs: ${VIO_TRUSTED_PROXY_CIDRS:}
     oidc:
-      # 生产身份必须使用 OIDC Code + PKCE；未显式注入 issuer/JWKS/audience
-      # 或回调契约时，OidcSecurityConfiguration 会 fail-closed 阻止启动。
+      # 生产身份必须使用 OIDC Code + PKCE。
+      #
+      # 语义边界（升级方案 F01）：
+      #   - enabled  表示“本进程是否安装并执行 OIDC 校验链”；
+      #   - required 表示“身份契约是否强制 OIDC”，用于防止误用共享 API Key 对外服务。
+      # enabled=false + required=true 会被 OidcProperties 判定为配置冲突并阻止启动，
+      # 因此 API Key 演示模式必须显式使用 demo profile（同时把 required 设为 false），
+      # 不能靠把 required 全局改成 false 来绕过。
+      #
+      # 缺失 issuer/JWKS/audience/回调契约时本配置会 fail-closed 阻止启动。
       enabled: ${VIO_OIDC_ENABLED:false}
       required: ${VIO_OIDC_REQUIRED:true}
       issuer-uri: ${VIO_OIDC_ISSUER_URI:}

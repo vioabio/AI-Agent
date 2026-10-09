@@ -22,11 +22,15 @@ import org.junit.jupiter.api.Tag;
  * </ul>
  *
  * @author vio
+ *
+ * <p>升级方案 F14：本类原名 {@code VioManusTest}，不符合 Failsafe 默认命名，
+ * 因此即使启用了 integration profile 也不会被执行。重命名为 {@code VioManusIT}
+ * 后由 {@code -Pintegration-tests verify} 真正纳入验证。
  */
 @SpringBootTest
 @Tag("integration")
 @EnabledIfEnvironmentVariable(named = "VIO_RUN_LIVE_TESTS", matches = "true")
-class VioManusTest {
+class VioManusIT {
 
     @Resource
     private ToolCallback[] allTools;

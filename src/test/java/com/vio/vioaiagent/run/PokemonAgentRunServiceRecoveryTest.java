@@ -177,11 +177,9 @@ class PokemonAgentRunServiceRecoveryTest {
                     "持久 PENDING 审批恢复后必须继续等待");
             assertEquals(0, calls.get(), "恢复扫描不能直接重放模型/工具");
 
-            Instant deadline = Instant.now().plusSeconds(2);
-            while (Instant.now().isBefore(deadline)
-                    && !runs.findById(run.id()).orElseThrow().status().isTerminal()) {
-                Thread.sleep(10);
-            }
+            // 必须等待「终态事件」而不是「终态状态」：服务端先落库状态、再追加终态事件，
+            // 只轮询状态会命中极窄的窗口导致偶发失败（见 RunTestAwait 说明）。
+            RunTestAwait.awaitTerminalEvent(events, run.id());
             assertEquals(AgentRunStatus.FAILED, runs.findById(run.id()).orElseThrow().status(),
                     "恢复后应重新挂接审批过期定时器并安全失败");
             assertTrue(events.findAfter(run.id(), 0).stream()

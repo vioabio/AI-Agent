@@ -1,9 +1,23 @@
 # VIO AI Agent v1.0 本地/演示拓扑。
 #
 # Secret 只从环境或外部 Secret Store 注入；故意不提供公开默认密码。
+#
+# Profile 契约（升级方案 F01）
+# ---------------------------
+# 本 compose 使用 demo profile：它是 prod 的受限覆盖层，继承全部生产硬约束，
+# 只把身份模式放开为 API Key，并要求显式注入游标签名密钥。
+# demo 不是生产发布配置；正式环境必须接入真实 OIDC：
+#   SPRING_PROFILES_ACTIVE=prod
+#   VIO_OIDC_ENABLED=true  VIO_OIDC_REQUIRED=true
+#   VIO_OIDC_ISSUER_URI / JWKS_URI / AUTHORIZATION_URI / TOKEN_URI / AUDIENCE /
+#   CLIENT_ID / CLIENT_SECRET_REF / REDIRECT_URIS
+# 缺失必需项时应用会在启动阶段给出字段级错误并拒绝启动（StartupContractValidator），
+# 这是有意的 fail-closed，不要通过关闭校验来绕过。
+#
 # 启动前至少设置 DB_PASSWORD、VIO_API_KEY、AI_DASHSCOPE_API_KEY、
-# SEARCH_API_KEY、VIO_CORS_ALLOWED_ORIGINS、VIO_FEEDBACK_OPERATOR_ID；启用 monitoring profile 时再设置
-# GRAFANA_ADMIN_PASSWORD。
+# SEARCH_API_KEY、VIO_CORS_ALLOWED_ORIGINS、VIO_FEEDBACK_OPERATOR_ID、
+# VIO_RESOURCE_CURSOR_SECRET、VIO_AGENT_V1_ENABLED、VIO_RAG_PGVECTOR_ENABLED；
+# 启用 monitoring profile 时再设置 GRAFANA_ADMIN_PASSWORD。
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -33,7 +47,9 @@ services:
     ports:
       - "127.0.0.1:8123:8123"
     environment:
-      SPRING_PROFILES_ACTIVE: prod
+      # demo = prod 的受限演示覆盖层（见 application-demo.yml）。
+      # 不要改成 prod：prod 默认 OIDC_REQUIRED=true，未接入 OIDC 时会 fail-closed 拒绝启动。
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-demo}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
       VIO_API_KEY: ${VIO_API_KEY:?VIO_API_KEY must be set}
       VIO_CORS_ALLOWED_ORIGINS: ${VIO_CORS_ALLOWED_ORIGINS:?VIO_CORS_ALLOWED_ORIGINS must be set}
@@ -46,6 +62,27 @@ services:
       VIO_AGENT_V1_ENABLED: ${VIO_AGENT_V1_ENABLED:?VIO_AGENT_V1_ENABLED must be set}
       VIO_RAG_PGVECTOR_ENABLED: ${VIO_RAG_PGVECTOR_ENABLED:?VIO_RAG_PGVECTOR_ENABLED must be set}
       VIO_MCP_ENABLED: ${VIO_MCP_ENABLED:-false}
+      # F01：资源游标签名密钥此前完全没有传入容器，prod/demo 都不再提供默认值，
+      # 必须由环境显式注入；缺失时启动阶段给出字段级错误。
+      VIO_RESOURCE_CURSOR_SECRET: ${VIO_RESOURCE_CURSOR_SECRET:?VIO_RESOURCE_CURSOR_SECRET must be set}
+      # F01：OIDC 变量显式映射。演示默认关闭；接入真实 OIDC 时把
+      # VIO_OIDC_ENABLED 设为 true 并补齐下列 issuer/JWKS/audience 等契约。
+      VIO_OIDC_ENABLED: ${VIO_OIDC_ENABLED:-false}
+      VIO_OIDC_REQUIRED: ${VIO_OIDC_REQUIRED:-false}
+      VIO_OIDC_ISSUER_URI: ${VIO_OIDC_ISSUER_URI:-}
+      VIO_OIDC_JWKS_URI: ${VIO_OIDC_JWKS_URI:-}
+      VIO_OIDC_AUTHORIZATION_URI: ${VIO_OIDC_AUTHORIZATION_URI:-}
+      VIO_OIDC_TOKEN_URI: ${VIO_OIDC_TOKEN_URI:-}
+      VIO_OIDC_AUDIENCE: ${VIO_OIDC_AUDIENCE:-}
+      VIO_OIDC_CLIENT_ID: ${VIO_OIDC_CLIENT_ID:-}
+      VIO_OIDC_CLIENT_SECRET_REF: ${VIO_OIDC_CLIENT_SECRET_REF:-}
+      VIO_OIDC_REDIRECT_URIS: ${VIO_OIDC_REDIRECT_URIS:-}
+      VIO_OIDC_COOKIE_SECURE: ${VIO_OIDC_COOKIE_SECURE:-false}
+      # 事件通道与配额后端：显式映射，避免“开了开关却没有实现”的误判。
+      VIO_EVENT_BROKER_ENABLED: ${VIO_EVENT_BROKER_ENABLED:-false}
+      VIO_GLOBAL_QUOTA_ENABLED: ${VIO_GLOBAL_QUOTA_ENABLED:-false}
+      VIO_GLOBAL_QUOTA_BACKEND: ${VIO_GLOBAL_QUOTA_BACKEND:-jdbc}
+      VIO_RUN_DURABLE_RESUME: ${VIO_RUN_DURABLE_RESUME:-false}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/vio_agent
       SPRING_DATASOURCE_USERNAME: vio
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}

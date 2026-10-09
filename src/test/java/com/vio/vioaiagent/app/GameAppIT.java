@@ -9,10 +9,23 @@ import org.junit.jupiter.api.Tag;
 
 import java.util.UUID;
 
+/**
+ * 真实模型/工具链的端到端集成测试。
+ *
+ * <p>升级方案 F14：本类原名 {@code GameAppTest}。它虽然带 {@code @Tag("integration")}
+ * 并被 Surefire 的 {@code excludedGroups} 排除，但 Failsafe 默认只发现
+ * {@code *IT} / {@code IT*} / {@code *ITCase} 命名，因此它此前永远不会被执行——
+ * 对外表现为“配置了 integration profile，却没有任何 IT 真正跑起来”。
+ * 现按 Failsafe 约定重命名为 {@code GameAppIT}，由 {@code -Pintegration-tests verify} 执行。
+ *
+ * <p>仍需显式开关 {@code VIO_RUN_LIVE_TESTS=true} 且具备真实模型/搜索/MCP 凭据；
+ * 缺少开关时 JUnit 跳过而非让构建假绿。CI 侧另有断言检查 Failsafe 报告的实际执行数量，
+ * 避免“0 tests, build success”被误判为通过。
+ */
 @SpringBootTest
 @Tag("integration")
 @EnabledIfEnvironmentVariable(named = "VIO_RUN_LIVE_TESTS", matches = "true")
-class GameAppTest {
+class GameAppIT {
 
     @Resource
     private GameApp gameApp;

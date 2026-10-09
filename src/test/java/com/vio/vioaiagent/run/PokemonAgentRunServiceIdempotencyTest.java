@@ -119,12 +119,11 @@ class PokemonAgentRunServiceIdempotencyTest {
                     Duration.ofSeconds(10));
             assertThrows(IllegalStateException.class, () -> service.createRun(command));
 
-            AgentRun persisted = runs.findByIdempotencyKey("u-complete-failure", "key-failure")
-                    .orElseThrow();
-            Instant deadline = Instant.now().plusSeconds(3);
-            while (!persisted.status().isTerminal() && Instant.now().isBefore(deadline)) {
-                Thread.sleep(10);
-            }
+            // 修正：原实现只在循环外读一次 persisted，循环条件永不改变，
+            // 因此总是空转到超时，断言实际依赖“读快照时 worker 恰好已完成”的时序巧合。
+            // 改为每次迭代重新读取，等待真正的终态。
+            AgentRun persisted = RunTestAwait.awaitTerminalStatusByIdempotencyKey(
+                    runs, "u-complete-failure", "key-failure");
             assertEquals(AgentRunStatus.COMPLETED, persisted.status());
             assertEquals(1, executions.get());
         } finally {
