@@ -91,6 +91,16 @@ public class SecurityConfig implements WebMvcConfigurer {
     private final boolean legacyAiEnabled;
     private ObjectProvider<GlobalQuotaStore> quotaProvider;
     private ObjectProvider<OidcPrincipalPolicyAdapter> oidcPolicyProvider;
+    /**
+     * OIDC 配置，用于在拦截器里取 issuer 派生内部归属键（ADR-002 步骤 1）。
+     *
+     * <p>刻意用显式构造器传入而不是靠拦截器的 {@code @Autowired} 二段 setter：
+     * {@code apiKeyAuthInterceptor()} 是手工 {@code new} 出来的 Bean，
+     * **Spring 不会对它执行字段/方法注入**，setter 永远不会被调用
+     * （这正是本轮 HTTP 断言抓到 ownerId 为 null 的原因）。手工装配的 Bean
+     * 必须显式把依赖传进去，否则就是"看起来注入了、实际没有"。
+     */
+    private final OidcProperties oidcProperties;
 
     /**
      * 保留给离线单元测试和少量嵌入式调用方的兼容构造器。
@@ -99,14 +109,17 @@ public class SecurityConfig implements WebMvcConfigurer {
      * 直接 new 配置类时沿用本地兼容行为（旧 /ai/** 默认开启）。</p>
      */
     public SecurityConfig(SecurityProperties securityProperties) {
-        this(securityProperties, true);
+        this(securityProperties, true, null);
     }
 
     @Autowired
     public SecurityConfig(SecurityProperties securityProperties,
-                          @Value("${vio.legacy.ai.enabled:true}") boolean legacyAiEnabled) {
+                          @Value("${vio.legacy.ai.enabled:true}") boolean legacyAiEnabled,
+                          ObjectProvider<OidcProperties> oidcPropertiesProvider) {
         this.securityProperties = securityProperties;
         this.legacyAiEnabled = legacyAiEnabled;
+        // OIDC 未启用时该 Bean 不存在，因此允许为空；为空时拦截器不会走 OIDC 策略分支。
+        this.oidcProperties = oidcPropertiesProvider == null ? null : oidcPropertiesProvider.getIfAvailable();
     }
 
     /**
@@ -144,6 +157,8 @@ public class SecurityConfig implements WebMvcConfigurer {
         if (oidcPolicyProvider != null) {
             interceptor.setOidcPolicyAdapter(oidcPolicyProvider.getIfAvailable());
         }
+        // 显式传入：手工 new 的 Bean 不会被 Spring 做方法注入（见 oidcProperties 字段注释）。
+        interceptor.setOidcProperties(oidcProperties);
         return interceptor;
     }
 

@@ -31,12 +31,14 @@ class OidcPolicyInterceptorTest {
     @Test
     void authenticatedOidcRequestGetsTenantRoleAndShortBinding() throws Exception {
         TokenStore tokens = new TokenStore(security);
-        OidcProperties oidc = new OidcProperties();
-        oidc.setEnabled(true);
+        OidcProperties oidc = oidcEnabled();
         OidcPrincipalPolicyProperties props = policyProperties();
         OidcPrincipalPolicyAdapter adapter = new OidcPrincipalPolicyAdapter(oidc, props);
         ApiKeyAuthInterceptor interceptor = new ApiKeyAuthInterceptor(tokens, security);
         interceptor.setOidcPolicyAdapter(adapter);
+        // ADR-002 步骤 1：内部归属键的 issuer 维度来自拦截器持有的 OidcProperties；
+        // 手工构造拦截器时必须显式传入，否则归属键派生会 fail-closed 拒绝。
+        interceptor.setOidcProperties(oidc);
         SecurityContextHolder.getContext().setAuthentication(jwt("alice", "tenant-a", List.of("trainer")));
 
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -46,6 +48,9 @@ class OidcPolicyInterceptorTest {
         assertEquals(java.util.Set.of("trainer"), RequestContext.getRoles());
         assertNotNull(RequestContext.getPrincipalPolicy());
         assertTrue(RequestContext.getTokenBinding().isOidcPolicyBinding());
+        // 归属键必须在身份边界写入，且确实承载 tenant（ADR-002 步骤 1）。
+        assertEquals(InternalPrincipalKey.fromOidc(ISSUER, "tenant-a", "alice"),
+                RequestContext.getOwnerId());
         assertNotNull(tokens.authorizeTool(RequestContext.getTokenBinding(), "writeFile"));
         assertNull(tokens.authorizeTool(RequestContext.getTokenBinding(), "getTypeChart"));
     }
@@ -53,11 +58,11 @@ class OidcPolicyInterceptorTest {
     @Test
     void policyFailureReturnsForbiddenAndClearsContext() throws Exception {
         TokenStore tokens = new TokenStore(security);
-        OidcProperties oidc = new OidcProperties();
-        oidc.setEnabled(true);
+        OidcProperties oidc = oidcEnabled();
         OidcPrincipalPolicyAdapter adapter = new OidcPrincipalPolicyAdapter(oidc, policyProperties());
         ApiKeyAuthInterceptor interceptor = new ApiKeyAuthInterceptor(tokens, security);
         interceptor.setOidcPolicyAdapter(adapter);
+        interceptor.setOidcProperties(oidc);
         SecurityContextHolder.getContext().setAuthentication(jwt("alice", "unknown", List.of("trainer")));
 
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -66,6 +71,18 @@ class OidcPolicyInterceptorTest {
         assertNull(RequestContext.getPrincipalId());
         assertNull(RequestContext.getTenantId());
         assertNull(RequestContext.getPrincipalPolicy());
+        // 被拒绝的主体不得留下归属键，否则下游可能把它当成已授权主体。
+        assertNull(RequestContext.getOwnerId(), "策略拒绝后不得残留归属键");
+    }
+
+    /** 与 {@link #jwt} 夹具中的 iss 保持一致的启用态配置。 */
+    private static final String ISSUER = "https://id.example.com/realms/vio";
+
+    private OidcProperties oidcEnabled() {
+        OidcProperties oidc = new OidcProperties();
+        oidc.setEnabled(true);
+        oidc.setIssuerUri(ISSUER);
+        return oidc;
     }
 
     @Test

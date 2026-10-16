@@ -20,6 +20,8 @@ public final class RequestContext {
      * 认证适配器生成的稳定主体标识。该值可用于审计/角色映射，不能直接放入响应。
      */
     private static final String KEY_PRINCIPAL_ID = "principalId";
+    /** 内部归属键（issuer+tenant+subject 派生）；见 ADR-002。 */
+    private static final String KEY_OWNER_ID = "ownerId";
     private static final String KEY_USER_ID = "userId";
     private static final String KEY_USERNAME = "username";
     private static final String KEY_REQUEST_URI = "requestUri";
@@ -38,7 +40,21 @@ public final class RequestContext {
 
     // ==================== 存取 ====================
 
+    /**
+     * 写入上下文。
+     *
+     * <p>null 一律按"清除该键"处理，而不是执行 {@code map.put(key, null)}：
+     * 底层是 {@link ConcurrentHashMap}，它**不允许 null 值**，直接 put null 会抛
+     * NullPointerException。这类异常最容易被误读成"字段没生效"——
+     * 实际是整个请求在拦截器里就失败了。把语义定为"写 null = 清除"可以一次性
+     * 消除这个陷阱，也让所有可空的 setter（tenantId、roles、tokenBinding、ownerId…）
+     * 不必各自写一遍判空。
+     */
     public static void set(String key, Object value) {
+        if (value == null) {
+            CONTEXT.get().remove(key);
+            return;
+        }
         CONTEXT.get().put(key, value);
     }
 
@@ -83,6 +99,26 @@ public final class RequestContext {
 
     public static String getPrincipalId() {
         return getString(KEY_PRINCIPAL_ID);
+    }
+
+    /**
+     * 资源归属键（ADR-002 步骤 1）。
+     *
+     * <p>与 {@link #getPrincipalId()} 的区别：{@code principalId} 是**外部标识**
+     * （OIDC 下即裸 {@code sub}），只保证在单个 issuer 内唯一；本字段是
+     * **内部归属键**，同时承载 issuer / tenant / subject（见
+     * {@code InternalPrincipalKey}），因此可以作为持久化的 owner 值。
+     *
+     * <p>刻意与 {@code principalId} 并存而不是替换它：现有数据行以旧格式存储，
+     * 在不做迁移的情况下改变 owner 语义会导致既有资源"消失"。迁移与双读流程
+     * 见 ADR-002 §3，本字段先提供正确的形状，再由各入口逐步切换。
+     */
+    public static void setOwnerId(String ownerId) {
+        set(KEY_OWNER_ID, ownerId);
+    }
+
+    public static String getOwnerId() {
+        return getString(KEY_OWNER_ID);
     }
 
     public static void setUserId(Long userId) {

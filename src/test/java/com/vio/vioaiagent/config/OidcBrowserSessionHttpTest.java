@@ -180,6 +180,52 @@ class OidcBrowserSessionHttpTest {
         assertSame(stamp, session.getAttribute(OidcSessionLifetime.SESSION_ATTRIBUTE));
     }
 
+    /**
+     * ADR-002 步骤 1：会话端点必须上报**内部归属键**，且该键确实包含 tenant。
+     *
+     * <p>注意 {@code /auth/session} 不经过 {@code ApiKeyAuthInterceptor}
+     * （{@code /auth/**} 不在其路径列表中），它从已校验的 policy 自行派生。
+     * 因此这里断言的是"派生结果正确"，而不是"RequestContext 被填充"——
+     * 后者在业务路径（如 /conversations）上才成立，由本类的其他用例覆盖。
+     */
+    @Test
+    void sessionReportsInternalOwnerKeyThatCarriesTenant() throws Exception {
+        String expected = com.vio.vioaiagent.security.InternalPrincipalKey.fromOidc(
+                "https://id.example.com/realms/vio", "tenant-a", "user-alice");
+        mvc.perform(path(get("/api/auth/session"), "/auth/session")
+                        .session(session("user-alice", "tenant-a", List.of("trainer"), false)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ownerId").value(expected));
+        assertTrue(com.vio.vioaiagent.security.InternalPrincipalKey.isInternalKey(expected));
+
+        // 同一 issuer、同一 sub，仅 tenant 不同 → 归属键必须不同。
+        // 这正是 ADR-002 风险 A 要消除的碰撞：tenant 不参与键时两个租户会落到同一 owner。
+        String otherTenant = com.vio.vioaiagent.security.InternalPrincipalKey.fromOidc(
+                "https://id.example.com/realms/vio", "tenant-b", "user-alice");
+        assertNotEquals(expected, otherTenant,
+                "tenant 未参与归属键时两个租户会落到同一 owner，彼此资源可见");
+    }
+
+    /**
+     * 归属键是新增维度，**不得**改变既有 owner 取值。
+     *
+     * <p>既有数据行以裸 sub 存储 owner；若这里悄悄换成内部键，
+     * 既有会话/队伍/收藏会在升级后全部"消失"。迁移与双读见 ADR-002 §3，
+     * 在完成迁移前本用例守住"现在还没换"。
+     */
+    @Test
+    void existingOwnerValueIsStillTheLegacyPrincipal() throws Exception {
+        MockHttpSession session = session("user-alice", "tenant-a", List.of("trainer"), false);
+        Cookie csrf = csrfCookie(session);
+        String id = "oidc-owner-legacy-" + UUID.randomUUID();
+        mvc.perform(path(post("/api/conversations"), "/conversations").session(session)
+                        .cookie(csrf).header("X-CSRF-TOKEN", csrf.getValue()).header("Origin", ORIGIN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"id\":\"" + id + "\",\"title\":\"legacy owner fixture\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.userId").value("user-alice"));
+    }
+
     @Test
     void rejectedPolicyIsVisibleWithoutPublishingRejectedIdentity() throws Exception {
         mvc.perform(path(get("/api/auth/session"), "/auth/session")

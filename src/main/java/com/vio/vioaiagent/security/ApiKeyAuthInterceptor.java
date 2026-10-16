@@ -2,6 +2,7 @@ package com.vio.vioaiagent.security;
 
 import com.vio.vioaiagent.common.RequestContext;
 import com.vio.vioaiagent.common.ResultCode;
+import com.vio.vioaiagent.config.OidcProperties;
 import com.vio.vioaiagent.config.SecurityProperties;
 import com.vio.vioaiagent.security.OidcPrincipalPolicyAdapter;
 import com.vio.vioaiagent.security.PrincipalPolicy;
@@ -57,6 +58,8 @@ public class ApiKeyAuthInterceptor implements HandlerInterceptor {
     private final ClientIpResolver clientIpResolver;
     /** OIDC policy adapter；为空时保留旧的 API-Key/测试兼容语义。 */
     private OidcPrincipalPolicyAdapter oidcPolicyAdapter;
+    /** OIDC 配置；仅用于取 issuer 以派生内部归属键（ADR-002 步骤 1）。 */
+    private OidcProperties oidcProperties;
 
     public ApiKeyAuthInterceptor(TokenStore tokenStore, SecurityProperties properties) {
         this(tokenStore, properties, new ClientIpResolver(
@@ -78,6 +81,24 @@ public class ApiKeyAuthInterceptor implements HandlerInterceptor {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     public void setOidcPolicyAdapter(OidcPrincipalPolicyAdapter adapter) {
         this.oidcPolicyAdapter = adapter;
+    }
+
+    /** Spring 可选注入 OIDC 配置，用于内部归属键的 issuer 维度。 */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setOidcProperties(OidcProperties oidcProperties) {
+        this.oidcProperties = oidcProperties;
+    }
+
+    /**
+     * 已校验配置里的 issuer。
+     *
+     * <p>这里读的是 **application 配置的 issuerUri**，而不是 token 的 {@code iss} claim：
+     * {@code JwtDecoder} 已经用 {@code createDefaultWithIssuer(issuerUri)} 校验过二者一致，
+     * 因此两者等价；用配置值可以避免为了派生归属键再去解析一遍 token。
+     * 配置缺失时返回空串，交由 {@link InternalPrincipalKey} fail-closed 拒绝。
+     */
+    private String oidcIssuer() {
+        return oidcProperties == null ? "" : oidcProperties.issuerUri();
     }
 
     @Override
@@ -123,6 +144,11 @@ public class ApiKeyAuthInterceptor implements HandlerInterceptor {
                 RequestContext.setRoles(policy.roles());
                 RequestContext.setPrincipalPolicy(policy);
                 RequestContext.setTokenBinding(policy.tokenBinding());
+                // ADR-002 步骤 1：归属键在身份边界算一次，承载 issuer+tenant+subject。
+                // 与上面的 principalId（裸 sub）并存：现有数据行仍是旧格式，
+                // 直接改 owner 语义会让既有资源"消失"，迁移见 ADR-002 §3。
+                RequestContext.setOwnerId(InternalPrincipalKey.fromOidc(
+                        oidcIssuer(), policy.tenantId(), policy.principalId()));
                 // 将短期、无 Secret 的 binding 放入现有 TokenStore，使网关仍
                 // 经过同一 scope/配额/撤销校验，不通过旁路放行 OIDC 工具。
                 if (policy.tokenBinding() != null) tokenStore.register(policy.tokenBinding());
@@ -135,6 +161,9 @@ public class ApiKeyAuthInterceptor implements HandlerInterceptor {
             RequestContext.setTenantId(null);
             RequestContext.setRoles(Set.of());
             RequestContext.setPrincipalPolicy(null);
+            // 该分支没有策略快照，因此拿不到 tenant。按 ADR-002 的 fail-closed 原则
+            // 不派生归属键（宁可为空让下游拒绝），而不是退回裸 sub 充当 owner。
+            RequestContext.setOwnerId(null);
             // 线程可能来自上一个 API-Key 请求；OIDC 不能继承旧的短期绑定，
             // 否则网关会把 stale TokenBinding 误当成当前主体的授权策略。
             RequestContext.setTokenBinding(null);
@@ -178,6 +207,10 @@ public class ApiKeyAuthInterceptor implements HandlerInterceptor {
         RequestContext.setTenantId(null);
         RequestContext.setRoles(Set.of());
         RequestContext.setPrincipalPolicy(null);
+        // ADR-002 步骤 1：API Key 是本地唯一主体，没有 issuer/tenant 维度，
+        // 因此归属键就等于已有的稳定主体键，**保持历史取值不变**，
+        // 避免改变既有 API Key 部署的数据归属语义。
+        RequestContext.setOwnerId(InternalPrincipalKey.legacyOwnerFor(principalId));
         // 将已验证的绑定传给同一请求内的工具治理层；绑定对象只存在于
         // ThreadLocal，不会把原始 API Key 写入 Run/事件/审计持久化结构。
         RequestContext.setTokenBinding(binding);
