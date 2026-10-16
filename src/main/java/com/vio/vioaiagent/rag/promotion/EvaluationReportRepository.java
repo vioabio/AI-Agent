@@ -12,6 +12,12 @@ public interface EvaluationReportRepository {
         throw new UnsupportedOperationException("当前评测报告仓储只读");
     }
 
+    /** Import the exact offline producer bytes; arbitrary projections cannot become release evidence. */
+    default EvaluationReport importArtifact(byte[] artifact, String expectedHash,
+                                            String source, String importedBy) {
+        throw new UnsupportedOperationException("当前仓储不支持原始评测报告导入");
+    }
+
     default boolean available() {
         return true;
     }

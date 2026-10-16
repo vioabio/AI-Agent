@@ -1,5 +1,8 @@
 package com.vio.vioaiagent.run;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.vio.vioaiagent.observability.AgentMetrics;
 import com.vio.vioaiagent.rag.contract.AnswerContract;
 import com.vio.vioaiagent.tools.governance.ToolExecutionContext;
@@ -9,8 +12,13 @@ import com.vio.vioaiagent.security.HitlManager;
 import com.vio.vioaiagent.security.HitlAuditEvent;
 import com.vio.vioaiagent.security.TokenBinding;
 import com.vio.vioaiagent.security.PrincipalPolicy;
+import com.vio.vioaiagent.security.AuthorizationSnapshot;
+import com.vio.vioaiagent.security.AuthorizationSnapshotRepository;
+import com.vio.vioaiagent.security.AuthorizationSnapshotValidator;
+import com.vio.vioaiagent.security.AuthorizationRevocationRepository;
 import com.vio.vioaiagent.common.RequestContext;
 import com.vio.vioaiagent.config.DurableRunProperties;
+import com.vio.vioaiagent.config.RunAdmissionProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,12 +40,17 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 /**
  * M3 唯一 Run 生命周期服务。Controller 只创建、订阅和取消，模型/工具由 RunExecutor 执行。
@@ -59,10 +72,27 @@ public class PokemonAgentRunService {
     private final RunOutboxRepository outboxRepository;
     private final CheckpointRepository checkpointRepository;
     private final DurableRunProperties durableRunProperties;
+    private final RunAdmissionProperties admissionProperties;
+    private final RunAdmissionController admission;
+    private final ConcurrentMap<String, RunAdmissionController.Permit> reservations = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, ScheduledFuture<?>> deadlineTasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, ScheduledFuture<?>> queueTasks = new ConcurrentHashMap<>();
     /** 生产 profile 下由独立事务 Bean 提供事件+outbox 原子写入。 */
     private volatile RunEventOutboxAppender eventOutboxAppender;
     /** 可选的稳定答案投影；Spring 本地/生产分别装配内存/JDBC 实现。 */
     private volatile AnswerProjectionRepository answerProjectionRepository;
+    /** Encrypted immutable output used by safe commit-answer recovery. */
+    private volatile RunStepOutputRepository stepOutputRepository;
+    private volatile ModelInvocationCacheCodec stepOutputCodec;
+    private volatile AuthorizationSnapshotRepository authorizationSnapshotRepository;
+    private volatile AuthorizationSnapshotValidator authorizationSnapshotValidator;
+    private volatile AuthorizationRevocationRepository authorizationRevocationRepository;
+    private final ThreadLocal<java.util.Set<String>> activeStepOutputWrites =
+            ThreadLocal.withInitial(java.util.HashSet::new);
+    private volatile ObjectMapper outputMapper = new ObjectMapper().findAndRegisterModules()
+            .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+    /** Immutable step artifacts are retained long enough for a bounded recovery window. */
+    private static final Duration STEP_OUTPUT_RETENTION = Duration.ofHours(24);
     /** 可选的跨实例 HTTP 幂等记录；本地测试未装配时沿用 Run 唯一键。 */
     private volatile IdempotencyStore idempotencyStore;
     private final ConcurrentMap<String, FutureTask<Void>> tasks = new ConcurrentHashMap<>();
@@ -72,7 +102,9 @@ public class PokemonAgentRunService {
     private final ConcurrentMap<String, TokenBinding> tokenBindings = new ConcurrentHashMap<>();
     /** OIDC 主体/租户/角色/工具的短期不可变快照；不保存 JWT 或 Secret。 */
     private final ConcurrentMap<String, PrincipalPolicy> principalPolicies = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, String> leaseTokens = new ConcurrentHashMap<>();
+    /** Ownership belongs to one physical execution, never to a mutable runId lookup. */
+    private final ThreadLocal<ExecutionLease> executionLease = new ThreadLocal<>();
+    private final ThreadLocal<ExecutionLease> fencedLease = new ThreadLocal<>();
     private final ConcurrentMap<String, ScheduledFuture<?>> heartbeatTasks = new ConcurrentHashMap<>();
     private final Object idempotencyLock = new Object();
     /**
@@ -103,6 +135,40 @@ public class PokemonAgentRunService {
         this.answerProjectionRepository = repository;
     }
 
+    @Autowired(required = false)
+    public void setRunStepOutputRepository(RunStepOutputRepository repository) {
+        this.stepOutputRepository = repository;
+    }
+
+    /** Uses the same controlled envelope codec as the model cache; no plaintext fallback. */
+    @Autowired(required = false)
+    public void setRunStepOutputCodec(ModelInvocationCacheCodec codec) {
+        this.stepOutputCodec = codec;
+    }
+
+    @Autowired(required = false)
+    public void setAuthorizationSnapshotRepository(AuthorizationSnapshotRepository repository) {
+        this.authorizationSnapshotRepository = repository;
+    }
+
+    @Autowired(required = false)
+    public void setAuthorizationSnapshotValidator(AuthorizationSnapshotValidator validator) {
+        this.authorizationSnapshotValidator = validator;
+    }
+
+    @Autowired(required = false)
+    public void setAuthorizationRevocationRepository(AuthorizationRevocationRepository repository) {
+        this.authorizationRevocationRepository = repository;
+    }
+
+    @Autowired(required = false)
+    public void setOutputMapper(ObjectMapper mapper) {
+        if (mapper != null) {
+            this.outputMapper = mapper.copy().findAndRegisterModules()
+                    .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+        }
+    }
+
     @Autowired
     public PokemonAgentRunService(RunRepository runRepository,
                                   EventRepository eventRepository,
@@ -113,19 +179,27 @@ public class PokemonAgentRunService {
                                   ObjectProvider<HitlManager> hitlProvider,
                                   ObjectProvider<RunOutboxRepository> outboxProvider,
                                   ObjectProvider<CheckpointRepository> checkpointProvider,
-                                  ObjectProvider<DurableRunProperties> durablePropertiesProvider) {
+                                  ObjectProvider<DurableRunProperties> durablePropertiesProvider,
+                                  ObjectProvider<RunAdmissionProperties> admissionProvider) {
         this(runRepository, eventRepository, conversationRepository, messageRepository,
                 executorProvider.getIfAvailable(DefaultRunExecutor::new),
-                newWorker(), Executors.newScheduledThreadPool(1, runnable -> {
-                    Thread thread = new Thread(runnable, "vio-run-timeout");
-                    thread.setDaemon(true);
-                    return thread;
-                }), metricsProvider.getIfAvailable(),
+                newWorker(admissionProperties(admissionProvider)), newScheduler(), metricsProvider.getIfAvailable(),
                 hitlProvider == null ? null : hitlProvider.getIfAvailable(),
                 outboxProvider == null ? null : outboxProvider.getIfAvailable(),
                 checkpointProvider == null ? null : checkpointProvider.getIfAvailable(),
                 durablePropertiesProvider == null ? new DurableRunProperties()
-                        : durablePropertiesProvider.getIfAvailable(DurableRunProperties::new));
+                        : durablePropertiesProvider.getIfAvailable(DurableRunProperties::new),
+                admissionProperties(admissionProvider));
+    }
+
+    /** Compatibility for existing embedded provider-based construction. */
+    public PokemonAgentRunService(RunRepository runs, EventRepository events,
+                                  ConversationRepository conversations, ChatMessageRepository messages,
+                                  ObjectProvider<RunExecutor> executor, ObjectProvider<AgentMetrics> metrics,
+                                  ObjectProvider<HitlManager> hitl, ObjectProvider<RunOutboxRepository> outbox,
+                                  ObjectProvider<CheckpointRepository> checkpoints,
+                                  ObjectProvider<DurableRunProperties> durable) {
+        this(runs, events, conversations, messages, executor, metrics, hitl, outbox, checkpoints, durable, null);
     }
 
     /** 兼容只提供 outbox 的装配签名。 */
@@ -225,6 +299,26 @@ public class PokemonAgentRunService {
                                    RunOutboxRepository outboxRepository,
                                    CheckpointRepository checkpointRepository,
                                    DurableRunProperties durableRunProperties) {
+        this(runRepository, eventRepository, conversationRepository, messageRepository, executor,
+                worker, scheduler, metrics, hitlManager, outboxRepository, checkpointRepository,
+                durableRunProperties, new RunAdmissionProperties());
+    }
+
+    /** Deterministic tests may supply a bounded worker and small admission limits. */
+    public PokemonAgentRunService(RunRepository runs, EventRepository events,
+                                  ConversationRepository conversations, ChatMessageRepository messages,
+                                  RunExecutor executor, ExecutorService worker, ScheduledExecutorService scheduler,
+                                  RunAdmissionProperties admissionProperties) {
+        this(runs, events, conversations, messages, executor, worker, scheduler,
+                null, null, null, null, null, admissionProperties);
+    }
+
+    private PokemonAgentRunService(RunRepository runRepository, EventRepository eventRepository,
+                                   ConversationRepository conversationRepository, ChatMessageRepository messageRepository,
+                                   RunExecutor executor, ExecutorService worker, ScheduledExecutorService scheduler,
+                                   AgentMetrics metrics, HitlManager hitlManager, RunOutboxRepository outboxRepository,
+                                   CheckpointRepository checkpointRepository, DurableRunProperties durableRunProperties,
+                                   RunAdmissionProperties admissionProperties) {
         if (runRepository == null || eventRepository == null || conversationRepository == null
                 || messageRepository == null || executor == null || worker == null || scheduler == null) {
             throw new IllegalArgumentException("Run Service 依赖不能为空");
@@ -241,6 +335,12 @@ public class PokemonAgentRunService {
         this.outboxRepository = outboxRepository;
         this.checkpointRepository = checkpointRepository;
         this.durableRunProperties = durableRunProperties == null ? new DurableRunProperties() : durableRunProperties;
+        if (this.durableRunProperties.durableResume() && checkpointRepository == null) {
+            throw new IllegalArgumentException("启用耐久 Run 必须配置 CheckpointRepository，禁止绕过租约隔离");
+        }
+        this.admissionProperties = admissionProperties == null ? new RunAdmissionProperties() : admissionProperties;
+        this.admission = new RunAdmissionController(this.admissionProperties);
+        if (scheduler instanceof ScheduledThreadPoolExecutor scheduled) scheduled.setRemoveOnCancelPolicy(true);
     }
 
     public RunView createRun(CreateRunCommand command) {
@@ -248,65 +348,109 @@ public class PokemonAgentRunService {
         synchronized (idempotencyLock) {
             String idemScope = createIdempotencyScope(command.userId());
             String requestHash = requestHash(command);
-            IdempotencyStore.Claim idemClaim = claimIdempotency(idemScope, command.idempotencyKey(), requestHash);
-            if (idemClaim.conflict()) throw new IdempotencyConflictException(idemScope, command.idempotencyKey());
-            if (idemClaim.replay()) {
-                Optional<AgentRun> replayRun = replayRun(idemClaim.record(), command);
-                if (replayRun.isPresent()) return RunView.from(replayRun.get());
-                // 102 + IN_PROGRESS 表示另一实例尚未提交最终响应；不要创建第二个 Run。
-                throw new IdempotencyInProgressException(idemScope, command.idempotencyKey());
-            }
             if (command.idempotencyKey() != null) {
-                Optional<AgentRun> existing = runRepository.findByIdempotencyKey(
-                        command.userId(), command.idempotencyKey());
-                if (existing.isPresent()) {
-                    RunView view = RunView.from(existing.get());
-                    completeIdempotency(idemScope, command.idempotencyKey(), requestHash, view);
-                    return view;
+                if (command.idempotencyKey().length() > 256) throw new IllegalArgumentException("Idempotency-Key 长度不能超过 256");
+                if (idempotencyStore != null) {
+                    Optional<IdempotencyRecord> record = idempotencyStore.find(idemScope, command.idempotencyKey())
+                            .filter(value -> value.validAt(Instant.now()));
+                    if (record.isPresent()) {
+                        if (!record.get().requestHash().equals(requestHash)) throw new IdempotencyConflictException(idemScope, command.idempotencyKey());
+                        Optional<AgentRun> replay = replayRun(record, command);
+                        if (replay.isPresent()) return RunView.from(replay.get());
+                        throw new IdempotencyInProgressException(idemScope, command.idempotencyKey());
+                    }
+                } else {
+                    Optional<AgentRun> replay = runRepository.findByIdempotencyKey(command.userId(), command.idempotencyKey());
+                    if (replay.isPresent()) return RunView.from(replay.get());
                 }
             }
-            String conversationId = ensureConversation(command);
-            String runId = "run-" + UUID.randomUUID();
-            String sessionId = valueOrUuid(command.sessionId());
-            String traceId = valueOrUuid(command.traceId());
-            Instant deadline = Instant.now().plus(command.timeout());
-            AgentRun run = AgentRun.create(runId, sessionId, conversationId, command.userId(), command.prompt(),
-                    command.gameReleaseId(), command.battleFormat(), command.rulesetVersionId(),
-                    command.language(), command.dlcId(), command.dataReleaseId(), command.knowledgeReleaseId(),
-                    command.indexReleaseId(), command.contractVersion(), traceId, command.idempotencyKey(), deadline);
+            if (worker.isShutdown() || scheduler.isShutdown()) throw unavailable();
+            RunAdmissionController.Permit permit = admission.acquire(trustedTenant(), command.userId());
+            AgentRun admitted = null;
+            boolean submitted = false;
             try {
-                runRepository.save(run);
-            } catch (RunConflictException conflict) {
-                // 两个实例可能同时通过幂等查询；数据库唯一键 + CAS 只允许一个
-                // 快照获胜，败者重新读取获胜 Run 并返回同一结果。
-                if (command.idempotencyKey() != null) {
-                    Optional<AgentRun> winner = runRepository.findByIdempotencyKey(
-                            command.userId(), command.idempotencyKey());
-                    if (winner.isPresent()) return RunView.from(winner.get());
+                IdempotencyStore.Claim idemClaim = claimIdempotency(idemScope, command.idempotencyKey(), requestHash);
+                if (idemClaim.conflict()) throw new IdempotencyConflictException(idemScope, command.idempotencyKey());
+                if (idemClaim.replay()) {
+                    Optional<AgentRun> replayRun = replayRun(idemClaim.record(), command);
+                    if (replayRun.isPresent()) return RunView.from(replayRun.get());
+                    // 102 + IN_PROGRESS 表示另一实例尚未提交最终响应；不要创建第二个 Run。
+                    throw new IdempotencyInProgressException(idemScope, command.idempotencyKey());
                 }
-                throw conflict;
+                if (command.idempotencyKey() != null) {
+                    Optional<AgentRun> existing = runRepository.findByIdempotencyKey(
+                            command.userId(), command.idempotencyKey());
+                    if (existing.isPresent()) {
+                        RunView view = RunView.from(existing.get());
+                        completeIdempotency(idemScope, command.idempotencyKey(), requestHash, view);
+                        return view;
+                    }
+                }
+                String conversationId = ensureConversation(command);
+                String runId = "run-" + UUID.randomUUID();
+                String sessionId = valueOrUuid(command.sessionId());
+                String traceId = valueOrUuid(command.traceId());
+                Instant deadline = Instant.now().plus(command.timeout());
+                AgentRun run = AgentRun.create(runId, sessionId, conversationId, command.userId(), command.prompt(),
+                        command.gameReleaseId(), command.battleFormat(), command.rulesetVersionId(),
+                        command.language(), command.dlcId(), command.dataReleaseId(), command.knowledgeReleaseId(),
+                        command.indexReleaseId(), command.contractVersion(), traceId, command.idempotencyKey(), deadline);
+                try {
+                    runRepository.save(run);
+                } catch (RunConflictException conflict) {
+                    // 两个实例可能同时通过幂等查询；数据库唯一键 + CAS 只允许一个
+                    // 快照获胜，败者重新读取获胜 Run 并返回同一结果。
+                    if (command.idempotencyKey() != null) {
+                        Optional<AgentRun> winner = runRepository.findByIdempotencyKey(
+                                command.userId(), command.idempotencyKey());
+                        if (winner.isPresent()) return RunView.from(winner.get());
+                    }
+                    throw conflict;
+                }
+                admitted = run;
+                reservations.put(run.id(), permit);
+                PrincipalPolicy policy = RequestContext.getPrincipalPolicy();
+                if (policy != null) principalPolicies.put(run.id(), policy);
+                TokenBinding binding = RequestContext.getTokenBinding();
+                if (binding == null && policy != null) binding = policy.tokenBinding();
+                if (binding != null) tokenBindings.put(run.id(), binding);
+                if (policy != null && authorizationSnapshotRepository != null) {
+                    // Persist only secret-free authorization facts before the
+                    // first checkpoint. A durable Run must never outlive an
+                    // authorization snapshot that failed to be recorded.
+                    authorizationSnapshotRepository.save(
+                            AuthorizationSnapshot.from(run.id(), policy, Instant.now()));
+                }
+                // 先冻结授权快照再生成 checkpoint/event。只持久化 tenant、角色、
+                // 版本、过期时间和 SHA-256 fingerprint；JWT/Secret/原始 binding token
+                // 不进入 Run、事件或 checkpoint。
+                saveCheckpoint(run, 0, "dispatch", null);
+                activeRuns.put(run.id(), run);
+                emit(run, AgentEventType.RUN_CREATED, runCreatedPayload(run, policy));
+                messageRepository.save(new ChatMessage("message-" + UUID.randomUUID(), conversationId, runId,
+                        command.userId(), "user", command.prompt(), Instant.now(), lineagePayload(run)));
+                RunView view = RunView.from(run);
+                // Submit before finalizing the idempotency response.  If the
+                // idempotency store is temporarily unavailable, a persisted Run
+                // must still have a worker (or a terminal failure) rather than
+                // being stranded in CREATED with an IN_PROGRESS key.
+                submitted = submit(run, command.timeout());
+                completeIdempotency(idemScope, command.idempotencyKey(), requestHash, view);
+                return view;
+            } catch (RuntimeException ex) {
+                if (admitted != null && !submitted) {
+                    try {
+                        failIfActive(admitted, ex);
+                        completeIdempotency(idemScope, command.idempotencyKey(), requestHash, RunView.from(admitted));
+                    } finally {
+                        cancelTask(admitted.id());
+                        cleanIdleRun(admitted);
+                    }
+                }
+                throw ex;
+            } finally {
+                if (admitted == null || reservations.get(admitted.id()) != permit) permit.close();
             }
-            PrincipalPolicy policy = RequestContext.getPrincipalPolicy();
-            if (policy != null) principalPolicies.put(run.id(), policy);
-            TokenBinding binding = RequestContext.getTokenBinding();
-            if (binding == null && policy != null) binding = policy.tokenBinding();
-            if (binding != null) tokenBindings.put(run.id(), binding);
-            // 先冻结授权快照再生成 checkpoint/event。只持久化 tenant、角色、
-            // 版本、过期时间和 SHA-256 fingerprint；JWT/Secret/原始 binding token
-            // 不进入 Run、事件或 checkpoint。
-            saveCheckpoint(run, 0, "dispatch", null);
-            activeRuns.put(run.id(), run);
-            emit(run, AgentEventType.RUN_CREATED, runCreatedPayload(run, policy));
-            messageRepository.save(new ChatMessage("message-" + UUID.randomUUID(), conversationId, runId,
-                    command.userId(), "user", command.prompt(), Instant.now(), lineagePayload(run)));
-            RunView view = RunView.from(run);
-            // Submit before finalizing the idempotency response.  If the
-            // idempotency store is temporarily unavailable, a persisted Run
-            // must still have a worker (or a terminal failure) rather than
-            // being stranded in CREATED with an IN_PROGRESS key.
-            submit(run, command.timeout());
-            completeIdempotency(idemScope, command.idempotencyKey(), requestHash, view);
-            return view;
         }
     }
 
@@ -398,6 +542,7 @@ public class PokemonAgentRunService {
         }
         synchronized (run) {
             if (run.status().isTerminal()) {
+                cleanIdleRun(run);
                 CancelResult result = new CancelResult(runId, run.status(), false, terminalEventId(runId));
                 completeCancel(scope, idempotencyKey, requestHash, result);
                 return result;
@@ -408,17 +553,20 @@ public class PokemonAgentRunService {
                 return result;
             }
             try {
-                runRepository.save(run);
-            } catch (RunConflictException conflict) {
-                refreshAfterConflict(run, conflict);
-                throw conflict;
+                try {
+                    runRepository.save(run);
+                } catch (RunConflictException conflict) {
+                    refreshAfterConflict(run, conflict);
+                    throw conflict;
+                }
+                emitLocked(run, AgentEventType.RUN_CANCELLED, Map.of("reason", normalizedReason));
+                CancelResult result = new CancelResult(runId, run.status(), true, eventRepository.lastEventId(runId));
+                completeCancel(scope, idempotencyKey, requestHash, result);
+                return result;
+            } finally {
+                cancelTask(runId);
+                cleanIdleRun(run);
             }
-            emitLocked(run, AgentEventType.RUN_CANCELLED, Map.of("reason", normalizedReason));
-            FutureTask<Void> task = tasks.get(runId);
-            if (task != null) task.cancel(true);
-            CancelResult result = new CancelResult(runId, run.status(), true, eventRepository.lastEventId(runId));
-            completeCancel(scope, idempotencyKey, requestHash, result);
-            return result;
         }
     }
 
@@ -426,7 +574,7 @@ public class PokemonAgentRunService {
     public RunView resolveApproval(String runId, String userId, boolean approved, String reason) {
         AgentRun run = ownedRun(runId, userId);
         synchronized (run) {
-            if (run.status().isTerminal()) return RunView.from(run);
+            if (run.status().isTerminal()) { cleanIdleRun(run); return RunView.from(run); }
             if (run.status() != AgentRunStatus.WAITING_APPROVAL) {
                 throw new IllegalStateException("Run 当前不在 WAITING_APPROVAL 状态");
             }
@@ -441,20 +589,25 @@ public class PokemonAgentRunService {
             if (!approved) {
                 run.fail();
                 try {
-                    runRepository.save(run);
-                } catch (RunConflictException conflict) {
-                    refreshAfterConflict(run, conflict);
-                    throw conflict;
+                    try {
+                        runRepository.save(run);
+                    } catch (RunConflictException conflict) {
+                        refreshAfterConflict(run, conflict);
+                        throw conflict;
+                    }
+                    // 只有状态 CAS 成功后才发布 resolution，避免留下无法解释的幻影事件。
+                    // APPROVAL_RESOLVED 必须位于 RUN_FAILED 之前；emitLocked 对终态
+                    // 默认拒绝普通事件，因此这里显式允许该唯一的审批结论事件。
+                    emitLocked(run, AgentEventType.APPROVAL_RESOLVED, decision);
+                    emitLocked(run, AgentEventType.RUN_FAILED,
+                            Map.of("errorType", "APPROVAL_DENIED", "reason",
+                                    safeReason == null || safeReason.isBlank()
+                                            ? "用户拒绝工具调用" : safeReason));
+                    return RunView.from(run);
+                } finally {
+                    cancelTask(run.id());
+                    cleanIdleRun(run);
                 }
-                // 只有状态 CAS 成功后才发布 resolution，避免留下无法解释的幻影事件。
-                // APPROVAL_RESOLVED 必须位于 RUN_FAILED 之前；emitLocked 对终态
-                // 默认拒绝普通事件，因此这里显式允许该唯一的审批结论事件。
-                emitLocked(run, AgentEventType.APPROVAL_RESOLVED, decision);
-                emitLocked(run, AgentEventType.RUN_FAILED,
-                        Map.of("errorType", "APPROVAL_DENIED", "reason",
-                                safeReason == null || safeReason.isBlank()
-                                        ? "用户拒绝工具调用" : safeReason));
-                return RunView.from(run);
             }
             // 保持 WAITING_APPROVAL，交由恢复任务的 execute() 原子迁移到 RUNNING，
             // 避免在审批线程和 worker 线程之间产生重复 RUN_STARTED 或丢失执行。
@@ -524,31 +677,232 @@ public class PokemonAgentRunService {
      * 只允许一个 FutureTask 占有执行权，避免同一个有副作用工具被执行两次。
      */
     private boolean submit(AgentRun run, Duration timeout) {
-        AtomicReference<FutureTask<Void>> owner = new AtomicReference<>();
-        FutureTask<Void> task = new FutureTask<>(() -> {
-            execute(run, owner.get());
-            return null;
-        });
-        owner.set(task);
-        while (true) {
-            FutureTask<Void> existing = tasks.get(run.id());
-            if (existing != null && !existing.isDone()) return false;
-            boolean registered = existing == null
-                    ? tasks.putIfAbsent(run.id(), task) == null
-                    : tasks.replace(run.id(), existing, task);
-            if (registered) break;
+        synchronized (run) {
+            if (tasks.containsKey(run.id())) return false;
+            reserveRecoveredRun(run);
+            AtomicReference<FutureTask<Void>> owner = new AtomicReference<>();
+            ManagedRunTask task = new ManagedRunTask(run, owner);
+            owner.set(task);
+            if (tasks.putIfAbsent(run.id(), task) != null) return false;
+            activeRuns.putIfAbsent(run.id(), run);
+            try {
+                armDeadline(run);
+                ScheduledFuture<?> queued = scheduler.schedule(() -> expireQueued(run, task),
+                        admissionProperties.queueWaitMs(), TimeUnit.MILLISECONDS);
+                task.queueTimer = queued;
+                queueTasks.put(run.id(), queued);
+                if (task.isCancelled() || run.status().isTerminal()) {
+                    task.cancelQueueTimer();
+                } else {
+                    worker.execute(task);
+                    if (task.isCancelled() && worker instanceof ThreadPoolExecutor pool) pool.remove(task);
+                }
+            } catch (RuntimeException ex) {
+                try { failIfActive(run, new RunDispatchException()); }
+                finally { cancelTask(run.id()); cleanIdleRun(run); }
+                throw unavailable();
+            }
+            return true;
         }
-        activeRuns.putIfAbsent(run.id(), run);
-        try {
-            worker.execute(task);
-        } catch (RuntimeException ex) {
-            tasks.remove(run.id(), task);
-            failIfActive(run, ex);
-            throw ex;
-        }
-        scheduler.schedule(() -> timeout(run.id()),
+    }
+
+    private void armDeadline(AgentRun run) {
+        if (deadlineTasks.containsKey(run.id())) return;
+        ScheduledFuture<?> future = scheduler.schedule(() -> timeout(run.id()),
                 Math.max(1L, remainingTimeout(run).toMillis()), TimeUnit.MILLISECONDS);
-        return true;
+        ScheduledFuture<?> existing = deadlineTasks.putIfAbsent(run.id(), future);
+        if (existing != null) future.cancel(false);
+        // The deadline may fire before its handle is registered.
+        if (run.status().isTerminal()) cancelTimer(deadlineTasks, run.id());
+    }
+
+    private void expireQueued(AgentRun run, ManagedRunTask task) {
+        synchronized (run) {
+            if (tasks.get(run.id()) != task || task.started() || run.status().isTerminal()) return;
+            try { failIfActive(run, new RunQueueTimeoutException()); }
+            finally { cancelTask(run.id()); cleanIdleRun(run); }
+        }
+    }
+
+    private final class ManagedRunTask extends FutureTask<Void> {
+        private final AgentRun run;
+        private final long queuedAtNanos = System.nanoTime();
+        private boolean queueExpiredAtStart;
+        private volatile boolean ownershipLost;
+        /** Bound by execute() to the physical lease owned by this task. */
+        private volatile ExecutionLease executionLease;
+        private volatile ScheduledFuture<?> queueTimer;
+        private boolean entered;
+        ManagedRunTask(AgentRun run, AtomicReference<FutureTask<Void>> owner) {
+            super(() -> { execute(run, owner.get()); return null; });
+            this.run = run;
+        }
+        synchronized boolean started() { return entered; }
+        void bindExecutionLease(ExecutionLease lease) { this.executionLease = lease; }
+        void revokeExecutionLease() {
+            ExecutionLease lease = executionLease;
+            if (lease != null) lease.loseOwnership();
+        }
+        void cancelQueueTimer() {
+            ScheduledFuture<?> timer = queueTimer;
+            if (timer != null) {
+                queueTasks.remove(run.id(), timer);
+                timer.cancel(false);
+            }
+        }
+        @Override public void run() {
+            synchronized (run) {
+                synchronized (this) { entered = true; }
+                queueExpiredAtStart = System.nanoTime() - queuedAtNanos
+                        >= TimeUnit.MILLISECONDS.toNanos(admissionProperties.queueWaitMs());
+                cancelQueueTimer();
+            }
+            try { super.run(); }
+            finally { finishTask(run, this); }
+        }
+        @Override protected void done() {
+            if (!started()) finishTask(run, this);
+        }
+    }
+
+    private void finishTask(AgentRun run, FutureTask<Void> task) {
+        if (worker instanceof ThreadPoolExecutor pool) pool.remove(task);
+        synchronized (run) {
+            if (task instanceof ManagedRunTask managed) managed.cancelQueueTimer();
+            if (!tasks.remove(run.id(), task)) return;
+            if (run.status() != AgentRunStatus.WAITING_APPROVAL || worker.isShutdown()
+                    || (task instanceof ManagedRunTask managed && managed.ownershipLost)) cleanIdleRun(run);
+        }
+    }
+
+    private void cancelTask(String runId) {
+        FutureTask<Void> task = tasks.get(runId);
+        if (task instanceof ManagedRunTask managed) managed.revokeExecutionLease();
+        if (task != null) task.cancel(true);
+    }
+
+    private void cleanIdleRun(AgentRun run) {
+        synchronized (run) {
+            if (tasks.containsKey(run.id())) return; // A canceled running callback may still be physically executing.
+            activeRuns.remove(run.id());
+            tokenBindings.remove(run.id());
+            principalPolicies.remove(run.id());
+            cancelTimer(deadlineTasks, run.id());
+            cancelTimer(queueTasks, run.id());
+            RunAdmissionController.Permit permit = reservations.remove(run.id());
+            if (permit != null) permit.close();
+        }
+    }
+
+    private static void cancelTimer(ConcurrentMap<String, ScheduledFuture<?>> timers, String runId) {
+        ScheduledFuture<?> timer = timers.remove(runId);
+        if (timer != null) timer.cancel(false);
+    }
+
+    private String trustedTenant() {
+        PrincipalPolicy policy = RequestContext.getPrincipalPolicy();
+        if (policy != null) return policy.tenantId();
+        TokenBinding binding = RequestContext.getTokenBinding();
+        if (binding != null && binding.tenantId() != null && !binding.tenantId().isBlank()) return binding.tenantId();
+        return "local";
+    }
+
+    private void reserveRecoveredRun(AgentRun run) {
+        if (reservations.containsKey(run.id())) return;
+        // Recovery has no request identity. Use a bounded server-owned legacy scope.
+        RunAdmissionController.Permit permit = admission.acquire("recovery", run.userId());
+        RunAdmissionController.Permit existing = reservations.putIfAbsent(run.id(), permit);
+        if (existing != null) permit.close();
+    }
+
+    private RunAdmissionException unavailable() {
+        return new RunAdmissionException("RUN_EXECUTION_UNAVAILABLE", admissionProperties.retryAfterSeconds(), true);
+    }
+    private static final class RunQueueTimeoutException extends RuntimeException { }
+    private static final class RunDispatchException extends RuntimeException { }
+    private static final class RunAuthorizationExpiredException extends RuntimeException { }
+
+    private static final class ExecutionLease {
+        private final String runId;
+        private final String owner = "worker-" + UUID.randomUUID();
+        private final String token = UUID.randomUUID().toString();
+        private final FutureTask<Void> task;
+        private final AtomicBoolean revoked = new AtomicBoolean();
+
+        private ExecutionLease(String runId, FutureTask<Void> task) {
+            this.runId = runId;
+            this.task = task;
+        }
+
+        private void requireActive() {
+            if (revoked.get()) throw new RunLeaseLostException();
+        }
+
+        private void loseOwnership() {
+            revoked.set(true);
+            if (task instanceof ManagedRunTask managed) managed.ownershipLost = true;
+        }
+    }
+
+    /**
+     * Worker Run lifecycle persistence takes the JVM monitor before the database lease lock.
+     * JDBC actions share the fence transaction; model and tool calls stay outside it.
+     */
+    private <T> T workerWrite(AgentRun run, Supplier<T> action) {
+        synchronized (run) {
+            ExecutionLease lease = executionLease.get();
+            if (lease == null) return action.get(); // Independent user/deadline control intent.
+            if (!run.id().equals(lease.runId)) throw new RunLeaseLostException();
+            lease.requireActive();
+            if (fencedLease.get() == lease) {
+                T result = action.get();
+                lease.requireActive();
+                return result;
+            }
+            if (checkpointRepository == null || !durableRunProperties.durableResume()) {
+                try {
+                    T result = action.get();
+                    lease.requireActive();
+                    return result;
+                }
+                catch (RunConflictException conflict) {
+                    refreshAfterConflict(run, conflict);
+                    throw conflict;
+                }
+            }
+            AgentRun.LifecycleSnapshot before = run.lifecycleSnapshot();
+            try {
+                return checkpointRepository.withLease(run.id(), lease.owner, lease.token, () -> {
+                    lease.requireActive();
+                    ExecutionLease previousFence = fencedLease.get();
+                    fencedLease.set(lease);
+                    try {
+                        T result = action.get();
+                        lease.requireActive();
+                        return result;
+                    } finally {
+                        if (previousFence == null) fencedLease.remove();
+                        else fencedLease.set(previousFence);
+                    }
+                });
+            } catch (RuntimeException | Error ex) {
+                // The transaction proxy has completed rollback before this catch runs.
+                run.restoreLifecycle(before);
+                if (ex instanceof RunLeaseLostException) lease.loseOwnership();
+                if (ex instanceof RunConflictException conflict) refreshAfterConflict(run, conflict);
+                throw ex;
+            }
+        }
+    }
+
+    private void capturedToolEvent(AgentRun run, ExecutionLease captured, ToolGovernanceEvent event) {
+        ExecutionLease previous = executionLease.get();
+        executionLease.set(captured);
+        try { onToolEvent(run, event); }
+        finally {
+            if (previous == null) executionLease.remove();
+            else executionLease.set(previous);
+        }
     }
 
     /**
@@ -568,19 +922,33 @@ public class PokemonAgentRunService {
     private void execute(AgentRun run, FutureTask<Void> ownerTask) {
         Instant startedAt = Instant.now();
         boolean metricsActive = false;
-        String leaseOwner = "worker-" + UUID.randomUUID();
-        String leaseToken = UUID.randomUUID().toString();
-        boolean leaseAcquired = acquireLease(run, leaseOwner, leaseToken);
-        if (!leaseAcquired) {
-            log.info("Run 租约被其他 worker 持有，跳过本地执行: runId={}", run.id());
-            return;
-        }
+        ExecutionLease lease = new ExecutionLease(run.id(), ownerTask);
+        if (ownerTask instanceof ManagedRunTask task) task.bindExecutionLease(lease);
         try {
+            if (ownerTask.isCancelled()) {
+                lease.loseOwnership();
+                return;
+            }
+            lease.requireActive();
+            if (run.deadlineAt() != null && !Instant.now().isBefore(run.deadlineAt())) { timeout(run.id()); return; }
+            if (ownerTask instanceof ManagedRunTask task && task.queueExpiredAtStart) {
+                failIfActive(run, new RunQueueTimeoutException());
+                return;
+            }
+            executionLease.set(lease);
+            lease.requireActive();
+            boolean leaseAcquired = acquireLease(run, lease);
+            if (!leaseAcquired) {
+                log.info("Run 租约被其他 worker 持有，跳过本地执行: runId={}", run.id());
+                return;
+            }
+            PrincipalPolicy capturedPolicy = principalPolicies.get(run.id());
+            if (capturedPolicy != null && capturedPolicy.isExpired()) throw new RunAuthorizationExpiredException();
             // 取消/超时可能先于 worker 获得执行权；仍需进入 finally 清理注册表。
             // 重启恢复可能拿到已经持久化为 RUNNING 的快照；此时不重复发起状态迁移。
             if (run.status() != AgentRunStatus.RUNNING
                     && !transition(run, AgentRunStatus.RUNNING, Map.of("status", "RUNNING"))) return;
-            saveCheckpoint(run, 0, "execute-answer", leaseOwner);
+            saveCheckpoint(run, 0, "execute-answer", lease.owner);
             emit(run, AgentEventType.CONTEXT_CONFIRMED, contextPayload(run));
             // N5 的 ContextCard 是已登记的结构化事件；它允许空值，但不能
             // 缺键，前端据此稳定区分“未提供上下文”和“事件损坏”。
@@ -597,61 +965,73 @@ public class PokemonAgentRunService {
             if (binding == null && policy != null) binding = policy.tokenBinding();
             ToolExecutionContext runContext = new ToolExecutionContext(
                     run.userId(), run.id(), roles, run.traceId(),
-                    run.idempotencyKey(), event -> onToolEvent(run, event), binding, policy);
+                    run.idempotencyKey(), event -> capturedToolEvent(run, lease, event), binding, policy);
             ToolExecutionContextHolder.set(runContext);
+            if (run.deadlineAt() != null && !Instant.now().isBefore(run.deadlineAt())) {
+                timeout(run.id());
+                return;
+            }
             AnswerExecution execution = executeAnswer(run);
-            String answer = execution.answer();
-            saveCheckpoint(run, 1, "commit-answer", leaseOwner);
+            saveCheckpoint(run, 1, "commit-answer", lease.owner);
             // 当前 RunExecutor 以完整答案字符串返回；将答案首次可用时间记录为
             // TTFT 近似值，待真正 token streaming executor 接入后再替换为首 token 时间。
             if (metrics != null) {
                 metrics.recordTimeToFirstToken(Duration.between(startedAt, Instant.now()).toMillis());
             }
-            synchronized (run) {
-                if (run.status().isTerminal()) return;
+            if (run.status().isTerminal() || run.status() == AgentRunStatus.WAITING_APPROVAL) return;
+            // Lineage may call an executor extension; compute it before opening a DB transaction.
+            AnswerLineage lineage = execution.contract() == null
+                    ? AnswerLineage.empty()
+                    : (executor instanceof ContractAwareRunExecutor contractExecutor
+                    ? contractExecutor.answerLineage(new AgentRunContext(run), execution.contract())
+                    : AnswerLineage.empty());
+            // Persist the opaque, encrypted answer artifact in its own fenced
+            // transaction after the step-1 checkpoint. This leaves a durable
+            // reconciliation fact even if the later projection/event CAS fails.
+            saveStepOutput(run, 1, execution, lineage);
+            String answerId = answerId(run);
+            AnswerProjection projection = AnswerProjection.from(run, execution.contract(), answerId,
+                    Instant.now(), lineage);
+            // Decode and reconcile before opening the final persistence fence;
+            // KMS-backed codecs must never turn the lifecycle transaction into
+            // an external network call boundary.
+            verifyStepOutputConsistency(run, execution, lineage, projection);
+            workerWrite(run, () -> {
+                if (run.status().isTerminal()) return null;
+                if (run.deadlineAt() != null && !Instant.now().isBefore(run.deadlineAt())) {
+                    timeout(run.id());
+                    return null;
+                }
                 // HITL 网关已发出 approval.required；当前执行器暂停，等待审批端点恢复。
-                if (run.status() == AgentRunStatus.WAITING_APPROVAL) return;
+                if (run.status() == AgentRunStatus.WAITING_APPROVAL) return null;
                 // answerId 按 Run 稳定派生，重试/恢复不会创建第二个答案。若已
                 // 装配投影仓储，先保存不可变快照，再追加终态事件；仓储故障会让
                 // 当前 Run 走 fail-closed，而不是产生无法追溯的完成结果。
-                String answerId = answerId(run);
-                AnswerLineage lineage = execution.contract() == null
-                        ? AnswerLineage.empty()
-                        : (executor instanceof ContractAwareRunExecutor contractExecutor
-                        ? contractExecutor.answerLineage(new AgentRunContext(run), execution.contract())
-                        : AnswerLineage.empty());
-                AnswerProjection projection = AnswerProjection.from(run, execution.contract(), answerId,
-                        Instant.now(), lineage);
+                AnswerProjection committedProjection = projection;
                 if (answerProjectionRepository != null) {
-                    projection = answerProjectionRepository.save(projection);
+                    committedProjection = answerProjectionRepository.save(committedProjection);
                 }
-                // 先发布仍属于 RUNNING 阶段的答案/用量，再以 CAS 提交终态。
-                // 这样事件流不会出现 answer.delta 位于 run.completed 之后；若
-                // CAS 失败，另一实例的终态事件仍会排在这些已发布事件之后，旧
-                // worker 不会再追加自己的终态。
+                // Keep event order while committing projection, message, events, Run CAS and
+                // checkpoint in the same JDBC fence transaction. A losing CAS rolls all back.
+                String answer = execution.answer();
                 if (answer != null && !answer.isBlank()) {
                     Map<String, Object> answerDelta = new LinkedHashMap<>();
                     answerDelta.put("text", answer);
-                    answerDelta.put("answerId", projection.answerId());
-                    answerDelta.put("lineageStatus", projection.lineageStatus().name());
+                    answerDelta.put("answerId", committedProjection.answerId());
+                    answerDelta.put("lineageStatus", committedProjection.lineageStatus().name());
                     emitLocked(run, AgentEventType.ANSWER_DELTA, answerDelta);
                     messageRepository.save(new ChatMessage("message-" + UUID.randomUUID(), run.conversationId(),
                             run.id(), run.userId(), "assistant", answer, Instant.now(), lineagePayload(run)));
                 }
                 // ANSWER_COMPLETED 位于 RUN_COMPLETED 之前，保证非终态事件仍
                 // 可追加；它携带投影的稳定 answerId 和完整/部分血缘状态。
-                Map<String, Object> answerCompleted = new LinkedHashMap<>(projection.lineagePayload());
-                answerCompleted.put("status", projection.status());
-                answerCompleted.put("answerDigest", projection.answerDigest());
+                Map<String, Object> answerCompleted = new LinkedHashMap<>(committedProjection.lineagePayload());
+                answerCompleted.put("status", committedProjection.status());
+                answerCompleted.put("answerDigest", committedProjection.answerDigest());
                 emitLocked(run, AgentEventType.ANSWER_COMPLETED, answerCompleted);
                 emitLocked(run, AgentEventType.USAGE, Map.of("executor", executor.getClass().getSimpleName()));
                 run.complete();
-                try {
-                    runRepository.save(run);
-                } catch (RunConflictException conflict) {
-                    refreshAfterConflict(run, conflict);
-                    throw conflict;
-                }
+                runRepository.save(run);
                 Map<String, Object> completed = new LinkedHashMap<>();
                 completed.put("status", run.status().name());
                 if (execution.contract() != null) {
@@ -662,41 +1042,50 @@ public class PokemonAgentRunService {
                             .map(this::citationPayload).toList());
                     completed.put("limitations", execution.contract().limitations());
                 }
-                completed.putAll(projection.lineagePayload());
+                completed.putAll(committedProjection.lineagePayload());
                 emitLocked(run, AgentEventType.RUN_COMPLETED, completed);
-                saveCheckpoint(run, 2, "finished", leaseOwner);
-            }
+                saveCheckpoint(run, 2, "finished", lease.owner);
+                return null;
+            });
+        } catch (RunLeaseLostException ex) {
+            lease.loseOwnership();
+            log.info("Run 执行所有权已失效，停止本地提交: runId={}", run.id());
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            cancelIfActive(run, "interrupted");
+            // Shutdown preserves pending approval facts even when its old worker cooperates
+            // with interruption. User cancellation has already transitioned the Run itself.
+            if (run.status() != AgentRunStatus.WAITING_APPROVAL || admission.snapshot().accepting()) {
+                try { cancelIfActive(run, "interrupted"); }
+                catch (RunLeaseLostException lost) { log.info("失租约 worker 不提交取消状态: runId={}", run.id()); }
+                catch (RunConflictException conflict) { log.info("Run 已由其他实例推进: runId={}", run.id()); }
+            }
         } catch (RunConflictException ex) {
             // 另一实例已经提交了更新；旧 worker 不得再用旧快照写 FAILED。
             log.info("Run 已由其他实例推进，停止旧 worker: runId={}, expectedVersion={}",
                     run.id(), run.version());
         } catch (Exception ex) {
-            failIfActive(run, ex);
+            try { failIfActive(run, ex); }
+            catch (RunLeaseLostException lost) { log.info("失租约 worker 不提交失败状态: runId={}", run.id()); }
+            catch (RunConflictException conflict) { log.info("Run 已由其他实例推进: runId={}", run.id()); }
         } finally {
             ToolExecutionContextHolder.clear();
-            if (metrics != null && metricsActive) {
-                metrics.decrementActiveAgents();
-                // WAITING_APPROVAL 不是终态；只在最终完成/失败/取消/超时时记录一次 Run。
-                if (run.status().isTerminal()) {
-                    metrics.recordRun(run.status().name(), Duration.between(startedAt, Instant.now()).toMillis());
+            try {
+                if (metrics != null && metricsActive) {
+                    metrics.decrementActiveAgents();
+                    // WAITING_APPROVAL 不是终态；只在最终完成/失败/取消/超时时记录一次 Run。
+                    if (run.status().isTerminal()) {
+                        metrics.recordRun(run.status().name(), Duration.between(startedAt, Instant.now()).toMillis());
+                    }
+                }
+            } finally {
+                // ManagedRunTask retains ownership until lease cleanup and physical exit finish.
+                lease.revoked.set(true);
+                try { releaseLease(run, lease); }
+                finally {
+                    executionLease.remove();
+                    fencedLease.remove();
                 }
             }
-            if (ownerTask == null) {
-                tasks.remove(run.id());
-            } else {
-                tasks.remove(run.id(), ownerTask);
-            }
-            // 审批暂停期间保留 activeRuns，避免审批线程与旧 worker 的 finally
-            // 竞态导致恢复任务失去当前快照；恢复/终态后再移除。
-            if (run.status().isTerminal() || run.status() != AgentRunStatus.WAITING_APPROVAL) {
-                activeRuns.remove(run.id(), run);
-                tokenBindings.remove(run.id());
-                principalPolicies.remove(run.id());
-            }
-            releaseLease(run, leaseOwner, leaseToken);
         }
     }
 
@@ -739,6 +1128,301 @@ public class PokemonAgentRunService {
             }
         }
         return new AnswerExecution(contract.answer(), contract);
+    }
+
+    /**
+     * Save the immutable output produced by step 1. The artifact is deliberately
+     * opaque at rest: only the controlled codec sees its plaintext JSON. A
+     * configured durable repository without a codec is a hard error, because
+     * falling back to plaintext would make recovery less safe than no artifact.
+     */
+    private void saveStepOutput(AgentRun run, int stepNo, AnswerExecution execution,
+                                AnswerLineage lineage) {
+        String key = (run == null ? "<null>" : run.id()) + "#" + stepNo;
+        java.util.Set<String> active = activeStepOutputWrites.get();
+        if (!active.add(key)) {
+            // A reentrant repository callback is used by tests and can also
+            // occur in an instrumented store. Reconcile identical plaintext
+            // output; reject a different logical result instead of allowing
+            // the outer write to hide the conflict.
+            try {
+                if (run != null && execution != null && durableRunProperties.durableResume()
+                        && stepOutputRepository != null && stepOutputCodec != null) {
+                    String canonical = canonicalStepOutput(run, stepNo, execution, lineage);
+                    if (reuseExistingStepOutput(run, stepNo, executor.getClass().getName(),
+                            contextHash(run), hashValue(canonical), canonical, stepOutputCodec)) {
+                        return;
+                    }
+                }
+            } catch (RuntimeException ignored) {
+                // Fall through to the explicit reentrant conflict below.
+            }
+            throw new RunStepOutputConflictException(true);
+        }
+        try {
+            saveStepOutputInternal(run, stepNo, execution, lineage);
+        } finally {
+            active.remove(key);
+            if (active.isEmpty()) activeStepOutputWrites.remove();
+        }
+    }
+
+    private void saveStepOutputInternal(AgentRun run, int stepNo, AnswerExecution execution,
+                                AnswerLineage lineage) {
+        if (!durableRunProperties.durableResume() || stepOutputRepository == null) return;
+        if (run == null || execution == null) {
+            throw new RunStepOutputException("Run 步骤输出上下文缺失");
+        }
+        ModelInvocationCacheCodec codec = stepOutputCodec;
+        if (codec == null) {
+            throw new RunStepOutputException("Run 步骤输出已启用但未配置受控 codec");
+        }
+        String canonicalPayload = canonicalStepOutput(run, stepNo, execution, lineage);
+        String payloadDigest = hashValue(canonicalPayload);
+        String expectedContextHash = contextHash(run);
+        String expectedExecutorVersion = executor.getClass().getName();
+        // A KMS/envelope codec normally uses a fresh nonce for every encode. Reuse
+        // an already persisted, valid artifact before asking the codec to encrypt
+        // again; otherwise a replay of the same logical output would look like a
+        // conflicting immutable row merely because its ciphertext differs.
+        if (reuseExistingStepOutput(run, stepNo, expectedExecutorVersion, expectedContextHash,
+                payloadDigest, canonicalPayload, stepOutputCodec)) {
+            return;
+        }
+        final String encryptedPayload;
+        final String keyVersion;
+        try {
+            encryptedPayload = codec.encode(canonicalPayload);
+            keyVersion = normalizeStepOutputKeyVersion(codec.keyVersion());
+        } catch (RuntimeException ex) {
+            throw new RunStepOutputException("Run 步骤输出加密失败", ex);
+        }
+        if (encryptedPayload == null || encryptedPayload.isBlank()) {
+            throw new RunStepOutputException("Run 步骤输出密文为空");
+        }
+        Instant createdAt = Instant.now();
+        RunStepOutput candidate;
+        try {
+            candidate = new RunStepOutput(run.id(), stepNo, expectedExecutorVersion,
+                    expectedContextHash, payloadDigest, encryptedPayload.trim(), keyVersion,
+                    createdAt, createdAt.plus(STEP_OUTPUT_RETENTION));
+        } catch (RuntimeException ex) {
+            throw new RunStepOutputException("Run 步骤输出元数据无效", ex);
+        }
+        try {
+            workerWrite(run, () -> {
+                if (run.status().isTerminal() || run.status() == AgentRunStatus.WAITING_APPROVAL) return null;
+                Optional<RunStepOutput> existing = stepOutputRepository.find(run.id(), stepNo);
+                if (existing.isPresent()) {
+                    if (sameImmutableOutput(existing.get(), candidate)) return null;
+                    throw new RunStepOutputConflictException();
+                }
+                stepOutputRepository.save(candidate);
+                return null;
+            });
+        } catch (RunLeaseLostException | RunConflictException | RunStepOutputConflictException ex) {
+            if (ex instanceof RunStepOutputConflictException conflict && conflict.reentrant()) {
+                throw ex;
+            }
+            // A concurrent writer may have won the immutable key between the
+            // read above and INSERT. Reconcile that row outside the fence,
+            // where a KMS decode is allowed, and reuse it only if its canonical
+            // plaintext and metadata match this execution.
+            if (ex instanceof RunStepOutputConflictException
+                    && reuseExistingStepOutput(run, stepNo, expectedExecutorVersion,
+                    expectedContextHash, payloadDigest, canonicalPayload, stepOutputCodec)) {
+                return;
+            }
+            throw ex;
+        } catch (RuntimeException ex) {
+            throw new RunStepOutputException("Run 步骤输出持久化失败", ex);
+        }
+    }
+
+    /**
+     * Reconcile an existing immutable row without performing KMS work inside a
+     * lease transaction. A missing row returns false; a corrupt or semantically
+     * different row fails closed.
+     */
+    private boolean reuseExistingStepOutput(AgentRun run, int stepNo, String expectedExecutorVersion,
+                                            String expectedContextHash, String expectedPayloadDigest,
+                                            String canonicalPayload, ModelInvocationCacheCodec codec) {
+        final Optional<RunStepOutput> existing;
+        try {
+            existing = stepOutputRepository.find(run.id(), stepNo);
+        } catch (RuntimeException ex) {
+            throw new RunStepOutputException("读取既有 Run 步骤输出失败", ex);
+        }
+        if (existing.isEmpty()) return false;
+        RunStepOutput output = existing.get();
+        if (output.expired(Instant.now())) {
+            throw new RunStepOutputException("既有 Run 步骤输出已过期");
+        }
+        if (!run.id().equals(output.runId()) || stepNo != output.stepNo()
+                || !expectedExecutorVersion.equals(output.executorVersion())
+                || !expectedContextHash.equalsIgnoreCase(output.contextHash())
+                || !expectedPayloadDigest.equalsIgnoreCase(output.payloadDigest())) {
+            throw new RunStepOutputConflictException();
+        }
+        if (codec == null) throw new RunStepOutputException("Run 步骤输出 codec 不可用");
+        final String decoded;
+        try {
+            decoded = codec.decode(output.encryptedPayload(), output.keyVersion());
+        } catch (RuntimeException ex) {
+            throw new RunStepOutputException("既有 Run 步骤输出解密失败", ex);
+        }
+        if (decoded == null || !canonicalPayload.equals(decoded)
+                || !hashValue(decoded).equalsIgnoreCase(output.payloadDigest())) {
+            throw new RunStepOutputConflictException();
+        }
+        return true;
+    }
+
+    /** Verify the persisted artifact before publishing the answer projection. */
+    private void verifyStepOutputConsistency(AgentRun run, AnswerExecution execution,
+                                             AnswerLineage lineage, AnswerProjection projection) {
+        if (!durableRunProperties.durableResume() || stepOutputRepository == null) return;
+        RunStepOutput output;
+        try {
+            output = stepOutputRepository.find(run.id(), 1).orElse(null);
+        } catch (RuntimeException ex) {
+            throw new RunStepOutputException("读取 Run 步骤输出失败", ex);
+        }
+        if (output == null || output.expired(Instant.now())) {
+            throw new RunStepOutputException("Run 步骤输出缺失或已过期");
+        }
+        if (!run.id().equals(output.runId()) || output.stepNo() != 1
+                || !executor.getClass().getName().equals(output.executorVersion())
+                || output.keyVersion() == null || output.keyVersion().isBlank()) {
+            throw new RunStepOutputException("Run 步骤输出元数据不一致");
+        }
+        String canonicalPayload = canonicalStepOutput(run, 1, execution, lineage);
+        if (!contextHash(run).equalsIgnoreCase(output.contextHash())
+                || !hashValue(canonicalPayload).equalsIgnoreCase(output.payloadDigest())) {
+            throw new RunStepOutputException("Run 步骤输出与答案投影不一致");
+        }
+        ModelInvocationCacheCodec codec = stepOutputCodec;
+        if (codec == null) throw new RunStepOutputException("Run 步骤输出 codec 不可用");
+        final String decoded;
+        try {
+            decoded = codec.decode(output.encryptedPayload(), output.keyVersion());
+        } catch (RuntimeException ex) {
+            throw new RunStepOutputException("Run 步骤输出解密失败", ex);
+        }
+        if (decoded == null || !canonicalPayload.equals(decoded)
+                || !hashValue(decoded).equalsIgnoreCase(output.payloadDigest())) {
+            throw new RunStepOutputException("Run 步骤输出密文摘要校验失败");
+        }
+        verifyArtifactProjectionFields(decoded, projection);
+        String answerDigest = hashValue(execution.answer() == null ? "" : execution.answer());
+        // Legacy text executors do not populate AnswerProjection.answer when no
+        // AnswerContract exists; structured executors must match the projection.
+        if (execution.contract() != null && !answerDigest.equalsIgnoreCase(projection.answerDigest())) {
+            throw new RunStepOutputException("Run 步骤输出答案摘要不一致");
+        }
+    }
+
+    private void verifyArtifactProjectionFields(String decoded, AnswerProjection projection) {
+        try {
+            var payload = outputMapper.readTree(decoded);
+            if (!answerIdValue(payload, "answerId").equals(safe(projection.answerId()))
+                    || !answerIdValue(payload, "status").equals(safe(projection.status()))
+                    || !answerIdValue(payload, "gameVersion").equals(safe(projection.gameReleaseId()))
+                    || !answerIdValue(payload, "battleFormat").equals(safe(projection.battleFormatId()))
+                    || !answerIdValue(payload, "rulesetVersion").equals(safe(projection.rulesetVersionId()))
+                    || !answerIdValue(payload, "traceId").equals(safe(projection.traceId()))) {
+                throw new RunStepOutputException("Run 步骤输出与答案投影字段不一致");
+            }
+            var lineage = payload.path("lineage");
+            if (!answerIdValue(lineage, "dlcId").equals(safe(projection.dlcId()))
+                    || !answerIdValue(lineage, "dataReleaseId").equals(safe(projection.dataReleaseId()))
+                    || !answerIdValue(lineage, "knowledgeReleaseId").equals(safe(projection.knowledgeReleaseId()))
+                    || !answerIdValue(lineage, "indexReleaseId").equals(safe(projection.indexReleaseId()))
+                    || !answerIdValue(lineage, "contractVersion").equals(safe(projection.contractVersion()))) {
+                throw new RunStepOutputException("Run 步骤输出血缘与答案投影不一致");
+            }
+        } catch (RunStepOutputException ex) {
+            throw ex;
+        } catch (JsonProcessingException ex) {
+            throw new RunStepOutputException("Run 步骤输出结构无效", ex);
+        } catch (RuntimeException ex) {
+            throw new RunStepOutputException("Run 步骤输出结构无效", ex);
+        }
+    }
+
+    private String answerIdValue(com.fasterxml.jackson.databind.JsonNode node, String field) {
+        return node == null || node.path(field).isMissingNode() || node.path(field).isNull()
+                ? "" : node.path(field).asText("");
+    }
+
+    private boolean sameImmutableOutput(RunStepOutput left, RunStepOutput right) {
+        return left != null && right != null
+                && left.runId().equals(right.runId())
+                && left.stepNo() == right.stepNo()
+                && left.executorVersion().equals(right.executorVersion())
+                && left.contextHash().equalsIgnoreCase(right.contextHash())
+                && left.payloadDigest().equalsIgnoreCase(right.payloadDigest())
+                && left.encryptedPayload().equals(right.encryptedPayload())
+                && left.keyVersion().equals(right.keyVersion());
+    }
+
+    /** Produce deterministic JSON before encryption; no prompt or authorization data is included. */
+    private String canonicalStepOutput(AgentRun run, int stepNo, AnswerExecution execution,
+                                      AnswerLineage lineage) {
+        AnswerContract contract = execution.contract();
+        lineage = lineage == null ? AnswerLineage.empty() : lineage;
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("schemaVersion", "run-step-output.v1");
+        payload.put("runId", run.id());
+        payload.put("stepNo", stepNo);
+        payload.put("answerId", answerId(run));
+        payload.put("answer", execution.answer() == null ? "" : execution.answer());
+        payload.put("status", contract == null ? AgentRunStatus.COMPLETED.name() : contract.status().name());
+        payload.put("gameVersion", firstNonBlank(contract == null ? null : contract.applicableGameVersion(),
+                run.gameReleaseId()));
+        payload.put("battleFormat", firstNonBlank(contract == null ? null : contract.battleFormat(),
+                run.battleFormat()));
+        payload.put("rulesetVersion", firstNonBlank(contract == null ? null : contract.rulesetVersion(),
+                run.rulesetVersionId()));
+        List<Map<String, Object>> citations = new java.util.ArrayList<>();
+        if (contract != null && contract.citations() != null) {
+            for (var citation : contract.citations()) {
+                if (citation != null) citations.add(citationPayload(citation));
+            }
+        }
+        payload.put("citations", citations);
+        payload.put("limitations", contract == null ? List.of() : contract.limitations());
+        payload.put("traceId", firstNonBlank(contract == null ? null : contract.traceId(), run.traceId()));
+        Map<String, Object> lineagePayload = new LinkedHashMap<>();
+        lineagePayload.put("dlcId", firstNonBlank(lineage.dlcId(), run.dlcId()));
+        lineagePayload.put("dataReleaseId", firstNonBlank(lineage.dataReleaseId(), run.dataReleaseId()));
+        lineagePayload.put("knowledgeReleaseId", firstNonBlank(lineage.knowledgeReleaseId(), run.knowledgeReleaseId()));
+        lineagePayload.put("indexReleaseId", firstNonBlank(lineage.indexReleaseId(), run.indexReleaseId()));
+        // AnswerProjection gives an extension lineage contract version precedence
+        // only when all release IDs are present; keep the artifact byte-for-byte
+        // aligned with that resolution rule.
+        String contractVersion = lineage.hasReleaseLineage()
+                ? firstNonBlank(lineage.contractVersion(), run.contractVersion())
+                : firstNonBlank(run.contractVersion(), lineage.contractVersion());
+        lineagePayload.put("contractVersion", contractVersion);
+        payload.put("lineage", lineagePayload);
+        try {
+            return outputMapper.writeValueAsString(payload);
+        } catch (JsonProcessingException ex) {
+            throw new RunStepOutputException("Run 步骤输出规范化失败", ex);
+        } catch (RuntimeException ex) {
+            throw new RunStepOutputException("Run 步骤输出规范化失败", ex);
+        }
+    }
+
+    private String normalizeStepOutputKeyVersion(String value) {
+        return value == null || value.isBlank() ? "managed" : value.trim();
+    }
+
+    private String firstNonBlank(String first, String second) {
+        return first == null || first.isBlank() || "unknown".equalsIgnoreCase(first.trim())
+                ? (second == null || second.isBlank() || "unknown".equalsIgnoreCase(second.trim())
+                ? null : second.trim()) : first.trim();
     }
 
     private record AnswerExecution(String answer, AnswerContract contract) { }
@@ -824,90 +1508,101 @@ public class PokemonAgentRunService {
             default -> null;
         };
         if (type == null) return;
-        synchronized (run) {
-            if (run.status().isTerminal()) return;
+        workerWrite(run, () -> {
+            if (run.status().isTerminal()) return null;
             if (type == AgentEventType.APPROVAL_REQUIRED
                     && run.status() == AgentRunStatus.RUNNING) {
                 run.transitionTo(AgentRunStatus.WAITING_APPROVAL);
-                try {
-                    runRepository.save(run);
-                } catch (RunConflictException conflict) {
-                    refreshAfterConflict(run, conflict);
-                    return;
-                }
+                runRepository.save(run);
             }
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("toolName", event.toolName());
             payload.put("governanceEventId", event.eventId());
             payload.putAll(event.attributes());
             emitLocked(run, type, payload);
-        }
+            return null;
+        });
     }
 
     private void timeout(String runId) {
         AgentRun run = activeRuns.get(runId);
         if (run == null) run = runRepository.findById(runId).orElse(null);
         if (run == null) return;
-        synchronized (run) {
-            if (run.status().isTerminal() || !run.timeout()) return;
-            try {
-                runRepository.save(run);
-            } catch (RunConflictException conflict) {
-                refreshAfterConflict(run, conflict);
-                return;
+        AgentRun timeoutRun = run;
+        boolean nestedInWorkerFence = fencedLease.get() != null;
+        try {
+            workerWrite(timeoutRun, () -> {
+                if (timeoutRun.status().isTerminal()) return null;
+                if (!timeoutRun.timeout()) return null;
+                if (!saveLifecycle(timeoutRun)) return null;
+                emitLocked(timeoutRun, AgentEventType.RUN_TIMED_OUT, Map.of("reason", "deadline_exceeded"));
+                return null;
+            });
+        } finally {
+            // Revoke only after the timeout fact has left its lifecycle fence;
+            // revoking inside the transaction would make workerWrite roll back
+            // the very terminal state it just committed.
+            if (!nestedInWorkerFence) {
+                cancelTask(runId);
+                cleanIdleRun(timeoutRun);
             }
-            emitLocked(run, AgentEventType.RUN_TIMED_OUT, Map.of("reason", "deadline_exceeded"));
-            FutureTask<Void> task = tasks.get(runId);
-            if (task != null) task.cancel(true);
         }
     }
 
     private void cancelIfActive(AgentRun run, String reason) {
-        synchronized (run) {
-            if (run.status().isTerminal() || !run.cancel()) return;
-            try {
-                runRepository.save(run);
-            } catch (RunConflictException conflict) {
-                refreshAfterConflict(run, conflict);
-                log.info("Run 取消被其他实例抢先处理: runId={}", run.id());
-                return;
-            }
-            emitLocked(run, AgentEventType.RUN_CANCELLED, Map.of("reason", reason));
+        try {
+            workerWrite(run, () -> {
+                if (run.status().isTerminal() || !run.cancel()) return null;
+                if (!saveLifecycle(run)) return null;
+                emitLocked(run, AgentEventType.RUN_CANCELLED, Map.of("reason", reason));
+                return null;
+            });
+        } finally {
+            // The lease must remain active until workerWrite has returned so a
+            // terminal cancellation cannot roll back its own fenced transaction.
+            cancelTask(run.id());
+            cleanIdleRun(run);
         }
     }
 
     private void failIfActive(AgentRun run, Exception ex) {
-        synchronized (run) {
-            if (run.status().isTerminal() || !run.fail()) return;
-            try {
-                runRepository.save(run);
-            } catch (RunConflictException conflict) {
-                refreshAfterConflict(run, conflict);
-                log.info("Run 失败状态已由其他实例处理: runId={}", run.id());
-                return;
-            }
-            emitLocked(run, AgentEventType.RUN_FAILED, Map.of("errorType", ex.getClass().getSimpleName()));
+        workerWrite(run, () -> {
+            if (run.status().isTerminal() || !run.fail()) return null;
+            if (!saveLifecycle(run)) return null;
+            String errorType = ex instanceof RunQueueTimeoutException ? "RUN_QUEUE_TIMEOUT"
+                    : ex instanceof RunDispatchException ? "RUN_EXECUTION_UNAVAILABLE"
+                    : ex instanceof RunAuthorizationExpiredException ? "RUN_AUTHORIZATION_EXPIRED"
+                    : ex.getClass().getSimpleName();
+            emitLocked(run, AgentEventType.RUN_FAILED, Map.of("errorType", errorType));
             if (metrics != null) metrics.recordError();
             log.warn("Run 执行失败 runId={}, errorType={}", run.id(), ex.getClass().getSimpleName());
-        }
+            return null;
+        });
     }
 
     private boolean transition(AgentRun run, AgentRunStatus target, Map<String, Object> payload) {
-        synchronized (run) {
+        return workerWrite(run, () -> {
             if (!run.transitionTo(target)) return false;
-            try {
-                runRepository.save(run);
-            } catch (RunConflictException conflict) {
-                refreshAfterConflict(run, conflict);
-                return false;
-            }
+            if (!saveLifecycle(run)) return false;
             if (target == AgentRunStatus.RUNNING) emitLocked(run, AgentEventType.RUN_STARTED, payload);
             return true;
+        });
+    }
+
+    private boolean saveLifecycle(AgentRun run) {
+        try {
+            runRepository.save(run);
+            return true;
+        } catch (RunConflictException conflict) {
+            // Let the worker fence roll back first. Control paths retain their existing CAS behavior.
+            if (executionLease.get() != null) throw conflict;
+            refreshAfterConflict(run, conflict);
+            return false;
         }
     }
 
     private void emit(AgentRun run, AgentEventType type, Map<String, Object> payload) {
-        synchronized (run) { emitLocked(run, type, payload); }
+        workerWrite(run, () -> { emitLocked(run, type, payload); return null; });
     }
 
     private void emitLocked(AgentRun run, AgentEventType type, Map<String, Object> payload) {
@@ -973,24 +1668,27 @@ public class PokemonAgentRunService {
         for (AgentRun run : List.copyOf(activeRuns.values())) {
             if (!conversationId.equals(run.conversationId()) || !userId.equals(run.userId())) continue;
             synchronized (run) {
-                if (!run.status().isTerminal() && run.cancel()) {
-                    try {
-                        runRepository.save(run);
-                        emitLocked(run, AgentEventType.RUN_CANCELLED,
-                                Map.of("reason", "conversation_deleted"));
-                    } catch (RunConflictException conflict) {
-                        // 其他实例可能已经推进了 Run；删除会话仍应继续，
-                        // 但绝不能把旧快照重新写回数据库。
-                        refreshAfterConflict(run, conflict);
+                try {
+                    if (!run.status().isTerminal() && run.cancel()) {
+                        try {
+                            runRepository.save(run);
+                            emitLocked(run, AgentEventType.RUN_CANCELLED,
+                                    Map.of("reason", "conversation_deleted"));
+                        } catch (RunConflictException conflict) {
+                            // 其他实例可能已经推进了 Run；删除会话仍应继续，
+                            // 但绝不能把旧快照重新写回数据库。
+                            refreshAfterConflict(run, conflict);
+                        }
                     }
+                } finally {
+                    cancelTask(run.id());
+                    // 即使冲突刷新过另一份快照，删除会话后该 Run 也不再属于
+                    // 可见资源；无条件清掉本进程索引，避免保留孤儿快照。
+                    activeRuns.remove(run.id());
+                    tokenBindings.remove(run.id());
+                    principalPolicies.remove(run.id());
+                    cleanIdleRun(run);
                 }
-                FutureTask<Void> task = tasks.remove(run.id());
-                if (task != null) task.cancel(true);
-                // 即使冲突刷新过另一份快照，删除会话后该 Run 也不再属于
-                // 可见资源；无条件清掉本进程索引，避免保留孤儿快照。
-                activeRuns.remove(run.id());
-                tokenBindings.remove(run.id());
-                principalPolicies.remove(run.id());
             }
         }
     }
@@ -1002,11 +1700,11 @@ public class PokemonAgentRunService {
 
     private void evictDetachedRun(AgentRun run) {
         if (run == null) return;
-        FutureTask<Void> task = tasks.remove(run.id());
-        if (task != null) task.cancel(true);
+        cancelTask(run.id());
         activeRuns.remove(run.id(), run);
         tokenBindings.remove(run.id());
         principalPolicies.remove(run.id());
+        cleanIdleRun(run);
     }
 
     private Duration remainingTimeout(AgentRun run) {
@@ -1015,45 +1713,50 @@ public class PokemonAgentRunService {
         return Duration.ofMillis(Math.max(1L, millis));
     }
 
-    private boolean acquireLease(AgentRun run, String owner, String token) {
+    private boolean acquireLease(AgentRun run, ExecutionLease execution) {
+        execution.requireActive();
         if (checkpointRepository == null || !durableRunProperties.durableResume()) return true;
         Duration ttl = Duration.ofSeconds(durableRunProperties.leaseTtlSeconds());
-        Optional<RunLease> lease = checkpointRepository.acquireLease(run.id(), owner, token, ttl);
-        if (lease.isEmpty()) return false;
-        leaseTokens.put(run.id(), token);
+        Optional<RunLease> lease;
+        try { lease = checkpointRepository.acquireLease(run.id(), execution.owner, execution.token, ttl); }
+        catch (RuntimeException ex) {
+            execution.loseOwnership();
+            throw new RunLeaseLostException();
+        }
+        execution.requireActive();
+        if (lease.isEmpty()) { execution.loseOwnership(); return false; }
         long interval = Math.max(1L, Math.min(durableRunProperties.heartbeatSeconds(),
                 Math.max(1L, durableRunProperties.leaseTtlSeconds() / 2)));
         ScheduledFuture<?> heartbeat = scheduler.scheduleAtFixedRate(
-                () -> heartbeat(run, owner, token), interval, interval, TimeUnit.SECONDS);
+                () -> heartbeat(run, execution), interval, interval, TimeUnit.SECONDS);
         heartbeatTasks.put(run.id(), heartbeat);
         return true;
     }
 
-    private void heartbeat(AgentRun run, String owner, String token) {
-        if (run.status().isTerminal() || checkpointRepository == null) return;
+    private void heartbeat(AgentRun run, ExecutionLease execution) {
+        if (execution.revoked.get() || run.status().isTerminal() || checkpointRepository == null) return;
         try {
-            if (checkpointRepository.heartbeat(run.id(), owner, token,
+            if (checkpointRepository.heartbeat(run.id(), execution.owner, execution.token,
                     Duration.ofSeconds(durableRunProperties.leaseTtlSeconds())).isEmpty()) {
                 log.warn("Run 租约心跳失败，停止本地 worker: runId={}", run.id());
-                FutureTask<Void> task = tasks.get(run.id());
-                if (task != null) task.cancel(true);
+                execution.loseOwnership();
+                execution.task.cancel(true);
             }
         } catch (RuntimeException ex) {
-            log.warn("Run 租约心跳异常，停止本地 worker: runId={}, reason={}", run.id(), ex.getMessage());
-            FutureTask<Void> task = tasks.get(run.id());
-            if (task != null) task.cancel(true);
+            log.warn("Run 租约心跳异常，停止本地 worker: runId={}", run.id());
+            execution.loseOwnership();
+            execution.task.cancel(true);
         }
     }
 
-    private void releaseLease(AgentRun run, String owner, String token) {
+    private void releaseLease(AgentRun run, ExecutionLease execution) {
         ScheduledFuture<?> heartbeat = heartbeatTasks.remove(run.id());
         if (heartbeat != null) heartbeat.cancel(false);
-        leaseTokens.remove(run.id(), token);
         if (checkpointRepository != null && durableRunProperties.durableResume()) {
             try {
-                checkpointRepository.releaseLease(run.id(), owner, token);
+                checkpointRepository.releaseLease(run.id(), execution.owner, execution.token);
             } catch (RuntimeException ex) {
-                log.warn("释放 Run 租约失败（将由过期回收处理）: runId={}, reason={}", run.id(), ex.getMessage());
+                log.warn("释放 Run 租约失败（将由过期回收处理）: runId={}", run.id());
             }
         }
     }
@@ -1062,14 +1765,30 @@ public class PokemonAgentRunService {
     private void saveCheckpoint(AgentRun run, int stepNo, String nextAction, String leaseOwner) {
         if (checkpointRepository == null) return;
         try {
-            AgentCheckpoint latest = checkpointRepository.findLatest(run.id()).orElse(null);
-            long version = latest == null ? 0L : latest.version();
-            AgentCheckpoint checkpoint = new AgentCheckpoint(run.id(), stepNo,
-                    executor.getClass().getName(), contextHash(run), eventRepository.lastEventId(run.id()),
-                    nextAction, leaseOwner,
-                    leaseOwner == null ? null : Instant.now().plusSeconds(durableRunProperties.leaseTtlSeconds()),
-                    leaseOwner == null ? null : Instant.now(), Instant.now(), version);
-            checkpointRepository.save(checkpoint);
+            workerWrite(run, () -> {
+                // A physical worker may ignore interrupt and return after an
+                // external cancel/timeout. Terminal runs must never receive a
+                // stale step checkpoint; the sole terminal checkpoint is the
+                // successful step-2/finished fact written after COMPLETED.
+                boolean finished = stepNo == 2
+                        && run.status() == AgentRunStatus.COMPLETED
+                        && "finished".equals(nextAction);
+                if (run.status().isTerminal() && !finished) return null;
+                if (stepNo == 2 && !finished) return null;
+                // CAS belongs to this step, not the highest step from a previous execution.
+                long version = checkpointRepository.findByRun(run.id()).stream()
+                        .filter(checkpoint -> checkpoint.stepNo() == stepNo)
+                        .findFirst().map(AgentCheckpoint::version).orElse(0L);
+                AgentCheckpoint checkpoint = new AgentCheckpoint(run.id(), stepNo,
+                        executor.getClass().getName(), contextHash(run), eventRepository.lastEventId(run.id()),
+                        nextAction, leaseOwner,
+                        leaseOwner == null ? null : Instant.now().plusSeconds(durableRunProperties.leaseTtlSeconds()),
+                        leaseOwner == null ? null : Instant.now(), Instant.now(), version);
+                checkpointRepository.save(checkpoint);
+                return null;
+            });
+        } catch (RunLeaseLostException | RunConflictException ex) {
+            throw ex;
         } catch (RuntimeException ex) {
             if (durableRunProperties.durableResume()) {
                 throw new IllegalStateException("耐久 checkpoint 写入失败，安全停止 Run", ex);
@@ -1221,6 +1940,7 @@ public class PokemonAgentRunService {
                 Optional<AgentCheckpoint> checkpoint = checkpointRepository.findLatest(run.id());
                 if (checkpoint.isPresent() && (run.status() == AgentRunStatus.CREATED
                         || run.status() == AgentRunStatus.RUNNING)) {
+                    restoreValidatedAuthorizationSnapshot(run);
                     AgentCheckpoint saved = checkpoint.get();
                     RunRecoveryPolicy.Decision decision = recoveryDecision(run, saved);
                     if (decision.canResume()) {
@@ -1255,6 +1975,32 @@ public class PokemonAgentRunService {
                     emitLocked(run, AgentEventType.RUN_FAILED, Map.of("errorType", "SERVICE_RESTARTED"));
                 }
             }
+        }
+    }
+
+    /** Restore policy only after current policy configuration accepts the snapshot. */
+    private void restoreValidatedAuthorizationSnapshot(AgentRun run) {
+        if (run == null || authorizationSnapshotRepository == null || authorizationSnapshotValidator == null) return;
+        try {
+            Optional<com.vio.vioaiagent.security.AuthorizationSnapshot> found =
+                    authorizationSnapshotRepository.findByRunId(run.id());
+            if (found.isEmpty() || !authorizationSnapshotValidator.validate(found.get()).allowed()) return;
+            if (authorizationRevocationRepository != null
+                    && authorizationRevocationRepository.findByRunId(run.id()).isPresent()) return;
+            var snapshot = found.get();
+            Instant expires = snapshot.expiresAt();
+            TokenBinding binding = TokenBinding.oidc(snapshot.principalId(), snapshot.tenantId(), snapshot.roles(),
+                    snapshot.allowedTools(), snapshot.policyVersion(), 0, expires);
+            PrincipalPolicy policy = new PrincipalPolicy(snapshot.principalId(), snapshot.tenantId(),
+                    snapshot.roles(), snapshot.allowedTools(), snapshot.policyVersion(), expires, binding);
+            if (!policy.fingerprint().equalsIgnoreCase(snapshot.policyFingerprint())) return;
+            principalPolicies.put(run.id(), policy);
+            tokenBindings.put(run.id(), binding);
+        } catch (RuntimeException ex) {
+            principalPolicies.remove(run.id());
+            tokenBindings.remove(run.id());
+            log.warn("授权快照恢复校验失败，按安全失败处理: runId={}, errorType={}",
+                    run.id(), ex.getClass().getSimpleName());
         }
     }
 
@@ -1301,12 +2047,13 @@ public class PokemonAgentRunService {
             // 避免把已经 FAILED/CANCELLED 的 Run 放回活动表。
             if (run.status() != AgentRunStatus.WAITING_APPROVAL) return false;
             try {
+                reserveRecoveredRun(run);
                 activeRuns.putIfAbsent(run.id(), run);
                 hitlManager.rearmExpiry(pending);
-                scheduler.schedule(() -> timeout(run.id()),
-                        Math.max(1L, remainingTimeout(run).toMillis()), TimeUnit.MILLISECONDS);
+                armDeadline(run);
             } catch (RuntimeException ex) {
                 activeRuns.remove(run.id(), run);
+                cleanIdleRun(run);
                 log.warn("恢复 WAITING_APPROVAL 定时器失败，按安全失败处理: runId={}, reason={}",
                         run.id(), ex.getClass().getSimpleName());
                 return false;
@@ -1392,25 +2139,29 @@ public class PokemonAgentRunService {
     private void failAfterUnsafeRecovery(AgentRun run, AgentCheckpoint checkpoint, String reason) {
         if (run == null) return;
         synchronized (run) {
-            // 终态事件是跨实例事实；先检查它，避免把本地快照改成 FAILED
-            // 却留下一个已经发布的 COMPLETED/CANCELLED 终态。
-            if (run.status().isTerminal() || eventRepository.hasTerminalEvent(run.id())) return;
-            if (!run.fail()) return;
             try {
-                runRepository.save(run);
-            } catch (RunConflictException conflict) {
-                refreshAfterConflict(run, conflict);
-                return;
+                // 终态事件是跨实例事实；先检查它，避免把本地快照改成 FAILED
+                // 却留下一个已经发布的 COMPLETED/CANCELLED 终态。
+                if (run.status().isTerminal() || eventRepository.hasTerminalEvent(run.id())) return;
+                if (!run.fail()) return;
+                try {
+                    runRepository.save(run);
+                } catch (RunConflictException conflict) {
+                    refreshAfterConflict(run, conflict);
+                    return;
+                }
+                Map<String, Object> payload = new LinkedHashMap<>();
+                payload.put("errorType", "RECOVERY_UNSAFE");
+                payload.put("recoveryReason", safe(reason));
+                if (checkpoint != null) {
+                    payload.put("checkpointStepNo", checkpoint.stepNo());
+                    payload.put("checkpointNextAction", safe(checkpoint.nextAction()));
+                    payload.put("checkpointLastEventId", checkpoint.lastEventId());
+                }
+                emitLocked(run, AgentEventType.RUN_FAILED, payload);
+            } finally {
+                cleanIdleRun(run);
             }
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("errorType", "RECOVERY_UNSAFE");
-            payload.put("recoveryReason", safe(reason));
-            if (checkpoint != null) {
-                payload.put("checkpointStepNo", checkpoint.stepNo());
-                payload.put("checkpointNextAction", safe(checkpoint.nextAction()));
-                payload.put("checkpointLastEventId", checkpoint.lastEventId());
-            }
-            emitLocked(run, AgentEventType.RUN_FAILED, payload);
         }
     }
 
@@ -1481,10 +2232,13 @@ public class PokemonAgentRunService {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("status", run.status().name());
         if (policy != null) {
+            payload.put("principalId", policy.principalId());
             payload.put("tenantId", policy.tenantId());
             payload.put("roles", policy.roles().stream().sorted().toList());
+            payload.put("allowedTools", policy.allowedTools().stream().sorted().toList());
             payload.put("policyVersion", policy.policyVersion());
             payload.put("policyFingerprint", policy.fingerprint());
+            payload.put("bindingId", policy.tokenBinding() == null ? "" : policy.tokenBinding().tokenId());
             payload.put("policyExpiresAt", policy.expiresAt() == null ? "" : policy.expiresAt().toString());
         }
         return Map.copyOf(payload);
@@ -1508,17 +2262,62 @@ public class PokemonAgentRunService {
         return Map.copyOf(payload);
     }
 
-    private static ExecutorService newWorker() {
-        return Executors.newCachedThreadPool(runnable -> {
+    private static RunAdmissionProperties admissionProperties(ObjectProvider<RunAdmissionProperties> provider) {
+        return provider == null ? new RunAdmissionProperties() : provider.getIfAvailable(RunAdmissionProperties::new);
+    }
+
+    static ThreadPoolExecutor newWorker(RunAdmissionProperties properties) {
+        return new ThreadPoolExecutor(properties.threadCount(), properties.threadCount(), 0, TimeUnit.MILLISECONDS,
+                properties.queueCapacity() == 0 ? new SynchronousQueue<>() : new ArrayBlockingQueue<>(properties.queueCapacity()), runnable -> {
             Thread thread = new Thread(runnable, "vio-agent-run");
             thread.setDaemon(true);
             return thread;
-        });
+        }, new ThreadPoolExecutor.AbortPolicy());
     }
+
+    private static ScheduledExecutorService newScheduler() {
+        ScheduledThreadPoolExecutor scheduled = new ScheduledThreadPoolExecutor(1, runnable -> {
+            Thread thread = new Thread(runnable, "vio-run-timeout");
+            thread.setDaemon(true);
+            return thread;
+        });
+        scheduled.setRemoveOnCancelPolicy(true);
+        return scheduled;
+    }
+
+    /** Aggregate counts only: no account, tenant, prompt or credential identifiers. */
+    public RuntimeSnapshot runtimeSnapshot() {
+        RunAdmissionController.Snapshot limits = admission.snapshot();
+        ThreadPoolExecutor pool = worker instanceof ThreadPoolExecutor value ? value : null;
+        return new RuntimeSnapshot(limits.reserved(), limits.capacity(), tasks.size(),
+                pool == null ? null : pool.getActiveCount(), pool == null ? null : pool.getQueue().size(),
+                deadlineTasks.size(), queueTasks.size(), limits.principalScopes(), limits.tenantScopes(), limits.accepting());
+    }
+    public record RuntimeSnapshot(int reserved, int capacity, int tasks, Integer executing, Integer queued,
+                                  int deadlineTimers, int queueTimers, int principalScopes, int tenantScopes,
+                                  boolean accepting) { }
 
     @PreDestroy
     public void shutdown() {
-        worker.shutdownNow();
-        scheduler.shutdownNow();
+        synchronized (idempotencyLock) {
+            admission.close();
+            for (AgentRun run : List.copyOf(activeRuns.values())) {
+                if (run.status() != AgentRunStatus.WAITING_APPROVAL) {
+                    try { cancelIfActive(run, "service_shutdown"); }
+                    catch (RuntimeException ex) { log.warn("Run shutdown state unavailable: errorType={}", ex.getClass().getSimpleName()); }
+                }
+            }
+            for (FutureTask<Void> task : List.copyOf(tasks.values())) {
+                if (task instanceof ManagedRunTask managed) managed.revokeExecutionLease();
+                task.cancel(true);
+            }
+            for (Runnable queued : worker.shutdownNow()) if (queued instanceof FutureTask<?> task) task.cancel(true);
+            for (AgentRun run : List.copyOf(activeRuns.values())) cleanIdleRun(run);
+            deadlineTasks.values().forEach(timer -> timer.cancel(false));
+            queueTasks.values().forEach(timer -> timer.cancel(false));
+            deadlineTasks.clear();
+            queueTasks.clear();
+            scheduler.shutdownNow();
+        }
     }
 }

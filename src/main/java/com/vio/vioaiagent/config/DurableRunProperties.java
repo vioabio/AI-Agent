@@ -15,6 +15,10 @@ public class DurableRunProperties {
     private boolean eventRetentionCleanupEnabled;
     private long eventRetentionCleanupIntervalMs = 3_600_000L;
     private int eventRetentionCleanupBatchSize = 1000;
+    /** Step artifacts are opaque encrypted facts; cleanup remains opt-in until backup evidence exists. */
+    private boolean stepOutputRetentionCleanupEnabled;
+    private long stepOutputRetentionCleanupIntervalMs = 3_600_000L;
+    private int stepOutputRetentionCleanupBatchSize = 1000;
 
     public boolean durableResume() { return durableResume; }
     public void setDurableResume(boolean durableResume) { this.durableResume = durableResume; }
@@ -37,5 +41,15 @@ public class DurableRunProperties {
     public int eventRetentionCleanupBatchSize() { return eventRetentionCleanupBatchSize; }
     public void setEventRetentionCleanupBatchSize(int value) {
         this.eventRetentionCleanupBatchSize = Math.max(1, Math.min(value, 10_000));
+    }
+    public boolean stepOutputRetentionCleanupEnabled() { return stepOutputRetentionCleanupEnabled; }
+    public void setStepOutputRetentionCleanupEnabled(boolean value) { this.stepOutputRetentionCleanupEnabled = value; }
+    public long stepOutputRetentionCleanupIntervalMs() { return stepOutputRetentionCleanupIntervalMs; }
+    public void setStepOutputRetentionCleanupIntervalMs(long value) {
+        this.stepOutputRetentionCleanupIntervalMs = Math.max(60_000L, Math.min(value, 86_400_000L));
+    }
+    public int stepOutputRetentionCleanupBatchSize() { return stepOutputRetentionCleanupBatchSize; }
+    public void setStepOutputRetentionCleanupBatchSize(int value) {
+        this.stepOutputRetentionCleanupBatchSize = Math.max(1, Math.min(value, 10_000));
     }
 }

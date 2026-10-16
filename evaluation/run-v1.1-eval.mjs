@@ -28,7 +28,8 @@ const allowed = new Set([
   'manifest', 'dictionary', 'evaluation-run-id', 'run-dir', 'output',
   'case-results', 'metric-results', 'code-commit', 'model-version',
   'prompt-version', 'data-release-id', 'knowledge-release-id',
-  'index-release-id', 'environment', 'no-clobber'
+  'index-release-id', 'environment', 'no-clobber',
+  'baseline-evaluation-run-id', 'baseline-report-hash'
 ]);
 const errors = [];
 const warnings = [];
@@ -57,6 +58,15 @@ catch (error) { errors.push(error.message); }
 
 if (!evaluationRunId) errors.push('缺少 --evaluation-run-id');
 else if (!/^[A-Za-z0-9._-]{3,128}$/.test(evaluationRunId)) errors.push('evaluationRunId 格式无效');
+const baselineEvaluationRunId = clean(args['baseline-evaluation-run-id']);
+const baselineReportHash = clean(args['baseline-report-hash']);
+if (baselineEvaluationRunId || baselineReportHash) {
+  if (!/^[A-Za-z0-9._-]{3,128}$/.test(baselineEvaluationRunId ?? '')
+      || baselineEvaluationRunId === evaluationRunId
+      || !/^sha256:[a-f0-9]{64}$/.test(baselineReportHash ?? '')) {
+    errors.push('baseline 必须绑定不同 evaluationRunId 和原始报告 sha256 摘要');
+  }
+}
 if (manifest && (manifest.schemaVersion !== 'v1.1' || manifest.suiteVersion !== 'v1.1')) {
   errors.push('manifest schemaVersion/suiteVersion 必须为 v1.1');
 }
@@ -209,6 +219,7 @@ const common = {
   generatedAt: generatedAt(),
   status,
   ...metadata,
+  ...(baselineEvaluationRunId ? {baselineEvaluationRunId, baselineReportHash} : {}),
   manifest: String(manifestPath).replaceAll('\\', '/'),
   manifestSha256: safeHash(resolvePath(manifestPath)),
   dictionary: String(dictionaryPath).replaceAll('\\', '/'),

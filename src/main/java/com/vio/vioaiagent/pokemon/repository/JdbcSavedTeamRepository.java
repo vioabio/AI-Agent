@@ -15,7 +15,7 @@ import java.util.Optional;
 /** PostgreSQL 生产队伍仓储；SQL 层同时按 owner_id 过滤，防止越权读取。 */
 @Repository
 @Primary
-@Profile("prod")
+@Profile({"prod", "demo"})
 public class JdbcSavedTeamRepository implements SavedTeamRepository {
     private final JdbcTemplate jdbc;
 

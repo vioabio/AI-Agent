@@ -167,6 +167,31 @@ public final class AgentRun {
     public Instant finishedAt() { return finishedAt; }
     public long version() { return version; }
 
+    /** Capture only mutable lifecycle fields for a same-package transaction rollback boundary. */
+    synchronized LifecycleSnapshot lifecycleSnapshot() {
+        return new LifecycleSnapshot(status, startedAt, finishedAt, version);
+    }
+
+    /**
+     * Restore after persistence rolled back. The caller must retain this aggregate's monitor
+     * from snapshot capture through transaction completion; otherwise a concurrent decision
+     * could be overwritten. Frozen identity, prompt and release context never change here.
+     */
+    synchronized void restoreLifecycle(LifecycleSnapshot snapshot) {
+        if (snapshot == null) throw new IllegalArgumentException("Lifecycle snapshot 不能为空");
+        status = snapshot.status();
+        startedAt = snapshot.startedAt();
+        finishedAt = snapshot.finishedAt();
+        version = snapshot.version();
+    }
+
+    record LifecycleSnapshot(AgentRunStatus status, Instant startedAt, Instant finishedAt, long version) {
+        LifecycleSnapshot {
+            if (status == null) throw new IllegalArgumentException("Lifecycle status 不能为空");
+            if (version < 0) throw new IllegalArgumentException("Run version 不能为负数");
+        }
+    }
+
     /**
      * 仅供同包仓储在 CAS 成功后更新版本；业务代码不能自行伪造版本。
      */

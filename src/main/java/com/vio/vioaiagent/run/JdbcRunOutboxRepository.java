@@ -18,7 +18,7 @@ import java.util.Optional;
 
 /** PostgreSQL outbox：使用 FOR UPDATE SKIP LOCKED 实现多 worker 领取。 */
 @Repository
-@Profile("prod")
+@Profile({"prod", "demo"})
 @Primary
 public class JdbcRunOutboxRepository implements RunOutboxRepository {
     private static final Duration CLAIM_LEASE = Duration.ofMinutes(5);

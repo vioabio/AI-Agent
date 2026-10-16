@@ -59,7 +59,44 @@
             }
           },
           "429": {
-            "description": "Quota exceeded"
+            "description": "RUN_CAPACITY_EXCEEDED, RUN_PRINCIPAL_LIMIT or RUN_TENANT_LIMIT: admission rejected before creating a new Run or claiming its Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Positive delay in seconds before retrying admission. Reuse the original Idempotency-Key when retrying the same request.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3600
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "RUN_EXECUTION_UNAVAILABLE: runtime is closing or cannot schedule execution. Shutdown rejection creates no new Run; a scheduling failure after persistence may leave a FAILED Run. Retry with the same Idempotency-Key to read that Run rather than duplicate work.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Positive delay in seconds before retrying admission. Reuse the original Idempotency-Key when retrying the same request.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3600
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -68,7 +105,7 @@
         "summary": "创建可恢复 Agent Run（异步）",
         "parameters": [
           {
-            "$ref": "#/components/parameters/Idempotency-Key"
+            "$ref": "#/components/parameters/IdempotencyKey"
           },
           {
             "$ref": "#/components/parameters/TraceIdHeader"
@@ -209,7 +246,7 @@
             "$ref": "#/components/parameters/UserIdHeader"
           },
           {
-            "$ref": "#/components/parameters/Idempotency-Key"
+            "$ref": "#/components/parameters/IdempotencyKey"
           }
         ],
         "responses": {
@@ -395,7 +432,7 @@
             "$ref": "#/components/parameters/UserIdHeader"
           },
           {
-            "$ref": "#/components/parameters/Idempotency-Key"
+            "$ref": "#/components/parameters/IdempotencyKey"
           }
         ],
         "responses": {
@@ -767,6 +804,90 @@
         }
       }
     },
+    "/auth/session": {
+      "get": {
+        "operationId": "getAuthSession",
+        "summary": "读取当前浏览器会话与认证模式",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Session bootstrap, including anonymous or policy-denied state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionStatus"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "description": "Session state must not be stored in browser or intermediary caches.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [],
+        "description": "Anonymous bootstrap endpoint; no API key is required. Returns direct JSON with Cache-Control: no-store. OIDC mode exposes a validated principal only after server policy approval and prepares the CSRF cookie. API-key and disabled modes return authenticated=false, accessDenied=false, null principal/tenant/deadline/login/logout and empty roles."
+      }
+    },
+    "/logout": {
+      "post": {
+        "operationId": "logoutOidcSession",
+        "summary": "退出当前浏览器 OIDC 会话",
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Token matching the CSRF-TOKEN cookie prepared by GET /auth/session. Required even for an anonymous logout request."
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Browsers send an allowed Origin, or an allowed Referer as fallback. Non-browser clients may omit both headers while still supplying valid CSRF cookie/token."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Local browser session invalidated; authentication and session/CSRF cookies cleared; no response body"
+          },
+          "403": {
+            "description": "CSRF token or browser Origin/Referer rejected"
+          },
+          "404": {
+            "description": "OIDC logout is unavailable when OIDC mode is disabled"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {},
+          {
+            "oidcSession": []
+          }
+        ],
+        "description": "Available only in OIDC mode and handled by Spring Security. Send POST with credentials and the CSRF header; no request body. An authenticated session is optional. Browser Origin/Referer must be allowed. Successful local logout returns 204; Bearer JWTs retain their own expiry and issuer revocation rules."
+      }
+    },
     "/conversations": {
       "post": {
         "operationId": "createConversation",
@@ -776,7 +897,7 @@
             "$ref": "#/components/parameters/UserIdHeader"
           },
           {
-            "$ref": "#/components/parameters/Idempotency-Key"
+            "$ref": "#/components/parameters/IdempotencyKey"
           }
         ],
         "responses": {
@@ -970,7 +1091,7 @@
             "$ref": "#/components/parameters/UserIdHeader"
           },
           {
-            "$ref": "#/components/parameters/Idempotency-Key"
+            "$ref": "#/components/parameters/IdempotencyKey"
           }
         ],
         "responses": {
@@ -1157,7 +1278,7 @@
             "$ref": "#/components/parameters/UserIdHeader"
           },
           {
-            "$ref": "#/components/parameters/Idempotency-Key"
+            "$ref": "#/components/parameters/IdempotencyKey"
           }
         ],
         "responses": {
@@ -2524,6 +2645,267 @@
         }
       }
     },
+    "/knowledge/evaluation-reports": {
+      "post": {
+        "operationId": "importEvaluationReportArtifact",
+        "summary": "导入离线评测报告原文",
+        "parameters": [
+          {
+            "name": "X-Evaluation-Report-Hash",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "description": "SHA-256 of the exact original request bytes, including whitespace and line endings."
+          },
+          {
+            "name": "X-Evaluation-Source",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "description": "Non-secret provenance label; the server records the authenticated importer. The label is not a source signature."
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required for POST when OIDC is enabled, including authenticated Bearer requests. Obtain the matching CSRF cookie/token before import."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verified report projection; byte-identical imports replay the existing report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/EvaluationReport"
+                    },
+                    "timestamp": {
+                      "type": "integer",
+                      "format": "int64"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing headers or invalid artifact, digest, frozen rules or baseline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role, Origin or CSRF denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "evaluationRunId already exists with different original bytes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Original artifact exceeds 1 MiB",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Report storage or integrity verification unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Knowledge Lifecycle"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oidcSession": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "description": "Global operator domain. Requires trusted OPERATOR or QUALITY role; caller-supplied user/role headers cannot authorize import. Upload the original metrics.json as a file/Blob without JSON reserialization. The server verifies the digest and frozen rules, preserves first-import metadata, and never overwrites an evaluationRunId. A successful import may return passed=false and does not publish an index.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationReportArtifact"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/knowledge/evaluation-reports/{evaluationRunId}": {
+      "get": {
+        "operationId": "getEvaluationReport",
+        "summary": "读取经校验的评测报告投影",
+        "parameters": [
+          {
+            "name": "evaluationRunId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verified report projection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/EvaluationReport"
+                    },
+                    "timestamp": {
+                      "type": "integer",
+                      "format": "int64"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Report not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Report read or integrity verification failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Knowledge Lifecycle"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oidcSession": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "description": "Global operator domain. Requires OPERATOR, QUALITY, REVIEWER or PUBLISHER. Every read verifies stored original bytes, hash and any baseline chain; raw artifact bytes are not returned."
+      }
+    },
     "/hitl/approvals/{approvalId}": {
       "post": {
         "operationId": "decideRunApproval",
@@ -2889,6 +3271,59 @@
           },
           "401": {
             "description": "Unauthenticated"
+          }
+        }
+      }
+    },
+    "/admin/effects/reconcile": {
+      "post": {
+        "operationId": "reconcileUnknownEffect",
+        "summary": "人工核对未知外部副作用",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Reconciled effect",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EffectReconciliationResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "403": {
+            "description": "Operator role required"
+          },
+          "409": {
+            "description": "Effect is not UNKNOWN or audit unavailable"
+          }
+        },
+        "tags": [
+          "Operations"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "oidcSession": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "description": "Operator-only manual confirmation. This records an audited UNKNOWN to SUCCEEDED/FAILED transition and never replays the tool.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EffectReconciliationRequest"
+              }
+            }
           }
         }
       }
@@ -3902,6 +4337,110 @@
           },
           "message": {
             "type": "string"
+          }
+        }
+      },
+      "SessionStatus": {
+        "type": "object",
+        "required": [
+          "mode",
+          "authenticated",
+          "accessDenied",
+          "principalId",
+          "tenantId",
+          "roles",
+          "serverTime",
+          "absoluteExpiresAt",
+          "loginUrl",
+          "logoutUrl",
+          "csrf"
+        ],
+        "description": "Direct JSON session bootstrap. Nullable fields are always present. API-key and disabled modes report no personal login identity; the API-key credential remains a separate service authentication mechanism.",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "oidc",
+              "api_key",
+              "disabled"
+            ]
+          },
+          "authenticated": {
+            "type": "boolean",
+            "description": "A validated OIDC principal also passed the server principal policy."
+          },
+          "accessDenied": {
+            "type": "boolean",
+            "description": "A validated OIDC identity was denied by the server principal policy."
+          },
+          "principalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenantId": {
+            "type": "string",
+            "nullable": true
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Sorted roles derived from the trusted OIDC principal; empty for anonymous, API-key and disabled modes."
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Server time used to calculate the remaining lifetime without relying on the browser clock."
+          },
+          "absoluteExpiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Server-enforced absolute deadline for a browser session, or exp for a validated Bearer JWT. Null when no usable OIDC identity is available."
+          },
+          "loginUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Context-relative browser navigation URL for starting OIDC login, such as /api/oauth2/authorization/vio. Null outside OIDC mode."
+          },
+          "logoutUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Context-relative POST URL for local browser logout, such as /api/logout. Null outside OIDC mode."
+          },
+          "csrf": {
+            "$ref": "#/components/schemas/CsrfStatus"
+          }
+        }
+      },
+      "CsrfStatus": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "available",
+          "cookieName",
+          "headerName"
+        ],
+        "description": "CSRF token availability and transport names. In OIDC mode the anonymous bootstrap GET prepares a CSRF-TOKEN cookie at /. The token value is read from that cookie by the browser.",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "cookieName": {
+            "type": "string",
+            "enum": [
+              "CSRF-TOKEN"
+            ]
+          },
+          "headerName": {
+            "type": "string",
+            "enum": [
+              "X-CSRF-TOKEN"
+            ]
           }
         }
       },
@@ -5656,6 +6195,87 @@
           }
         }
       },
+      "EvaluationReportArtifact": {
+        "type": "string",
+        "format": "binary",
+        "description": "Exact original UTF-8 metrics.json bytes from run-v1.1-eval, at most 1 MiB. Send the file/Blob as the application/json body without parsing, reformatting, or JSON-stringifying it. The required header hashes these exact bytes. This is not the returned EvaluationReport projection.",
+        "x-max-bytes": 1048576,
+        "x-preserve-original-bytes": true
+      },
+      "EvaluationReport": {
+        "type": "object",
+        "readOnly": true,
+        "description": "Verified read projection of an immutable original artifact. passed is computed by the server using frozen rules and any separately stored baseline. An archival pending report or an initial budget baseline has passed=false. Source/dataset hashes are declarations, not proof of source authenticity.",
+        "required": [
+          "evaluationRunId",
+          "reportHash",
+          "suiteVersion",
+          "modelVersion",
+          "dataReleaseId",
+          "knowledgeReleaseId",
+          "indexReleaseId",
+          "sampleSize",
+          "passed",
+          "immutable",
+          "generatedAt",
+          "metrics",
+          "thresholds"
+        ],
+        "properties": {
+          "evaluationRunId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._-]{3,128}$"
+          },
+          "reportHash": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "suiteVersion": {
+            "type": "string"
+          },
+          "modelVersion": {
+            "type": "string"
+          },
+          "dataReleaseId": {
+            "type": "string"
+          },
+          "knowledgeReleaseId": {
+            "type": "string"
+          },
+          "indexReleaseId": {
+            "type": "string"
+          },
+          "sampleSize": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "immutable": {
+            "type": "boolean"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "metrics": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "thresholds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Server-derived success-side expressions such as >=0.98; distinct from offline alert/failure thresholds."
+          }
+        }
+      },
       "ApprovalDecision": {
         "type": "object",
         "properties": {
@@ -5921,6 +6541,84 @@
             }
           }
         }
+      },
+      "EffectReconciliationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "runId",
+          "stepNo",
+          "toolName",
+          "toolVersion",
+          "idempotencyKey",
+          "parameterHash",
+          "finalStatus",
+          "resultDigest"
+        ],
+        "properties": {
+          "runId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stepNo": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "toolName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "toolVersion": {
+            "type": "string",
+            "minLength": 1
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "parameterHash": {
+            "type": "string",
+            "minLength": 1
+          },
+          "finalStatus": {
+            "type": "string",
+            "enum": [
+              "SUCCEEDED",
+              "FAILED"
+            ]
+          },
+          "resultDigest": {
+            "type": "string",
+            "minLength": 1
+          },
+          "resultUri": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "EffectReconciliationResult": {
+        "type": "object",
+        "required": [
+          "runId",
+          "status",
+          "operatorId"
+        ],
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUCCEEDED",
+              "FAILED"
+            ]
+          },
+          "operatorId": {
+            "type": "string"
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -5935,6 +6633,12 @@
         "in": "header",
         "name": "X-API-Key",
         "description": "Service-to-service key; never place a key in a URL."
+      },
+      "oidcSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "VIO_SESSION",
+        "description": "OIDC browser session. Cookie name is configurable; VIO_SESSION is the default. State changes also require the CSRF token and an allowed Origin."
       }
     },
     "parameters": {
@@ -6022,6 +6726,10 @@
   ],
   "tags": [
     {
+      "name": "Authentication",
+      "description": "Anonymous session bootstrap and CSRF-protected browser logout"
+    },
+    {
       "name": "Agent Run",
       "description": "Durable, replayable agent runs and event streams"
     },
@@ -6052,6 +6760,10 @@
     {
       "name": "Memory",
       "description": "User-scoped consented memory"
+    },
+    {
+      "name": "Operations",
+      "description": "Audited operator actions for uncertain external effects"
     },
     {
       "name": "Health",

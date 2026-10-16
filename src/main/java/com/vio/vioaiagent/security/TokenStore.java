@@ -92,7 +92,8 @@ public class TokenStore {
         // 绑定可能来自异步 Run 的内存快照；每次工具调用仍需回到当前注册表，
         // 这样撤销/过期会在下一次副作用前生效，而不会被旧快照绕过。
         TokenBinding currentBinding = tokenRegistry.get(binding.tokenId());
-        if (currentBinding == null || !currentBinding.equals(binding) || currentBinding.isExpired()) {
+        if (currentBinding == null || binding.isExpired() || currentBinding.isExpired()
+                || !(currentBinding.equals(binding) || sameOidcAuthorization(currentBinding, binding))) {
             return "令牌已撤销或过期";
         }
         binding = currentBinding;
@@ -100,6 +101,24 @@ public class TokenStore {
             return "令牌未授权调用工具: " + toolName;
         }
         return null;
+    }
+
+    /**
+     * A browser's next request refreshes expiry for the same OIDC policy key.
+     * Keep an existing Run usable within its own original lifetime, without
+     * letting a changed role/tool/tenant/quota policy reuse the old snapshot.
+     * API keys deliberately retain exact record equality.
+     */
+    private boolean sameOidcAuthorization(TokenBinding current, TokenBinding captured) {
+        return current.isOidcPolicyBinding() && captured.isOidcPolicyBinding()
+                && current.tokenId().equals(captured.tokenId())
+                && current.protocolId().equals(captured.protocolId())
+                && current.subjectId().equals(captured.subjectId())
+                && current.tenantId().equals(captured.tenantId())
+                && current.roles().equals(captured.roles())
+                && current.allowedTools().equals(captured.allowedTools())
+                && current.policyVersion().equals(captured.policyVersion())
+                && current.maxRequestsPerMinute() == captured.maxRequestsPerMinute();
     }
 
     /**

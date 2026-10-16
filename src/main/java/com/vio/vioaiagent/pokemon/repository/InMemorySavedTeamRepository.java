@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /** 本地/单元测试队伍仓储；按 ownerId 做资源隔离。 */
 @Repository
 @Primary
-@Profile("!prod")
+@Profile("!prod & !demo")
 public class InMemorySavedTeamRepository implements SavedTeamRepository {
     private final AtomicLong sequence = new AtomicLong(0);
     private final ConcurrentMap<Long, SavedTeam> teams = new ConcurrentHashMap<>();

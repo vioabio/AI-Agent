@@ -6,6 +6,7 @@ import com.vio.vioaiagent.security.CommandGuard;
 import com.vio.vioaiagent.security.PathGuard;
 import com.vio.vioaiagent.security.TokenStore;
 import com.vio.vioaiagent.security.GlobalQuotaStore;
+import com.vio.vioaiagent.security.OidcPrincipalPolicyAdapter;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -72,10 +73,11 @@ public class SecurityConfig implements WebMvcConfigurer {
     /**
      * 明确公开的无凭据路径。
      *
-     * <p>探针与文档接口必须匿名可用；业务路径不得加入此列表。
+     * <p>探针、文档与只读会话状态接口必须匿名可用；业务路径不得加入此列表。
      * 该列表需要显式且最小，公开面扩大必须经过评审。
      */
     public static final List<String> PUBLIC_PATH_PATTERNS = List.of(
+            "/auth/session", // Read-only bootstrap; no credentials or business resources exposed
             "/health",
             "/swagger-ui/**",
             "/v3/api-docs/**",
@@ -88,6 +90,7 @@ public class SecurityConfig implements WebMvcConfigurer {
     private final SecurityProperties securityProperties;
     private final boolean legacyAiEnabled;
     private ObjectProvider<GlobalQuotaStore> quotaProvider;
+    private ObjectProvider<OidcPrincipalPolicyAdapter> oidcPolicyProvider;
 
     /**
      * 保留给离线单元测试和少量嵌入式调用方的兼容构造器。
@@ -136,7 +139,12 @@ public class SecurityConfig implements WebMvcConfigurer {
      */
     @Bean
     public ApiKeyAuthInterceptor apiKeyAuthInterceptor() {
-        return new ApiKeyAuthInterceptor(tokenStore(), securityProperties, clientIpResolver());
+        ApiKeyAuthInterceptor interceptor =
+                new ApiKeyAuthInterceptor(tokenStore(), securityProperties, clientIpResolver());
+        if (oidcPolicyProvider != null) {
+            interceptor.setOidcPolicyAdapter(oidcPolicyProvider.getIfAvailable());
+        }
+        return interceptor;
     }
 
     /**
@@ -165,6 +173,11 @@ public class SecurityConfig implements WebMvcConfigurer {
     @Autowired(required = false)
     public void setQuotaProvider(ObjectProvider<GlobalQuotaStore> quotaProvider) {
         this.quotaProvider = quotaProvider;
+    }
+
+    @Autowired
+    public void setOidcPolicyProvider(ObjectProvider<OidcPrincipalPolicyAdapter> oidcPolicyProvider) {
+        this.oidcPolicyProvider = oidcPolicyProvider;
     }
 
     /**

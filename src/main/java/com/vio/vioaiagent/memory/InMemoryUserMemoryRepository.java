@@ -15,7 +15,7 @@ import java.util.Optional;
 /** 本地/测试用户记忆仓储；不会宣称跨进程耐久性。 */
 @Repository
 @Primary
-@Profile("!prod")
+@Profile("!prod & !demo")
 public class InMemoryUserMemoryRepository implements UserMemoryRepository {
     private final Map<String, UserMemoryEntry> entries = new LinkedHashMap<>();
 

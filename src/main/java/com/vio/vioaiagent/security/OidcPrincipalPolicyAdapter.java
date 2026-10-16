@@ -10,7 +10,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.oauth2.core.OAuth2AuthenticatedPrincipal;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,12 +37,20 @@ import java.util.Set;
 public class OidcPrincipalPolicyAdapter {
     private final OidcProperties oidcProperties;
     private final OidcPrincipalPolicyProperties policyProperties;
+    private final Clock clock;
 
+    @Autowired
     public OidcPrincipalPolicyAdapter(OidcProperties oidcProperties,
                                       OidcPrincipalPolicyProperties policyProperties) {
+        this(oidcProperties, policyProperties, Clock.systemUTC());
+    }
+
+    public OidcPrincipalPolicyAdapter(OidcProperties oidcProperties,
+                                      OidcPrincipalPolicyProperties policyProperties, Clock clock) {
         this.oidcProperties = oidcProperties == null ? new OidcProperties() : oidcProperties;
         this.policyProperties = policyProperties == null
                 ? new OidcPrincipalPolicyProperties() : policyProperties;
+        this.clock = clock;
     }
 
     /**
@@ -48,11 +58,21 @@ public class OidcPrincipalPolicyAdapter {
      * 程序化调用路径保持不变；OIDC 启用但策略未配置时明确拒绝。
      */
     public PrincipalPolicyDecision resolve(Authentication authentication) {
+        return resolve(authentication, null);
+    }
+
+    /** A browser deadline must come from the server-side session lifetime filter. */
+    public PrincipalPolicyDecision resolve(Authentication authentication, Instant maximumExpiresAt) {
         if (!oidcProperties.enabled()) return PrincipalPolicyDecision.notApplicable();
         if (!policyProperties.enabled()) return PrincipalPolicyDecision.deny("OIDC 主体策略未启用");
         if (authentication == null || !authentication.isAuthenticated()
                 || authentication instanceof AnonymousAuthenticationToken) {
             return PrincipalPolicyDecision.deny("缺少已认证 OIDC 主体");
+        }
+        Instant now = clock.instant();
+        if (OidcSessionLifetime.isBrowserAuthentication(authentication)
+                && (maximumExpiresAt == null || !now.isBefore(maximumExpiresAt))) {
+            return PrincipalPolicyDecision.deny("OIDC 浏览器会话缺少有效绝对期限");
         }
         if (!policyProperties.validationErrors().isEmpty()) {
             return PrincipalPolicyDecision.deny("OIDC 主体策略配置无效");
@@ -86,7 +106,11 @@ public class OidcPrincipalPolicyAdapter {
         Set<String> allowedTools = toolsFor(effectiveRoles);
         if (allowedTools.isEmpty()) return PrincipalPolicyDecision.deny("主体角色未配置工具策略");
 
-        Instant expiresAt = Instant.now().plusSeconds(policyProperties.bindingTtlSeconds());
+        Instant expiresAt = now.plusSeconds(policyProperties.bindingTtlSeconds());
+        if (maximumExpiresAt != null && maximumExpiresAt.isBefore(expiresAt)) expiresAt = maximumExpiresAt;
+        if (authentication instanceof JwtAuthenticationToken jwt && jwt.getToken().getExpiresAt() != null
+                && jwt.getToken().getExpiresAt().isBefore(expiresAt)) expiresAt = jwt.getToken().getExpiresAt();
+        if (!now.isBefore(expiresAt)) return PrincipalPolicyDecision.deny("OIDC 身份已过期");
         TokenBinding binding;
         try {
             binding = TokenBinding.oidc(principal, tenant, effectiveRoles, allowedTools,

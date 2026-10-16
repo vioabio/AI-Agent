@@ -85,11 +85,12 @@ class SecurityRouteCoverageTest {
     }
 
     @Test
-    @DisplayName("公开白名单保持最小：只允许探针与文档接口")
+    @DisplayName("公开白名单保持最小：只允许探针、文档和会话状态接口")
     void publicAllowlistIsMinimal() {
         for (String publicPattern : SecurityConfig.PUBLIC_PATH_PATTERNS) {
             boolean allowed = FRAMEWORK_PUBLIC_PREFIXES.stream().anyMatch(publicPattern::startsWith);
-            assertTrue(allowed || publicPattern.equals("/health") || publicPattern.equals("/ready"),
+            assertTrue(allowed || publicPattern.equals("/health") || publicPattern.equals("/ready")
+                            || publicPattern.equals("/auth/session"),
                     () -> "公开白名单出现非探针/非文档条目: " + publicPattern
                             + "。公开面扩大必须经过评审，不能静默加入");
         }

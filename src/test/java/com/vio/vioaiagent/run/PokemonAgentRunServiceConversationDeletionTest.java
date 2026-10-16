@@ -27,7 +27,14 @@ class PokemonAgentRunServiceConversationDeletionTest {
         CountDownLatch release = new CountDownLatch(1);
         RunExecutor blockingExecutor = context -> {
             entered.countDown();
-            release.await(5, TimeUnit.SECONDS);
+            while (release.getCount() != 0) {
+                try {
+                    release.await();
+                } catch (InterruptedException ignored) {
+                    // Simulate an executor that ignores cancellation interrupts
+                    // and returns only after its external operation is released.
+                }
+            }
             return "迟到的回答";
         };
         PokemonAgentRunService service = new PokemonAgentRunService(runs, events, conversations,
@@ -45,6 +52,10 @@ class PokemonAgentRunServiceConversationDeletionTest {
                     () -> service.events(created.runId(), "user-1", 0));
             assertThrows(RunNotFoundException.class,
                     () -> service.messages(created.conversationId(), "user-1"));
+            release.countDown();
+            service.shutdown();
+            assertTrue(worker.awaitTermination(5, TimeUnit.SECONDS));
+            assertTrue(messages.findByConversationForUser(created.conversationId(), "user-1").isEmpty());
         } finally {
             release.countDown();
             service.shutdown();

@@ -20,7 +20,7 @@ import java.util.List;
  * {@code deleted_at IS NULL}，因此对原用户仍表现为资源已删除。
  */
 @Repository
-@Profile("prod")
+@Profile({"prod", "demo"})
 @Primary
 public class JdbcConversationRepository implements ConversationRepository {
     private final JdbcTemplate jdbc;

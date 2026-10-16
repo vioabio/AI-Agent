@@ -16,7 +16,7 @@ import java.util.Optional;
 /** PostgreSQL durable HITL approval store with row locks and version CAS. */
 @Repository
 @Primary
-@Profile("prod")
+@Profile({"prod", "demo"})
 public class JdbcHitlApprovalRepository implements HitlApprovalRepository {
 
     private final JdbcTemplate jdbc;

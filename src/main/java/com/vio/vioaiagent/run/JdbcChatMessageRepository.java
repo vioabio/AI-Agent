@@ -18,7 +18,7 @@ import java.util.Map;
 
 /** 生产环境会话消息仓储；消息 ID 作为幂等键，重试不会重复写入。 */
 @Repository
-@Profile("prod")
+@Profile({"prod", "demo"})
 @Primary
 public class JdbcChatMessageRepository implements ChatMessageRepository {
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {};

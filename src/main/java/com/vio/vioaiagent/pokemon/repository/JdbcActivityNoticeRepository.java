@@ -21,7 +21,7 @@ import java.util.Optional;
 /** PostgreSQL 活动资讯仓储；生产 profile 才启用。 */
 @Repository
 @Primary
-@Profile("prod")
+@Profile({"prod", "demo"})
 public class JdbcActivityNoticeRepository implements ActivityNoticeRepository {
     private static final String COLUMNS = """
             id, notice_key, version_no, title, summary, source_id, source_url,

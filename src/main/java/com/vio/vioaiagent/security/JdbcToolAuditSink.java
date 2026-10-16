@@ -27,7 +27,7 @@ import java.util.Map;
  */
 @Repository
 @Primary
-@Profile("prod")
+@Profile({"prod", "demo"})
 public class JdbcToolAuditSink implements ToolAuditSink {
 
     private final JdbcTemplate jdbc;

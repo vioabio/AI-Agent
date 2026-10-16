@@ -11,7 +11,7 @@ import java.util.Optional;
 /** 开发/测试用的追加式审批仓储；同一自然键不可覆盖既有审批。 */
 @Repository
 @Primary
-@Profile("!prod")
+@Profile("!prod & !demo")
 public class InMemoryKnowledgeReleaseApprovalRepository implements KnowledgeReleaseApprovalRepository {
 
     private final Map<String, KnowledgeReleaseApproval> byId = new LinkedHashMap<>();

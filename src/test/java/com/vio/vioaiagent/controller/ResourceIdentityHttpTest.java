@@ -74,6 +74,27 @@ class ResourceIdentityHttpTest {
     // ==================== 匿名访问 ====================
 
     @Test
+    @DisplayName("API-Key 模式公开会话状态诚实声明兼容模式，关闭浏览器登出处理器")
+    void apiKeyModeProvidesAnonymousStatusWithoutPersonalSessionOrLogout() {
+        ResponseEntity<Map> status = rest.exchange(url("/api/auth/session"), HttpMethod.GET,
+                new HttpEntity<>(new HttpHeaders()), Map.class);
+        assertEquals(HttpStatus.OK, status.getStatusCode());
+        assertEquals("no-store", status.getHeaders().getCacheControl());
+        Map body = status.getBody();
+        assertNotNull(body);
+        assertEquals("api_key", body.get("mode"));
+        assertEquals(false, body.get("authenticated"));
+        assertEquals(false, body.get("accessDenied"));
+        assertNull(body.get("principalId"));
+        assertNull(body.get("absoluteExpiresAt"));
+        assertNull(body.get("loginUrl"));
+        assertNull(body.get("logoutUrl"));
+        assertEquals(false, ((Map) body.get("csrf")).get("enabled"));
+        assertEquals(HttpStatus.NOT_FOUND, rest.exchange(url("/api/logout"), HttpMethod.POST,
+                new HttpEntity<>(new HttpHeaders()), String.class).getStatusCode());
+    }
+
+    @Test
     @DisplayName("匿名访问 /conversations 必须 401")
     void anonymousConversationsIsUnauthorized() {
         assertEquals(HttpStatus.UNAUTHORIZED, get("/api/conversations", null).getStatusCode());

@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentMap;
 /** 本地/测试反馈仓储；使用同一锁保证状态快照替换和查询的一致性。 */
 @Repository
 @Primary
-@Profile("!prod")
+@Profile("!prod & !demo")
 public class InMemoryFeedbackRepository implements FeedbackRepository {
     private final ConcurrentMap<String, CorrectionCase> cases = new ConcurrentHashMap<>();
 

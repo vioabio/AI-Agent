@@ -10,7 +10,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /** 本地/测试审计 sink；生产环境必须使用 JDBC/合规适配器。 */
 @Repository
 @Primary
-@Profile("!prod")
+@Profile("!prod & !demo")
 public class InMemoryHitlAuditSink implements HitlAuditSink {
 
     private final CopyOnWriteArrayList<HitlAuditEvent> events = new CopyOnWriteArrayList<>();

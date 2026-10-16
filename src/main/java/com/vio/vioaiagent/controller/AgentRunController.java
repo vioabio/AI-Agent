@@ -11,6 +11,7 @@ import com.vio.vioaiagent.run.PokemonAgentRunService;
 import com.vio.vioaiagent.run.RunNotFoundException;
 import com.vio.vioaiagent.run.RunConflictException;
 import com.vio.vioaiagent.run.RunView;
+import com.vio.vioaiagent.run.RunAdmissionException;
 import com.vio.vioaiagent.run.ChatMessage;
 import com.vio.vioaiagent.run.InvalidEventCursorException;
 import com.vio.vioaiagent.run.IdempotencyConflictException;
@@ -213,6 +214,13 @@ public class AgentRunController {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Void> handleBadRequest() {
         return ResponseEntity.badRequest().build();
+    }
+
+    @ExceptionHandler(RunAdmissionException.class)
+    public ResponseEntity<ErrorBody> handleAdmission(RunAdmissionException ex) {
+        return ResponseEntity.status(ex.unavailable() ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(ex.retryAfterSeconds()))
+                .body(new ErrorBody(ex.code(), ex.getMessage()));
     }
 
     @ExceptionHandler(InvalidEventCursorException.class)

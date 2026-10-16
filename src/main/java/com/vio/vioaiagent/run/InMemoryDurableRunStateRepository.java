@@ -12,12 +12,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Supplier;
 
 /**
  * 本地/测试用的耐久状态替身。它只覆盖当前 JVM，生产 profile 必须使用 JDBC 实现。
  */
 @Repository
-@Profile("!prod")
+@Profile("!prod & !demo")
 @Primary
 public class InMemoryDurableRunStateRepository implements CheckpointRepository,
         EffectLedgerRepository, ModelInvocationCacheRepository {
@@ -61,7 +62,8 @@ public class InMemoryDurableRunStateRepository implements CheckpointRepository,
         validateLeaseArgs(runId, owner, token, ttl);
         Instant now = Instant.now();
         RunLease current = leases.get(runId);
-        if (current != null && current.activeAt(now) && !owner.equals(current.owner())) return Optional.empty();
+        if (current != null && current.activeAt(now)
+                && (!owner.equals(current.owner()) || !token.equals(current.token()))) return Optional.empty();
         RunLease next = new RunLease(runId, owner, token, now.plus(ttl), now,
                 current == null ? 0 : current.version() + 1);
         leases.put(runId, next);
@@ -93,11 +95,30 @@ public class InMemoryDurableRunStateRepository implements CheckpointRepository,
     }
 
     @Override
+    public synchronized <T> T withLease(String runId, String owner, String token, Supplier<T> action) {
+        if (runId == null || owner == null || token == null || action == null) throw new RunLeaseLostException();
+        RunLease lease = leases.get(runId);
+        if (lease == null || !owner.equals(lease.owner()) || !token.equals(lease.token())
+                || !lease.activeAt(Instant.now())) throw new RunLeaseLostException();
+        return action.get();
+    }
+
+    @Override
     public Optional<ToolEffectLedgerEntry> find(String runId, int stepNo, String toolName,
                                                  String toolVersion, String idempotencyKey,
                                                  String parameterHash) {
         return Optional.ofNullable(effects.get(new EffectKey(runId, stepNo, toolName, toolVersion,
                 idempotencyKey, parameterHash)));
+    }
+
+    @Override
+    public Optional<ToolEffectLedgerEntry> findByIdempotencyKey(String runId, int stepNo,
+                                                                  String toolName, String toolVersion,
+                                                                  String idempotencyKey) {
+        return effects.values().stream().filter(value -> value.runId().equals(runId)
+                && value.stepNo() == stepNo && value.toolName().equals(toolName)
+                && value.toolVersion().equals(toolVersion)
+                && value.idempotencyKey().equals(idempotencyKey)).findFirst();
     }
 
     @Override
@@ -127,6 +148,24 @@ public class InMemoryDurableRunStateRepository implements CheckpointRepository,
             throw new IllegalStateException("副作用账本 CAS 冲突: " + key);
         }
         return entry;
+    }
+
+    @Override
+    public synchronized ToolEffectLedgerEntry resolveUnknown(ToolEffectLedgerEntry entry,
+                                                               ToolEffectStatus finalStatus,
+                                                               String resultDigest, String resultUri) {
+        if (entry == null || finalStatus == ToolEffectStatus.UNKNOWN
+                || (finalStatus != ToolEffectStatus.SUCCEEDED && finalStatus != ToolEffectStatus.FAILED)) {
+            throw new IllegalArgumentException("UNKNOWN 核对终态无效");
+        }
+        EffectKey key = EffectKey.of(entry);
+        ToolEffectLedgerEntry current = effects.get(key);
+        if (current == null || current.status() != ToolEffectStatus.UNKNOWN) {
+            throw new IllegalStateException("副作用不是 UNKNOWN 状态");
+        }
+        ToolEffectLedgerEntry resolved = current.complete(finalStatus, resultDigest, resultUri, current.approvalId());
+        effects.put(key, resolved);
+        return resolved;
     }
 
     @Override

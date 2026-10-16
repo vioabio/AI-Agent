@@ -15,7 +15,7 @@ import java.util.Optional;
 /** PostgreSQL 用户记忆仓储；查询始终带 user_id，避免跨主体召回。 */
 @Repository
 @Primary
-@Profile("prod")
+@Profile({"prod", "demo"})
 public class JdbcUserMemoryRepository implements UserMemoryRepository {
     private final JdbcTemplate jdbc;
     public JdbcUserMemoryRepository(JdbcTemplate jdbc) { this.jdbc = jdbc; }

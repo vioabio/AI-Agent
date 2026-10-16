@@ -53,7 +53,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *       前端 fetch/SSE 拿到跨站重定向只会表现为 CORS 或空响应失败；</li>
  *   <li>浏览器导航（Accept: text/html）仍得到跳转；</li>
  *   <li>探针端点保持匿名可用；</li>
- *   <li>{@code /logout} 返回 204，且登出 CSRF 豁免不依赖 token；</li>
+ *   <li>{@code /logout} 需要 CSRF token，成功后返回 204；</li>
  *   <li>其余写请求仍要求 CSRF token（豁免面保持最小）。</li>
  * </ol>
  *
@@ -246,14 +246,28 @@ class OidcBrowserLoginHttpTest {
     // ==================== 退出与 CSRF ====================
 
     @Test
-    @DisplayName("/logout 返回 204，登出 CSRF 豁免不依赖 token")
-    void logoutIsExemptFromCsrfAndReturnsNoContent() {
+    @DisplayName("/logout 缺少 CSRF token 时返回 403")
+    void logoutWithoutCsrfIsForbidden() {
         ResponseEntity<String> response = rest.exchange(url(CONTEXT_PATH + "/logout"),
                 HttpMethod.POST, new HttpEntity<>(new HttpHeaders()), String.class);
 
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode(),
-                "退出应显式返回 204 便于前端自行决定落地页；"
-                        + "若为 403 说明 /logout 的 CSRF 豁免被 csrfTokenRepository 配置覆盖掉了");
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    @Test
+    @DisplayName("公开状态接口生成 CSRF，正确 cookie/header 的 logout 返回 204")
+    void logoutWithBootstrappedCsrfReturnsNoContent() {
+        ResponseEntity<String> bootstrap = getRaw(CONTEXT_PATH + "/auth/session", apiHeaders());
+        assertEquals(HttpStatus.OK, bootstrap.getStatusCode());
+        String csrfCookie = bootstrap.getHeaders().getOrEmpty(HttpHeaders.SET_COOKIE).stream()
+                .filter(value -> value.startsWith("CSRF-TOKEN=")).findFirst().orElseThrow().split(";", 2)[0];
+        HttpHeaders headers = apiHeaders();
+        headers.add(HttpHeaders.COOKIE, csrfCookie);
+        headers.add("X-CSRF-TOKEN", csrfCookie.substring("CSRF-TOKEN=".length()));
+        ResponseEntity<String> response = rest.exchange(url(CONTEXT_PATH + "/logout"),
+                HttpMethod.POST, new HttpEntity<>(headers), String.class);
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        assertNull(response.getBody());
     }
 
     @Test

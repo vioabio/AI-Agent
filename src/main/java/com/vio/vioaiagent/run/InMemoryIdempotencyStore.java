@@ -12,10 +12,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 @Repository
-@Profile("!prod")
+@Profile("!prod & !demo")
 @Primary
 public class InMemoryIdempotencyStore implements IdempotencyStore {
     private final ConcurrentMap<String, IdempotencyRecord> records = new ConcurrentHashMap<>();
+
+    @Override
+    public Optional<IdempotencyRecord> find(String scope, String key) {
+        return Optional.ofNullable(records.get(scope + "\u0000" + key));
+    }
 
     @Override
     public synchronized Claim claim(String scope, String key, String requestHash, Duration ttl, Instant now) {

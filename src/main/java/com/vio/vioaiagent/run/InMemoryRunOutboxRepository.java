@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentMap;
 
 /** 本地/测试 outbox；不对外宣称跨进程耐久性。 */
 @Repository
-@Profile("!prod")
+@Profile("!prod & !demo")
 @Primary
 public class InMemoryRunOutboxRepository implements RunOutboxRepository {
     private static final Duration CLAIM_LEASE = Duration.ofMinutes(5);

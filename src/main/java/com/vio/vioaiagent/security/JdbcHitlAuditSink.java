@@ -15,7 +15,7 @@ import java.security.NoSuchAlgorithmException;
  */
 @Repository
 @Primary
-@Profile("prod")
+@Profile({"prod", "demo"})
 public class JdbcHitlAuditSink implements HitlAuditSink {
 
     private final JdbcTemplate jdbc;

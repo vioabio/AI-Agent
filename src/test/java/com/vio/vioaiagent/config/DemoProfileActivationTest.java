@@ -9,7 +9,7 @@ import org.springframework.core.env.Environment;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * demo profile 真实装配测试（S0 收尾 / B01）。
+ * demo profile ConfigData 解析测试（S0 收尾 / B01）。
  *
  * <p>为什么必须是"真实 ConfigData 加载"而不是静态 YAML 断言：
  * 原实现把 {@code spring.profiles.group.demo=prod,demo} 写在
@@ -24,8 +24,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * <p>本测试用 {@link ApplicationContextRunner} +
  * {@link ConfigDataApplicationContextInitializer} 加载仓库里的真实配置文件，
- * 只断言环境与属性解析结果，**不启动业务 Bean、不建立数据库连接**，
- * 因此可在离线 CI 中稳定运行。
+ * 只断言环境与属性解析结果，**不启动业务 Bean、不建立数据库连接**。
+ * 数据源属性存在不能证明仓储已持久化：核心 JDBC/内存 Bean 的实际选择
+ * 由 {@link DemoPersistenceWiringTest} 注册真实组件后验证。
  */
 @DisplayName("B01 demo profile 真实装配")
 class DemoProfileActivationTest {
@@ -41,7 +42,7 @@ class DemoProfileActivationTest {
     }
 
     @Test
-    @DisplayName("demo 是自包含装配：不激活 prod，但必须打开 JDBC 持久化")
+    @DisplayName("demo 是自包含配置：不激活 prod，但必须打开 JDBC 自动配置")
     void demoIsSelfContainedWithJdbcPersistence() {
         runnerWithPlaceholders()
                 .withPropertyValues("spring.profiles.active=demo")
@@ -54,10 +55,10 @@ class DemoProfileActivationTest {
                                     + "放开被 prod 静默覆盖，因此改为自包含装配")
                             .containsExactly("demo");
 
-                    // 关键：不能回落到内存仓储。
+                    // 自动配置条件；真实仓储选择见 DemoPersistenceWiringTest。
                     assertThat(env.getProperty("spring.autoconfigure.exclude", ""))
                             .as("demo 必须清空 application.yml 对 DataSource/JdbcTemplate 的排除，"
-                                    + "否则 @Profile(\"!prod\") 内存仓储会静默生效")
+                                    + "否则持久化 Bean 无法获得 JDBC 依赖")
                             .doesNotContain("DataSourceAutoConfiguration")
                             .doesNotContain("JdbcTemplateAutoConfiguration");
                     assertThat(env.getProperty("spring.flyway.enabled")).isEqualTo("true");

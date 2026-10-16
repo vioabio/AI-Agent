@@ -94,7 +94,7 @@ public record TokenBinding(
      * 检查令牌是否已过期.
      */
     public boolean isExpired() {
-        return expiresAt != null && Instant.now().isAfter(expiresAt);
+        return expiresAt != null && !Instant.now().isBefore(expiresAt);
     }
 
     /**

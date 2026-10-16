@@ -30,7 +30,7 @@ import java.util.Map;
  * 标记为 active。
  */
 @Configuration
-@Profile("!prod")
+@Profile("!prod & !demo")
 @ConditionalOnProperty(prefix = "vio.pokemon.fixture", name = "enabled", havingValue = "true")
 public class PokemonFixtureInitializer {
     private static final Logger log = LoggerFactory.getLogger(PokemonFixtureInitializer.class);

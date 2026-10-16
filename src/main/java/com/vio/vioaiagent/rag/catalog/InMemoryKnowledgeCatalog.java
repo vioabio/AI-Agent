@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
  */
 @Repository
 @Primary
-@Profile("!prod")
+@Profile("!prod & !demo")
 public class InMemoryKnowledgeCatalog implements KnowledgeCatalog {
 
     private static final Pattern TOKEN_SPLITTER = Pattern.compile("[^\\p{L}\\p{N}]+");

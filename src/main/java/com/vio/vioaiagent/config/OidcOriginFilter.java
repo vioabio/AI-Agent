@@ -27,6 +27,7 @@ final class OidcOriginFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
+        response.setHeader("Cache-Control", "no-store");
         if (!STATE_CHANGING_METHODS.contains(request.getMethod().toUpperCase(Locale.ROOT))) {
             filterChain.doFilter(request, response);
             return;

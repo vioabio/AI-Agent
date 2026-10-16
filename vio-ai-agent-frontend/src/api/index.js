@@ -1,13 +1,11 @@
 /**
  * API 层 — 前后端通信桥梁
  *
- * 开发环境：前端 localhost:3000 → CORS → 后端 localhost:8123/api
+ * 开发环境：前端 /api → Vite 同源代理 → 后端 localhost:8123/api
  * 生产环境：前端 /api → Nginx 反向代理 → 后端服务
  */
 
-const API_BASE_URL = import.meta.env.MODE === 'production'
-  ? '/api'
-  : 'http://localhost:8123/api'
+const API_BASE_URL = '/api'
 
 const API_KEY_HEADER = 'X-API-Key'
 
@@ -19,12 +17,37 @@ const API_KEY_HEADER = 'X-API-Key'
  * 密钥存储，因为页面脚本/XSS 仍可能读取它。</p>
  */
 let transientApiKey = ''
+let authenticationFailureHandler = null
+let authenticationEpoch = 0
+const responseEpochs = new WeakMap()
+
+/** Old account requests cannot expire a subsequently confirmed identity. */
+export function invalidateAuthenticationRequests() { authenticationEpoch++ }
+
+async function authenticatedFetch(url, options) {
+  const epoch = authenticationEpoch
+  const response = await globalThis.fetch(url, options)
+  responseEpochs.set(response, epoch)
+  return response
+}
+
+/** Only 401 invalidates the browser session; a permission/CSRF 403 does not. */
+export function setAuthenticationFailureHandler(handler) {
+  authenticationFailureHandler = typeof handler === 'function' ? handler : null
+}
+
+function notifyAuthenticationFailure(status, response) {
+  if (Number(status) === 401 && responseEpochs.get(response) === authenticationEpoch) {
+    authenticationFailureHandler?.()
+  }
+}
 
 /** 同源 Cookie 认证；API Key 不写入 URL、localStorage 或浏览器历史。 */
 function csrfToken() {
   if (typeof document === 'undefined') return ''
-  const pair = document.cookie.split(';').map(item => item.trim())
-    .find(item => item.startsWith('XSRF-TOKEN=') || item.startsWith('CSRF-TOKEN='))
+  const cookies = document.cookie.split(';').map(item => item.trim())
+  const pair = cookies.find(item => item.startsWith('CSRF-TOKEN='))
+    || cookies.find(item => item.startsWith('XSRF-TOKEN='))
   if (!pair) return ''
   try {
     return decodeURIComponent(pair.substring(pair.indexOf('=') + 1))
@@ -49,6 +72,7 @@ function requestHeaders(extra = {}) {
 }
 
 function httpError(response, operation) {
+  notifyAuthenticationFailure(response.status, response)
   const error = new Error(`${operation}（HTTP ${response.status}）`)
   error.status = response.status
   error.code = response.status === 401
@@ -69,7 +93,7 @@ function ensureOk(response, operation) {
  * 资源 API 在这里做一次兼容解包，视图层只处理业务对象，避免把 code/data
  * 判断散落到各个组件中。
  */
-function unwrapResult(payload) {
+function unwrapResult(payload, response) {
   const numericCode = payload && typeof payload === 'object' && !Array.isArray(payload)
     && Object.prototype.hasOwnProperty.call(payload, 'code')
     && ((typeof payload.code === 'number' && Number.isFinite(payload.code))
@@ -95,6 +119,7 @@ function unwrapResult(payload) {
       const error = new Error(payload.message || `业务请求失败（${payload.code}）`)
       error.code = `API_RESULT_${payload.code}`
       if (numericCode >= 400 && numericCode <= 599) error.status = numericCode
+      notifyAuthenticationFailure(error.status, response)
       throw error
     }
     return payload.data
@@ -106,7 +131,7 @@ async function readJson(response, operation) {
   ensureOk(response, operation)
   if (response.status === 204) return null
   const body = await response.json()
-  return unwrapResult(body)
+  return unwrapResult(body, response)
 }
 
 function queryString(params = {}) {
@@ -183,6 +208,30 @@ export function clearApiKey() {
   transientApiKey = ''
 }
 
+/** Public bootstrap never sends a page's temporary API key or bearer token. */
+export async function fetchAuthSession({ signal } = {}) {
+  const response = await authenticatedFetch(`${API_BASE_URL}/auth/session`, {
+    credentials: 'include', cache: 'no-store', signal,
+    headers: { Accept: 'application/json' }
+  })
+  return readJson(response, '读取登录状态失败')
+}
+
+/** Refresh CSRF before logout, and only accept the documented no-content success. */
+export async function logoutSession({ signal } = {}) {
+  const session = await fetchAuthSession({ signal })
+  if (session?.mode !== 'oidc' || !session.csrf?.enabled || !session.csrf?.available || !csrfToken()) {
+    throw new Error('缺少可用的退出校验，请重试')
+  }
+  const response = await authenticatedFetch(`${API_BASE_URL}/logout`, {
+    method: 'POST', credentials: 'include', signal,
+    headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() }
+  })
+  ensureOk(response, '退出登录失败')
+  if (response.status !== 204) throw new Error('退出登录响应不符合契约')
+  clearApiKey()
+}
+
 /** 是否已显式设置临时 API Key（不返回密钥本身）。 */
 export function hasApiKey() {
   return Boolean(transientApiKey)
@@ -248,7 +297,7 @@ export function chatWithManus(message, onMessage, onSession, onError) {
  */
 export function stopManus(sessionId) {
   if (!sessionId || !String(sessionId).trim()) return Promise.reject(new Error('缺少 sessionId'))
-  return fetch(`${API_BASE_URL}/ai/manus/stop?sessionId=${encodeURIComponent(sessionId)}`, {
+  return authenticatedFetch(`${API_BASE_URL}/ai/manus/stop?sessionId=${encodeURIComponent(sessionId)}`, {
     credentials: 'include',
     headers: requestHeaders()
   }).then(response => ensureOk(response, '停止旧版 Agent 失败'))
@@ -259,7 +308,7 @@ export function stopManus(sessionId) {
  */
 export async function createRun(payload, options = {}) {
   const idempotencyKey = options.idempotencyKey || payload?.idempotencyKey
-  const response = await fetch(`${API_BASE_URL}/chat/runs`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/chat/runs`, {
     method: 'POST',
     credentials: 'include',
     signal: options.signal,
@@ -283,7 +332,7 @@ export async function fetchPokemonFacts({
   if (!dataReleaseId || !String(dataReleaseId).trim()) {
     throw new Error('缺少 dataReleaseId，无法查询版本化事实')
   }
-  const response = await fetch(`${API_BASE_URL}/pokemon/facts${queryString({
+  const response = await authenticatedFetch(`${API_BASE_URL}/pokemon/facts${queryString({
     dataReleaseId: String(dataReleaseId).trim(),
     slug: slug?.trim?.() || undefined,
     nationalNo,
@@ -300,7 +349,7 @@ export async function fetchPokemonFacts({
 export async function fetchPokemonFact(slug, { dataReleaseId, signal } = {}) {
   if (!slug || !String(slug).trim()) throw new Error('缺少宝可梦 slug')
   if (!dataReleaseId || !String(dataReleaseId).trim()) throw new Error('缺少 dataReleaseId')
-  const response = await fetch(`${API_BASE_URL}/pokemon/facts/${encodeURIComponent(String(slug).trim())}${queryString({ dataReleaseId })}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/pokemon/facts/${encodeURIComponent(String(slug).trim())}${queryString({ dataReleaseId })}`, {
     credentials: 'include',
     signal,
     headers: requestHeaders()
@@ -327,7 +376,7 @@ export async function calculateTypeEffectiveness({
     : []
   if (!attack) throw new Error('缺少攻击属性')
   if (defenses.length < 1 || defenses.length > 2) throw new Error('防御属性必须为 1–2 个')
-  const response = await fetch(`${API_BASE_URL}/pokemon/calculations/type-effectiveness`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/pokemon/calculations/type-effectiveness`, {
     method: 'POST',
     credentials: 'include',
     signal,
@@ -378,7 +427,7 @@ export async function calculateSpeed({
   const normalizedIv = normalizeCalculationInteger(iv, '个体值', 0, 31)
   const normalizedEv = normalizeCalculationInteger(ev, '努力值', 0, 252)
   const normalizedNature = normalizeCalculationNumber(natureMultiplier, '性格倍率', 0, true)
-  const response = await fetch(`${API_BASE_URL}/pokemon/calculations/speed`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/pokemon/calculations/speed`, {
     method: 'POST',
     credentials: 'include',
     signal,
@@ -411,7 +460,7 @@ export async function calculateDamage({
   const normalizedAttack = normalizeCalculationInteger(attack, '攻击值', 1)
   const normalizedDefense = normalizeCalculationInteger(defense, '防御值', 1)
   const normalizedModifier = normalizeCalculationNumber(modifier, '修正倍率', 0)
-  const response = await fetch(`${API_BASE_URL}/pokemon/calculations/damage`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/pokemon/calculations/damage`, {
     method: 'POST',
     credentials: 'include',
     signal,
@@ -457,7 +506,7 @@ export async function checkTeamLegality({
     })
     return { formKey, moves }
   })
-  const response = await fetch(`${API_BASE_URL}/pokemon/calculations/legality`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/pokemon/calculations/legality`, {
     method: 'POST',
     credentials: 'include',
     signal,
@@ -475,7 +524,7 @@ export async function checkTeamLegality({
 export async function fetchPokemonTeams({ limit = 50, cursor, signal } = {}) {
   // /teams 是 v1.1 的规范资源入口，提供 ResourcePage/cursor 和主体隔离；
   // /pokemon/teams 仅保留给旧版兼容调用，不应成为工作台的默认路径。
-  const response = await fetch(`${API_BASE_URL}/teams${queryString({ limit, cursor })}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/teams${queryString({ limit, cursor })}`, {
     credentials: 'include',
     signal,
     headers: requestHeaders()
@@ -486,7 +535,7 @@ export async function fetchPokemonTeams({ limit = 50, cursor, signal } = {}) {
 /** 创建版本化队伍；幂等键由调用方提供时透传到 Header。 */
 export async function createPokemonTeam(payload, { idempotencyKey, signal } = {}) {
   if (!payload || typeof payload !== 'object') throw new Error('队伍请求不能为空')
-  const response = await fetch(`${API_BASE_URL}/teams`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/teams`, {
     method: 'POST',
     credentials: 'include',
     signal,
@@ -503,7 +552,7 @@ export async function createPokemonTeam(payload, { idempotencyKey, signal } = {}
 export async function updatePokemonTeam(teamId, payload, { idempotencyKey, signal } = {}) {
   if (!teamId) throw new Error('缺少 teamId')
   if (!payload || typeof payload !== 'object') throw new Error('队伍请求不能为空')
-  const response = await fetch(`${API_BASE_URL}/teams/${encodeURIComponent(teamId)}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/teams/${encodeURIComponent(teamId)}`, {
     method: 'PATCH',
     credentials: 'include',
     signal,
@@ -519,7 +568,7 @@ export async function updatePokemonTeam(teamId, payload, { idempotencyKey, signa
 /** 查询单个队伍。 */
 export async function fetchPokemonTeam(teamId, { signal } = {}) {
   if (!teamId) throw new Error('缺少 teamId')
-  const response = await fetch(`${API_BASE_URL}/teams/${encodeURIComponent(teamId)}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/teams/${encodeURIComponent(teamId)}`, {
     credentials: 'include',
     signal,
     headers: requestHeaders()
@@ -530,7 +579,7 @@ export async function fetchPokemonTeam(teamId, { signal } = {}) {
 /** 删除当前认证主体的队伍。 */
 export async function deletePokemonTeam(teamId, { signal } = {}) {
   if (!teamId) throw new Error('缺少 teamId')
-  const response = await fetch(`${API_BASE_URL}/teams/${encodeURIComponent(teamId)}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/teams/${encodeURIComponent(teamId)}`, {
     method: 'DELETE',
     credentials: 'include',
     signal,
@@ -541,7 +590,7 @@ export async function deletePokemonTeam(teamId, { signal } = {}) {
 
 /** 查询当前主体收藏；后端可能返回数组或 ResourcePage。 */
 export async function fetchFavorites({ limit = 50, cursor, signal } = {}) {
-  const response = await fetch(`${API_BASE_URL}/favorites${queryString({ limit, cursor })}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/favorites${queryString({ limit, cursor })}`, {
     credentials: 'include',
     signal,
     headers: requestHeaders()
@@ -552,7 +601,7 @@ export async function fetchFavorites({ limit = 50, cursor, signal } = {}) {
 /** 创建收藏；resourceType/resourceKey 由服务端校验并作为不可变业务身份。 */
 export async function createFavorite(payload, { idempotencyKey, signal } = {}) {
   if (!payload || typeof payload !== 'object') throw new Error('收藏请求不能为空')
-  const response = await fetch(`${API_BASE_URL}/favorites`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/favorites`, {
     method: 'POST',
     credentials: 'include',
     signal,
@@ -569,7 +618,7 @@ export async function createFavorite(payload, { idempotencyKey, signal } = {}) {
 export async function updateFavorite(favoriteId, payload, { signal } = {}) {
   if (!favoriteId) throw new Error('缺少 favoriteId')
   if (!payload || typeof payload !== 'object') throw new Error('收藏更新请求不能为空')
-  const response = await fetch(`${API_BASE_URL}/favorites/${encodeURIComponent(favoriteId)}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/favorites/${encodeURIComponent(favoriteId)}`, {
     method: 'PATCH',
     credentials: 'include',
     signal,
@@ -582,7 +631,7 @@ export async function updateFavorite(favoriteId, payload, { signal } = {}) {
 /** 删除当前认证主体的收藏。 */
 export async function deleteFavorite(favoriteId, { signal } = {}) {
   if (!favoriteId) throw new Error('缺少 favoriteId')
-  const response = await fetch(`${API_BASE_URL}/favorites/${encodeURIComponent(favoriteId)}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/favorites/${encodeURIComponent(favoriteId)}`, {
     method: 'DELETE',
     credentials: 'include',
     signal,
@@ -602,7 +651,7 @@ export async function fetchPokemonActivities({
 } = {}) {
   if (!gameReleaseId || !String(gameReleaseId).trim()) throw new Error('缺少 gameReleaseId')
   if (!language || !String(language).trim()) throw new Error('缺少 language')
-  const response = await fetch(`${API_BASE_URL}/pokemon/activities${queryString({
+  const response = await authenticatedFetch(`${API_BASE_URL}/pokemon/activities${queryString({
     gameReleaseId: String(gameReleaseId).trim(), dlcId, language: String(language).trim(), region, limit
   })}`, {
     credentials: 'include',
@@ -615,7 +664,7 @@ export async function fetchPokemonActivities({
 /** 查询单条活动资讯；过期/未审核内容由后端以 404/410 fail-closed。 */
 export async function fetchPokemonActivity(noticeId, { signal } = {}) {
   if (!noticeId) throw new Error('缺少 noticeId')
-  const response = await fetch(`${API_BASE_URL}/pokemon/activities/${encodeURIComponent(noticeId)}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/pokemon/activities/${encodeURIComponent(noticeId)}`, {
     credentials: 'include',
     signal,
     headers: requestHeaders()
@@ -625,7 +674,7 @@ export async function fetchPokemonActivity(noticeId, { signal } = {}) {
 
 /** 查询当前认证主体的会话列表；兼容 ResourcePage 和数组响应。 */
 export async function fetchConversations({ limit = 50, cursor, signal } = {}) {
-  const response = await fetch(`${API_BASE_URL}/conversations${queryString({ limit, cursor })}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/conversations${queryString({ limit, cursor })}`, {
     credentials: 'include',
     signal,
     headers: requestHeaders()
@@ -636,7 +685,7 @@ export async function fetchConversations({ limit = 50, cursor, signal } = {}) {
 /** 查询会话完整消息；该接口返回 raw ChatMessage[]，不伪造历史内容。 */
 export async function fetchConversationMessages(conversationId, { signal } = {}) {
   if (!conversationId) throw new Error('缺少 conversationId')
-  const response = await fetch(`${API_BASE_URL}/chat/conversations/${encodeURIComponent(conversationId)}/messages`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/chat/conversations/${encodeURIComponent(conversationId)}/messages`, {
     credentials: 'include',
     signal,
     headers: requestHeaders()
@@ -647,7 +696,7 @@ export async function fetchConversationMessages(conversationId, { signal } = {})
 /** 获取服务端 Run 快照；用于终态事件缺失/事件页为空时确认真实状态。 */
 export async function fetchRunSnapshot(runId, options = {}) {
   const id = requiredIdentifier(runId, 'runId')
-  const response = await fetch(`${API_BASE_URL}/chat/runs/${encodeURIComponent(id)}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/chat/runs/${encodeURIComponent(id)}`, {
     credentials: 'include',
     signal: options.signal,
     headers: requestHeaders()
@@ -666,7 +715,7 @@ export async function fetchRunEvents(runId, lastEventId = null, options = {}) {
   // OpenAPI/后端同时支持 query 和 Last-Event-ID；发送同一游标到两处，
   // 兼容仅转发 SSE 头的网关，并让服务端的“Header 优先”规则保持一致。
   const cursorHeader = hasCursor ? { 'Last-Event-ID': String(lastEventId) } : {}
-  const response = await fetch(`${API_BASE_URL}/chat/runs/${encodeURIComponent(id)}/events${params}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/chat/runs/${encodeURIComponent(id)}/events${params}`, {
     credentials: 'include',
     signal: options.signal,
     headers: requestHeaders(cursorHeader)
@@ -678,7 +727,7 @@ export async function fetchRunEvents(runId, lastEventId = null, options = {}) {
 export async function cancelRun(runId, reason = 'user_cancelled', options = {}) {
   const id = requiredIdentifier(runId, 'runId')
   const idempotencyKey = options?.idempotencyKey
-  const response = await fetch(`${API_BASE_URL}/chat/runs/${encodeURIComponent(id)}/cancel`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/chat/runs/${encodeURIComponent(id)}/cancel`, {
     method: 'POST',
     credentials: 'include',
     signal: options?.signal,
@@ -709,7 +758,7 @@ export async function submitAnswerFeedback(answerId, {
     ...(knowledgeReleaseId ? { knowledgeReleaseId } : {}),
     ...(indexReleaseId ? { indexReleaseId } : {})
   }
-  const response = await fetch(`${API_BASE_URL}/answers/${encodeURIComponent(answerId)}/feedback`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/answers/${encodeURIComponent(answerId)}/feedback`, {
     method: 'POST',
     credentials: 'include',
     signal,
@@ -727,7 +776,7 @@ export async function submitAnswerFeedback(answerId, {
 /** 查询当前主体对答案的反馈及纠错状态；不把其他主体的记录缓存到前端。 */
 export async function fetchAnswerFeedback(answerId, { limit = 50, signal } = {}) {
   if (!answerId || !String(answerId).trim()) throw new Error('缺少 answerId，无法读取反馈')
-  const response = await fetch(`${API_BASE_URL}/answers/${encodeURIComponent(String(answerId).trim())}/feedback${queryString({ limit })}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/answers/${encodeURIComponent(String(answerId).trim())}/feedback${queryString({ limit })}`, {
     credentials: 'include',
     signal,
     headers: requestHeaders()
@@ -738,7 +787,7 @@ export async function fetchAnswerFeedback(answerId, { limit = 50, signal } = {})
 /** 查询不可变答案投影；用于恢复/反馈详情，不重新调用模型生成答案。 */
 export async function fetchAnswerProjection(answerId, { signal } = {}) {
   const id = requiredIdentifier(answerId, 'answerId')
-  const response = await fetch(`${API_BASE_URL}/answers/${encodeURIComponent(id)}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/answers/${encodeURIComponent(id)}`, {
     credentials: 'include',
     signal,
     headers: requestHeaders()
@@ -755,7 +804,7 @@ export async function decideRunApproval(approvalId, { runId, approved, reason = 
     approved: String(Boolean(approved))
   })
   if (reason) params.set('reason', reason)
-  const response = await fetch(`${API_BASE_URL}/hitl/approvals/${encodeURIComponent(approval)}?${params}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/hitl/approvals/${encodeURIComponent(approval)}?${params}`, {
     method: 'POST',
     credentials: 'include',
     headers: requestHeaders({ 'Content-Type': 'application/json' })
@@ -772,7 +821,7 @@ export async function subscribeRunEvents(runId, { lastEventId = null, onEvent, s
   const hasCursor = lastEventId !== null && lastEventId !== undefined
     && String(lastEventId) !== ''
   const query = hasCursor ? `?afterEventId=${encodeURIComponent(lastEventId)}` : ''
-  const response = await fetch(`${API_BASE_URL}/chat/runs/${encodeURIComponent(id)}/events/stream${query}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/chat/runs/${encodeURIComponent(id)}/events/stream${query}`, {
     credentials: 'include',
     signal,
     headers: requestHeaders({

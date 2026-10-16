@@ -71,9 +71,9 @@ test('速度、伤害和合法性封装发送规范化请求并解包 Result<T>'
     }), { requestNumber: 3 })
 
     assert.deepEqual(calls.map(call => call.url), [
-      'http://localhost:8123/api/pokemon/calculations/speed',
-      'http://localhost:8123/api/pokemon/calculations/damage',
-      'http://localhost:8123/api/pokemon/calculations/legality'
+      '/api/pokemon/calculations/speed',
+      '/api/pokemon/calculations/damage',
+      '/api/pokemon/calculations/legality'
     ])
     for (const call of calls) {
       assert.equal(call.options.method, 'POST')

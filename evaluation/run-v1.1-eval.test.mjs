@@ -86,3 +86,37 @@ function runRunner(argumentsList) {
   });
   return {status: result.status, stdout: String(result.stdout ?? ''), stderr: String(result.stderr ?? '')};
 }
+
+test('runner preserves an explicit immutable budget baseline reference', () => {
+  const dir = fs.mkdtempSync(path.join(root, '.tmp-eval-runner-'));
+  try {
+    const output = path.join(dir, 'metrics.json');
+    runRunner(['--evaluation-run-id', 'candidate-budget-001', '--run-dir', dir,
+      '--baseline-evaluation-run-id', 'baseline-budget-001',
+      '--baseline-report-hash', `sha256:${'a'.repeat(64)}`]);
+    const report = JSON.parse(fs.readFileSync(output, 'utf8'));
+    assert.equal(report.baselineEvaluationRunId, 'baseline-budget-001');
+    assert.equal(report.baselineReportHash, `sha256:${'a'.repeat(64)}`);
+    assert.equal(report.status, 'pending', 'A reference cannot manufacture missing quality evidence');
+  } finally {
+    fs.rmSync(dir, {recursive: true, force: true});
+  }
+});
+
+test('runner rejects incomplete and self-referencing budget baselines', () => {
+  for (const baselineId of ['invalid-baseline-001', 'self-budget-001']) {
+    const dir = fs.mkdtempSync(path.join(root, '.tmp-eval-runner-'));
+    try {
+      const args = ['--evaluation-run-id', 'self-budget-001', '--run-dir', dir,
+        '--baseline-evaluation-run-id', baselineId];
+      if (baselineId === 'self-budget-001') args.push('--baseline-report-hash', `sha256:${'b'.repeat(64)}`);
+      const run = runRunner(args);
+      assert.notEqual(run.status, 0);
+      const report = JSON.parse(fs.readFileSync(path.join(dir, 'metrics.json'), 'utf8'));
+      assert.equal(report.status, 'blocked');
+      assert.ok(report.errors.some((message) => message.includes('baseline')));
+    } finally {
+      fs.rmSync(dir, {recursive: true, force: true});
+    }
+  }
+});

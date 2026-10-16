@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentMap;
 
 /** 开发/测试用 Run 仓储；通过 userId 过滤资源，避免跨用户泄漏。 */
 @Repository
-@org.springframework.context.annotation.Profile("!prod")
+@org.springframework.context.annotation.Profile("!prod & !demo")
 @Primary
 public class InMemoryRunRepository implements AgentRunRepository {
     private final ConcurrentMap<String, AgentRun> runs = new ConcurrentHashMap<>();

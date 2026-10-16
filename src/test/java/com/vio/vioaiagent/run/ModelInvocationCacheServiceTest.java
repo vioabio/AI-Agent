@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class ModelInvocationCacheServiceTest {
 
@@ -96,6 +97,81 @@ class ModelInvocationCacheServiceTest {
 
         assertThrows(ModelInvocationCacheException.class,
                 () -> service.invoke(run, "prompt", ignored -> "不应执行"));
+    }
+
+    @Test
+    void recoveryLookupReturnsVerifiedHitWithoutAnyWritePath() {
+        RecordingRepository repository = new RecordingRepository();
+        ModelInvocationCacheService service = new ModelInvocationCacheService(repository,
+                codec(), enabledProperties(), fixedClock());
+        AgentRun run = run();
+
+        service.invoke(run, "prompt", ignored -> "可恢复回答");
+        int saves = repository.saveCalls;
+        Optional<String> recovered = service.lookupForRecovery(run, "prompt");
+
+        assertEquals(Optional.of("可恢复回答"), recovered);
+        assertEquals(saves, repository.saveCalls);
+        assertEquals(2, repository.findCalls);
+        assertEquals(0, repository.deleteCalls);
+    }
+
+    @Test
+    void recoveryMissAndExpiryReturnEmptyWithoutModelOrCacheMutation() {
+        RecordingRepository repository = new RecordingRepository();
+        ModelInvocationCacheProperties properties = enabledProperties();
+        ModelInvocationCacheService service = new ModelInvocationCacheService(repository,
+                codec(), properties, fixedClock());
+        AgentRun run = run();
+
+        assertFalse(service.lookupForRecovery(run, "missing").isPresent());
+        assertEquals(0, repository.saveCalls);
+        assertEquals(0, repository.deleteCalls);
+
+        service.invoke(run, "expired", ignored -> "old");
+        ModelInvocationCacheEntry entry = repository.entry;
+        repository.entry = new ModelInvocationCacheEntry(entry.runId(), entry.stepNo(), entry.requestHash(),
+                entry.modelVersion(), entry.promptVersion(), entry.responseDigest(), entry.encryptedResponse(),
+                entry.artifactUri(), entry.usage(), entry.keyVersion(), NOW.minusSeconds(1), NOW);
+        assertFalse(service.lookupForRecovery(run, "expired").isPresent());
+        assertEquals(1, repository.saveCalls);
+        assertEquals(0, repository.deleteCalls);
+    }
+
+    @Test
+    void recoveryIsAlwaysFailClosedForConfigurationOrIntegrityFailures() {
+        ModelInvocationCacheProperties incomplete = enabledProperties();
+        incomplete.setFailClosed(false);
+        incomplete.setModelVersion("");
+        ModelInvocationCacheService unavailable = new ModelInvocationCacheService(
+                new RecordingRepository(), codec(), incomplete, fixedClock());
+        assertThrows(ModelInvocationCacheException.class,
+                () -> unavailable.lookupForRecovery(run(), "prompt"));
+
+        RecordingRepository repository = new RecordingRepository();
+        ModelInvocationCacheService service = new ModelInvocationCacheService(repository,
+                codec(), enabledProperties(), fixedClock());
+        service.invoke(run(), "prompt", ignored -> "answer");
+        ModelInvocationCacheEntry entry = repository.entry;
+        repository.entry = new ModelInvocationCacheEntry(entry.runId(), entry.stepNo(), entry.requestHash(),
+                entry.modelVersion(), entry.promptVersion(), "f".repeat(64), entry.encryptedResponse(),
+                entry.artifactUri(), entry.usage(), entry.keyVersion(), entry.createdAt(), entry.expiresAt());
+        assertThrows(ModelInvocationCacheException.class,
+                () -> service.lookupForRecovery(run(), "prompt"));
+        assertEquals(1, repository.saveCalls);
+        assertEquals(0, repository.deleteCalls);
+    }
+
+    @Test
+    void invalidRecoveryStepIsRejectedEvenWhenCacheDisabled() {
+        ModelInvocationCacheProperties properties = enabledProperties();
+        properties.setEnabled(false);
+        ModelInvocationCacheService service = new ModelInvocationCacheService(null, null,
+                properties, fixedClock());
+        assertThrows(IllegalArgumentException.class,
+                () -> service.lookupForRecovery(run(), -1, "prompt"));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.invoke(run(), -1, "prompt", ignored -> "answer"));
     }
 
     @Test
@@ -189,10 +265,14 @@ class ModelInvocationCacheServiceTest {
 
     private static final class RecordingRepository implements ModelInvocationCacheRepository {
         private ModelInvocationCacheEntry entry;
+        private int findCalls;
+        private int saveCalls;
+        private int deleteCalls;
 
         @Override
         public Optional<ModelInvocationCacheEntry> findValid(String runId, int stepNo,
                                                               String requestHash, Instant now) {
+            findCalls++;
             if (entry == null || !runId.equals(entry.runId()) || stepNo != entry.stepNo()
                     || !requestHash.equals(entry.requestHash()) || entry.expired(now)) {
                 return Optional.empty();
@@ -202,12 +282,14 @@ class ModelInvocationCacheServiceTest {
 
         @Override
         public ModelInvocationCacheEntry save(ModelInvocationCacheEntry value) {
+            saveCalls++;
             entry = value;
             return value;
         }
 
         @Override
         public int deleteExpired(Instant now, int limit) {
+            deleteCalls++;
             if (entry != null && entry.expired(now)) {
                 entry = null;
                 return 1;

@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentMap;
 /** 本地/测试活动资讯仓储；默认空库，必须显式注入脱敏 fixture。 */
 @Repository
 @Primary
-@Profile("!prod")
+@Profile("!prod & !demo")
 public class InMemoryActivityNoticeRepository implements ActivityNoticeRepository {
     private final ConcurrentMap<String, ActivityNotice> notices = new ConcurrentHashMap<>();
 

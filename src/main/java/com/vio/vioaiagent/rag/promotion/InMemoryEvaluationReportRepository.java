@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /** 本地/测试用的不可变评测报告仓储；不会覆盖同一 evaluationRunId。 */
 @Repository
 @Primary
-@Profile("!prod")
+@Profile("!prod & !demo")
 public class InMemoryEvaluationReportRepository implements EvaluationReportRepository {
 
     private final Map<String, EvaluationReport> reports = new ConcurrentHashMap<>();

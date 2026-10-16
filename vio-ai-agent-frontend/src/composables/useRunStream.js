@@ -15,9 +15,10 @@ import {
   TERMINAL_STATUSES
 } from '@/api/run-contract'
 import {
-  clearRunResume,
+  clearRunResume as deleteRunResume,
+  getRunResumeEpoch,
   loadRunResume,
-  saveRunResume
+  saveRunResume as persistRunResume
 } from '@/composables/runPersistence'
 
 // 断线属于传输层故障，不能直接把业务 Run 标记为 cancelled。客户端最多
@@ -34,6 +35,9 @@ const NON_RETRYABLE_STREAM_STATUSES = new Set([400, 401, 403, 404, 409])
  * 存在未终态 Run 时拒绝再次发送（single-flight）。</p>
  */
 export function useRunStream() {
+  const persistenceEpoch = getRunResumeEpoch()
+  function saveRunResume(model) { persistRunResume(model, { epoch: persistenceEpoch }) }
+  function clearRunResume(conversationId, runId) { deleteRunResume(conversationId, runId, { epoch: persistenceEpoch }) }
   const runs = reactive(new Map())
   const controllers = new Map()
   const conversationRuns = new Map()

@@ -13,7 +13,7 @@ import java.util.Map;
  * {@code @Transactional} 代理失效。真实 broker 仍由后续 dispatcher 负责。</p>
  */
 @Component
-@Profile("prod")
+@Profile({"prod", "demo"})
 public class JdbcRunEventOutboxAppender implements RunEventOutboxAppender {
     private final EventRepository events;
     private final RunOutboxRepository outbox;

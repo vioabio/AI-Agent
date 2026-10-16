@@ -21,7 +21,7 @@ import java.util.Optional;
 /** PostgreSQL 生产反馈仓储；工单快照和迁移审计记录在同一事务中保存。 */
 @Repository
 @Primary
-@Profile("prod")
+@Profile({"prod", "demo"})
 public class JdbcFeedbackRepository implements FeedbackRepository {
     private static final TypeReference<Map<String, Object>> JSON_MAP = new TypeReference<>() {
     };

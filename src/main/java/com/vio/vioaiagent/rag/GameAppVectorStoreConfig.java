@@ -20,7 +20,7 @@ import java.util.List;
  * 宝可梦智能体向量数据库配置（初始化基于内存的向量数据库 Bean）
  */
 @Configuration
-@Profile("!prod")
+@Profile("!prod & !demo")
 @EnableConfigurationProperties(LegacyMemoryRagProperties.class)
 public class GameAppVectorStoreConfig {
 

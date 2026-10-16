@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentMap;
 
 /** 本地/测试投影仓储；不对外宣称跨进程耐久性。 */
 @Repository
-@Profile("!prod")
+@Profile("!prod & !demo")
 @Primary
 public class InMemoryAnswerProjectionRepository implements AnswerProjectionRepository {
     private final ConcurrentMap<String, AnswerProjection> byAnswer = new ConcurrentHashMap<>();

@@ -14,7 +14,7 @@ import java.time.Instant;
 
 /** 按 Run 保存有序事件；重复追加同一 eventId 必须是同一事件，保证重试幂等。 */
 @Repository
-@org.springframework.context.annotation.Profile("!prod")
+@org.springframework.context.annotation.Profile("!prod & !demo")
 @Primary
 public class InMemoryEventRepository implements EventRepository {
     private final Map<String, NavigableMap<Long, AgentEvent>> events = new ConcurrentHashMap<>();

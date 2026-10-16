@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -68,6 +69,9 @@ public record AnswerProjection(
         if (completedAt.isBefore(createdAt)) {
             throw new IllegalArgumentException("completedAt 不能早于 createdAt");
         }
+        // PostgreSQL TIMESTAMPTZ stores microseconds; immutable equality must survive JDBC readback.
+        createdAt = createdAt.truncatedTo(ChronoUnit.MICROS);
+        completedAt = completedAt.truncatedTo(ChronoUnit.MICROS);
     }
 
     /**

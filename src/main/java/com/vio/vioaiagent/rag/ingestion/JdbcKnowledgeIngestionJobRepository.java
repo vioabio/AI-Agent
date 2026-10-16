@@ -24,7 +24,7 @@ import java.util.UUID;
  */
 @Repository
 @Primary
-@Profile("prod")
+@Profile({"prod", "demo"})
 public class JdbcKnowledgeIngestionJobRepository implements KnowledgeIngestionJobRepository {
 
     private final JdbcTemplate jdbcTemplate;

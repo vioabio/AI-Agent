@@ -106,7 +106,7 @@ public class ApiKeyAuthInterceptor implements HandlerInterceptor {
         if (oidc != null && oidc.isAuthenticated() && !(oidc instanceof AnonymousAuthenticationToken)) {
             PrincipalPolicyDecision policyDecision = oidcPolicyAdapter == null
                     ? PrincipalPolicyDecision.notApplicable()
-                    : oidcPolicyAdapter.resolve(oidc);
+                    : oidcPolicyAdapter.resolve(oidc, OidcSessionLifetime.validatedDeadline(request));
             if (policyDecision.applicable()) {
                 if (!policyDecision.allowed() || policyDecision.policy() == null) {
                     RequestContext.clear();

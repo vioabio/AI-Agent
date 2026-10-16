@@ -22,7 +22,7 @@ import java.util.UUID;
  */
 @Repository
 @Primary
-@Profile("!prod")
+@Profile("!prod & !demo")
 public class InMemoryKnowledgeIngestionJobRepository implements KnowledgeIngestionJobRepository {
 
     private final Map<String, KnowledgeIngestionJob> jobs = new LinkedHashMap<>();

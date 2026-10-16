@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Repository
 @Primary
-@Profile("!prod")
+@Profile("!prod & !demo")
 public class InMemoryPokemonFactRepository implements PokemonFactRepository {
     private final Map<String, PokemonFact> facts = new ConcurrentHashMap<>();
     private final Map<String, VersionedDataRelease> releases = new ConcurrentHashMap<>();

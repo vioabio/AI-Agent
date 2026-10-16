@@ -19,7 +19,7 @@ import java.util.Optional;
  */
 @Repository
 @Primary
-@Profile("!prod")
+@Profile("!prod & !demo")
 public class InMemoryHitlApprovalRepository implements HitlApprovalRepository {
 
     private final Map<String, HitlApproval> entries = new LinkedHashMap<>();

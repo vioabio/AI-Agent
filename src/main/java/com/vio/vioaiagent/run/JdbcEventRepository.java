@@ -23,7 +23,7 @@ import java.util.Optional;
 
 /** 生产环境事件仓储：按 (run_id,event_id) 幂等追加并支持断点游标读取。 */
 @Repository
-@Profile("prod")
+@Profile({"prod", "demo"})
 @Primary
 public class JdbcEventRepository implements EventRepository {
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {};

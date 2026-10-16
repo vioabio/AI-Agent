@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Repository
-@Profile("prod")
+@Profile({"prod", "demo"})
 @Primary
 public class JdbcIdempotencyStore implements IdempotencyStore {
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() { };
@@ -94,7 +94,8 @@ public class JdbcIdempotencyStore implements IdempotencyStore {
                 timestamp(point), Math.max(1, Math.min(limit, 10_000)));
     }
 
-    private Optional<IdempotencyRecord> find(String scope, String key) {
+    @Override
+    public Optional<IdempotencyRecord> find(String scope, String key) {
         try {
             return Optional.ofNullable(jdbc.queryForObject("SELECT * FROM api_idempotency_record WHERE scope=? AND idempotency_key=?",
                     (rs, row) -> {

@@ -11,6 +11,44 @@ import { normalizeCursorId } from '../api/run-contract.js'
 const RUNS_STORAGE_KEY = 'vio.agent.run-resume.v1'
 const CONVERSATION_STORAGE_PREFIX = 'vio.agent.conversation.v1.'
 const MAX_ENTRIES = 20
+const OWNER_STORAGE_KEY = 'vio.agent.resume-owner.v1'
+let resumeEpoch = 0
+
+export function getRunResumeEpoch() { return resumeEpoch }
+
+/** Invalidate late callbacks, and remove only this application's resume metadata. */
+export function clearAllRunResume() {
+  resumeEpoch++
+  const store = storage()
+  if (!store) return
+  try {
+    const keys = []
+    for (let index = 0; index < store.length; index++) {
+      const key = store.key(index)
+      if (key === RUNS_STORAGE_KEY || key === OWNER_STORAGE_KEY || key?.startsWith(CONVERSATION_STORAGE_PREFIX)) keys.push(key)
+    }
+    keys.forEach(key => store.removeItem(key))
+  } catch { /* Storage may be disabled; memory epochs still invalidate old writers. */ }
+}
+
+/** Store only an opaque scope digest; never persist claims or credentials. */
+export async function syncRunResumeScope(snapshot, { isCurrent = () => true } = {}) {
+  if (!isCurrent()) return
+  if (snapshot.mode === 'oidc' && !snapshot.authenticated) { clearAllRunResume(); return }
+  try {
+    const bytes = new TextEncoder().encode(JSON.stringify([snapshot.mode,
+      snapshot.principalId, snapshot.tenantId, snapshot.roles]))
+    const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes)
+    if (!isCurrent()) return
+    const tag = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
+    const store = storage()
+    if (!store || store.getItem(OWNER_STORAGE_KEY) !== tag) clearAllRunResume()
+    store?.setItem(OWNER_STORAGE_KEY, tag)
+  } catch {
+    // Without a secure digest/storage, retain no cross-refresh identity pointers.
+    if (isCurrent()) clearAllRunResume()
+  }
+}
 
 function storage() {
   if (typeof window === 'undefined') return null
@@ -68,7 +106,8 @@ function validStorageId(value) {
   return validText(value) && /^[a-zA-Z0-9._:-]+$/.test(value)
 }
 
-export function saveRunResume({ conversationId, runId, lastEventId }) {
+export function saveRunResume({ conversationId, runId, lastEventId }, { epoch = resumeEpoch } = {}) {
+  if (epoch !== resumeEpoch) return
   if (!validStorageId(conversationId) || !validStorageId(runId)) return
   const runs = readRuns()
   // Persist the same canonical decimal representation used by the reducer;
@@ -98,7 +137,8 @@ export function loadRunResume(conversationId) {
   }
 }
 
-export function clearRunResume(conversationId, runId = null) {
+export function clearRunResume(conversationId, runId = null, { epoch = resumeEpoch } = {}) {
+  if (epoch !== resumeEpoch) return
   if (!validStorageId(conversationId)) return
   const runs = readRuns()
   if (runId && runs[conversationId]?.runId !== runId) return

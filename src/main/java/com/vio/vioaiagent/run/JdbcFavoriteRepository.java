@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Repository
-@Profile("prod")
+@Profile({"prod", "demo"})
 @Primary
 public class JdbcFavoriteRepository implements FavoriteRepository {
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() { };

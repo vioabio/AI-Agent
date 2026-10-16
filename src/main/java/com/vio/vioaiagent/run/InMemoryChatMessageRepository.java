@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Repository
-@org.springframework.context.annotation.Profile("!prod")
+@org.springframework.context.annotation.Profile("!prod & !demo")
 @Primary
 public class InMemoryChatMessageRepository implements ChatMessageRepository {
     private final CopyOnWriteArrayList<ChatMessage> messages = new CopyOnWriteArrayList<>();

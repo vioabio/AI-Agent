@@ -36,14 +36,20 @@ function initialState() {
 }
 
 async function installApiFixture(page, state) {
-  // Scope interception to the backend origin.  The previous broad
-  // `**/api/**` glob also matched Vite source modules such as
-  // `/src/api/index.js`, so the fixture returned JSON for JavaScript imports
-  // and the application mounted as a blank page.
-  await page.route('http://localhost:8123/api/**', async route => {
+  // Match the API root, excluding Vite modules under /src/api/.
+  await page.route(url => url.pathname.startsWith('/api/'), async route => {
     const request = route.request()
     const url = new URL(request.url())
     const pathname = url.pathname
+    if (pathname === '/api/auth/session') {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        mode: 'disabled', authenticated: false, accessDenied: false,
+        principalId: null, tenantId: null, roles: [], serverTime: new Date().toISOString(),
+        absoluteExpiresAt: null, loginUrl: null, logoutUrl: null,
+        csrf: { enabled: false, available: false, cookieName: 'CSRF-TOKEN', headerName: 'X-CSRF-TOKEN' }
+      }) })
+      return
+    }
     if (state.permission && pathname.endsWith('/pokemon/facts')) {
       await route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ message: 'permission denied' }) })
       return

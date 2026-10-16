@@ -10,7 +10,7 @@ import java.util.Set;
 
 /** Reject unsupported production quota backends instead of silently degrading. */
 @Component
-@Profile("prod")
+@Profile({"prod", "demo"})
 public class GlobalQuotaBackendValidator {
     private static final Set<String> SUPPORTED = Set.of("jdbc", "redis");
 

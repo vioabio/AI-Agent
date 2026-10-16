@@ -7,6 +7,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @Configuration
 @EnableScheduling
 @EnableConfigurationProperties({DurableRunProperties.class, KnowledgeIngestionProperties.class,
-        ModelInvocationCacheProperties.class})
+        ModelInvocationCacheProperties.class, RunAdmissionProperties.class})
 public class DurableRunConfiguration {
 }

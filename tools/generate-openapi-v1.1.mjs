@@ -26,6 +26,7 @@ candidate.info = {
 };
 candidate.servers = [{url: '/api', description: 'Spring Boot context path'}];
 candidate.tags = [
+  {name: 'Authentication', description: 'Anonymous session bootstrap and CSRF-protected browser logout'},
   {name: 'Agent Run', description: 'Durable, replayable agent runs and event streams'},
   {name: 'User Resources', description: 'User-scoped conversations, teams and favorites'},
   {name: 'Pokemon Resources', description: 'Versioned Pokémon facts and teams'},
@@ -34,13 +35,15 @@ candidate.tags = [
   {name: 'Answer and Feedback', description: 'Answer lineage and correction feedback'},
   {name: 'HITL', description: 'Run-bound human approval'},
   {name: 'Memory', description: 'User-scoped consented memory'},
+  {name: 'Operations', description: 'Audited operator actions for uncertain external effects'},
   {name: 'Health', description: 'Liveness, readiness and diagnostics'}
 ];
 candidate.components ??= {};
 candidate.components.securitySchemes = {
   ...(candidate.components.securitySchemes ?? {}),
   bearerAuth: {type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'Production identity is supplied by the configured trusted gateway/OIDC resource server.'},
-  apiKeyAuth: {type: 'apiKey', in: 'header', name: 'X-API-Key', description: 'Service-to-service key; never place a key in a URL.'}
+  apiKeyAuth: {type: 'apiKey', in: 'header', name: 'X-API-Key', description: 'Service-to-service key; never place a key in a URL.'},
+  oidcSession: {type: 'apiKey', in: 'cookie', name: 'VIO_SESSION', description: 'OIDC browser session. Cookie name is configurable; VIO_SESSION is the default. State changes also require the CSRF token and an allowed Origin.'}
 };
 candidate.components.parameters = {
   ...(candidate.components.parameters ?? {}),
@@ -72,6 +75,35 @@ Object.assign(schemas, {
     type: 'object',
     required: ['code', 'message'],
     properties: {code: {oneOf: [{type: 'integer'}, {type: 'string'}]}, message: {type: 'string'}}
+  },
+  SessionStatus: {
+    type: 'object',
+    required: ['mode', 'authenticated', 'accessDenied', 'principalId', 'tenantId', 'roles',
+      'serverTime', 'absoluteExpiresAt', 'loginUrl', 'logoutUrl', 'csrf'],
+    description: 'Direct JSON session bootstrap. Nullable fields are always present. API-key and disabled modes report no personal login identity; the API-key credential remains a separate service authentication mechanism.',
+    properties: {
+      mode: {type: 'string', enum: ['oidc', 'api_key', 'disabled']},
+      authenticated: {type: 'boolean', description: 'A validated OIDC principal also passed the server principal policy.'},
+      accessDenied: {type: 'boolean', description: 'A validated OIDC identity was denied by the server principal policy.'},
+      principalId: {type: 'string', nullable: true},
+      tenantId: {type: 'string', nullable: true},
+      roles: {type: 'array', items: {type: 'string'}, description: 'Sorted roles derived from the trusted OIDC principal; empty for anonymous, API-key and disabled modes.'},
+      serverTime: {type: 'string', format: 'date-time', description: 'Server time used to calculate the remaining lifetime without relying on the browser clock.'},
+      absoluteExpiresAt: {type: 'string', format: 'date-time', nullable: true, description: 'Server-enforced absolute deadline for a browser session, or exp for a validated Bearer JWT. Null when no usable OIDC identity is available.'},
+      loginUrl: {type: 'string', nullable: true, description: 'Context-relative browser navigation URL for starting OIDC login, such as /api/oauth2/authorization/vio. Null outside OIDC mode.'},
+      logoutUrl: {type: 'string', nullable: true, description: 'Context-relative POST URL for local browser logout, such as /api/logout. Null outside OIDC mode.'},
+      csrf: {$ref: '#/components/schemas/CsrfStatus'}
+    }
+  },
+  CsrfStatus: {
+    type: 'object', required: ['enabled', 'available', 'cookieName', 'headerName'],
+    description: 'CSRF token availability and transport names. In OIDC mode the anonymous bootstrap GET prepares a CSRF-TOKEN cookie at /. The token value is read from that cookie by the browser.',
+    properties: {
+      enabled: {type: 'boolean'},
+      available: {type: 'boolean'},
+      cookieName: {type: 'string', enum: ['CSRF-TOKEN']},
+      headerName: {type: 'string', enum: ['X-CSRF-TOKEN']}
+    }
   },
   CreateRunRequest: {
     ...schemas.CreateRunRequest,
@@ -309,6 +341,27 @@ Object.assign(schemas, {
   IndexRequest: {type: 'object', properties: {id: {type: 'string'}, knowledgeReleaseId: {type: 'string'}, vectorStore: {type: 'string'}, embeddingModel: {type: 'string'}, dimension: {type: 'integer', minimum: 1}}},
   PromotionRequest: {type: 'object', required: ['knowledgeReleaseId', 'dataReleaseId', 'evaluationRunId', 'reportHash', 'reviewer', 'approvalReason'], properties: {indexReleaseId: {type: 'string'}, knowledgeReleaseId: {type: 'string'}, dataReleaseId: {type: 'string'}, evaluationRunId: {type: 'string'}, reportHash: {type: 'string'}, reviewer: {type: 'string'}, approvalReason: {type: 'string'}, requestedAt: {type: 'string', format: 'date-time'}}},
   PromotionResult: {type: 'object', properties: {indexReleaseId: {type: 'string'}, knowledgeReleaseId: {type: 'string'}, dataReleaseId: {type: 'string'}, evaluationRunId: {type: 'string'}, reportHash: {type: 'string'}, approvalId: {type: 'string'}, status: {type: 'string'}, activatedAt: {type: 'string', format: 'date-time'}}},
+  EvaluationReportArtifact: {
+    type: 'string', format: 'binary',
+    description: 'Exact original UTF-8 metrics.json bytes from run-v1.1-eval, at most 1 MiB. Send the file/Blob as the application/json body without parsing, reformatting, or JSON-stringifying it. The required header hashes these exact bytes. This is not the returned EvaluationReport projection.',
+    'x-max-bytes': 1048576,
+    'x-preserve-original-bytes': true
+  },
+  EvaluationReport: {
+    type: 'object', readOnly: true,
+    description: 'Verified read projection of an immutable original artifact. passed is computed by the server using frozen rules and any separately stored baseline. An archival pending report or an initial budget baseline has passed=false. Source/dataset hashes are declarations, not proof of source authenticity.',
+    required: ['evaluationRunId', 'reportHash', 'suiteVersion', 'modelVersion', 'dataReleaseId', 'knowledgeReleaseId', 'indexReleaseId', 'sampleSize', 'passed', 'immutable', 'generatedAt', 'metrics', 'thresholds'],
+    properties: {
+      evaluationRunId: {type: 'string', pattern: '^[A-Za-z0-9._-]{3,128}$'},
+      reportHash: {type: 'string', pattern: '^sha256:[a-f0-9]{64}$'},
+      suiteVersion: {type: 'string'}, modelVersion: {type: 'string'},
+      dataReleaseId: {type: 'string'}, knowledgeReleaseId: {type: 'string'}, indexReleaseId: {type: 'string'},
+      sampleSize: {type: 'integer', format: 'int32', minimum: 1}, passed: {type: 'boolean'}, immutable: {type: 'boolean'},
+      generatedAt: {type: 'string', format: 'date-time'},
+      metrics: {type: 'object', additionalProperties: {type: 'number', format: 'double'}},
+      thresholds: {type: 'object', additionalProperties: {type: 'string'}, description: 'Server-derived success-side expressions such as >=0.98; distinct from offline alert/failure thresholds.'}
+    }
+  },
   ApprovalDecision: {type: 'object', properties: {allowed: {type: 'boolean'}, waiting: {type: 'boolean'}, approvalId: {type: 'string'}, status: {type: 'string'}, reason: {type: 'string'}}},
   FeedbackTransitionRequest: {type: 'object', required: ['target'], properties: {target: {type: 'string'}, actorId: {type: 'string'}, role: {type: 'string'}, reason: {type: 'string'}, traceId: {type: 'string'}, fixReleaseId: {type: 'string'}, evaluationResult: {type: 'string'}}},
   MemoryRequest: {type: 'object', required: ['type', 'content'], properties: {conversationId: {type: 'string'}, type: {type: 'string'}, content: {type: 'string'}, confidence: {type: 'number', minimum: 0, maximum: 1, default: 0.5}, consentId: {type: 'string'}, ttlSeconds: {type: 'integer', minimum: 0, maximum: 315360000}}},
@@ -325,7 +378,10 @@ mergeOperation(p, '/chat/runs', 'post', {
   responses: {
     ...p['/chat/runs'].post.responses,
     '202': jsonResponse('Run accepted', '#/components/schemas/RunView'),
-    '400': emptyResponse('Invalid request'), '401': emptyResponse('Unauthenticated'), '409': refResponse('Idempotency conflict', '#/components/schemas/ErrorBody'), '429': emptyResponse('Quota exceeded')
+    '400': emptyResponse('Invalid request'), '401': emptyResponse('Unauthenticated'),
+    '409': refResponse('Idempotency conflict', '#/components/schemas/ErrorBody'),
+    '429': runAdmissionResponse('RUN_CAPACITY_EXCEEDED, RUN_PRINCIPAL_LIMIT or RUN_TENANT_LIMIT: admission rejected before creating a new Run or claiming its Idempotency-Key.'),
+    '503': runAdmissionResponse('RUN_EXECUTION_UNAVAILABLE: runtime is closing or cannot schedule execution. Shutdown rejection creates no new Run; a scheduling failure after persistence may leave a FAILED Run. Retry with the same Idempotency-Key to read that Run rather than duplicate work.')
   },
   'x-canonical-status': 202,
   'x-compatibility-status': 201
@@ -379,6 +435,7 @@ p['/chat/runs/{runId}/events/stream'] = {
   get: {tags: ['Agent Run'], operationId: 'streamRunEvents', summary: '按游标订阅 Run 事件（snapshot SSE）', description: '当前实现发送一批已持久化事件后结束；断线客户端使用 afterEventId/Last-Event-ID 继续回放，不会隐式取消 Run。', parameters: [requiredPath('runId'), {name: 'afterEventId', in: 'query', required: false, schema: {type: 'integer', format: 'int64', minimum: 0}}, {name: 'Last-Event-ID', in: 'header', required: false, schema: {type: 'string'}}, refParam('UserIdHeader')], responses: {'200': {description: 'SSE event stream', content: {'text/event-stream': {schema: {$ref: '#/components/schemas/AgentEvent'}}}}, '400': refResponse('Invalid cursor', '#/components/schemas/ErrorBody'), '410': emptyResponse('Cursor expired'), '401': emptyResponse('Unauthenticated'), '404': emptyResponse('Not found')}}
 };
 
+addAuthenticationPaths();
 addResourcePaths();
 addPokemonPaths();
 addCalculationPaths();
@@ -387,6 +444,7 @@ addFeedbackPaths();
 addKnowledgePaths();
 addHitlPaths();
 addMemoryPaths();
+addOperationsPaths();
 addHealthPaths();
 addLegacyPaths();
 
@@ -400,8 +458,24 @@ function eventTypes() {
   return ['run.created', 'run.started', 'context.confirmed', 'context.card', 'route.selected', 'retrieval.started', 'retrieval.finished', 'retrieval.citation.card', 'fact.card', 'calculation.card', 'team.matrix', 'activity.card', 'tool.started', 'tool.finished', 'approval.required', 'approval.resolved', 'answer.delta', 'answer.completed', 'citation', 'limitation.added', 'feedback.card', 'error.card', 'usage', 'message.user', 'message.assistant', 'checkpoint.saved', 'run.completed', 'run.failed', 'run.cancelled', 'run.timed_out'];
 }
 
-function refParam(name) { return {$ref: `#/components/parameters/${name}`}; }
+function refParam(name) {
+  // Header spelling and component keys are distinct. Keep legacy callers
+  // using Idempotency-Key while resolving the actual IdempotencyKey component.
+  return {$ref: `#/components/parameters/${name === 'Idempotency-Key' ? 'IdempotencyKey' : name}`};
+}
 function refResponse(description, ref) { return {description, content: {'application/json': {schema: {$ref: ref}}}}; }
+
+function runAdmissionResponse(description) {
+  return {
+    ...refResponse(description, '#/components/schemas/ErrorBody'),
+    headers: {
+      'Retry-After': {
+        description: 'Positive delay in seconds before retrying admission. Reuse the original Idempotency-Key when retrying the same request.',
+        schema: {type: 'integer', minimum: 1, maximum: 3600}
+      }
+    }
+  };
+}
 function jsonResponse(description, ref) { return refResponse(description, ref); }
 function emptyResponse(description) { return {description}; }
 function resultResponse(description, ref, status = '200') { return {[status]: {description, content: {'application/json': {schema: {$ref: ref}}}}}; }
@@ -417,6 +491,29 @@ function operation(method, operationId, summary, parameters = [], responses = {}
 }
 function body(ref, required = true) { return {required, content: {'application/json': {schema: {$ref: ref}}}}; }
 function add(pathName, method, value) { candidate.paths[pathName] ??= {}; candidate.paths[pathName][method] = value; }
+
+function addAuthenticationPaths() {
+  add('/auth/session', 'get', operation('get', 'getAuthSession', '读取当前浏览器会话与认证模式', [], {
+    '200': {
+      ...jsonResponse('Session bootstrap, including anonymous or policy-denied state', '#/components/schemas/SessionStatus'),
+      headers: {
+        'Cache-Control': {required: true, description: 'Session state must not be stored in browser or intermediary caches.', schema: {type: 'string', enum: ['no-store']}}
+      }
+    }
+  }, {tags: ['Authentication'], security: [],
+    description: 'Anonymous bootstrap endpoint; no API key is required. Returns direct JSON with Cache-Control: no-store. OIDC mode exposes a validated principal only after server policy approval and prepares the CSRF cookie. API-key and disabled modes return authenticated=false, accessDenied=false, null principal/tenant/deadline/login/logout and empty roles.'
+  }));
+  add('/logout', 'post', operation('post', 'logoutOidcSession', '退出当前浏览器 OIDC 会话', [
+    {name: 'X-CSRF-TOKEN', in: 'header', required: true, schema: {type: 'string', minLength: 1}, description: 'Token matching the CSRF-TOKEN cookie prepared by GET /auth/session. Required even for an anonymous logout request.'},
+    {name: 'Origin', in: 'header', required: false, schema: {type: 'string'}, description: 'Browsers send an allowed Origin, or an allowed Referer as fallback. Non-browser clients may omit both headers while still supplying valid CSRF cookie/token.'}
+  ], {
+    '204': emptyResponse('Local browser session invalidated; authentication and session/CSRF cookies cleared; no response body'),
+    '403': emptyResponse('CSRF token or browser Origin/Referer rejected'),
+    '404': emptyResponse('OIDC logout is unavailable when OIDC mode is disabled')
+  }, {tags: ['Authentication'], security: [{}, {oidcSession: []}],
+    description: 'Available only in OIDC mode and handled by Spring Security. Send POST with credentials and the CSRF header; no request body. An authenticated session is optional. Browser Origin/Referer must be allowed. Successful local logout returns 204; Bearer JWTs retain their own expiry and issuer revocation rules.'
+  }));
+}
 
 function addResourcePaths() {
   add('/conversations', 'post', operation('post', 'createConversation', '创建会话', [refParam('UserIdHeader'), refParam('Idempotency-Key')], {...resultResponse('Created', '#/components/schemas/Conversation', '201'), '400': emptyResponse('Invalid request'), '401': emptyResponse('Unauthenticated'), '409': refResponse('Idempotency conflict', '#/components/schemas/ErrorBody')}, {requestBody: body('#/components/schemas/ConversationBody')}));
@@ -521,6 +618,32 @@ function addKnowledgePaths() {
   add('/knowledge/indexes', 'post', operation('post', 'createIndexRelease', '创建候选向量索引', roles, {'201': resultResponse('Created', '#/components/schemas/VectorIndexRelease')['200'], '400': emptyResponse('Invalid request'), '401': emptyResponse('Unauthenticated'), '403': emptyResponse('Forbidden')}, {requestBody: body('#/components/schemas/IndexRequest')}));
   add('/knowledge/indexes/{indexReleaseId}/publish', 'post', operation('post', 'publishIndexLegacy', '发布候选索引（兼容入口）', [requiredPath('indexReleaseId'), ...roles], {'200': resultResponse('Published', '#/components/schemas/ResultEnvelope')['200'], '400': emptyResponse('Invalid request'), '401': emptyResponse('Unauthenticated'), '403': emptyResponse('Forbidden'), '409': emptyResponse('Promotion required')}));
   add('/knowledge/indexes/{indexReleaseId}/promote', 'post', operation('post', 'promoteIndex', '通过 N1b 质量门禁发布候选索引', [requiredPath('indexReleaseId'), ...roles], {'200': resultResponse('Promotion result', '#/components/schemas/PromotionResult')['200'], '400': emptyResponse('Invalid request'), '401': emptyResponse('Unauthenticated'), '403': emptyResponse('Forbidden'), '409': emptyResponse('Quality gate rejected')}, {requestBody: body('#/components/schemas/PromotionRequest')}));
+  const reportSecurity = [{bearerAuth: []}, {oidcSession: []}, {apiKeyAuth: []}];
+  add('/knowledge/evaluation-reports', 'post', operation('post', 'importEvaluationReportArtifact', '导入离线评测报告原文', [
+    {name: 'X-Evaluation-Report-Hash', in: 'header', required: true, schema: {type: 'string', pattern: '^sha256:[a-f0-9]{64}$'}, description: 'SHA-256 of the exact original request bytes, including whitespace and line endings.'},
+    {name: 'X-Evaluation-Source', in: 'header', required: true, schema: {type: 'string', minLength: 1, maxLength: 512}, description: 'Non-secret provenance label; the server records the authenticated importer. The label is not a source signature.'},
+    {name: 'X-CSRF-TOKEN', in: 'header', required: false, schema: {type: 'string'}, description: 'Required for POST when OIDC is enabled, including authenticated Bearer requests. Obtain the matching CSRF cookie/token before import.'}
+  ], {
+    '200': resultEnvelopeResponse('Verified report projection; byte-identical imports replay the existing report', '#/components/schemas/EvaluationReport'),
+    '400': refResponse('Missing headers or invalid artifact, digest, frozen rules or baseline', '#/components/schemas/ErrorBody'),
+    '401': refResponse('Unauthenticated', '#/components/schemas/ErrorBody'),
+    '403': refResponse('Role, Origin or CSRF denied', '#/components/schemas/ErrorBody'),
+    '409': refResponse('evaluationRunId already exists with different original bytes', '#/components/schemas/ErrorBody'),
+    '413': refResponse('Original artifact exceeds 1 MiB', '#/components/schemas/ErrorBody'),
+    '503': refResponse('Report storage or integrity verification unavailable', '#/components/schemas/ErrorBody')
+  }, {tags: ['Knowledge Lifecycle'], security: reportSecurity,
+    description: 'Global operator domain. Requires trusted OPERATOR or QUALITY role; caller-supplied user/role headers cannot authorize import. Upload the original metrics.json as a file/Blob without JSON reserialization. The server verifies the digest and frozen rules, preserves first-import metadata, and never overwrites an evaluationRunId. A successful import may return passed=false and does not publish an index.',
+    requestBody: body('#/components/schemas/EvaluationReportArtifact')
+  }));
+  add('/knowledge/evaluation-reports/{evaluationRunId}', 'get', operation('get', 'getEvaluationReport', '读取经校验的评测报告投影', [requiredPath('evaluationRunId')], {
+    '200': resultEnvelopeResponse('Verified report projection', '#/components/schemas/EvaluationReport'),
+    '401': refResponse('Unauthenticated', '#/components/schemas/ErrorBody'),
+    '403': refResponse('Role denied', '#/components/schemas/ErrorBody'),
+    '404': refResponse('Report not found', '#/components/schemas/ErrorBody'),
+    '503': refResponse('Report read or integrity verification failed', '#/components/schemas/ErrorBody')
+  }, {tags: ['Knowledge Lifecycle'], security: reportSecurity,
+    description: 'Global operator domain. Requires OPERATOR, QUALITY, REVIEWER or PUBLISHER. Every read verifies stored original bytes, hash and any baseline chain; raw artifact bytes are not returned.'
+  }));
 }
 
 function addHitlPaths() {
@@ -535,6 +658,30 @@ function addMemoryPaths() {
   add('/memory', 'get', operation('get', 'listMemory', '查询用户记忆', [optionalQuery('q'), pageParam('limit')], {'200': {description: 'Memory list', content: {'application/json': {schema: resultArraySchema('#/components/schemas/MemoryView')}}}, '401': emptyResponse('Unauthenticated')}));
   add('/memory/export', 'get', operation('get', 'exportMemory', '导出用户记忆元数据', [pageParam('limit')], {'200': {description: 'Memory export', content: {'application/json': {schema: resultArraySchema('#/components/schemas/MemoryExport')}}}, '401': emptyResponse('Unauthenticated')}));
   add('/memory/{memoryId}', 'delete', operation('delete', 'deleteMemory', '删除用户记忆', [requiredPath('memoryId')], {'200': resultResponse('Deleted', '#/components/schemas/ResultEnvelope')['200'], '400': emptyResponse('Not found'), '401': emptyResponse('Unauthenticated')}));
+}
+
+function addOperationsPaths() {
+  add('/admin/effects/reconcile', 'post', operation('post', 'reconcileUnknownEffect', '人工核对未知外部副作用', [], {
+    '200': resultResponse('Reconciled effect', '#/components/schemas/EffectReconciliationResult')['200'],
+    '400': emptyResponse('Invalid request'),
+    '403': emptyResponse('Operator role required'),
+    '409': emptyResponse('Effect is not UNKNOWN or audit unavailable')
+  }, {tags: ['Operations'], security: [{bearerAuth: []}, {oidcSession: []}, {apiKeyAuth: []}],
+    description: 'Operator-only manual confirmation. This records an audited UNKNOWN to SUCCEEDED/FAILED transition and never replays the tool.',
+    requestBody: body('#/components/schemas/EffectReconciliationRequest')
+  }));
+  schemas.EffectReconciliationRequest = {type: 'object', additionalProperties: false, required: [
+    'runId', 'stepNo', 'toolName', 'toolVersion', 'idempotencyKey', 'parameterHash', 'finalStatus', 'resultDigest'
+  ], properties: {
+    runId: {type: 'string', minLength: 1}, stepNo: {type: 'integer', minimum: 0},
+    toolName: {type: 'string', minLength: 1}, toolVersion: {type: 'string', minLength: 1},
+    idempotencyKey: {type: 'string', minLength: 1}, parameterHash: {type: 'string', minLength: 1},
+    finalStatus: {type: 'string', enum: ['SUCCEEDED', 'FAILED']}, resultDigest: {type: 'string', minLength: 1},
+    resultUri: {type: 'string', nullable: true}
+  }};
+  schemas.EffectReconciliationResult = {type: 'object', required: ['runId', 'status', 'operatorId'], properties: {
+    runId: {type: 'string'}, status: {type: 'string', enum: ['SUCCEEDED', 'FAILED']}, operatorId: {type: 'string'}
+  }};
 }
 
 function addHealthPaths() {

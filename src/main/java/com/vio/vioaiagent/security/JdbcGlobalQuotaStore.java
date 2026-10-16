@@ -16,7 +16,7 @@ import java.time.Instant;
  * 不超过上限；部署到多实例前仍建议切换到 Redis/Lua，并保留同一接口。
  */
 @Repository
-@Profile("prod")
+@Profile({"prod", "demo"})
 @Primary
 @ConditionalOnProperty(prefix = "vio.security", name = "global-quota-enabled", havingValue = "true")
 @ConditionalOnProperty(prefix = "vio.security", name = "global-quota-backend",

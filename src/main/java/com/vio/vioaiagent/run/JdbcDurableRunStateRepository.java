@@ -6,9 +6,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -18,10 +23,11 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /** PostgreSQL production implementation for N2 checkpoint/lease/effect/cache state. */
 @Repository
-@Profile("prod")
+@Profile({"prod", "demo"})
 @Primary
 public class JdbcDurableRunStateRepository implements CheckpointRepository,
         EffectLedgerRepository, ModelInvocationCacheRepository {
@@ -86,7 +92,7 @@ public class JdbcDurableRunStateRepository implements CheckpointRepository,
     @Override
     public Optional<RunLease> acquireLease(String runId, String owner, String token, Duration ttl) {
         validateLeaseArgs(runId, owner, token, ttl);
-        Instant now = Instant.now();
+        Instant now = databaseNow();
         try {
             return Optional.ofNullable(jdbc.queryForObject("""
                     INSERT INTO agent_run_lease
@@ -99,10 +105,11 @@ public class JdbcDurableRunStateRepository implements CheckpointRepository,
                         heartbeat_at = EXCLUDED.heartbeat_at,
                         version = agent_run_lease.version + 1,
                         updated_at = EXCLUDED.updated_at
-                    WHERE agent_run_lease.lease_expires_at <= ? OR agent_run_lease.lease_owner = ?
+                    WHERE agent_run_lease.lease_expires_at <= clock_timestamp()
+                       OR (agent_run_lease.lease_owner = ? AND agent_run_lease.lease_token = ?)
                     RETURNING run_id, lease_owner, lease_token, lease_expires_at, heartbeat_at, version
                     """, leaseMapper(), runId, owner, token, timestamp(now.plus(ttl)), timestamp(now),
-                    timestamp(now), timestamp(now), owner));
+                    timestamp(now), owner, token));
         } catch (EmptyResultDataAccessException ex) {
             return Optional.empty();
         }
@@ -111,15 +118,16 @@ public class JdbcDurableRunStateRepository implements CheckpointRepository,
     @Override
     public Optional<RunLease> heartbeat(String runId, String owner, String token, Duration ttl) {
         validateLeaseArgs(runId, owner, token, ttl);
-        Instant now = Instant.now();
+        Instant now = databaseNow();
         try {
             return Optional.ofNullable(jdbc.queryForObject("""
                     UPDATE agent_run_lease
                     SET lease_expires_at = ?, heartbeat_at = ?, updated_at = ?, version = version + 1
-                    WHERE run_id = ? AND lease_owner = ? AND lease_token = ? AND lease_expires_at > ?
+                    WHERE run_id = ? AND lease_owner = ? AND lease_token = ?
+                      AND lease_expires_at > clock_timestamp()
                     RETURNING run_id, lease_owner, lease_token, lease_expires_at, heartbeat_at, version
                     """, leaseMapper(), timestamp(now.plus(ttl)), timestamp(now), timestamp(now),
-                    runId, owner, token, timestamp(now)));
+                    runId, owner, token));
         } catch (EmptyResultDataAccessException ex) {
             return Optional.empty();
         }
@@ -146,6 +154,42 @@ public class JdbcDurableRunStateRepository implements CheckpointRepository,
     }
 
     @Override
+    // Complete commit/rollback before the caller releases its run monitor or restores its snapshot.
+    // Callers must not hold database locks needed by this independent persistence transaction.
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public <T> T withLease(String runId, String owner, String token, Supplier<T> action) {
+        // A directly constructed repository has no transaction proxy and cannot retain a row lock.
+        if (!TransactionSynchronizationManager.isActualTransactionActive()
+                || runId == null || owner == null || token == null || action == null) {
+            throw new RunLeaseLostException();
+        }
+        RunLease lease;
+        Instant databaseTime;
+        try {
+            lease = jdbc.queryForObject("""
+                    SELECT run_id, lease_owner, lease_token, lease_expires_at, heartbeat_at, version
+                    FROM agent_run_lease WHERE run_id = ? FOR UPDATE
+                    """, leaseMapper(), runId);
+            // Read after locking: transaction-start time could precede a long lock wait.
+            databaseTime = databaseNow();
+        } catch (DataAccessException ex) {
+            // Fail closed without carrying SQL, parameters or lease tokens in the public exception.
+            throw new RunLeaseLostException();
+        }
+        if (lease == null || !owner.equals(lease.owner())
+                || !token.equals(lease.token()) || !lease.activeAt(databaseTime)) {
+            throw new RunLeaseLostException();
+        }
+        return action.get();
+    }
+
+    private Instant databaseNow() {
+        Timestamp value = jdbc.queryForObject("SELECT clock_timestamp()", Timestamp.class);
+        if (value == null) throw new DataAccessResourceFailureException("数据库时间不可用");
+        return value.toInstant();
+    }
+
+    @Override
     public Optional<ToolEffectLedgerEntry> find(String runId, int stepNo, String toolName,
                                                  String toolVersion, String idempotencyKey,
                                                  String parameterHash) {
@@ -159,6 +203,20 @@ public class JdbcDurableRunStateRepository implements CheckpointRepository,
         } catch (EmptyResultDataAccessException ex) {
             return Optional.empty();
         }
+    }
+
+    @Override
+    public Optional<ToolEffectLedgerEntry> findByIdempotencyKey(String runId, int stepNo,
+                                                                  String toolName, String toolVersion,
+                                                                  String idempotencyKey) {
+        if (runId == null || runId.isBlank()) return Optional.empty();
+        try {
+            return Optional.ofNullable(jdbc.queryForObject("""
+                    SELECT * FROM agent_effect_ledger
+                    WHERE run_id = ? AND step_no = ? AND tool_name = ? AND tool_version = ?
+                      AND idempotency_key = ? ORDER BY updated_at DESC LIMIT 1
+                    """, effectMapper(), runId, stepNo, toolName, toolVersion, idempotencyKey));
+        } catch (EmptyResultDataAccessException ex) { return Optional.empty(); }
     }
 
     @Override
@@ -189,8 +247,36 @@ public class JdbcDurableRunStateRepository implements CheckpointRepository,
                 """, entry.status().name(), entry.resultDigest(), entry.resultUri(), entry.approvalId(),
                 timestamp(entry.completedAt()), timestamp(entry.updatedAt()), entry.runId(), entry.stepNo(),
                 entry.toolName(), entry.toolVersion(), entry.idempotencyKey(), entry.parameterHash());
-        if (changed != 1) throw new IllegalStateException("副作用未预留或已删除");
+        if (changed != 1) {
+            Optional<ToolEffectLedgerEntry> existing = find(entry.runId(), entry.stepNo(), entry.toolName(),
+                    entry.toolVersion(), entry.idempotencyKey(), entry.parameterHash());
+            if (existing.isPresent() && existing.get().status() == entry.status()
+                    && java.util.Objects.equals(existing.get().resultDigest(), entry.resultDigest())
+                    && java.util.Objects.equals(existing.get().resultUri(), entry.resultUri())) {
+                return existing.get();
+            }
+            throw new IllegalStateException("副作用未预留或已结算");
+        }
         return entry;
+    }
+
+    @Override
+    public ToolEffectLedgerEntry resolveUnknown(ToolEffectLedgerEntry entry, ToolEffectStatus finalStatus,
+                                                String resultDigest, String resultUri) {
+        if (entry == null || (finalStatus != ToolEffectStatus.SUCCEEDED && finalStatus != ToolEffectStatus.FAILED)
+                || resultDigest == null || resultDigest.isBlank()) {
+            throw new IllegalArgumentException("UNKNOWN 核对参数无效");
+        }
+        int changed = jdbc.update("""
+                UPDATE agent_effect_ledger SET status = ?, result_digest = ?, result_uri = ?,
+                    completed_at = clock_timestamp(), updated_at = clock_timestamp()
+                WHERE run_id = ? AND step_no = ? AND tool_name = ? AND tool_version = ?
+                  AND idempotency_key = ? AND parameter_hash = ? AND status = 'UNKNOWN'
+                """, finalStatus.name(), resultDigest, resultUri, entry.runId(), entry.stepNo(),
+                entry.toolName(), entry.toolVersion(), entry.idempotencyKey(), entry.parameterHash());
+        if (changed != 1) throw new IllegalStateException("副作用不是 UNKNOWN 状态");
+        return find(entry.runId(), entry.stepNo(), entry.toolName(), entry.toolVersion(),
+                entry.idempotencyKey(), entry.parameterHash()).orElseThrow();
     }
 
     @Override

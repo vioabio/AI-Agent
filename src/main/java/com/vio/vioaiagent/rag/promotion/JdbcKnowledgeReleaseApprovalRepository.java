@@ -13,7 +13,7 @@ import java.util.Optional;
 /** PostgreSQL append-only approval adapter; V23 trigger rejects UPDATE/DELETE. */
 @Repository
 @Primary
-@Profile("prod")
+@Profile({"prod", "demo"})
 public class JdbcKnowledgeReleaseApprovalRepository implements KnowledgeReleaseApprovalRepository {
 
     private static final String COLUMNS = "approval_id, knowledge_release_id, index_release_id, "

@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Repository
-@Profile("!prod")
+@Profile("!prod & !demo")
 @Primary
 public class InMemoryFavoriteRepository implements FavoriteRepository {
     private final AtomicLong sequence = new AtomicLong();

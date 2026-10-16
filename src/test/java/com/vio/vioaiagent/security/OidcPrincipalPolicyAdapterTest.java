@@ -8,8 +8,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
+import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -112,6 +118,35 @@ class OidcPrincipalPolicyAdapterTest {
         OidcPrincipalPolicyAdapter adapter = new OidcPrincipalPolicyAdapter(oidc, properties());
         assertFalse(adapter.resolve(null).applicable());
         assertTrue(adapter.resolve(null).allowed());
+    }
+
+    @Test
+    void browserPolicyRequiresValidatedDeadlineAndClipsBothPolicyAndToolBinding() {
+        Instant now = Instant.parse("2026-10-12T02:00:00Z");
+        OidcProperties oidc = new OidcProperties();
+        oidc.setEnabled(true);
+        OidcPrincipalPolicyProperties policy = properties();
+        policy.setTenantRoles(Map.of("tenant-a", List.of("trainer")));
+        policy.setRoleTools(Map.of("trainer", List.of("getTypeChart")));
+        OidcPrincipalPolicyAdapter adapter = new OidcPrincipalPolicyAdapter(oidc, policy,
+                Clock.fixed(now, ZoneOffset.UTC));
+        OidcIdToken token = new OidcIdToken("fixture", now, now.plusSeconds(900),
+                Map.of("iss", "https://id.example.test", "sub", "alice", "tenant_id", "tenant-a",
+                        "roles", List.of("trainer")));
+        OAuth2AuthenticationToken browser = new OAuth2AuthenticationToken(
+                new DefaultOidcUser(List.of(new OidcUserAuthority(token)), token),
+                List.of(new SimpleGrantedAuthority("ROLE_trainer")), "vio");
+        assertFalse(adapter.resolve(browser).allowed());
+        assertFalse(adapter.resolve(browser, now).allowed(), "Exact expiry boundary must reject");
+        assertFalse(adapter.resolve(browser, now.minusNanos(1)).allowed());
+        Instant deadline = now.plusSeconds(20);
+        PrincipalPolicy resolved = adapter.resolve(browser, deadline).policy();
+        assertNotNull(resolved);
+        assertEquals(deadline, resolved.expiresAt());
+        assertEquals(deadline, resolved.tokenBinding().expiresAt());
+        PrincipalPolicy normalTtl = adapter.resolve(browser, now.plusSeconds(900)).policy();
+        assertNotNull(normalTtl);
+        assertEquals(now.plusSeconds(300), normalTtl.expiresAt());
     }
 
     private OidcPrincipalPolicyDecisionFixture fixture(OidcPrincipalPolicyProperties policy) {

@@ -76,6 +76,7 @@ public class ModelInvocationCacheService {
                          Function<String, String> generator) {
         Objects.requireNonNull(run, "run");
         Objects.requireNonNull(generator, "generator");
+        validateStepNo(stepNo);
         if (!properties.enabled()) return generator.apply(groundedPrompt);
 
         String modelVersion = properties.modelVersion();
@@ -84,8 +85,6 @@ public class ModelInvocationCacheService {
             return unavailableOrBypass("缓存已开启但仓储、codec 或版本配置不完整",
                     groundedPrompt, generator);
         }
-        if (stepNo < 0) throw new IllegalArgumentException("stepNo 不能为负数");
-
         String requestHash = requestHash(run, stepNo, modelVersion, promptVersion, groundedPrompt);
         String invocationKey = lockKey(run.id(), stepNo, requestHash);
         // A plain computeIfAbsent/remove pair has a waiter gap: a waiting
@@ -106,7 +105,7 @@ public class ModelInvocationCacheService {
                 } catch (RuntimeException ex) {
                     return unavailableOrThrow("读取模型调用缓存失败", ex, groundedPrompt, generator);
                 }
-                if (cached.isPresent()) {
+                if (cached.isPresent() && !cached.get().expired(now)) {
                     return decodeAndVerify(cached.get(), run, stepNo, requestHash,
                             modelVersion, promptVersion);
                 }
@@ -144,6 +143,47 @@ public class ModelInvocationCacheService {
         }
     }
 
+    /**
+     * Read-only lookup used by recovery. A miss, expiry, or a disabled cache is
+     * represented by {@link Optional#empty()}; this method never accepts a model
+     * generator and never writes or deletes cache state.
+     *
+     * <p>Recovery is fail-closed even when normal invocation is configured to
+     * bypass cache failures: an incomplete, unreadable, undecodable, or tampered
+     * entry must not cause a model call or an implicit cache rewrite.</p>
+     */
+    public Optional<String> lookupForRecovery(AgentRun run, String groundedPrompt) {
+        return lookupForRecovery(run, properties.stepNo(), groundedPrompt);
+    }
+
+    /** Read-only recovery lookup for an explicitly selected replay step. */
+    public Optional<String> lookupForRecovery(AgentRun run, int stepNo, String groundedPrompt) {
+        Objects.requireNonNull(run, "run");
+        validateStepNo(stepNo);
+        if (!properties.enabled()) return Optional.empty();
+
+        String modelVersion = properties.modelVersion();
+        String promptVersion = properties.promptVersion();
+        if (repository == null || codec == null || modelVersion.isBlank() || promptVersion.isBlank()) {
+            throw new ModelInvocationCacheException("恢复缓存配置不完整");
+        }
+
+        String requestHash = requestHash(run, stepNo, modelVersion, promptVersion, groundedPrompt);
+        Instant now = clock.instant();
+        final Optional<ModelInvocationCacheEntry> cached;
+        try {
+            cached = repository.findValid(run.id(), stepNo, requestHash, now);
+        } catch (RuntimeException ex) {
+            throw new ModelInvocationCacheException("读取恢复缓存失败", ex);
+        }
+        if (cached.isEmpty()) return Optional.empty();
+        // Keep recovery fail-closed even if a custom repository returns a stale
+        // row despite the findValid contract.
+        if (cached.get().expired(now)) return Optional.empty();
+        return Optional.of(decodeAndVerify(cached.get(), run, stepNo, requestHash,
+                modelVersion, promptVersion));
+    }
+
     /** 便于健康检查/诊断，不泄漏仓储、密钥或模型提示词。 */
     public CacheReadiness readiness() {
         if (!properties.enabled()) return new CacheReadiness(false, true, "disabled");
@@ -163,7 +203,7 @@ public class ModelInvocationCacheService {
         }
         final String decoded;
         try {
-            decoded = codec.decode(entry.encryptedResponse());
+            decoded = codec.decode(entry.encryptedResponse(), normalizeKeyVersion(entry.keyVersion()));
         } catch (RuntimeException ex) {
             throw new ModelInvocationCacheException("模型调用缓存解码失败", ex);
         }
@@ -171,6 +211,10 @@ public class ModelInvocationCacheService {
             throw new ModelInvocationCacheException("模型调用缓存摘要校验失败");
         }
         return decoded;
+    }
+
+    private void validateStepNo(int stepNo) {
+        if (stepNo < 0) throw new IllegalArgumentException("stepNo 不能为负数");
     }
 
     private String unavailableOrBypass(String reason, String prompt, Function<String, String> generator) {

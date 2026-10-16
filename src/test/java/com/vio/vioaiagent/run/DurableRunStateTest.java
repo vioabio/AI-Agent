@@ -45,4 +45,26 @@ class DurableRunStateTest {
         assertEquals(ToolEffectStatus.SUCCEEDED,
                 repository.find("run-1", 0, "fact", "v1", "idem-1", "param-1").orElseThrow().status());
     }
+
+    @Test
+    void effectLedgerCanDetectSameIdempotencyKeyBoundToDifferentParameters() {
+        InMemoryDurableRunStateRepository repository = new InMemoryDurableRunStateRepository();
+        ToolEffectLedgerEntry entry = ToolEffectLedgerEntry.started("run-1", 4, "write", "v1", "idem-1", "param-1");
+        assertTrue(repository.reserve(entry));
+        ToolEffectLedgerEntry found = repository.findByIdempotencyKey("run-1", 4, "write", "v1", "idem-1").orElseThrow();
+        assertEquals("param-1", found.parameterHash());
+    }
+
+    @Test
+    void unknownEffectRequiresExplicitManualResolution() {
+        InMemoryDurableRunStateRepository repository = new InMemoryDurableRunStateRepository();
+        ToolEffectLedgerEntry started = ToolEffectLedgerEntry.started("run-1", 5, "write", "v1", "idem-1", "param-1");
+        assertTrue(repository.reserve(started));
+        ToolEffectLedgerEntry unknown = started.complete(ToolEffectStatus.UNKNOWN, "uncertain", null, null);
+        assertEquals(ToolEffectStatus.UNKNOWN, repository.complete(unknown).status());
+        ToolEffectLedgerEntry resolved = repository.resolveUnknown(unknown, ToolEffectStatus.FAILED, "manual-failed", "operator");
+        assertEquals(ToolEffectStatus.FAILED, resolved.status());
+        assertThrows(IllegalStateException.class,
+                () -> repository.resolveUnknown(unknown, ToolEffectStatus.SUCCEEDED, "late", null));
+    }
 }

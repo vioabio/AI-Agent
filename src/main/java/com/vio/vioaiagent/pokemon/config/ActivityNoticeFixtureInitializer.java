@@ -24,7 +24,7 @@ import java.util.List;
  * 时加载脱敏文件，不会把候选活动注入生产 JDBC 或绕过发布门禁。
  */
 @Configuration
-@Profile("!prod")
+@Profile("!prod & !demo")
 @ConditionalOnProperty(prefix = "vio.pokemon.activity.fixture", name = "enabled", havingValue = "true")
 public class ActivityNoticeFixtureInitializer {
     private static final Logger log = LoggerFactory.getLogger(ActivityNoticeFixtureInitializer.class);

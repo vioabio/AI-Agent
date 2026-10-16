@@ -17,7 +17,7 @@ import java.util.Optional;
 /** PostgreSQL 生产事实仓储；查询始终显式绑定 data_release_id。 */
 @Repository
 @Primary
-@Profile("prod")
+@Profile({"prod", "demo"})
 public class JdbcPokemonFactRepository implements PokemonFactRepository {
     private static final String FACT_SELECT = """
             SELECT pf.id AS form_id, ps.id AS species_id, ps.national_no, ps.slug,

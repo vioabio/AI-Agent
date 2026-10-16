@@ -48,11 +48,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.HexFormat;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * 统一工具执行治理网关。
@@ -96,14 +91,12 @@ public class ToolExecutionGateway {
     /** 可选指标依赖，保持程序化单元测试无需搭建 Micrometer。 */
     @Autowired(required = false)
     private AgentMetrics metrics;
-    private final ExecutorService executor = Executors.newCachedThreadPool(r -> {
-        Thread thread = new Thread(r, "tool-governance");
-        thread.setDaemon(true);
-        return thread;
-    });
+    private final BoundedToolExecutor executor;
 
     private final Map<String, RegisteredTool> registry = new ConcurrentHashMap<>();
     private final Map<String, ToolGovernanceResult> idempotentResults = new ConcurrentHashMap<>();
+    /** An uncertain write cannot become safe merely because its caller or worker has returned. */
+    private final Set<String> unknownEffects = ConcurrentHashMap.newKeySet();
     /**
      * 幂等结果的读取、实际副作用和写回必须处于同一临界区。仅使用
      * {@code get + putIfAbsent} 仍会让两个并发请求同时执行一次写操作。
@@ -121,7 +114,8 @@ public class ToolExecutionGateway {
                                 ObjectProvider<TokenStore> tokenStoreProvider,
                                 ObjectProvider<EffectLedgerRepository> effectProvider,
                                 ObjectProvider<OidcProperties> oidcProvider,
-                                Environment environment) {
+                                Environment environment,
+                                ToolExecutionProperties executionProperties) {
         this.hitlManager = hitlProvider.getIfAvailable(HitlManager::new);
         this.pathGuard = pathProvider.getIfAvailable(
                 () -> new PathGuard(List.of(System.getProperty("user.dir") + "/tmp")));
@@ -132,8 +126,8 @@ public class ToolExecutionGateway {
                 ? null : toolAuditProvider.getIfAvailable();
         boolean production = environment != null
                 && java.util.Arrays.stream(environment.getActiveProfiles())
-                .anyMatch("prod"::equalsIgnoreCase);
-        // Spring prod 没有拿到 JDBC/合规 sink 时，不能退回本地 JSONL；使用
+                .anyMatch(profile -> "prod".equalsIgnoreCase(profile) || "demo".equalsIgnoreCase(profile));
+        // Spring prod/demo 没有拿到 JDBC/合规 sink 时，不能退回本地 JSONL；使用
         // 明确失败的占位出口，让成功回调在网关层变成不可确认结果。
         this.toolAuditSink = configuredAuditSink != null
                 ? configuredAuditSink
@@ -144,6 +138,23 @@ public class ToolExecutionGateway {
                 && Optional.ofNullable(oidcProvider.getIfAvailable())
                 .map(OidcProperties::enabled)
                 .orElse(false);
+        this.executor = new BoundedToolExecutor(executionProperties);
+    }
+
+    /** Preserve embedded callers of the earlier Spring-provider constructor. */
+    public ToolExecutionGateway(ObjectProvider<HitlManager> hitlProvider,
+                                ObjectProvider<PathGuard> pathProvider,
+                                ObjectProvider<CommandGuard> commandProvider,
+                                ObjectProvider<ParameterMasker> maskerProvider,
+                                ObjectProvider<AuditLogger> auditProvider,
+                                ObjectProvider<ToolAuditSink> toolAuditProvider,
+                                ObjectProvider<TokenStore> tokenStoreProvider,
+                                ObjectProvider<EffectLedgerRepository> effectProvider,
+                                ObjectProvider<OidcProperties> oidcProvider,
+                                Environment environment) {
+        this(hitlProvider, pathProvider, commandProvider, maskerProvider, auditProvider,
+                toolAuditProvider, tokenStoreProvider, effectProvider, oidcProvider, environment,
+                ToolExecutionProperties.defaults());
     }
 
     /** 兼容旧的 Spring/测试七参数装配签名。 */
@@ -227,6 +238,15 @@ public class ToolExecutionGateway {
                                 ToolAuditSink auditSink, TokenStore tokenStore,
                                 EffectLedgerRepository effectLedger,
                                 boolean oidcBindingRequired) {
+        this(hitlManager, pathGuard, commandGuard, parameterMasker, auditSink, tokenStore,
+                effectLedger, oidcBindingRequired, ToolExecutionProperties.defaults());
+    }
+
+    public ToolExecutionGateway(HitlManager hitlManager, PathGuard pathGuard,
+                                CommandGuard commandGuard, ParameterMasker parameterMasker,
+                                ToolAuditSink auditSink, TokenStore tokenStore,
+                                EffectLedgerRepository effectLedger, boolean oidcBindingRequired,
+                                ToolExecutionProperties executionProperties) {
         this.hitlManager = hitlManager == null ? new HitlManager() : hitlManager;
         this.pathGuard = pathGuard == null
                 ? new PathGuard(List.of(System.getProperty("user.dir") + "/tmp")) : pathGuard;
@@ -238,6 +258,7 @@ public class ToolExecutionGateway {
         this.tokenStore = tokenStore;
         this.effectLedger = effectLedger;
         this.oidcBindingRequired = oidcBindingRequired;
+        this.executor = new BoundedToolExecutor(executionProperties);
     }
 
     /** 包装一组工具；包装动作同时登记能力卡。 */
@@ -321,6 +342,14 @@ public class ToolExecutionGateway {
         }
 
         String parameterDigest = parameterDigest(arguments);
+        String idemKey = safeContext.idempotencyKey();
+        String resultKey = idempotencyKey(toolName, safeContext, idemKey);
+        // Resolve uncertainty before HITL can expire and create another approval request.
+        // The monitor below repeats this check for callers already waiting on the same key.
+        if (card.isWriteLike() && resultKey != null && unknownEffects.contains(resultKey)) {
+            return rejected(toolName, "副作用状态为 UNKNOWN，需人工核对后才能继续",
+                    safeContext, eventId, started);
+        }
         HitlManager.ApprovalDecision approval = hitlManager.evaluate(
                 safeContext.userId(), safeContext.runId(), toolName, card.version(), parameterDigest,
                 card.riskLevel() != ToolCapabilityCard.RiskLevel.LOW || card.isWriteLike());
@@ -338,11 +367,9 @@ public class ToolExecutionGateway {
         }
         if (metrics != null && card.requiresApproval()) metrics.recordApproval("approved");
 
-        String idemKey = safeContext.idempotencyKey();
         if (card.isWriteLike() && (idemKey == null || idemKey.isBlank())) {
             return rejected(toolName, "写操作必须提供幂等键", safeContext, eventId, started);
         }
-        String resultKey = idempotencyKey(toolName, safeContext, idemKey);
         if (resultKey != null) {
             // Count holders before entering the monitor.  Removing a plain
             // lock in the first caller's finally block has a small but real
@@ -356,6 +383,10 @@ public class ToolExecutionGateway {
             });
             synchronized (lock) {
                 try {
+                    if (card.isWriteLike() && unknownEffects.contains(resultKey)) {
+                        return rejected(toolName, "副作用状态为 UNKNOWN，需人工核对后才能继续",
+                                safeContext, eventId, started);
+                    }
                     ToolGovernanceResult previous = idempotentResults.get(resultKey);
                     if (previous != null) {
                         if (metrics != null) metrics.recordToolCall(true);
@@ -435,8 +466,22 @@ public class ToolExecutionGateway {
             try {
                 emit(safeContext, "tool.started", toolName, eventId,
                         Map.of("attempt", attempt + 1));
-                output = callWithTimeout(registered.callback(), toolInput, card.timeoutMs());
+                output = callWithTimeout(registered.callback(), toolInput, card.timeoutMs(),
+                        card, toolName, safeContext);
                 failure = null;
+                break;
+            } catch (ToolAuthorizationException ex) {
+                // Expiry/revocation is final for this attempt. A write reserved
+                // in the effect ledger has not started its callback yet.
+                completeEffect(ledgerEntry, ToolEffectStatus.FAILED, ex.getMessage(), approvalId);
+                return rejected(toolName, ex.getMessage(), safeContext, eventId, started);
+            } catch (BoundedToolExecutor.Unavailable ex) {
+                completeEffect(ledgerEntry, ToolEffectStatus.FAILED, ex.getMessage(), approvalId);
+                return rejected(toolName, ex.getMessage(), safeContext, eventId, started);
+            } catch (BoundedToolExecutor.Stopped ex) {
+                // Cancellation is cooperative: a callback may ignore interrupt.
+                // Do not start a retry concurrently with that unconfirmed work.
+                failure = ex;
                 break;
             } catch (RuntimeException ex) {
                 failure = ex;
@@ -449,13 +494,16 @@ public class ToolExecutionGateway {
         long duration = elapsed(started);
         if (failure != null) {
             String message = safeMessage(failure);
+            ToolEffectStatus effectStatus = failure instanceof BoundedToolExecutor.Stopped stopped
+                    && stopped.callbackStarted() ? ToolEffectStatus.UNKNOWN : ToolEffectStatus.FAILED;
+            if (effectStatus == ToolEffectStatus.UNKNOWN) rememberUnknownEffect(card, resultKey);
             emit(safeContext, "tool.failed", toolName, eventId, Map.of("error", message,
                     "traceId", safeContext.traceId(), "toolVersion", card.version(),
                     "parameterDigest", parameterDigest, "status", "FAILED"));
             emit(safeContext, "tool.finished", toolName, eventId, Map.of("status", "FAILED",
                     "durationMs", duration, "retryCount", retries, "toolVersion", card.version(),
                     "parameterDigest", parameterDigest, "approvalId", approvalId == null ? "" : approvalId));
-            completeEffect(ledgerEntry, ToolEffectStatus.FAILED, message, approvalId);
+            completeEffect(ledgerEntry, effectStatus, message, approvalId);
             audit(safeContext, toolName, arguments, "error", duration);
             if (metrics != null) metrics.recordToolCall(false);
             return new ToolGovernanceResult(ToolGovernanceResult.Status.FAILED, toolName,
@@ -467,7 +515,8 @@ public class ToolExecutionGateway {
         // 调用报告为 EXECUTED。对有副作用的工具写入 UNKNOWN，阻止后续自动重放；
         // 调用方得到稳定的 FAILED 结果，底层异常细节不会泄露。
         AuditResult auditResult = audit(safeContext, toolName, arguments, "allow", elapsed(started));
-        if (!auditResult.success() && auditResult.failClosed()) {
+        if (!auditResult.success() && (auditResult.failClosed() || card.isWriteLike())) {
+            rememberUnknownEffect(card, resultKey);
             emit(safeContext, "tool.audit_failed", toolName, eventId,
                     Map.of("status", "AUDIT_FAILED", "traceId", safeContext.traceId(),
                             "toolVersion", card.version(), "parameterDigest", parameterDigest));
@@ -497,6 +546,12 @@ public class ToolExecutionGateway {
         completeEffect(ledgerEntry, ToolEffectStatus.SUCCEEDED, safeOutput, approvalId);
         if (metrics != null) metrics.recordToolCall(true);
         return result;
+    }
+
+    private void rememberUnknownEffect(ToolCapabilityCard card, String resultKey) {
+        // Retain these tombstones for the gateway's lifetime, including when no shared ledger
+        // exists. Expiry or a late callback result cannot confirm an uncertain external write.
+        if (card.isWriteLike() && resultKey != null) unknownEffects.add(resultKey);
     }
 
     public Collection<ToolCapabilityCard> registeredCapabilities() {
@@ -882,6 +937,13 @@ public class ToolExecutionGateway {
                 card.version(), context.idempotencyKey(), parameterDigest, ToolEffectStatus.STARTED,
                 null, null, approvalId, started, null, started);
         try {
+            Optional<ToolEffectLedgerEntry> logicalExisting = effectLedger.findByIdempotencyKey(
+                    candidate.runId(), candidate.stepNo(), candidate.toolName(), candidate.toolVersion(),
+                    candidate.idempotencyKey());
+            if (logicalExisting.isPresent()
+                    && !logicalExisting.get().parameterHash().equals(candidate.parameterHash())) {
+                throw new EffectLedgerUnavailableException("副作用幂等键已绑定其他参数");
+            }
             Optional<ToolEffectLedgerEntry> existing = effectLedger.find(candidate.runId(), candidate.stepNo(),
                     candidate.toolName(), candidate.toolVersion(), candidate.idempotencyKey(), candidate.parameterHash());
             if (existing.isPresent()) return EffectReservation.replayed(existing.get());
@@ -957,20 +1019,26 @@ public class ToolExecutionGateway {
         }
     }
 
-    private String callWithTimeout(ToolCallback callback, String input, long timeoutMs) {
-        Future<String> future = executor.submit(() -> callback.call(input));
-        try {
-            return future.get(timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException ex) {
-            future.cancel(true);
-            throw new RuntimeException("工具执行超时（" + timeoutMs + "ms）", ex);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            future.cancel(true);
-            throw new RuntimeException("工具执行被中断", ex);
-        } catch (Exception ex) {
-            Throwable cause = ex.getCause() == null ? ex : ex.getCause();
-            throw new RuntimeException(safeMessage(cause), cause);
+    private String callWithTimeout(ToolCallback callback, String input, long timeoutMs,
+                                   ToolCapabilityCard card, String toolName,
+                                   ToolExecutionContext context) {
+        return executor.call(() -> {
+            // This runs in the executor immediately before every real callback,
+            // including retries. Caller-side authorization can expire while a
+            // task waits for scheduling, HITL, locks or the effect ledger.
+            try {
+                verifyPrincipalPolicy(card, toolName, context);
+                String denial = authorizeTokenScope(context, toolName);
+                if (denial != null) throw new SecurityException(denial);
+            } catch (RuntimeException ex) {
+                throw new ToolAuthorizationException(safeMessage(ex), ex);
+            }
+        }, () -> callback.call(input), timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT_MS);
+    }
+
+    private static final class ToolAuthorizationException extends SecurityException {
+        private ToolAuthorizationException(String message, Throwable cause) {
+            super(message, cause);
         }
     }
 
@@ -1064,6 +1132,8 @@ public class ToolExecutionGateway {
 
     @PreDestroy
     public void shutdown() {
-        executor.shutdownNow();
+        executor.close();
     }
+
+    public BoundedToolExecutor.Snapshot executionSnapshot() { return executor.snapshot(); }
 }

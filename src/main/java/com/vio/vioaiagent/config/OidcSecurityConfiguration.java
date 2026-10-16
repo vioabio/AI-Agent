@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
@@ -23,13 +24,14 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import com.vio.vioaiagent.security.OidcSessionLifetime;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
 
@@ -94,11 +96,13 @@ public class OidcSecurityConfiguration {
             HttpSecurity http,
             ObjectProvider<CorsProperties> corsProvider,
             ObjectProvider<ClientRegistrationRepository> clientRegistrationProvider,
-            ObjectProvider<OidcClientSecretResolver> secretResolverProvider)
+            ObjectProvider<OidcClientSecretResolver> secretResolverProvider,
+            OidcSessionLifetime sessionLifetime)
             throws Exception {
         if (!properties.enabled()) {
             http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                     .csrf(AbstractHttpConfigurer::disable)
+                    .logout(AbstractHttpConfigurer::disable)
                     .httpBasic(AbstractHttpConfigurer::disable)
                     .formLogin(AbstractHttpConfigurer::disable);
             return http.build();
@@ -111,6 +115,11 @@ public class OidcSecurityConfiguration {
         // Keep the cookie/header names aligned with the existing browser adapter.
         csrfRepository.setCookieName("CSRF-TOKEN");
         csrfRepository.setHeaderName("X-CSRF-TOKEN");
+        // The SPA lives at /, while the backend has context-path=/api. A cookie
+        // restricted to /api is invisible to document.cookie on the SPA page.
+        csrfRepository.setCookiePath("/");
+        csrfRepository.setCookieCustomizer(cookie -> cookie
+                .secure(properties.cookieSecure()).sameSite(properties.cookieSameSite()));
 
         http.authorizeHttpRequests(auth -> auth
                         // Platform probes must not require an end-user JWT.
@@ -118,7 +127,7 @@ public class OidcSecurityConfiguration {
                         // interceptor (API-key/probe credential) after this
                         // framework-level permit rule.
                         .requestMatchers("/health", "/ready", "/ready/details",
-                                "/actuator/health/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                                "/auth/session", "/actuator/health/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         // 登录入口与 IdP 回调必须匿名可达：
                         // 回调本身是对 IdP 的响应，请求里不可能带本应用的会话。
                         .requestMatchers("/oauth2/authorization/**", "/login/oauth2/code/**",
@@ -131,13 +140,11 @@ public class OidcSecurityConfiguration {
                         .sessionFixation(fixation -> fixation.changeSessionId()))
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfRepository)
-                        // 显式声明登出豁免。Spring Security 的默认忽略列表包含 /logout，
-                        // 但一旦显式配置 csrfTokenRepository，默认列表就不再自动生效——
-                        // 结果会让「退出登录」返回 403，把用户卡在已登录状态。
-                        // 这里保持最小豁免：仅登出，其余状态变更仍要求 X-CSRF-TOKEN。
-                        .ignoringRequestMatchers(new AntPathRequestMatcher("/logout")))
+                        .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
                 // 必须在 CsrfFilter 之前：先做 Origin 边界，再校验 CSRF token。
                 .addFilterBefore(new OidcOriginFilter(allowedOrigins), CsrfFilter.class)
+                .addFilterAfter(new OidcAbsoluteSessionFilter(sessionLifetime, properties),
+                        BearerTokenAuthenticationFilter.class)
                 .exceptionHandling(handling -> handling
                         .authenticationEntryPoint(apiAwareAuthenticationEntryPoint())
                         .accessDeniedHandler(apiAwareAccessDeniedHandler()))
@@ -160,11 +167,27 @@ public class OidcSecurityConfiguration {
         }
         http.oauth2Login(login -> login
                 .clientRegistrationRepository(registrations)
+                .userInfoEndpoint(endpoint -> endpoint
+                        .userAuthoritiesMapper(oidcBrowserAuthoritiesMapper()))
                 .authorizationEndpoint(endpoint -> endpoint
                         .authorizationRequestRepository(
                                 new HttpSessionOAuth2AuthorizationRequestRepository()))
+                .successHandler(new OidcLoginSuccessHandler(sessionLifetime))
                 .loginPage("/oauth2/authorization/" + OidcClientRegistrationFactory.REGISTRATION_ID));
         return http.build();
+    }
+
+    /** Roles are derived only after Spring has validated the OIDC ID token/UserInfo. */
+    @Bean
+    @ConditionalOnProperty(prefix = "vio.security.oidc", name = "enabled", havingValue = "true")
+    public OidcRoleAuthoritiesMapper oidcBrowserAuthoritiesMapper() {
+        return new OidcRoleAuthoritiesMapper(properties.roleClaim());
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "vio.security.oidc", name = "enabled", havingValue = "true")
+    public OidcSessionWebServerCustomizer oidcSessionWebServerCustomizer(ServerProperties serverProperties) {
+        return new OidcSessionWebServerCustomizer(properties, serverProperties);
     }
 
     /**

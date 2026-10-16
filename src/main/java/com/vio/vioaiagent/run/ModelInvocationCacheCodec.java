@@ -15,6 +15,15 @@ public interface ModelInvocationCacheCodec {
     /** 从持久化值恢复响应明文。 */
     String decode(String encodedResponse);
 
+    /**
+     * Decode a value written with a persisted envelope key version. Implementations
+     * that rotate keys should override this method and select the historical key;
+     * the default keeps source compatibility with codecs that have one active key.
+     */
+    default String decode(String encodedResponse, String keyVersion) {
+        return decode(encodedResponse);
+    }
+
     /** 当前 envelope key 版本，供轮换和审计使用。 */
     default String keyVersion() {
         return "managed";

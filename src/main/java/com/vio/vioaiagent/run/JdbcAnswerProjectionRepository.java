@@ -20,7 +20,7 @@ import java.util.Optional;
 
 /** PostgreSQL answer projection；同一 answer/run 重放只允许得到同一不可变快照。 */
 @Repository
-@Profile("prod")
+@Profile({"prod", "demo"})
 @Primary
 public class JdbcAnswerProjectionRepository implements AnswerProjectionRepository {
     private static final TypeReference<List<Map<String, Object>>> CITATIONS = new TypeReference<>() { };

@@ -131,6 +131,11 @@ vio:
   mcp:
     enabled: false
   tools:
+    execution:
+      # 独立工具池；超时包含排队，不响应中断的回调继续占用原 worker。
+      thread-count: ${VIO_TOOL_THREAD_COUNT:8}
+      queue-capacity: ${VIO_TOOL_QUEUE_CAPACITY:32}
+      shutdown-grace-ms: ${VIO_TOOL_SHUTDOWN_GRACE_MS:5000}
     high-risk:
       enabled: false
     resource-download:
@@ -198,6 +203,14 @@ vio:
   # ==================== 编排配置 ====================
   # v1.1 Run 耐久化（默认安全关闭，完成 N2 现场验收后再开启）
   run:
+    admission:
+      # 单实例准入：排队、运行、WAITING_APPROVAL 共用配额；集群限额需另行实现。
+      thread-count: ${VIO_RUN_THREAD_COUNT:8}
+      queue-capacity: ${VIO_RUN_QUEUE_CAPACITY:16}
+      max-per-principal: ${VIO_RUN_MAX_PER_PRINCIPAL:4}
+      max-per-tenant: ${VIO_RUN_MAX_PER_TENANT:16}
+      queue-wait-ms: ${VIO_RUN_QUEUE_WAIT_MS:30000}
+      retry-after-seconds: ${VIO_RUN_RETRY_AFTER_SECONDS:1}
     durable-resume: ${VIO_RUN_DURABLE_RESUME:false}
     event-broker-enabled: ${VIO_EVENT_BROKER_ENABLED:false}
     outbox-poll-ms: ${VIO_OUTBOX_POLL_MS:1000}
@@ -208,6 +221,9 @@ vio:
     event-retention-cleanup-enabled: ${VIO_EVENT_RETENTION_CLEANUP_ENABLED:false}
     event-retention-cleanup-interval-ms: ${VIO_EVENT_RETENTION_CLEANUP_INTERVAL_MS:3600000}
     event-retention-cleanup-batch-size: ${VIO_EVENT_RETENTION_CLEANUP_BATCH_SIZE:1000}
+    step-output-retention-cleanup-enabled: ${VIO_STEP_OUTPUT_RETENTION_CLEANUP_ENABLED:false}
+    step-output-retention-cleanup-interval-ms: ${VIO_STEP_OUTPUT_RETENTION_CLEANUP_INTERVAL_MS:3600000}
+    step-output-retention-cleanup-batch-size: ${VIO_STEP_OUTPUT_RETENTION_CLEANUP_BATCH_SIZE:1000}
     # 模型响应缓存默认关闭；开启前必须注入受控 KMS codec、模型版本和 Prompt 版本。
     model-cache:
       enabled: ${VIO_MODEL_INVOCATION_CACHE_ENABLED:false}

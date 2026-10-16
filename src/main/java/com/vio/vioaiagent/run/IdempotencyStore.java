@@ -7,6 +7,8 @@ import java.util.Optional;
 
 /** 幂等记录存储；生产实现必须跨实例，不能依赖请求线程局部状态。 */
 public interface IdempotencyStore {
+    /** Read without creating a claim; overload rejection must not consume a retry key. */
+    default Optional<IdempotencyRecord> find(String scope, String key) { return Optional.empty(); }
     Claim claim(String scope, String key, String requestHash, Duration ttl, Instant now);
     IdempotencyRecord complete(String scope, String key, String requestHash, int responseStatus,
                                Map<String, Object> responseBody, Instant now);

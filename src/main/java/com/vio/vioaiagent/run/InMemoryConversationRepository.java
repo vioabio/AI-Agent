@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 @Repository
-@org.springframework.context.annotation.Profile("!prod")
+@org.springframework.context.annotation.Profile("!prod & !demo")
 @Primary
 public class InMemoryConversationRepository implements ConversationRepository {
     private final ConcurrentMap<String, Conversation> conversations = new ConcurrentHashMap<>();

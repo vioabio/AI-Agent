@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 public class GlobalQuotaConfiguration {
     @Bean
-    @Profile("!prod")
+    @Profile("!prod & !demo")
     @ConditionalOnProperty(prefix = "vio.security", name = "global-quota-enabled",
             havingValue = "true")
     @ConditionalOnProperty(prefix = "vio.security", name = "global-quota-backend",

@@ -47,7 +47,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Repository
 @Primary
-@Profile("prod")
+@Profile({"prod", "demo"})
 public class JdbcKnowledgeCatalog implements KnowledgeCatalog {
 
     private static final TypeReference<Map<String, Object>> JSON_MAP = new TypeReference<>() {
@@ -67,6 +67,7 @@ public class JdbcKnowledgeCatalog implements KnowledgeCatalog {
         this(jdbcTemplate, new ObjectMapper());
     }
 
+    @Autowired
     public JdbcKnowledgeCatalog(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper) {
         if (jdbcTemplate == null) {
             throw new IllegalArgumentException("jdbcTemplate 不能为空");

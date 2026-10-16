@@ -23,7 +23,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
  * fail-closed 适配器，避免 TokenStore 降级到单 JVM 计数。</p>
  */
 @Configuration(proxyBeanMethods = false)
-@Profile("prod")
+@Profile({"prod", "demo"})
 @ConditionalOnClass(StringRedisTemplate.class)
 @ConditionalOnProperty(prefix = "vio.security", name = "global-quota-enabled",
         havingValue = "true")

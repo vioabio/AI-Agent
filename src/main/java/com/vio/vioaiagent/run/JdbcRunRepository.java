@@ -22,7 +22,7 @@ import java.util.Optional;
  * 只能提交自己读取之后的快照；旧快照不会静默覆盖新状态。</p>
  */
 @Repository
-@Profile("prod")
+@Profile({"prod", "demo"})
 @Primary
 public class JdbcRunRepository implements AgentRunRepository {
     private static final String INSERT = """
