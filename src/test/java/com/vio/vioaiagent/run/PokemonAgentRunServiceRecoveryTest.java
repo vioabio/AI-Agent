@@ -141,7 +141,9 @@ class PokemonAgentRunServiceRecoveryTest {
         AgentRun run = AgentRun.create("run-waiting-recovery", "session-waiting-recovery",
                 "conversation-waiting-recovery", "user-waiting", "等待审批恢复", "sv-1",
                 "singles", "rules-1", "zh-CN", "trace-waiting", null,
-                now.plusSeconds(10));
+                // Run 自己的截止时间要显著晚于审批到期，否则会先走 RUN_TIMED_OUT，
+                // 掩盖本用例真正要验证的「审批到期 → RUN_FAILED」路径。
+                now.plusSeconds(120));
         conversations.save(new Conversation(run.conversationId(), run.userId(), "等待审批恢复",
                 now, now));
         runs.save(run);
@@ -154,14 +156,19 @@ class PokemonAgentRunServiceRecoveryTest {
         HitlManager hitl = new HitlManager(HitlAuditSink.noop());
         hitl.setApprovalRepository(approvals);
         String approvalId = "4f0f1f0c-5f74-4b90-9e8b-9f6f9b2b1a01";
+        // 审批生存期取一个折中值：既长于恢复扫描路径的执行时间（保证
+        // recoverWaitingApproval 观察到的是 PENDING，走"重新挂接定时器"分支），
+        // 又短到可以在测试内用 expirePending() 确定性推进到期。
+        // 同时远早于上面 120s 的 Run 截止时间，避免先触发 RUN_TIMED_OUT。
+        Instant approvalExpiry = now.plusSeconds(1);
         approvals.createOrGet(new HitlApproval(approvalId, run.userId(), run.id(), "write_file", "1.0.0",
-                "digest-waiting", "MEDIUM", now.plusMillis(180), HitlApproval.Decision.PENDING,
+                "digest-waiting", "MEDIUM", approvalExpiry, HitlApproval.Decision.PENDING,
                 null, null, null, null, null, 0, now, now), now);
         events.appendNext(AgentEvent.of(1, AgentEventType.RUN_CREATED, run.sessionId(), run.id(),
                 run.traceId(), Map.of()));
         events.appendNext(AgentEvent.of(2, AgentEventType.APPROVAL_REQUIRED, run.sessionId(), run.id(),
                 run.traceId(), Map.of("approvalId", UUID.fromString(approvalId),
-                        "expiresAt", now.plusMillis(180).toString())));
+                        "expiresAt", approvalExpiry.toString())));
         durable.save(new AgentCheckpoint(run.id(), 1, executor.getClass().getName(),
                 contextHash(run), events.lastEventId(run.id()), "commit-answer", null, null,
                 null, now, 0));
@@ -177,9 +184,23 @@ class PokemonAgentRunServiceRecoveryTest {
                     "持久 PENDING 审批恢复后必须继续等待");
             assertEquals(0, calls.get(), "恢复扫描不能直接重放模型/工具");
 
-            // 必须等待「终态事件」而不是「终态状态」：服务端先落库状态、再追加终态事件，
-            // 只轮询状态会命中极窄的窗口导致偶发失败（见 RunTestAwait 说明）。
-            RunTestAwait.awaitTerminalEvent(events, run.id());
+            // 显式推进审批到期，并等待终态事件。
+            //
+            // 不等待真实调度器：让 hitl 注册的到期回调（由 recoverInFlightRuns 链路建立）
+            // 真正触发 Run 收敛，而不依赖 180ms 的现实调度窗口。
+            // expirePending() 内部按 Instant.now() 判断，因此循环到实际时钟越过
+            // approvalExpiry 为止；这个窗口由测试自己控制，不受负载抖动影响。
+            Instant settleDeadline = Instant.now().plusSeconds(10);
+            while (Instant.now().isBefore(settleDeadline)
+                    && events.findAfter(run.id(), 0).stream()
+                        .noneMatch(event -> event.type() == AgentEventType.RUN_FAILED)) {
+                hitl.expirePending();
+                Thread.sleep(20);
+            }
+
+            AgentEvent terminal = RunTestAwait.awaitTerminalEvent(events, run.id());
+            assertEquals(AgentEventType.RUN_FAILED, terminal.type(),
+                    "恢复后应重新挂接审批到期，并在到期时以 RUN_FAILED 收敛");
             assertEquals(AgentRunStatus.FAILED, runs.findById(run.id()).orElseThrow().status(),
                     "恢复后应重新挂接审批过期定时器并安全失败");
             assertTrue(events.findAfter(run.id(), 0).stream()
