@@ -71,8 +71,11 @@ class PostgresRunPersistenceIT {
             "agent_checkpoint", "agent_run_lease", "agent_effect_ledger", "model_invocation_cache",
             "hitl_approval", "audit_event", "global_quota_counter", "memory_entry",
             "answer_projection", "api_idempotency_record", "favorite", "saved_team",
-            "user_feedback", "knowledge_ingestion_job", "agent_authorization_snapshot",
-            "agent_authorization_snapshot_revocation", "flyway_schema_history");
+            "user_feedback", "knowledge_ingestion_job", "knowledge_ingestion_attempt",
+            "knowledge_ingestion_outbox", "knowledge_ingestion_dlq", "vector_build_job",
+            "agent_authorization_snapshot",
+            "agent_authorization_snapshot_revocation", "knowledge_release_approval",
+            "evaluation_report", "flyway_schema_history");
 
     private static JdbcTemplate jdbc;
     private static JdbcRunRepository runs;
@@ -109,7 +112,7 @@ class PostgresRunPersistenceIT {
     // ==================== 迁移链 ====================
 
     @Test
-    @DisplayName("26 个迁移在空库完整执行，关键表真实存在且无失败记录")
+    @DisplayName("29 个迁移在空库完整执行，关键表真实存在且无失败记录")
     void flywayMigrationsApplyOnRealPostgres() {
         for (String table : EXPECTED_TABLES) {
             Integer count = jdbc.queryForObject(
@@ -126,7 +129,7 @@ class PostgresRunPersistenceIT {
         Integer applied = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
         assertNotNull(applied);
-        assertTrue(applied >= 26, () -> "期望至少 26 条成功迁移，实际 " + applied);
+        assertTrue(applied >= 29, () -> "期望至少 29 条成功迁移，实际 " + applied);
     }
 
     @Test

@@ -1,6 +1,6 @@
 # N1b：评测门禁后的知识发布（已实现的最小闭环）
 
-更新时间：2026-09-03
+更新时间：2026-10-17
 
 ## 已实现
 
@@ -10,6 +10,12 @@
 - `KnowledgePromotionService` 只有在候选状态、质量门禁和 approval 回读全部通过后才调用 `KnowledgeCatalog.activateIndex`；审批 ID 按请求证据确定性生成，重复提交复用同一审批。
 - 新增 `POST /knowledge/indexes/{indexReleaseId}/promote`；旧 `/publish` 保留兼容，但 Spring 装配 promotion 服务时不再允许无证据切换 active。
 - 新增 `V23__knowledge_release_approval.sql`：审批表、自然键唯一约束、索引、append-only 触发器和公共角色 UPDATE/DELETE 撤销。
+
+## 2026-10-17 本轮验证
+
+- 新增 `KnowledgePromotionMigrationContractTest`，离线守护审批表和评测报告表的 append-only、唯一绑定和主键约束。
+- `EvaluationReportControllerTest`、`EvaluationReportArtifactDecoderTest`、`JdbcEvaluationReportRepositoryTest`、`KnowledgePromotionMigrationContractTest`、`N1bPromotionTest`：35/35 通过。
+- `PostgresRunPersistenceIT` 关键表清单已纳入 `knowledge_release_approval` 和 `evaluation_report`；真实 PostgreSQL 触发器、并发导入和跨进程回读仍需 Docker/CI 执行。
 
 ## 验证
 
