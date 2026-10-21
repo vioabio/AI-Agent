@@ -17,6 +17,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class PokemonResourceControllerTest {
+    @Test
+    void formLookupBindsPathAndRequiresVersion() throws Exception {
+        PokemonResourceService service = org.mockito.Mockito.mock(PokemonResourceService.class);
+        PokemonFact fact = new PokemonFact(101, 1, 25, "pikachu", "皮卡丘", "default", "皮卡丘",
+                "sv-data-v1", "pokemon-scarlet-violet", "https://example.invalid/pokemon", "sha256:fixture",
+                "REVIEWED", "ELECTRIC", null, 35, 55, 40, 50, 50, 90);
+        org.mockito.Mockito.when(service.findFactByFormId("sv-data-v1", 101)).thenReturn(fact);
+        var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
+                .standaloneSetup(new PokemonResourceController(service)).build();
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .get("/pokemon/facts/forms/101").param("dataReleaseId", "sv-data-v1"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.data.slug").value("pikachu"));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/pokemon/facts/forms/101"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isBadRequest());
+    }
+
     @AfterEach
     void clearContext() {
         RequestContext.clear();

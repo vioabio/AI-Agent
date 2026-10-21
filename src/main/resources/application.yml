@@ -260,3 +260,32 @@ vio:
 logging:
   level:
     org.springframework.ai: DEBUG
+
+---
+# Local reference data belongs to the workspace, independently of the model provider.
+spring:
+  config:
+    activate:
+      on-profile: "local & !prod & !demo"
+server:
+  servlet:
+    session:
+      tracking-modes: cookie
+      cookie:
+        http-only: true
+        same-site: lax
+vio:
+  pokemon:
+    reference:
+      enabled: ${VIO_POKEMON_REFERENCE_ENABLED:true}
+      proxy: ${VIO_POKEAPI_PROXY:}
+  damage-engine:
+    enabled: ${VIO_DAMAGE_ENGINE_ENABLED:true}
+    node: ${VIO_DAMAGE_NODE:node}
+  local-guides:
+    enabled: ${VIO_LOCAL_GUIDES_ENABLED:true}
+    location: ${VIO_LOCAL_GUIDES_LOCATION:classpath:pokemon-guides/index.json}
+  local-accounts:
+    enabled: ${VIO_LOCAL_ACCOUNTS_ENABLED:true}
+  local-history:
+    enabled: true

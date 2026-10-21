@@ -17,6 +17,10 @@ public interface PokemonFactRepository {
 
     Optional<RulesetBinding> findRuleset(String rulesetId);
 
+    default boolean isQueryableRelease(VersionedDataRelease release) {
+        return java.util.Set.of("ACTIVE", "REVIEWED", "PUBLISHED").contains(release.status().toUpperCase(java.util.Locale.ROOT));
+    }
+
     /**
      * 检查形态是否被规则集允许。最小本地仓储没有可用性表时默认允许，
      * 生产 JDBC 实现按 pokemon_availability fail-closed 查询。

@@ -410,7 +410,9 @@ test('聊天工作区具备消息日志、输入标签和键盘可识别的发�
 test('首页场景入口使用可键盘访问的 RouterLink，而不是仅依赖 click 的 div', () => {
   const homeSource = fs.readFileSync(path.join(frontendRoot, 'src', 'views', 'Home.vue'), 'utf8')
   const routerSource = fs.readFileSync(path.join(frontendRoot, 'src', 'router', 'index.js'), 'utf8')
-  assert.equal((homeSource.match(/<RouterLink\b/g) || []).length, 3)
+  assert.equal((homeSource.match(/<RouterLink\b/g) || []).length, 1)
+  assert.doesNotMatch(homeSource, /to="\/pokemon-workbench"/)
+  assert.doesNotMatch(homeSource, /to="\/super-agent"/)
   assert.doesNotMatch(homeSource, /class="home-card[^>]*"\s+@click=/)
   assert.match(routerSource, /typeof document !== ['"]undefined['"]/) 
 })

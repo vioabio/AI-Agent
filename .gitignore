@@ -47,6 +47,8 @@ build/
 # 任意子目录的 dotenv 文件可能包含本地凭据，统一禁止进入 Git。
 **/.env.*
 **/.env
+.local-data/
+/tools/pokemon-engine/node_modules/
 # 测试使用的空 MCP fixture 不含凭据，必须随源码进入干净 checkout。
 !src/test/resources/mcp-servers.json
 

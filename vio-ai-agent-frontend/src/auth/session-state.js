@@ -1,4 +1,4 @@
-const MODES = new Set(['oidc', 'api_key', 'disabled'])
+const MODES = new Set(['oidc', 'local', 'api_key', 'disabled'])
 const LOGIN_URL = '/api/oauth2/authorization/vio'
 const LOGOUT_URL = '/api/logout'
 
@@ -15,8 +15,8 @@ export function normalizeSession(value) {
   const csrf = value.csrf
   if (!csrf || typeof csrf.enabled !== 'boolean' || typeof csrf.available !== 'boolean'
     || csrf.cookieName !== 'CSRF-TOKEN' || csrf.headerName !== 'X-CSRF-TOKEN') invalid()
-  if (value.mode === 'oidc') {
-    if (value.loginUrl !== LOGIN_URL || value.logoutUrl !== LOGOUT_URL || !csrf.enabled) invalid()
+  if (['oidc', 'local'].includes(value.mode)) {
+    if (value.loginUrl !== (value.mode === 'local' ? '/api/auth/local/login' : LOGIN_URL) || value.logoutUrl !== LOGOUT_URL || !csrf.enabled) invalid()
     if (value.authenticated) {
       if (value.accessDenied || !value.principalId || !value.tenantId || !value.roles.length
         || !Number.isFinite(Date.parse(value.absoluteExpiresAt))) invalid()
@@ -64,7 +64,7 @@ export function createSessionController({ fetchSession, logout, state = {}, now 
       accessDenied: false, principalId: null, tenantId: null, roles: [], absoluteExpiresAt: null } : null
   }
   function invalidate(reason = 'expired', notify = false) {
-    if (disposed || state.snapshot?.mode !== 'oidc') return
+    if (disposed || !['oidc', 'local'].includes(state.snapshot?.mode)) return
     closeIdentity(reason)
     state.phase = 'ready'
     state.error = ''
@@ -77,10 +77,21 @@ export function createSessionController({ fetchSession, logout, state = {}, now 
     const startedAt = now()
     const controller = new AbortController()
     request = controller
+    let timeoutId = null
+    let timedOut = false
+    const deadline = new Promise((_, reject) => {
+      timeoutId = setTimer(() => {
+        timedOut = true
+        reject(new Error('Session request timed out'))
+        controller.abort()
+      }, 15000)
+    })
     if (!background || state.phase !== 'ready') state.phase = 'loading'
     state.error = ''
     try {
-      const next = normalizeSession(await fetchSession({ signal: controller.signal }))
+      const next = normalizeSession(await Promise.race([
+        fetchSession({ signal: controller.signal }), deadline
+      ]))
       if (disposed || revision !== generation) return
       const lifetime = next.authenticated ? Date.parse(next.absoluteExpiresAt) - Date.parse(next.serverTime) : null
       // Start at the beginning of the request: latency cannot extend server expiry.
@@ -110,13 +121,16 @@ export function createSessionController({ fetchSession, logout, state = {}, now 
       if (disposed || revision !== generation || error?.name === 'AbortError') return
       closeIdentity('unavailable')
       state.phase = 'error'
-      state.error = '无法确认登录状态，请稍后重试。'
+      state.error = timedOut
+        ? '连接后端超时，请确认后端已启动；本地开发时请重启前端服务后重试。'
+        : '无法确认登录状态，请稍后重试。'
     } finally {
+      if (timeoutId !== null) clearTimer(timeoutId)
       if (request === controller) request = null
     }
   }
   async function signOut() {
-    if (disposed || state.snapshot?.mode !== 'oidc' || state.phase === 'logging_out') return
+    if (disposed || !['oidc', 'local'].includes(state.snapshot?.mode) || state.phase === 'logging_out') return
     closeIdentity('signed_out')
     const revision = generation
     state.phase = 'logging_out'
@@ -145,5 +159,5 @@ export function createSessionController({ fetchSession, logout, state = {}, now 
 
 export function canUseApplication(state) {
   return state.phase === 'ready' && Boolean(state.snapshot)
-    && (state.snapshot.mode !== 'oidc' || (state.snapshot.authenticated && !state.snapshot.accessDenied))
+    && (!['oidc', 'local'].includes(state.snapshot.mode) || (state.snapshot.authenticated && !state.snapshot.accessDenied))
 }

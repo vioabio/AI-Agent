@@ -1,14 +1,16 @@
 package com.vio.vioaiagent.tools;
 
-import cn.hutool.http.HttpRequest;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.*;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
 /**
  * 网页搜索工具 — 返回格式化的可读文本，而非原始 JSON
@@ -18,26 +20,63 @@ public class WebSearchTool {
     private static final String SEARCH_API_URL = "https://www.searchapi.io/api/v1/search";
 
     private final String apiKey;
+    private final SearchTransport transport;
 
     public WebSearchTool(String apiKey) {
-        this.apiKey = apiKey;
+        this(apiKey, defaultTransport());
+    }
+
+    WebSearchTool(String apiKey, SearchTransport transport) {
+        this.apiKey = apiKey == null ? "" : apiKey.trim();
+        this.transport = transport;
+    }
+
+    public static boolean isConfigured(String key) {
+        if (key == null || key.isBlank()) return false;
+        String value = key.trim().toLowerCase(java.util.Locale.ROOT);
+        return !value.startsWith("your-") && !value.startsWith("replace-")
+                && !value.contains("placeholder") && !value.startsWith("${");
+    }
+
+    record SearchResponse(int status, String body) { }
+    @FunctionalInterface
+    interface SearchTransport { SearchResponse get(String query, String key) throws Exception; }
+
+    private static SearchTransport defaultTransport() {
+        HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2))
+                .followRedirects(HttpClient.Redirect.NEVER).build();
+        return (query, key) -> {
+            URI uri = URI.create(SEARCH_API_URL + "?engine=baidu&q="
+                    + URLEncoder.encode(query, StandardCharsets.UTF_8));
+            var request = HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(3))
+                    .header("Authorization", "Bearer " + key).GET().build();
+            var response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            return new SearchResponse(response.statusCode(), response.body());
+        };
     }
 
     @Tool(description = "Search for information from Baidu Search Engine")
     public String searchWeb(
             @ToolParam(description = "Search query keyword") String query) {
-        Map<String, Object> paramMap = new HashMap<>();
-        paramMap.put("q", query);
-        paramMap.put("engine", "baidu");
+        if (!isConfigured(apiKey)) throw new IllegalStateException("SEARCH_NOT_CONFIGURED: 未配置搜索服务");
+        if (query == null || query.isBlank() || query.length() > 2000) {
+            throw new IllegalArgumentException("搜索词必须为 1～2000 字符");
+        }
         try {
             // SearchAPI 也支持 Authorization: Bearer；不要把密钥拼进 URL，
             // 避免被代理、访问日志或异常堆栈记录。
-            String response = HttpRequest.get(SEARCH_API_URL)
-                    .form(paramMap)
-                    .header("Authorization", "Bearer " + apiKey)
-                    .execute()
-                    .body();
-            JSONObject jsonObject = JSONUtil.parseObj(response);
+            SearchResponse response = transport.get(query.trim(), apiKey);
+            if (response.status() != 200) {
+                throw new IllegalStateException("SEARCH_PROVIDER_HTTP_" + response.status());
+            }
+            if (response.body() == null || response.body().length() > 1_048_576) {
+                throw new IllegalStateException("SEARCH_INVALID_RESPONSE");
+            }
+            JSONObject jsonObject = JSONUtil.parseObj(response.body());
+            if (jsonObject.containsKey("error") || jsonObject.containsKey("errors")
+                    || !jsonObject.containsKey("organic_results")) {
+                throw new IllegalStateException("SEARCH_PROVIDER_REJECTED");
+            }
             JSONArray organicResults = jsonObject.getJSONArray("organic_results");
             if (organicResults == null || organicResults.isEmpty()) {
                 return "No results found for query: " + query;
@@ -58,8 +97,16 @@ public class WebSearchTool {
                 sb.append("   ").append(snippet).append("\n\n");
             }
             return sb.toString();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("SEARCH_INTERRUPTED");
+        } catch (HttpTimeoutException e) {
+            throw new IllegalStateException("SEARCH_TIMEOUT: 搜索服务连接超时");
+        } catch (IllegalStateException e) {
+            throw e;
         } catch (Exception e) {
-            return "Error searching Baidu: " + e.getMessage();
+            // Never expose raw network/provider messages, URLs or credentials.
+            throw new IllegalStateException("SEARCH_UNAVAILABLE: 搜索失败，请稍后重试");
         }
     }
 }

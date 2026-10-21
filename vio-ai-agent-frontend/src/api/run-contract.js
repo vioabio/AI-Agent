@@ -278,7 +278,9 @@ export function reduceRunEvent(model, rawEvent) {
     case 'tool.rejected': {
       const name = data.toolName || event.toolName
       const timeline = next.toolTimeline.map(item => item.toolName === name && item.status === 'running'
-        ? { ...item, ...data, status: (event.type === 'tool.completed' || event.type === 'tool.finished') ? 'completed' : 'failed' }
+        ? { ...item, ...data, status: ['FAILED', 'AUDIT_FAILED', 'UNKNOWN', 'REJECTED', 'CANCELLED', 'TIMED_OUT']
+          .includes(String(data.status || '').toUpperCase()) ? 'failed'
+          : (event.type === 'tool.completed' || event.type === 'tool.finished') ? 'completed' : 'failed' }
         : item)
       return { ...next, toolTimeline: timeline }
     }

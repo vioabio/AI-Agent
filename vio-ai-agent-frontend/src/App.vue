@@ -1,15 +1,16 @@
 <template>
-  <div class="app-shell">
-    <header v-if="canUseApplication" class="session-toolbar" data-testid="session-toolbar">
+  <div class="app-shell reference-layout" :class="{ 'in-workspace': route.path === '/game-master' }">
+    <header v-if="canUseApplication" class="session-toolbar" :class="{ 'workspace-toolbar': route.path === '/game-master' }" data-testid="session-toolbar">
       <RouterLink to="/" class="session-brand">VIO AI Agent</RouterLink>
-      <div v-if="state.snapshot.mode === 'oidc'" class="session-account">
-        <span class="session-principal">{{ state.snapshot.principalId }}</span>
+      <div v-if="['oidc', 'local'].includes(state.snapshot.mode)" class="session-account">
+        <span class="session-principal">{{ state.snapshot.mode === 'local' ? '本地账户' : state.snapshot.principalId }}</span>
         <span class="session-tenant">{{ state.snapshot.tenantId }}</span>
         <button type="button" @click="signOut">退出登录</button>
       </div>
       <span v-else class="session-tenant">{{ state.snapshot.mode === 'api_key' ? '受限演示' : '开发模式' }}</span>
     </header>
-    <router-view v-if="canUseApplication" :key="state.viewVersion" />
+    <router-view v-if="canUseApplication" :key="`${state.viewVersion}:${route.fullPath}`" />
+    <LocalAuthPortal v-else-if="state.phase === 'ready' && state.snapshot?.mode === 'local'" />
     <main v-else class="auth-gate" data-testid="auth-gate" aria-live="polite">
       <div class="auth-card">
         <p class="auth-brand">VIO AI Agent</p>
@@ -28,6 +29,7 @@
 
 <script setup>
 import { computed, watch } from 'vue'
+import LocalAuthPortal from '@/components/LocalAuthPortal.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { consumeLoginReturnPath, initializeAuthSession, useAuthSession } from '@/composables/useAuthSession'
 
@@ -57,57 +59,3 @@ watch(() => state.snapshot?.authenticated, authenticated => {
 })
 initializeAuthSession()
 </script>
-
-<style>
-/* ===== 全局 CSS 重置 ===== */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html, body, #app {
-  height: 100%;
-  width: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, 'Noto Sans SC', sans-serif;
-  background-color: #0f0f1a;
-  color: #e0e0e0;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* ===== 自定义滚动条 ===== */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
-}
-</style>
-
-<style scoped>
-.session-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 1.2rem; border-bottom: 1px solid #ffffff1a; background: #131525; }
-.session-brand, .auth-brand { color: #cb98ff; font-weight: 700; }
-.session-account { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; }
-.session-principal { max-width: 16rem; overflow-wrap: anywhere; }
-.session-tenant { color: #a5a7bd; font-size: .85rem; }
-.auth-gate { min-height: 100vh; display: grid; place-items: center; padding: 1.5rem; background: radial-gradient(circle at top, #282047, #0f0f1a 65%); }
-.auth-card { width: min(100%, 28rem); padding: 2rem; border: 1px solid #ffffff20; border-radius: 1rem; background: #171827; }
-.auth-card h1 { margin: 1.3rem 0 .8rem; font-size: 1.5rem; }
-.auth-card p { line-height: 1.7; color: #c3c4d5; }
-button { padding: .65rem 1rem; border-radius: .5rem; color: #fff; background: #6842a8; }
-.auth-card button { margin-top: 1.3rem; }
-button:focus-visible, a:focus-visible { outline: 2px solid #e3c8ff; outline-offset: 3px; }
-@media (max-width: 600px) { .session-toolbar { align-items: flex-start; } .session-account { justify-content: flex-end; } }
-</style>

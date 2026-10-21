@@ -10,6 +10,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Repository
 @org.springframework.context.annotation.Profile("!prod & !demo")
 @Primary
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "vio.local-history.enabled", havingValue = "false", matchIfMissing = true)
 public class InMemoryChatMessageRepository implements ChatMessageRepository {
     private final CopyOnWriteArrayList<ChatMessage> messages = new CopyOnWriteArrayList<>();
 

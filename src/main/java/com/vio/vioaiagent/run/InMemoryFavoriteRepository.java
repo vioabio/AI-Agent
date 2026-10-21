@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Repository
 @Profile("!prod & !demo")
 @Primary
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name="vio.local-accounts.enabled",havingValue="false",matchIfMissing=true)
 public class InMemoryFavoriteRepository implements FavoriteRepository {
     private final AtomicLong sequence = new AtomicLong();
     private final ConcurrentMap<Long, Favorite> values = new ConcurrentHashMap<>();

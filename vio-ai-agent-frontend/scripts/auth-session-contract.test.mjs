@@ -43,6 +43,29 @@ function harness(options = {}) {
   return { controller, timers, cleared, broadcast, navigated, advance }
 }
 
+test('会话接口无响应时退出加载，迟到响应不能放行业务，重试可恢复', async () => {
+  const pending = deferred()
+  let signal
+  let retry = false
+  const h = harness({ fetchSession: options => {
+    signal = options.signal
+    return retry ? Promise.resolve(signed()) : pending.promise
+  } })
+  const refresh = h.controller.refresh()
+  h.advance(15000)
+  await refresh
+  assert.equal(signal.aborted, true)
+  assert.equal(h.controller.state.phase, 'error')
+  assert.match(h.controller.state.error, /超时/)
+  assert.equal(canUseApplication(h.controller.state), false)
+  pending.resolve(signed())
+  await Promise.resolve()
+  assert.equal(h.controller.state.phase, 'error')
+  retry = true
+  await h.controller.refresh()
+  assert.equal(canUseApplication(h.controller.state), true)
+})
+
 test('匿名OIDC关闭业务视图并只进入固定同源登录入口', async () => {
   const h = harness({ fetchSession: async () => snapshot() })
   await h.controller.refresh()
@@ -121,7 +144,7 @@ test('账号变化先关闭旧视图，再等待隔离准备完成', async () =>
   const oldVersion = h.controller.state.viewVersion
   response = signed({ principalId: 'bob', tenantId: 'tenant-b' })
   const refresh = h.controller.refresh({ background: true })
-  await Promise.resolve()
+  await new Promise(resolve => setImmediate(resolve))
   assert.equal(h.controller.state.phase, 'loading')
   assert.equal(canUseApplication(h.controller.state), false)
   assert.equal(h.cleared.length, 1)
@@ -190,7 +213,7 @@ test('被更新响应覆盖的旧GET和旧身份准备不能改写新状态', as
     await preparation.promise
   } })
   const pending = second.controller.refresh()
-  await Promise.resolve()
+  await new Promise(resolve => setImmediate(resolve))
   second.controller.dispose()
   assert.equal(isCurrent(), false)
   preparation.resolve()

@@ -1,71 +1,135 @@
 <template>
-  <div class="game-master-page">
-    <header class="chat-header">
-      <button class="back-btn" @click="$router.push('/')">← 返回</button>
-      <h1>🎮 AI 宝可梦大师</h1>
-      <span class="chat-id-badge">{{ chatId }}</span>
-    </header>
+  <div class="game-master-page workspace-shell" :class="{ 'team-mode': workspaceMode === 'team' }">
+    <button v-if="mobileNavOpen" class="nav-scrim" aria-label="关闭历史菜单" @click="mobileNavOpen = false"></button>
+    <aside class="workspace-nav" :class="{ 'mobile-open': mobileNavOpen }" aria-label="工作区导航">
+      <RouterLink to="/" class="workspace-brand"><VioMark /><span><strong>VIO</strong><small>宝可梦 AI 助手</small></span></RouterLink>
+      <button class="new-chat" type="button" :disabled="workspaceBusy || historyLoading" @click="newConversation"><UiIcon name="plus" />新对话</button>
+      <button class="workspace-entry" type="button" @click="mobileNavOpen = false"><UiIcon name="chat" />助手工作区<span class="entry-dot"></span></button>
+      <div class="recent-heading"><span>最近对话</span><button type="button" aria-label="刷新会话历史" @click="workbenchRef?.refreshHistory()"><UiIcon name="history" /></button></div>
+      <div class="recent-conversations">
+        <p v-if="sidebarHistory.status === 'loading'" class="sidebar-empty">正在读取历史…</p>
+        <div v-else-if="['error','permission'].includes(sidebarHistory.status)" class="sidebar-empty">历史暂不可用<button type="button" @click="workbenchRef?.refreshHistory()">重试</button></div>
+        <p v-else-if="!sidebarHistory.items.length" class="sidebar-empty">从一个问题开始，<br />你的对话会保存在这里。</p>
+        <button v-for="conversation in sidebarHistory.items.slice(0, 12)" :key="conversation.id" class="recent-item" :class="{ selected: conversation.id === chatId }" type="button" :disabled="workspaceBusy || historyLoading" @click="openRecentConversation(conversation)">
+          <span>{{ conversation.title || '未命名对话' }}</span><small>{{ formatConversationDate(conversation.updatedAt || conversation.createdAt) }}</small>
+        </button>
+        <button v-if="sidebarHistory.items.length" class="all-history" type="button" @click="openResourceSection('history')">查看全部历史<UiIcon name="arrow" /></button>
+      </div>
+      <div class="nav-footer"><button type="button" @click="openResourceSection('favorites')"><UiIcon name="star" />收藏</button><button type="button" aria-label="版本与资料设置" @click="settingsOpen = !settingsOpen"><UiIcon name="settings" />设置</button><div v-if="authState.snapshot?.mode !== 'local'" class="workspace-account"><template v-if="authState.snapshot?.mode === 'oidc'"><span>{{ authState.snapshot.principalId }}</span><button type="button" @click="signOut">退出登录</button></template><small v-else>{{ authState.snapshot?.mode === 'api_key' ? '受限演示' : '本地工作区' }}</small></div></div>
+      <LocalAccountMenu v-if="authState.snapshot?.mode === 'local'" />
+    </aside>
 
-    <section class="scenario-bar" aria-label="回答场景">
-      <label>
-        游戏/资料版本
-        <select v-model="scenario.gameReleaseId">
-          <option value="pokemon-scarlet-violet">朱/紫（本体）</option>
-          <!-- DLC 版本必须先进入共享 registry；未登记值不能送入现代 Run。 -->
-          <option value="scarlet-violet-teal-mask" disabled>朱/紫：碧之假面 DLC（版本待登记）</option>
-          <option value="scarlet-violet-indigo-disk" disabled>朱/紫：蓝之圆盘 DLC（版本待登记）</option>
-        </select>
-      </label>
-      <label>
-        赛制
-        <select v-model="scenario.battleFormat">
-          <option v-for="option in battleFormatOptions" :key="option.alias" :value="option.alias">{{ option.label }}</option>
-          <option value="ranked-singles" disabled>排位单打（赛制 ID 待登记）</option>
-          <option value="ranked-doubles" disabled>排位双打（赛制 ID 待登记）</option>
-        </select>
-      </label>
-      <label>
-        语言
-        <select v-model="scenario.language">
-          <option value="zh-CN">简体中文</option>
-          <option value="en-US">English</option>
-          <option value="ja-JP">日本語</option>
-        </select>
-      </label>
-      <label>
-        规则版本
-        <input v-model="scenario.rulesetVersionId" maxlength="64" aria-label="规则版本" />
-      </label>
-      <label>
-        数据版本
-        <input v-model="scenario.dataReleaseId" maxlength="128" aria-label="数据版本" />
-      </label>
-    </section>
-
-    <ChatRoom
-      :messages="messages"
-      :connectionStatus="connectionStatus"
-      :runViewModel="activeRun"
-      aiType="game"
-      @send-message="handleSend"
-      @cancel-run="handleCancelRun"
-      @reconnect-run="handleReconnectRun"
-      @approve-run="handleApproveRun"
-      @feedback="handleFeedback"
-    />
+    <main class="workspace-main">
+      <header class="workspace-header">
+        <button class="mobile-nav-toggle" type="button" :aria-expanded="mobileNavOpen" aria-label="打开历史菜单" @click="mobileNavOpen = !mobileNavOpen"><UiIcon name="menu" /></button>
+        <h1>宝可梦助手</h1>
+        <section class="scenario-bar" aria-label="回答场景">
+          <label><span class="sr-only">游戏/资料版本</span><select v-model="scenario.gameReleaseId" aria-label="游戏/资料版本" :disabled="workspaceBusy"><option value="pokemon-scarlet-violet">朱／紫</option></select></label>
+          <label><span class="sr-only">赛制</span><select v-model="scenario.battleFormat" aria-label="赛制" :disabled="workspaceBusy"><option v-for="option in battleFormatOptions" :key="option.alias" :value="option.alias">{{ option.label }}</option></select></label>
+          <label><span class="sr-only">语言</span><select v-model="scenario.language" aria-label="语言" :disabled="workspaceBusy"><option value="zh-CN">简体中文</option><option value="en-US">English</option><option value="ja-JP">日本語</option></select></label>
+        </section>
+        <button class="source-toggle" type="button" :aria-expanded="settingsOpen" @click="settingsOpen = !settingsOpen"><UiIcon name="book" />资料来源<UiIcon name="chevron" /></button>
+      </header>
+      <section v-if="settingsOpen" class="workspace-settings" aria-label="版本与资料设置">
+        <div><strong>当前资料与版本</strong><p>本地参考资料不代表排位合法性或实时强度，切换版本前请先保存队伍。</p></div>
+        <label>规则版本<input v-model="scenario.rulesetVersionId" maxlength="64" aria-label="规则版本" :disabled="workspaceBusy" /></label>
+        <label>数据版本<input v-model="scenario.dataReleaseId" maxlength="128" aria-label="数据版本" :disabled="workspaceBusy" /></label>
+        <small>会话 {{ chatId }}</small>
+      </section>
+      <div v-if="workspaceMode === 'team'" class="workspace-tabs">
+        <div role="group" aria-label="工作区视图"><button type="button" :aria-pressed="workspaceMode === 'conversation'" @click="setWorkspaceMode('conversation')"><UiIcon name="chat" />对话</button><button type="button" :aria-pressed="workspaceMode === 'team'" @click="setWorkspaceMode('team')"><UiIcon name="team" />队伍配置</button></div>
+        <button class="resource-toggle" type="button" :aria-expanded="resourcesOpen" @click="resourcesOpen = !resourcesOpen"><UiIcon name="book" />资料与队伍</button>
+      </div>
+      <p v-if="workspaceNotice && workspaceWarning" class="workspace-notice" role="status">{{ workspaceNotice }}</p>
+      <p v-if="referenceRelease && scenario.dataReleaseId !== referenceRelease" class="workspace-notice">当前会话使用 {{ scenario.dataReleaseId }}。<button type="button" :disabled="workspaceBusy || historyLoading" @click="newReferenceConversation">使用本地参考资料开启新对话</button></p>
+      <p v-if="historyError" class="workspace-notice notice-error" role="alert">{{ historyError }} 请点击“新对话”或刷新重试。</p>
+      <div class="workspace-body" :class="{ 'resources-hidden': !resourcesOpen }">
+        <section class="conversation-pane" :aria-label="workspaceMode === 'team' ? 'AI 搭配建议' : '助手对话'">
+          <div v-if="workspaceMode === 'conversation'" class="workspace-tabs conversation-tabs"><div role="group" aria-label="工作区视图"><button type="button" aria-pressed="true" @click="setWorkspaceMode('conversation')">对话</button><button type="button" aria-pressed="false" @click="setWorkspaceMode('team')">队伍配置</button></div><button class="resource-toggle" type="button" :aria-expanded="resourcesOpen" @click="resourcesOpen = !resourcesOpen"><UiIcon name="book" />资料与队伍</button></div>
+          <header v-if="workspaceMode === 'team'" class="conversation-pane-heading"><UiIcon name="chat" /><h2>AI 搭配建议</h2><span>结合当前队伍继续聊</span></header>
+          <ChatRoom :messages="messages" :connectionStatus="historyLoading || historyError ? 'creating' : connectionStatus" :draft-request="draftRequest" :runViewModel="activeRun" aiType="game" @send-message="handleSend" @cancel-run="handleCancelRun" @reconnect-run="handleReconnectRun" @approve-run="handleApproveRun" @feedback="handleFeedback" @resource-section="openResourceSection" ><template #suggestions><div v-if="workspaceMode === 'team'" class="team-advice-actions"><button type="button" :disabled="workspaceBusy || historyLoading" @click="workbenchRef?.analyzeCurrentTeam()"><UiIcon name="team" />分析当前队伍</button><button type="button" @click="openResourceSection('guides')"><UiIcon name="book" />检索攻略</button></div><button v-if="workspaceMode === 'team'" class="advice-reference-toggle" type="button" @click="settingsOpen = !settingsOpen"><UiIcon name="book" />参考资料<UiIcon name="chevron" /></button></template></ChatRoom>
+        </section>
+        <aside v-if="resourcesMounted" v-show="resourcesOpen" class="resource-sidebar" aria-label="资料与队伍侧栏">
+          <div class="resource-sidebar-heading"><h2>{{ workspaceMode === 'team' ? '队伍与计算' : '资料与队伍' }}</h2><button class="close-resources" type="button" aria-label="关闭资料侧栏" @click="resourcesOpen = false"><UiIcon name="close" /></button></div>
+          <PokemonWorkbench ref="workbenchRef" embedded :scenario="scenario" :workspace-mode="workspaceMode" :busy="workspaceBusy || historyLoading || !!historyError" @ask="prepareQuestion" @continue-conversation="resumeHistory" @history-change="sidebarHistory = $event" @mode-change="workspaceMode = $event" />
+        </aside>
+      </div>
+    </main>
   </div>
 </template>
 
 <script setup>
-import { ref, onBeforeUnmount, onMounted, watch, reactive } from 'vue'
+import { ref, onBeforeUnmount, onMounted, watch, reactive, computed } from 'vue'
 import ChatRoom from '@/components/ChatRoom.vue'
-import { chatWithGameApp, decideRunApproval, submitAnswerFeedback } from '@/api'
+import LocalAccountMenu from '@/components/LocalAccountMenu.vue'
+import PokemonWorkbench from '@/views/PokemonWorkbench.vue'
+import VioMark from '@/components/VioMark.vue'
+import UiIcon from '@/components/UiIcon.vue'
+import { useRoute, useRouter } from 'vue-router'
+import { chatWithGameApp, decideRunApproval, submitAnswerFeedback, fetchConversationMessages, fetchPokemonReferenceStatus } from '@/api'
 import { BATTLE_FORMAT_OPTIONS, serializeRunContext } from '@/api/version-registry'
 import { useRunStream } from '@/composables/useRunStream'
-import { getOrCreateConversationId } from '@/composables/runPersistence'
+import { getOrCreateConversationId, selectConversationId } from '@/composables/runPersistence'
 import { RUN_STATUS, TERMINAL_STATUSES } from '@/api/run-contract'
+import { useAuthSession } from '@/composables/useAuthSession'
+const { state: authState, signOut } = useAuthSession()
 
-const chatId = ref(getOrCreateConversationId('game'))
+const route = useRoute()
+const router = useRouter()
+const requestedConversation = typeof route.query.conversation === 'string' && /^[a-zA-Z0-9._:-]{1,128}$/.test(route.query.conversation)
+  ? route.query.conversation : null
+const conversationScope = route.query.scope === 'super-agent' ? 'super-agent' : 'game'
+const chatId = ref(requestedConversation || getOrCreateConversationId(conversationScope))
+// Keep CSS and behavior aligned: narrow desktop windows retain the inline workbench.
+const desktopMedia = window.matchMedia('(min-width: 768px)')
+const pinnedNavMedia = window.matchMedia('(min-width: 1200px)')
+const resourcesOpen = ref(route.query.panel === 'resources' || desktopMedia.matches)
+const resourcesMounted = ref(true)
+const workspaceMode = ref('conversation')
+const workbenchRef = ref(null)
+const mobileNavOpen = ref(false)
+function syncWorkspaceViewport(event) {
+  resourcesOpen.value = event.matches || workspaceMode.value === 'team'
+  mobileNavOpen.value = false
+}
+function syncPinnedNavigation() {
+  mobileNavOpen.value = false
+}
+desktopMedia.addEventListener('change', syncWorkspaceViewport)
+pinnedNavMedia.addEventListener('change', syncPinnedNavigation)
+
+const settingsOpen = ref(false)
+const sidebarHistory = ref({ items: [], status: 'loading' })
+watch(resourcesOpen, open => { if (open) resourcesMounted.value = true })
+
+function setWorkspaceMode(mode) {
+  workspaceMode.value = mode
+  resourcesOpen.value = mode === 'team' || desktopMedia.matches
+  workbenchRef.value?.showSection(mode === 'team' ? 'teams' : 'facts')
+}
+function openResourceSection(section) {
+  resourcesOpen.value = true
+  mobileNavOpen.value = false
+  workspaceMode.value = 'conversation'
+  workbenchRef.value?.showSection(section)
+}
+function openRecentConversation(conversation) {
+  if (workspaceBusy.value || historyLoading.value) return
+  mobileNavOpen.value = false
+  workbenchRef.value?.resumeConversation(conversation)
+}
+function formatConversationDate(value) {
+  if (!value) return '历史对话'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '历史对话' : date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
+}
+const draftRequest = ref(null)
+const workspaceNotice = ref(requestedConversation ? '请确认当前会话的版本和赛制后继续。' : '')
+const workspaceWarning = computed(() => /未启用|无法连接|失败/.test(workspaceNotice.value))
+const historyLoading = ref(true)
+const historyError = ref('')
+const referenceRelease = ref('')
+const workspaceBusy = computed(() => ['creating', 'connecting', 'connected', 'reconnecting', 'waiting_approval'].includes(connectionStatus.value))
 const messages = ref([])
 const connectionStatus = ref('idle') // 'idle' | 'connecting' | 'done'
 let currentEventSource = null
@@ -74,6 +138,8 @@ const activeRun = ref(null)
 const modernRunEnabled = import.meta.env.VITE_V1_RUNS_ENABLED !== 'false'
 const runStream = useRunStream()
 let stopAnswerWatch = null
+const historyController = new AbortController()
+let userHasSent = false
 const scenario = reactive({
   gameReleaseId: 'pokemon-scarlet-violet',
   battleFormat: 'casual-singles',
@@ -103,15 +169,18 @@ watch(() => activeRun.value?.status, status => {
 // 欢迎消息
 messages.value.push({
   role: 'assistant',
-  content: '你好！我是 AI 宝可梦大师 🎮，深耕宝可梦对战与养成。请告诉我你想了解的宝可梦、版本或对战策略～'
+  content: '你好，我是 VIO。告诉我你想了解的宝可梦，或从右侧图鉴开始，一起完善你的队伍。'
 })
 
 async function handleSend(message) {
+  if (historyLoading.value || historyError.value || workspaceBusy.value) return
+  connectionStatus.value = 'creating'
+  userHasSent = true
   // 添加用户消息
   messages.value.push({ role: 'user', content: message })
 
   // 创建 AI 消息气泡（初始为空，SSE 增量填充）
-  const aiMessage = { role: 'assistant', content: '' }
+  const aiMessage = reactive({ role: 'assistant', content: '' })
   messages.value.push(aiMessage)
 
   if (modernRunEnabled) {
@@ -265,16 +334,91 @@ async function handleFeedback(feedback) {
   }
 }
 
+function applyContext(value) {
+  if (!value) return
+  for (const field of ['gameReleaseId', 'language', 'rulesetVersionId', 'dataReleaseId', 'battleFormat']) {
+    if (typeof value[field] === 'string' && value[field]) scenario[field] = value[field]
+  }
+}
+
+function prepareQuestion({ prompt, context }) {
+  if (workspaceBusy.value || historyLoading.value || historyError.value) return
+  applyContext(context)
+  draftRequest.value = { text: prompt, nonce: Date.now() + Math.random() }
+  workspaceNotice.value = '资料已带入问题，请确认版本、赛制和内容后发送。'
+  if (!desktopMedia.matches) {
+    resourcesOpen.value = false
+    workspaceMode.value = 'conversation'
+  }
+}
+
+function resumeHistory({ conversationId, context }) {
+  if (workspaceBusy.value || historyLoading.value) return
+  const query = { conversation: conversationId }
+  // Only opaque identifiers and version selections enter the URL; no prompts or answers.
+  if (context) for (const field of ['gameReleaseId', 'language', 'rulesetVersionId', 'dataReleaseId', 'battleFormat']) {
+    if (typeof context[field] === 'string') query[field] = context[field]
+  }
+  router.push({ path: '/game-master', query })
+}
+
+function newConversation() {
+  if (workspaceBusy.value || historyLoading.value) return
+  router.push({ path: '/game-master', query: { conversation: `game_${crypto.randomUUID()}` } })
+}
+
+function newReferenceConversation() {
+  if (workspaceBusy.value || historyLoading.value || !referenceRelease.value) return
+  router.push({ path: '/game-master', query: {
+    conversation: `game_${crypto.randomUUID()}`, dataReleaseId: referenceRelease.value, panel: 'resources'
+  } })
+}
+
+applyContext(route.query)
+
 onMounted(async () => {
+  let hasStoredUser = false
+  try {
+    const stored = await fetchConversationMessages(chatId.value, { signal: historyController.signal })
+    if (!historyController.signal.aborted && messages.value.length === 1 && Array.isArray(stored)) {
+      const history = stored.filter(m => ['user', 'assistant'].includes(m.role) && typeof m.content === 'string')
+      if (history.length) messages.value.splice(0, 1, ...history)
+    }
+    hasStoredUser = Array.isArray(stored) && stored.some(m => m.role === 'user')
+  } catch (error) {
+    if (requestedConversation && error.status !== 404 && !historyController.signal.aborted) {
+      historyError.value = '历史消息读取失败，暂不能在此会话发送消息。'
+    }
+  }
+    if (!historyController.signal.aborted) {
+      try {
+        const reference = await fetchPokemonReferenceStatus({ signal: historyController.signal })
+        if (!historyController.signal.aborted && reference.enabled && reference.status === 'LOCAL_REFERENCE') {
+          referenceRelease.value = reference.dataReleaseId
+          if (!route.query.dataReleaseId && !hasStoredUser && !historyError.value) {
+            scenario.dataReleaseId = reference.dataReleaseId
+            workspaceNotice.value = '已启用 PokéAPI 本地参考资料；首次查询需联网，缓存后可离线读取，不代表排位合法性。'
+          }
+        }
+      } catch (error) {
+        if (!historyController.signal.aborted) workspaceNotice.value = Number(error.status) === 404
+          ? '当前后端未启用本地资料接口，图鉴可能无法查询。请更新并重启后端，启用 local 配置；若显式关闭过资料功能，请设置 VIO_POKEMON_REFERENCE_ENABLED=true。'
+          : '本地资料服务暂时无法连接，请检查后端后重试；当前会话版本保持不变。'
+      }
+    }
+  historyLoading.value = false
+  if (!historyController.signal.aborted && !historyError.value) selectConversationId(conversationScope, chatId.value)
+  if (historyController.signal.aborted || userHasSent) return
   try {
     const restored = await runStream.restoreConversation(chatId.value)
     if (!restored) return
     activeRun.value = restored
-    const aiMessage = {
+    const aiMessage = messages.value.find(m => m.role === 'assistant' && m.runId === restored.runId) || reactive({
       role: 'assistant',
+      runId: restored.runId,
       content: restored.answer || '已恢复上次未完成的任务，正在继续接收事件…'
-    }
-    messages.value.push(aiMessage)
+    })
+    if (!messages.value.includes(aiMessage)) messages.value.push(aiMessage)
     bindAnswerBubble(aiMessage)
   } catch (error) {
     // 恢复失败不阻塞新会话；保留错误提示便于用户手动重试。
@@ -284,6 +428,9 @@ onMounted(async () => {
 
 // 页面卸载时关闭 SSE 连接
 onBeforeUnmount(() => {
+  desktopMedia.removeEventListener('change', syncWorkspaceViewport)
+  pinnedNavMedia.removeEventListener('change', syncPinnedNavigation)
+  historyController.abort()
   stopAnswerWatch?.()
   if (currentEventSource) {
     currentEventSource.close()
@@ -293,87 +440,3 @@ onBeforeUnmount(() => {
   if (activeRun.value?.runId) runStream.pause(activeRun.value.runId)
 })
 </script>
-
-<style scoped>
-.game-master-page {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%);
-}
-
-.chat-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 24px;
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  flex-shrink: 0;
-}
-
-.chat-header h1 {
-  font-size: 18px;
-  font-weight: 600;
-  background: linear-gradient(135deg, #ffcb05, #3b5ba7);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.scenario-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  align-items: end;
-  padding: 10px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.scenario-bar label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 11px;
-}
-
-.scenario-bar select,
-.scenario-bar input {
-  min-width: 138px;
-  height: 30px;
-  padding: 0 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 6px;
-  background: #1b1b30;
-  color: #e0e0e0;
-  font-size: 12px;
-}
-
-.scenario-bar input { min-width: 110px; }
-
-.back-btn {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.7);
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  transition: all 0.2s;
-}
-
-.back-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-}
-
-.chat-id-badge {
-  margin-left: auto;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.3);
-  font-family: monospace;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 4px 10px;
-  border-radius: 6px;
-}
-</style>

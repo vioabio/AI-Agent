@@ -353,6 +353,42 @@ cp src/main/resources/application-local.example.yml src/main/resources/applicati
 
 ### 4. 启动前端（可选）
 
+#### 本地改用 DeepSeek（无需服务器、数据库或 Docker）
+
+1. 在 IDEA 的运行配置中将 **Active profiles** 设置为 `local,deepseek`。
+2. 在同一运行配置的环境变量中设置 `DEEPSEEK_API_KEY`，值填自己的 DeepSeek Key；不要提交或发到聊天。
+3. 停止旧后端后重新启动，避免占用同一个 8123 端口。
+4. 终端启动可使用 `./mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local,deepseek"`，前提是该终端已配置 `DEEPSEEK_API_KEY`。
+5. 默认模型为 `deepseek-flash`，可通过 `DEEPSEEK_MODEL` 修改为账号可用的模型。
+
+DeepSeek profile 使用专用的 OpenAI 兼容客户端，关闭 DashScope 自动装配，因此不需要百炼 Key。
+它开启本地 Run 的模型正文流式生成；前端通过约 500ms 的事件游标补读逐步显示真实增量，
+不是把完整答案拆成打字动画。普通回答只做一次流式生成；模型选择工具时，执行工具后再继续生成。
+当前 Spring AI 1.0 适配器不回传 DeepSeek 的 `reasoning_content`，因此请求显式关闭厂商 thinking 模式，
+避免多轮工具调用 400；仍支持任务规划、工具调用和最终回答，不展示模型内部推理。
+知识库和 durable resume 路径保持原有完成提交规则，不提前开放未校验的流式答案。
+本地聊天的资料版本、反馈和限制信息默认折叠；工具错误和取消按钮继续可见。
+API Key 不等于搜索 Key，联网搜索超时仍需单独排查；不能将旧知识宣称为当前赛季排名。
+
+本地会话默认保存到 `.local-data/history.sqlite`（已加入 Git 忽略），不需要安装数据库服务。
+`VIO_LOCAL_HISTORY_PATH` 可覆盖存储路径，`VIO_LOCAL_HISTORY_ENABLED=false` 可切回内存模式。
+这里只持久化会话和完整聊天消息，不宣称运行中的 Run/工具在重启后可自动续跑。
+已完成的历史可在资料工作台查看；同一标签页刷新也会回读已保存消息。
+每次提问最多带入同一用户、同一会话的最近 20 条已完成历史，总计不超过 12000 字符。
+未完成请求、当前问题和 system/tool 消息不会被回填为历史。
+联网搜索仅在配置有效 `search-api.api-key` 且 `vio.tools.search.enabled=true` 时提供，
+没有配置时模型不会看到搜索工具。HTTP 连接/请求超时为 2/3 秒，认证失败与空搜索结果分别处理。
+
+接口依据：[DeepSeek 官方接入说明](https://api-docs.deepseek.com/)、[Thinking 模式与工具历史要求](https://api-docs.deepseek.com/guides/thinking_mode/)。
+
+#### 启动前端
+
+本地模式现已提供账号登录：重启后端后，在页面选择“创建账户”，保存恢复码再登录。
+工作区左下角头像可进入账户设置、切换账号或退出；账号、聊天、队伍、收藏均保存在本机 `.local-data/`。
+首次创建的账号可在账户设置中确认认领旧匿名聊天和队伍。
+本地账号与企业 OIDC 互斥，切换企业登录前设置 `VIO_LOCAL_ACCOUNTS_ENABLED=false`。
+详见[本地账号实施与使用说明](document/正式版v1.1开发计划/本地账号与登录界面实施_2026-10-21.md)。
+
 ```bash
 cd vio-ai-agent-frontend
 npm ci
@@ -576,6 +612,18 @@ docker-compose --profile monitoring up -d
 - 提交信息遵循 [Conventional Commits](https://www.conventionalcommits.org/) 规范
 
 ---
+
+## 🎮 本地宝可梦助手扩展（2026-10-20）
+
+使用 `local,deepseek` 启动后，新对话可按需读取真实 PokéAPI 资料并在本地缓存，支持中文名称、英文名称和编号。队伍现在保存招式、特性、道具、性格、等级、EV/IV，并用 SQLite 保留至下次启动。
+
+伤害计算通过 Java 调用本地 `@smogon/calc` 0.12.0，无需额外服务器。首次准备在 `tools/pokemon-engine` 执行 `npm ci`；可以从已保存队伍选择攻防成员，计算后交给 AI 解释。新增“攻略”支持检索四篇原创基础笔记并携带证据提问。
+
+参考资料不等同于排位合法性或实时热门阵容；当前计算桥接的条件范围见[四阶段落地与操作说明](document/正式版v1.1开发计划/PokéAPI与队伍伤害攻略四阶段落地_2026-10-20.md)。
+
+如果浏览器可以联网、图鉴查询却超时，可通过 `VIO_POKEAPI_PROXY=http://127.0.0.1:你的代理端口` 为资料客户端指定 HTTP 代理。也可在 `.local-data/pokeapi-network.properties` 写入 `proxy=http://127.0.0.1:端口`，重启后端生效；环境配置优先，`direct` 表示显式直连。这里不填写模型 API Key，也不支持带账号密码的代理 URL。资料上游不可达时返回 503；原有校验通过的缓存仍可查询。
+
+Windows 本地排障可执行 `./tools/warm-pokemon-reference.ps1 -Query squirtle`，通过系统代理下载官方 Pokémon 与 species 资料并写入相同校验格式的缓存，无需重启即可查询。脚本保留已有文件，不会覆盖损坏或人工修改的快照。
 
 ## 📄 许可证
 

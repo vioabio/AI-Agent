@@ -21,7 +21,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * active release；fixture loader 可以通过带集合的构造器显式注入脱敏数据。
  */
 @Repository
-@Primary
 @Profile("!prod & !demo")
 public class InMemoryPokemonFactRepository implements PokemonFactRepository {
     private final Map<String, PokemonFact> facts = new ConcurrentHashMap<>();

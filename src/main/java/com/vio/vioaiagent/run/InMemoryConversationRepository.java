@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentMap;
 @Repository
 @org.springframework.context.annotation.Profile("!prod & !demo")
 @Primary
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "vio.local-history.enabled", havingValue = "false", matchIfMissing = true)
 public class InMemoryConversationRepository implements ConversationRepository {
     private final ConcurrentMap<String, Conversation> conversations = new ConcurrentHashMap<>();
 

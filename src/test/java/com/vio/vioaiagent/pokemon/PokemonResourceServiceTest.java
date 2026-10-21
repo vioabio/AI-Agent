@@ -35,6 +35,14 @@ class PokemonResourceServiceTest {
     }
 
     @Test
+    void formLookupIsBoundToVersionAndRejectsMissingOrInvalidIds() {
+        assertEquals("pikachu", service.findFactByFormId("sv-data-v1", 101).slug());
+        assertThrows(IllegalArgumentException.class, () -> service.findFactByFormId("sv-data-v1", 0));
+        assertThrows(PokemonResourceNotFoundException.class, () -> service.findFactByFormId("missing", 101));
+        assertThrows(PokemonResourceNotFoundException.class, () -> service.findFactByFormId("sv-data-v1", 999));
+    }
+
+    @Test
     void factsCarryReleaseAndSourceLineage() {
         PokemonResourceService.FactQueryResult result = service.searchFacts("sv-data-v1", "pikachu", null, 50);
         assertEquals("pokemon-scarlet-violet", result.gameReleaseId());
@@ -76,6 +84,8 @@ class PokemonResourceServiceTest {
                 new InMemorySavedTeamRepository());
         assertThrows(PokemonResourceConflictException.class,
                 () -> candidateService.searchFacts("candidate", null, null, 50));
+        assertThrows(PokemonResourceConflictException.class,
+                () -> candidateService.findFactByFormId("candidate", 101));
     }
 
     @Test

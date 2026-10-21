@@ -90,9 +90,9 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
                 return AnswerContract.refused("版本化知识执行器尚未配置。", run.traceId(),
                         "知识检索与证据契约依赖不可用");
             }
-            return knowledgeFacade.answer(run, prompt -> generateAnswer(prompt, run));
+            return knowledgeFacade.answer(run, prompt -> generateAnswer(prompt, context));
         }
-        return AnswerContract.answered(executeLegacy(run), run.gameReleaseId(), run.battleFormat(),
+        return AnswerContract.answered(executeLegacy(context), run.gameReleaseId(), run.battleFormat(),
                 run.rulesetVersionId(), java.util.List.of(), java.util.List.of("v1 版本化知识门面未启用"),
                 run.traceId());
     }
@@ -114,12 +114,20 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
         return knowledgeFacade.answerLineage(context.run(), contract);
     }
 
-    private String executeLegacy(AgentRun run) {
+    private String executeLegacy(AgentRunContext context) {
+        AgentRun run = context.run();
+        var answerDeltaSink = context.answerDeltaSink();
         String prompt = scopedPrompt(run);
-        if (chatModel != null && allTools.length > 0) {
+        if (chatModel != null) {
             VioManus agent = new VioManus(allTools, mcpToolProvider, chatModel);
             agent.setToolExecutionGateway(toolExecutionGateway);
-            return agent.run(prompt);
+            agent.setAnswerDeltaSink(answerDeltaSink);
+            agent.setMessageList(new java.util.ArrayList<>(context.history()));
+            String transcript = agent.run(prompt);
+            if (answerDeltaSink != null && agent.getFinalAnswer() == null) {
+                throw new IllegalStateException("模型回答生成失败，请检查 DeepSeek Key、模型权限和网络连接");
+            }
+            return agent.getFinalAnswer() == null ? transcript : agent.getFinalAnswer();
         }
         if (gameApp != null) {
             return gameApp.doChat(prompt, run.conversationId());
@@ -127,11 +135,14 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
         return "Run 已创建，领域执行器尚未就绪：" + run.prompt();
     }
 
-    private String generateAnswer(String groundedPrompt, AgentRun run) {
+    private String generateAnswer(String groundedPrompt, AgentRunContext context) {
+        AgentRun run = context.run();
         if (chatModel != null && allTools.length > 0) {
             VioManus agent = new VioManus(allTools, mcpToolProvider, chatModel);
             agent.setToolExecutionGateway(toolExecutionGateway);
-            return agent.run(groundedPrompt);
+            agent.setMessageList(new java.util.ArrayList<>(context.history()));
+            String transcript = agent.run(groundedPrompt);
+            return agent.getFinalAnswer() == null ? transcript : agent.getFinalAnswer();
         }
         if (gameApp != null) {
             return gameApp.doChat(groundedPrompt, run.conversationId());

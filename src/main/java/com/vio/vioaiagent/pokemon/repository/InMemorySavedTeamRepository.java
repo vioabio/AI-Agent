@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /** 本地/单元测试队伍仓储；按 ownerId 做资源隔离。 */
 @Repository
-@Primary
 @Profile("!prod & !demo")
 public class InMemorySavedTeamRepository implements SavedTeamRepository {
     private final AtomicLong sequence = new AtomicLong(0);
@@ -76,7 +75,7 @@ public class InMemorySavedTeamRepository implements SavedTeamRepository {
 
     private SavedTeam copy(long id, SavedTeam value) {
         List<TeamMember> members = value.members().stream()
-                .map(member -> new TeamMember(member.id(), member.formId(), member.slot())).toList();
+                .map(member -> new TeamMember(member.id(), member.formId(), member.slot(), member.build())).toList();
         return new SavedTeam(id, value.ownerId(), value.name(), value.rulesetId(), value.dataReleaseId(), members);
     }
 }

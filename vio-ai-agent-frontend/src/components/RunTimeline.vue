@@ -2,9 +2,7 @@
   <section v-if="run" class="run-panel" aria-live="polite">
     <div class="run-summary">
       <span class="run-status" :class="run.status">{{ statusLabel(run.status) }}</span>
-      <code v-if="run.runId">Run {{ run.runId }}</code>
-      <code v-if="run.traceId" class="trace-id">trace {{ run.traceId }}</code>
-      <span class="transport-badge" title="当前后端以事件快照提供可恢复订阅，不代表长连接实时推送">事件快照 · 游标可重连</span>
+      <span class="transport-badge" title="事件快照 · 游标可重连；按游标补读，支持断线重连">回答与资料记录</span>
       <span v-if="run.streamError === 'UNREGISTERED_EVENT_TYPE'" class="protocol-warning" role="status">
         检测到未登记事件，已忽略不展示
       </span>
@@ -26,6 +24,10 @@
       </button>
     </div>
 
+    <details :open="!localChat" class="audit-details">
+    <summary>资料版本与反馈（可选）</summary>
+    <code v-if="run.runId">Run {{ run.runId }}</code>
+    <code v-if="run.traceId" class="trace-id">trace {{ run.traceId }}</code>
     <div v-if="canGiveFeedback" class="feedback-card" aria-label="回答反馈">
       <span>这次回答对你有帮助吗？</span>
       <button type="button" class="feedback-btn" @click="$emit('feedback', { answerId: run.answerId, feedbackType: 'HELPFUL' })">
@@ -68,6 +70,7 @@
       <span v-if="run.context.knowledgeReleaseId">知识：{{ run.context.knowledgeReleaseId }}</span>
       <span v-if="run.context.indexReleaseId">索引：{{ run.context.indexReleaseId }}</span>
     </div>
+    </details>
 
     <section v-if="hasStructuredCards" class="structured-cards" aria-label="结构化领域卡片">
       <h4>领域卡片</h4>
@@ -110,12 +113,13 @@
       </article>
     </section>
 
-    <section v-if="run.limitations?.length" class="limitations-card" aria-label="回答限制">
+    <details v-if="run.limitations?.length" :open="!localChat" class="limitations-card" aria-label="回答限制">
+      <summary>回答来源与限制</summary>
       <h4>回答限制</h4>
       <ul>
         <li v-for="(limitation, index) in run.limitations" :key="`limitation-${index}`">{{ limitation }}</li>
       </ul>
-    </section>
+    </details>
 
     <div v-if="run.approval" class="approval-card">
       <strong>需要人工审批</strong>
@@ -124,13 +128,15 @@
       <button type="button" class="deny-btn" @click="$emit('approve', { ...run.approval, approved: false })">拒绝</button>
     </div>
 
-    <ol v-if="run.toolTimeline?.length" class="tool-timeline">
+    <details v-if="run.toolTimeline?.length" class="process-details"><summary>查看执行过程 · {{ run.toolTimeline.length }} 次工具调用</summary>
+    <ol class="tool-timeline">
       <li v-for="(item, index) in run.toolTimeline" :key="item.eventId || index">
         <span class="tool-name">{{ item.toolName || 'tool' }}</span>
         <span :class="['tool-state', item.status]">{{ toolStatus(item.status) }}</span>
         <small v-if="item.durationMs">{{ item.durationMs }} ms</small>
       </li>
     </ol>
+    </details>
 
     <ul v-if="run.citations?.length" class="citation-list">
       <li v-for="(citation, index) in run.citations" :key="citation.id || citation.url || index">
@@ -149,6 +155,10 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { fetchAnswerFeedback } from '@/api'
 import { statusLabel } from '@/api/run-contract'
+import { useAuthSession } from '@/composables/useAuthSession'
+
+const { state: authState } = useAuthSession()
+const localChat = computed(() => authState.snapshot?.mode === 'disabled')
 
 const props = defineProps({
   run: { type: Object, default: null }
@@ -226,7 +236,8 @@ async function loadFeedbackHistory(answerId = props.run?.answerId) {
   feedbackRequestController?.abort()
   feedbackRequestController = null
   const normalizedAnswerId = String(answerId || '').trim()
-  if (!normalizedAnswerId || props.run?.status !== 'completed') {
+  if (!normalizedAnswerId || props.run?.status !== 'completed'
+    || (localChat.value && props.run?.lineageStatus !== 'COMPLETE')) {
     feedbackHistory.value = []
     feedbackHistoryError.value = ''
     feedbackHistoryState.value = 'idle'
@@ -301,63 +312,3 @@ function effectiveWindow(card) {
   return card.effectiveTo ? `${card.effectiveFrom} – ${card.effectiveTo}` : `${card.effectiveFrom} 起`
 }
 </script>
-
-<style scoped>
-.run-panel { margin: 10px 20px; padding: 12px 14px; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: rgba(255,255,255,.035); font-size: 12px; color: rgba(255,255,255,.7); }
-.run-summary { display: flex; align-items: center; gap: 10px; }
-.run-summary code { color: rgba(255,255,255,.35); font-size: 10px; }
-.transport-badge { color: rgba(255,255,255,.42); font-size: 10px; }
-.protocol-warning { color: #ffd591; font-size: 10px; }
-.context-card { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; color: rgba(255,255,255,.55); }
-.context-card span { padding: 3px 7px; border-radius: 5px; background: rgba(105,192,255,.08); }
-.run-status { padding: 3px 8px; border-radius: 6px; background: rgba(255,255,255,.08); }
-.run-status.running { color: #52c41a; background: rgba(82,196,26,.12); }
-.run-status.waiting_approval { color: #faad14; background: rgba(250,173,20,.12); }
-.run-status.reconnecting { color: #40a9ff; background: rgba(64,169,255,.12); }
-.run-status.failed, .run-status.timed_out { color: #ff7875; background: rgba(255,77,79,.12); }
-.cancel-btn, .retry-btn, .approval-card button { margin-left: auto; padding: 4px 9px; border: 0; border-radius: 6px; color: #fff; background: rgba(255,77,79,.2); cursor: pointer; }
-.retry-btn { background: rgba(64,169,255,.2); }
-.approval-card { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px; border-radius: 8px; background: rgba(250,173,20,.1); }
-.approval-card button { background: #ad6800; }
-.approval-card .deny-btn { background: rgba(255,77,79,.55); }
-.tool-timeline { margin: 10px 0 0; padding-left: 18px; }
-.tool-timeline li { display: flex; gap: 8px; margin: 4px 0; }
-.tool-name { color: #b37feb; }
-.tool-state.completed { color: #73d13d; }
-.tool-state.failed { color: #ff7875; }
-.citation-list { margin: 8px 0 0; padding-left: 18px; }
-.citation-list a { color: #69c0ff; }
-.run-error { margin: 8px 0 0; color: #ff7875; }
-.feedback-card { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.08); }
-.feedback-btn { padding: 4px 8px; border: 1px solid rgba(82,196,26,.35); border-radius: 6px; color: #b7eb8f; background: rgba(82,196,26,.08); cursor: pointer; }
-.feedback-negative { border-color: rgba(255,120,117,.35); color: #ffaaa5; background: rgba(255,77,79,.08); }
-.feedback-confirm { margin: 8px 0 0; color: #95de64; }
-.feedback-unavailable { margin: 8px 0 0; color: #faad14; font-size: 12px; }
-.feedback-history { margin-top: 9px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.08); }
-.feedback-history-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: rgba(255,255,255,.7); font-size: 11px; }
-.feedback-history-status { color: rgba(255,255,255,.4); font-size: 10px; }
-.feedback-history-state { margin-top: 6px; color: rgba(255,255,255,.48); font-size: 11px; line-height: 1.5; }
-.feedback-history-state.warning { color: #ffaaa5; }
-.feedback-retry { margin-left: 6px; padding: 0; border: 0; color: #91d5ff; background: none; cursor: pointer; text-decoration: underline; font: inherit; }
-.feedback-history-list { display: grid; gap: 5px; margin: 6px 0 0; padding: 0; list-style: none; }
-.feedback-history-item { display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-radius: 6px; background: rgba(149,222,100,.045); }
-.feedback-type { color: #b7eb8f; }
-.feedback-status { color: rgba(255,255,255,.62); }
-.feedback-history-item small { margin-left: auto; color: rgba(255,255,255,.35); font-size: 10px; }
-.structured-cards { margin-top: 10px; padding-top: 9px; border-top: 1px solid rgba(255,255,255,.08); }
-.structured-cards h4 { margin: 0 0 7px; color: rgba(255,255,255,.72); font-size: 12px; }
-.structured-card { display: grid; gap: 4px; margin: 6px 0; padding: 8px 9px; border: 1px solid rgba(105,192,255,.14); border-radius: 8px; background: rgba(105,192,255,.045); }
-.structured-card p { margin: 0; color: rgba(255,255,255,.65); line-height: 1.5; }
-.structured-card small { color: rgba(255,255,255,.4); }
-.structured-card a { width: fit-content; color: #69c0ff; overflow-wrap: anywhere; }
-.structured-card-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: #fff; }
-.structured-card-heading span { color: rgba(255,255,255,.42); font-size: 10px; }
-.structured-result { color: #b7eb8f !important; }
-.evidence { color: rgba(255,255,255,.54) !important; }
-.freshness { color: #95de64 !important; }
-.error-structured-card { display: flex; gap: 7px; color: #ffaaa5; border-color: rgba(255,77,79,.2); background: rgba(255,77,79,.06); }
-.feedback-structured-card { border-color: rgba(149,222,100,.2); background: rgba(149,222,100,.05); }
-.limitations-card { margin-top: 10px; padding: 8px 9px; border: 1px solid rgba(250,173,20,.2); border-radius: 8px; background: rgba(250,173,20,.06); color: rgba(255,255,255,.62); }
-.limitations-card h4 { margin: 0 0 4px; color: #ffd591; font-size: 11px; }
-.limitations-card ul { margin: 0; padding-left: 17px; line-height: 1.5; }
-</style>

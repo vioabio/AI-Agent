@@ -19,6 +19,9 @@ public final class ToolExecutionContextHolder {
         return context == null ? ToolExecutionContext.fromRequest() : context;
     }
 
+    /** Raw binding for nested scopes; unlike current(), this does not create a fallback. */
+    public static ToolExecutionContext peek() { return CURRENT.get(); }
+
     public static void set(ToolExecutionContext context) {
         CURRENT.set(context);
     }

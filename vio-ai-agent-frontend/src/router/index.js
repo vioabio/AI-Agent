@@ -4,26 +4,23 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: () => import('@/views/Home.vue'),
-    meta: { title: 'VIO AI Agent' }
+    redirect: to => ({ path: '/game-master', query: { ...to.query }, hash: to.hash })
   },
   {
     path: '/game-master',
     name: 'GameMaster',
     component: () => import('@/views/GameMaster.vue'),
-    meta: { title: 'AI 宝可梦大师' }
+    meta: { title: '宝可梦助手' }
   },
   {
     path: '/super-agent',
     name: 'SuperAgent',
-    component: () => import('@/views/SuperAgent.vue'),
-    meta: { title: 'AI 超级智能体' }
+    redirect: to => ({ path: '/game-master', query: { ...to.query, scope: 'super-agent' } })
   },
   {
     path: '/pokemon-workbench',
     name: 'PokemonWorkbench',
-    component: () => import('@/views/PokemonWorkbench.vue'),
-    meta: { title: '宝可梦资料工作台' }
+    redirect: to => ({ path: '/game-master', query: { ...to.query, panel: 'resources' } })
   }
 ]
 

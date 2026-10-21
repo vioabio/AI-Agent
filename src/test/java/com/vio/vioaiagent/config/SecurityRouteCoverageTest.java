@@ -90,7 +90,8 @@ class SecurityRouteCoverageTest {
         for (String publicPattern : SecurityConfig.PUBLIC_PATH_PATTERNS) {
             boolean allowed = FRAMEWORK_PUBLIC_PREFIXES.stream().anyMatch(publicPattern::startsWith);
             assertTrue(allowed || publicPattern.equals("/health") || publicPattern.equals("/ready")
-                            || publicPattern.equals("/auth/session"),
+                            || publicPattern.equals("/auth/session")
+                            || Set.of("/auth/local/register", "/auth/local/login", "/auth/local/recover").contains(publicPattern),
                     () -> "公开白名单出现非探针/非文档条目: " + publicPattern
                             + "。公开面扩大必须经过评审，不能静默加入");
         }

@@ -36,6 +36,13 @@ search-api:
 
 # 浏览器跨域白名单（只填写完整 origin，不要使用 '*' 或带路径的 URL）
 vio:
+  local-accounts:
+    # 本机用户名/密码登录；如启用企业 OIDC，必须先关闭此开关。
+    enabled: ${VIO_LOCAL_ACCOUNTS_ENABLED:true}
+    path: ${VIO_LOCAL_ACCOUNTS_PATH:${user.dir}/.local-data/accounts.sqlite}
+  local-history:
+    enabled: true
+    path: ${VIO_LOCAL_HISTORY_PATH:${user.dir}/.local-data/history.sqlite}
   run:
     # 本地模板默认不做事件物理清理；需要演练时使用独立 fixture/数据库并显式开启。
     event-retention-cleanup-enabled: false

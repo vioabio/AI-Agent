@@ -76,6 +76,13 @@ public class PokemonResourceController {
         return ResponseEntity.ok(Result.success(service.findFact(dataReleaseId, slug)));
     }
 
+    @Operation(summary = "按形态 ID 获取单个版本化事实")
+    @GetMapping("/facts/forms/{formId}")
+    public ResponseEntity<Result<PokemonFact>> factByFormId(@PathVariable("formId") long formId,
+            @RequestParam("dataReleaseId") String dataReleaseId) {
+        return ResponseEntity.ok(Result.success(service.findFactByFormId(dataReleaseId, formId)));
+    }
+
     @Operation(summary = "计算属性克制倍率")
     @PostMapping("/calculations/type-effectiveness")
     public ResponseEntity<Result<BattleCalculationService.CalculationResult>> typeEffectiveness(
@@ -125,7 +132,7 @@ public class PokemonResourceController {
         String owner = scopedOwner(userHeader);
         List<PokemonResourceService.MemberCommand> members = body.members == null ? List.of()
                 : body.members.stream().map(value -> new PokemonResourceService.MemberCommand(
-                        value.formId, value.slot)).toList();
+                        value.formId, value.slot, value.build)).toList();
         PokemonResourceService.CreateTeamCommand command = new PokemonResourceService.CreateTeamCommand(
                 body.name, body.rulesetId, body.dataReleaseId, members);
         return ResponseEntity.status(HttpStatus.CREATED).body(Result.success(service.createTeam(owner, command)));
@@ -153,7 +160,7 @@ public class PokemonResourceController {
                                                         @RequestHeader(value = "X-User-Id", required = false) String userHeader) {
         if (body == null) throw new IllegalArgumentException("请求不能为空");
         List<PokemonResourceService.MemberCommand> members = body.members == null ? List.of()
-                : body.members.stream().map(value -> new PokemonResourceService.MemberCommand(value.formId, value.slot)).toList();
+                : body.members.stream().map(value -> new PokemonResourceService.MemberCommand(value.formId, value.slot, value.build)).toList();
         return ResponseEntity.ok(Result.success(service.updateTeam(scopedOwner(userHeader), teamId,
                 new PokemonResourceService.UpdateTeamCommand(body.name, body.rulesetId, body.dataReleaseId, members))));
     }
@@ -210,6 +217,7 @@ public class PokemonResourceController {
     public static class MemberBody {
         public long formId;
         public int slot;
+        public com.vio.vioaiagent.pokemon.domain.TeamBuild build;
     }
 
     public static class TypeEffectivenessBody {

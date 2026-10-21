@@ -30,15 +30,17 @@
 </template>
 
 <script setup>
-import { ref, onBeforeUnmount, onMounted, watch } from 'vue'
+import { ref, onBeforeUnmount, onMounted, watch, reactive } from 'vue'
 import ChatRoom from '@/components/ChatRoom.vue'
-import { chatWithManus, stopManus, decideRunApproval, submitAnswerFeedback } from '@/api'
+import { chatWithManus, stopManus, decideRunApproval, submitAnswerFeedback, fetchConversationMessages } from '@/api'
 import { serializeRunContext } from '@/api/version-registry'
 import { useRunStream } from '@/composables/useRunStream'
 import { getOrCreateConversationId } from '@/composables/runPersistence'
 import { RUN_STATUS, TERMINAL_STATUSES, statusLabel as runStatusLabel } from '@/api/run-contract'
 
 const messages = ref([])
+const historyController = new AbortController()
+let userHasSent = false
 const connectionStatus = ref('idle')
 const statusLabel = ref('就绪')
 const chatId = ref(getOrCreateConversationId('super-agent'))
@@ -138,8 +140,9 @@ function handleStop() {
 }
 
 async function handleSend(message) {
+  userHasSent = true
   messages.value.push({ role: 'user', content: message })
-  const aiMessage = { role: 'assistant', content: '' }
+  const aiMessage = reactive({ role: 'assistant', content: '' })
   messages.value.push(aiMessage)
 
   if (modernRunEnabled) {
@@ -307,14 +310,22 @@ async function handleFeedback(feedback) {
 
 onMounted(async () => {
   try {
+    const stored = await fetchConversationMessages(chatId.value, { signal: historyController.signal })
+    if (!historyController.signal.aborted && messages.value.length === 1 && Array.isArray(stored)) {
+      messages.value.push(...stored.filter(m => ['user', 'assistant'].includes(m.role) && typeof m.content === 'string'))
+    }
+  } catch { /* New conversations have no history. */ }
+  if (historyController.signal.aborted || userHasSent) return
+  try {
     const restored = await runStream.restoreConversation(chatId.value)
     if (!restored) return
     activeRun.value = restored
-    const aiMessage = {
+    const aiMessage = messages.value.find(m => m.role === 'assistant' && m.runId === restored.runId) || reactive({
       role: 'assistant',
+      runId: restored.runId,
       content: restored.answer || '已恢复上次未完成的任务，正在继续接收事件…'
-    }
-    messages.value.push(aiMessage)
+    })
+    if (!messages.value.includes(aiMessage)) messages.value.push(aiMessage)
     bindAnswerBubble(aiMessage)
   } catch (error) {
     messages.value.push({ role: 'assistant', content: `恢复任务失败：${error.message}` })
@@ -322,6 +333,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  historyController.abort()
   stopAnswerWatch?.()
   if (currentEventSource) {
     currentEventSource.close()

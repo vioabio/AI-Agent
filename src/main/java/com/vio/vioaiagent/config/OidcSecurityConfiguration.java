@@ -63,6 +63,11 @@ public class OidcSecurityConfiguration {
     public void validate() {
         String profile = environment == null ? "local" : String.join(",", environment.getActiveProfiles());
         if (profile.isBlank()) profile = environment == null ? "local" : environment.getProperty("spring.profiles.active", "local");
+        if (environment != null && Boolean.TRUE.equals(environment.getProperty("vio.local-accounts.enabled", Boolean.class, false))) {
+            if (!environment.acceptsProfiles(org.springframework.core.env.Profiles.of("local & !prod & !demo"))) {
+                throw new IllegalStateException("本地账号只能在 local 且非 prod/demo 环境启用");
+            }
+        }
         List<String> errors = properties.validationErrors(profile);
         if (!errors.isEmpty()) {
             throw new IllegalStateException("OIDC 配置未通过 fail-closed 校验: " + String.join("; ", errors));
@@ -92,6 +97,7 @@ public class OidcSecurityConfiguration {
      * </ol>
      */
     @Bean
+    @ConditionalOnProperty(name="vio.local-accounts.enabled",havingValue="false",matchIfMissing=true)
     public SecurityFilterChain oidcSecurityFilterChain(
             HttpSecurity http,
             ObjectProvider<CorsProperties> corsProvider,

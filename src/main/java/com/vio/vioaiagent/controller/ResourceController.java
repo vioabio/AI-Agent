@@ -182,7 +182,7 @@ public class ResourceController {
         if (body == null) throw new IllegalArgumentException("请求不能为空");
         String owner = owner(userHeader);
         List<PokemonResourceService.MemberCommand> members = body.members == null ? List.of() : body.members.stream()
-                .map(member -> new PokemonResourceService.MemberCommand(member.formId, member.slot)).toList();
+                .map(member -> new PokemonResourceService.MemberCommand(member.formId, member.slot, member.build)).toList();
         String scope = "team:create:" + owner;
         String hash = hash(teamFingerprint(owner, body, members));
         IdempotencyStore.Claim claim = claim(scope, idempotencyKey, hash);
@@ -225,7 +225,7 @@ public class ResourceController {
         if (body == null) throw new IllegalArgumentException("请求不能为空");
         String owner = owner(userHeader);
         List<PokemonResourceService.MemberCommand> members = body.members == null ? List.of() : body.members.stream()
-                .map(member -> new PokemonResourceService.MemberCommand(member.formId, member.slot)).toList();
+                .map(member -> new PokemonResourceService.MemberCommand(member.formId, member.slot, member.build)).toList();
         SavedTeam updated = pokemon.updateTeam(owner, teamId,
                 new PokemonResourceService.UpdateTeamCommand(body.name, body.rulesetId, body.dataReleaseId, members));
         return ResponseEntity.ok(Result.success(updated));
@@ -369,7 +369,7 @@ public class ResourceController {
                 .append(textOr(body.rulesetId, "")).append('\u001f')
                 .append(textOr(body.dataReleaseId, ""));
         members.stream().sorted(java.util.Comparator.comparingInt(PokemonResourceService.MemberCommand::slot))
-                .forEach(member -> value.append('\u001f').append(member.formId()).append(':').append(member.slot()));
+                .forEach(member -> value.append('\u001f').append(member.formId()).append(':').append(member.slot()).append(':').append(member.build()));
         return value.toString();
     }
 
@@ -453,7 +453,7 @@ public class ResourceController {
 
     public static class ConversationBody { public String id; public String title; }
     public static class TeamBody { public String name; public String rulesetId; public String dataReleaseId; public List<MemberBody> members; }
-    public static class MemberBody { public long formId; public int slot; }
+    public static class MemberBody { public long formId; public int slot; public com.vio.vioaiagent.pokemon.domain.TeamBuild build; }
     public static class FavoriteBody { public String resourceType; public String resourceKey; public String label; public Map<String, Object> metadata; }
     /** PATCH 只修改用户可编辑字段；resourceType/resourceKey 保持 immutable。 */
     public static class FavoritePatchBody { public String label; public Map<String, Object> metadata; }

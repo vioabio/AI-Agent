@@ -54,6 +54,16 @@ public class PokemonResourceService {
         return values.get(0);
     }
 
+    public PokemonFact findFactByFormId(String dataReleaseId, long formId) {
+        String release = required(dataReleaseId, "dataReleaseId");
+        if (formId <= 0) throw new IllegalArgumentException("formId 必须为正数");
+        VersionedDataRelease metadata = facts.findDataRelease(release)
+                .orElseThrow(() -> new PokemonResourceNotFoundException("找不到 data_release: " + release));
+        requireQueryableRelease(metadata);
+        return facts.findByFormId(formId, release).orElseThrow(() -> new PokemonResourceNotFoundException(
+                "找不到事实: formId=" + formId + ", dataReleaseId=" + release));
+    }
+
     public SavedTeam createTeam(String ownerId, CreateTeamCommand command) {
         SavedTeam draft = prepareTeam(ownerId, command, 0);
         try {
@@ -118,7 +128,7 @@ public class PokemonResourceService {
             throw new PokemonResourceConflictException("ruleset 与 data_release 不属于同一 game_release");
         }
         List<TeamMember> members = command.members() == null ? List.of() : command.members().stream()
-                .map(value -> new TeamMember(0, value.formId(), value.slot())).toList();
+                .map(value -> new TeamMember(0, value.formId(), value.slot(), value.build())).toList();
         if (members.isEmpty() || members.size() > 6) {
             throw new IllegalArgumentException("队伍成员数量必须为 1～6");
         }
@@ -166,8 +176,7 @@ public class PokemonResourceService {
         String status = release.status();
         // 仅允许来源审核后的发布状态进入产品读取链；未知状态 fail closed，
         // 避免把尚未审核的候选 fixture 暴露给 Agent 或前端。
-        if (!("ACTIVE".equalsIgnoreCase(status) || "REVIEWED".equalsIgnoreCase(status)
-                || "PUBLISHED".equalsIgnoreCase(status))) {
+        if (!facts.isQueryableRelease(release)) {
             throw new PokemonResourceConflictException("data_release 尚未通过审核: " + release.id());
         }
     }
@@ -187,7 +196,9 @@ public class PokemonResourceService {
         }
     }
 
-    public record MemberCommand(long formId, int slot) {
+    public record MemberCommand(long formId, int slot, com.vio.vioaiagent.pokemon.domain.TeamBuild build) {
+        public MemberCommand(long formId, int slot) { this(formId,slot,com.vio.vioaiagent.pokemon.domain.TeamBuild.defaults()); }
+        public MemberCommand { build = build == null ? com.vio.vioaiagent.pokemon.domain.TeamBuild.defaults() : build; }
     }
 
     public record UpdateTeamCommand(String name, String rulesetId, String dataReleaseId,

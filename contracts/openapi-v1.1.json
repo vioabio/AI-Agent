@@ -366,6 +366,9 @@
           },
           "409": {
             "description": "Release not queryable"
+          },
+          "503": {
+            "description": "Local reference upstream unavailable; retry after checking network/proxy"
           }
         }
       }
@@ -802,6 +805,669 @@
             "description": "Cursor expired"
           }
         }
+      }
+    },
+    "/auth/local/register": {
+      "post": {
+        "operationId": "registerLocalAccount",
+        "summary": "registerLocalAccount",
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Local account result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "account": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "username",
+                        "nickname",
+                        "avatar",
+                        "version"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "nickname": {
+                          "type": "string"
+                        },
+                        "avatar": {
+                          "type": "string",
+                          "enum": [
+                            "squirtle",
+                            "bulbasaur",
+                            "pikachu"
+                          ]
+                        },
+                        "version": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "recoveryCode": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or credentials"
+          },
+          "401": {
+            "description": "Unauthenticated or login failed"
+          },
+          "403": {
+            "description": "CSRF/origin denied or legacy claim not authorized"
+          },
+          "409": {
+            "description": "Username exists"
+          },
+          "429": {
+            "description": "Retry after cooldown"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [],
+        "x-availability": "local profile only; vio.local-accounts.enabled=true",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "writeOnly": true
+                  },
+                  "nickname": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Local SQLite account. Responses are no-store. Only register/login/recover allow anonymous access; every mutation requires CSRF. Password changes rotate the current session and invalidate older account versions. Recovery invalidates all old sessions."
+      }
+    },
+    "/auth/local/login": {
+      "post": {
+        "operationId": "loginLocalAccount",
+        "summary": "loginLocalAccount",
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Local account result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "username",
+                    "nickname",
+                    "avatar",
+                    "version"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "username": {
+                      "type": "string"
+                    },
+                    "nickname": {
+                      "type": "string"
+                    },
+                    "avatar": {
+                      "type": "string",
+                      "enum": [
+                        "squirtle",
+                        "bulbasaur",
+                        "pikachu"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or credentials"
+          },
+          "401": {
+            "description": "Unauthenticated or login failed"
+          },
+          "403": {
+            "description": "CSRF/origin denied or legacy claim not authorized"
+          },
+          "409": {
+            "description": "Username exists"
+          },
+          "429": {
+            "description": "Retry after cooldown"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [],
+        "x-availability": "local profile only; vio.local-accounts.enabled=true",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "writeOnly": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Local SQLite account. Responses are no-store. Only register/login/recover allow anonymous access; every mutation requires CSRF. Password changes rotate the current session and invalidate older account versions. Recovery invalidates all old sessions."
+      }
+    },
+    "/auth/local/recover": {
+      "post": {
+        "operationId": "recoverLocalAccount",
+        "summary": "recoverLocalAccount",
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Local account result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "recoveryCode": {
+                      "type": "string",
+                      "description": "One-time recovery credential. Store privately; never log."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or credentials"
+          },
+          "401": {
+            "description": "Unauthenticated or login failed"
+          },
+          "403": {
+            "description": "CSRF/origin denied or legacy claim not authorized"
+          },
+          "409": {
+            "description": "Username exists"
+          },
+          "429": {
+            "description": "Retry after cooldown"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [],
+        "x-availability": "local profile only; vio.local-accounts.enabled=true",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "recoveryCode": {
+                    "type": "string",
+                    "format": "password",
+                    "writeOnly": true
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "format": "password",
+                    "writeOnly": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Local SQLite account. Responses are no-store. Only register/login/recover allow anonymous access; every mutation requires CSRF. Password changes rotate the current session and invalidate older account versions. Recovery invalidates all old sessions."
+      }
+    },
+    "/auth/local/profile": {
+      "get": {
+        "operationId": "getLocalAccountProfile",
+        "summary": "getLocalAccountProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Local account result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "username",
+                    "nickname",
+                    "avatar",
+                    "version"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "username": {
+                      "type": "string"
+                    },
+                    "nickname": {
+                      "type": "string"
+                    },
+                    "avatar": {
+                      "type": "string",
+                      "enum": [
+                        "squirtle",
+                        "bulbasaur",
+                        "pikachu"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or credentials"
+          },
+          "401": {
+            "description": "Unauthenticated or login failed"
+          },
+          "403": {
+            "description": "CSRF/origin denied or legacy claim not authorized"
+          },
+          "409": {
+            "description": "Username exists"
+          },
+          "429": {
+            "description": "Retry after cooldown"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "localSession": []
+          }
+        ],
+        "x-availability": "local profile only; vio.local-accounts.enabled=true",
+        "description": "Local SQLite account. Responses are no-store. Only register/login/recover allow anonymous access; every mutation requires CSRF. Password changes rotate the current session and invalidate older account versions. Recovery invalidates all old sessions."
+      },
+      "patch": {
+        "operationId": "updateLocalAccountProfile",
+        "summary": "updateLocalAccountProfile",
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Local account result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "username",
+                    "nickname",
+                    "avatar",
+                    "version"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "username": {
+                      "type": "string"
+                    },
+                    "nickname": {
+                      "type": "string"
+                    },
+                    "avatar": {
+                      "type": "string",
+                      "enum": [
+                        "squirtle",
+                        "bulbasaur",
+                        "pikachu"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or credentials"
+          },
+          "401": {
+            "description": "Unauthenticated or login failed"
+          },
+          "403": {
+            "description": "CSRF/origin denied or legacy claim not authorized"
+          },
+          "409": {
+            "description": "Username exists"
+          },
+          "429": {
+            "description": "Retry after cooldown"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "localSession": []
+          }
+        ],
+        "x-availability": "local profile only; vio.local-accounts.enabled=true",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nickname": {
+                    "type": "string"
+                  },
+                  "avatar": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Local SQLite account. Responses are no-store. Only register/login/recover allow anonymous access; every mutation requires CSRF. Password changes rotate the current session and invalidate older account versions. Recovery invalidates all old sessions."
+      }
+    },
+    "/auth/local/password": {
+      "post": {
+        "operationId": "changeLocalAccountPassword",
+        "summary": "changeLocalAccountPassword",
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Local account result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "recoveryCode": {
+                      "type": "string",
+                      "description": "One-time recovery credential. Store privately; never log."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or credentials"
+          },
+          "401": {
+            "description": "Unauthenticated or login failed"
+          },
+          "403": {
+            "description": "CSRF/origin denied or legacy claim not authorized"
+          },
+          "409": {
+            "description": "Username exists"
+          },
+          "429": {
+            "description": "Retry after cooldown"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "localSession": []
+          }
+        ],
+        "x-availability": "local profile only; vio.local-accounts.enabled=true",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "currentPassword": {
+                    "type": "string",
+                    "format": "password",
+                    "writeOnly": true
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "format": "password",
+                    "writeOnly": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Local SQLite account. Responses are no-store. Only register/login/recover allow anonymous access; every mutation requires CSRF. Password changes rotate the current session and invalidate older account versions. Recovery invalidates all old sessions."
+      }
+    },
+    "/auth/local/legacy-data": {
+      "get": {
+        "operationId": "previewLocalLegacyData",
+        "summary": "previewLocalLegacyData",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Local account result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "eligible": {
+                      "type": "boolean"
+                    },
+                    "conversations": {
+                      "type": "integer"
+                    },
+                    "teams": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or credentials"
+          },
+          "401": {
+            "description": "Unauthenticated or login failed"
+          },
+          "403": {
+            "description": "CSRF/origin denied or legacy claim not authorized"
+          },
+          "409": {
+            "description": "Username exists"
+          },
+          "429": {
+            "description": "Retry after cooldown"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "localSession": []
+          }
+        ],
+        "x-availability": "local profile only; vio.local-accounts.enabled=true",
+        "description": "Local SQLite account. Responses are no-store. Only register/login/recover allow anonymous access; every mutation requires CSRF. Password changes rotate the current session and invalidate older account versions. Recovery invalidates all old sessions."
+      },
+      "post": {
+        "operationId": "claimLocalLegacyData",
+        "summary": "claimLocalLegacyData",
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Local account result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or credentials"
+          },
+          "401": {
+            "description": "Unauthenticated or login failed"
+          },
+          "403": {
+            "description": "CSRF/origin denied or legacy claim not authorized"
+          },
+          "409": {
+            "description": "Username exists"
+          },
+          "429": {
+            "description": "Retry after cooldown"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "localSession": []
+          }
+        ],
+        "x-availability": "local profile only; vio.local-accounts.enabled=true",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "writeOnly": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Local SQLite account. Responses are no-store. Only register/login/recover allow anonymous access; every mutation requires CSRF. Password changes rotate the current session and invalidate older account versions. Recovery invalidates all old sessions."
       }
     },
     "/auth/session": {
@@ -1498,6 +2164,81 @@
           },
           "404": {
             "description": "Not found"
+          },
+          "503": {
+            "description": "Local reference upstream unavailable"
+          }
+        }
+      }
+    },
+    "/pokemon/facts/forms/{formId}": {
+      "get": {
+        "operationId": "getPokemonFactByFormId",
+        "summary": "按形态 ID 获取单个版本化事实",
+        "parameters": [
+          {
+            "name": "formId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "dataReleaseId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Version-bound fact",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message",
+                    "data",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PokemonFact"
+                    },
+                    "timestamp": {
+                      "type": "integer",
+                      "format": "int64"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "404": {
+            "description": "Fact or data release not found"
+          },
+          "409": {
+            "description": "Data release is not reviewed"
+          },
+          "503": {
+            "description": "Local reference upstream unavailable"
           }
         }
       }
@@ -3752,6 +4493,272 @@
           "Agent Run"
         ]
       }
+    },
+    "/pokemon/reference/status": {
+      "get": {
+        "operationId": "localPokemonReferenceStatus",
+        "summary": "读取本地参考资料配置",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Local module result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalPokemonReferenceStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "404": {
+            "description": "Module disabled or resource not found"
+          },
+          "409": {
+            "description": "Version conflict"
+          },
+          "500": {
+            "description": "Dependency or cache error"
+          },
+          "503": {
+            "description": "Reference upstream unavailable; retry after checking network/proxy"
+          }
+        },
+        "tags": [
+          "Pokemon Resources"
+        ],
+        "x-availability": "local profile only; optional module, no production auto-promotion"
+      }
+    },
+    "/pokemon/reference/pokemon/{query}": {
+      "get": {
+        "operationId": "localPokemonReference",
+        "summary": "读取本地缓存的 PokéAPI 参考资料",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "dataReleaseId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Local module result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalPokemonDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "404": {
+            "description": "Module disabled or resource not found"
+          },
+          "409": {
+            "description": "Version conflict"
+          },
+          "500": {
+            "description": "Dependency or cache error"
+          },
+          "503": {
+            "description": "Reference upstream unavailable; retry after checking network/proxy"
+          }
+        },
+        "tags": [
+          "Pokemon Resources"
+        ],
+        "x-availability": "local profile only; optional module, no production auto-promotion"
+      }
+    },
+    "/pokemon/reference/resources/{kind}/{slug}": {
+      "get": {
+        "operationId": "localPokemonResource",
+        "summary": "读取招式、特性、道具或性格参考资料",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "dataReleaseId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Local module result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "404": {
+            "description": "Module disabled or resource not found"
+          },
+          "409": {
+            "description": "Version conflict"
+          },
+          "500": {
+            "description": "Dependency or cache error"
+          },
+          "503": {
+            "description": "Reference upstream unavailable; retry after checking network/proxy"
+          }
+        },
+        "tags": [
+          "Pokemon Resources"
+        ],
+        "x-availability": "local profile only; optional module, no production auto-promotion"
+      }
+    },
+    "/pokemon/calculations/engine-damage": {
+      "post": {
+        "operationId": "localBattleDamage",
+        "summary": "调用固定版本本地伤害引擎",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Local module result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalBattleDamageResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "404": {
+            "description": "Module disabled or resource not found"
+          },
+          "409": {
+            "description": "Version conflict"
+          },
+          "500": {
+            "description": "Dependency or cache error"
+          },
+          "503": {
+            "description": "Reference upstream unavailable; retry after checking network/proxy"
+          }
+        },
+        "tags": [
+          "Pokemon Resources"
+        ],
+        "x-availability": "local profile only; optional module, no production auto-promotion",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocalBattleDamageRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pokemon/guides": {
+      "get": {
+        "operationId": "searchLocalPokemonGuides",
+        "summary": "检索本地原创攻略",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gameReleaseId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Local module result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LocalGuideHit"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "404": {
+            "description": "Module disabled or resource not found"
+          },
+          "409": {
+            "description": "Version conflict"
+          },
+          "500": {
+            "description": "Dependency or cache error"
+          },
+          "503": {
+            "description": "Reference upstream unavailable; retry after checking network/proxy"
+          }
+        },
+        "tags": [
+          "Pokemon Resources"
+        ],
+        "x-availability": "local profile only; optional module, no production auto-promotion"
+      }
     }
   },
   "components": {
@@ -4361,13 +5368,14 @@
             "type": "string",
             "enum": [
               "oidc",
+              "local",
               "api_key",
               "disabled"
             ]
           },
           "authenticated": {
             "type": "boolean",
-            "description": "A validated OIDC principal also passed the server principal policy."
+            "description": "Validated OIDC policy identity or local browser account session."
           },
           "accessDenied": {
             "type": "boolean",
@@ -4402,12 +5410,12 @@
           "loginUrl": {
             "type": "string",
             "nullable": true,
-            "description": "Context-relative browser navigation URL for starting OIDC login, such as /api/oauth2/authorization/vio. Null outside OIDC mode."
+            "description": "OIDC navigation URL or local account POST endpoint /api/auth/local/login. Null for API-key and disabled modes."
           },
           "logoutUrl": {
             "type": "string",
             "nullable": true,
-            "description": "Context-relative POST URL for local browser logout, such as /api/logout. Null outside OIDC mode."
+            "description": "Context-relative POST URL /api/logout for OIDC or local browser sessions. Null for API-key and disabled modes."
           },
           "csrf": {
             "$ref": "#/components/schemas/CsrfStatus"
@@ -4651,6 +5659,9 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 6
+          },
+          "build": {
+            "$ref": "#/components/schemas/TeamBuild"
           }
         }
       },
@@ -4700,6 +5711,9 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 6
+          },
+          "build": {
+            "$ref": "#/components/schemas/TeamBuild"
           }
         }
       },
@@ -6619,6 +7633,409 @@
             "type": "string"
           }
         }
+      },
+      "BattleEVs": {
+        "type": "object",
+        "properties": {
+          "hp": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 252
+          },
+          "atk": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 252
+          },
+          "def": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 252
+          },
+          "spa": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 252
+          },
+          "spd": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 252
+          },
+          "spe": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 252
+          }
+        },
+        "description": "Each stat <=252, total <=510; omitted stats are zero."
+      },
+      "BattleIVs": {
+        "type": "object",
+        "required": [
+          "hp",
+          "atk",
+          "def",
+          "spa",
+          "spd",
+          "spe"
+        ],
+        "properties": {
+          "hp": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 31
+          },
+          "atk": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 31
+          },
+          "def": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 31
+          },
+          "spa": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 31
+          },
+          "spd": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 31
+          },
+          "spe": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 31
+          }
+        },
+        "description": "Omitted ivs object defaults to all 31; explicit values are preserved."
+      },
+      "TeamBuild": {
+        "type": "object",
+        "properties": {
+          "moves": {
+            "type": "array",
+            "maxItems": 4,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          "ability": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "item": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "nature": {
+            "type": "string",
+            "default": "hardy"
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 50
+          },
+          "evs": {
+            "$ref": "#/components/schemas/BattleEVs"
+          },
+          "ivs": {
+            "$ref": "#/components/schemas/BattleIVs"
+          }
+        },
+        "description": "User configuration, not a competition legality assertion. Defaults remain backwards compatible."
+      },
+      "LocalPokemonReferenceStatus": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "dataReleaseId",
+          "status",
+          "sourceUrl",
+          "limitation"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "dataReleaseId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "LOCAL_REFERENCE"
+            ]
+          },
+          "sourceUrl": {
+            "type": "string"
+          },
+          "limitation": {
+            "type": "string"
+          }
+        }
+      },
+      "LocalPokemonDetail": {
+        "type": "object",
+        "required": [
+          "fact",
+          "abilities",
+          "moves",
+          "retrievedAt",
+          "limitation"
+        ],
+        "properties": {
+          "fact": {
+            "$ref": "#/components/schemas/PokemonFact"
+          },
+          "abilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "moves": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Move names with scarlet-violet version-group entries; not a legality assertion."
+          },
+          "retrievedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "limitation": {
+            "type": "string"
+          }
+        }
+      },
+      "BattleCombatant": {
+        "type": "object",
+        "required": [
+          "species"
+        ],
+        "properties": {
+          "species": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "build": {
+            "$ref": "#/components/schemas/TeamBuild"
+          }
+        }
+      },
+      "LocalBattleField": {
+        "type": "object",
+        "properties": {
+          "gameType": {
+            "type": "string",
+            "enum": [
+              "Singles",
+              "Doubles"
+            ]
+          },
+          "weather": {
+            "type": "string"
+          },
+          "terrain": {
+            "type": "string"
+          }
+        }
+      },
+      "LocalBattleDamageRequest": {
+        "type": "object",
+        "required": [
+          "generation",
+          "dataReleaseId",
+          "attacker",
+          "defender",
+          "move"
+        ],
+        "properties": {
+          "generation": {
+            "type": "integer",
+            "enum": [
+              9
+            ]
+          },
+          "dataReleaseId": {
+            "type": "string",
+            "enum": [
+              "pokeapi-reference-v1"
+            ]
+          },
+          "attacker": {
+            "$ref": "#/components/schemas/BattleCombatant"
+          },
+          "defender": {
+            "$ref": "#/components/schemas/BattleCombatant"
+          },
+          "move": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "field": {
+            "$ref": "#/components/schemas/LocalBattleField"
+          }
+        }
+      },
+      "LocalDamageRange": {
+        "type": "object",
+        "required": [
+          "minimum",
+          "maximum"
+        ],
+        "properties": {
+          "minimum": {
+            "type": "number"
+          },
+          "maximum": {
+            "type": "number"
+          }
+        }
+      },
+      "LocalBattleDamageResult": {
+        "type": "object",
+        "required": [
+          "engine",
+          "engineVersion",
+          "generation",
+          "dataReleaseId",
+          "range",
+          "percent",
+          "defenderHp",
+          "description",
+          "assumptions",
+          "limitation"
+        ],
+        "properties": {
+          "engine": {
+            "type": "string",
+            "enum": [
+              "@smogon/calc"
+            ]
+          },
+          "engineVersion": {
+            "type": "string"
+          },
+          "generation": {
+            "type": "integer"
+          },
+          "dataReleaseId": {
+            "type": "string"
+          },
+          "range": {
+            "$ref": "#/components/schemas/LocalDamageRange"
+          },
+          "percent": {
+            "$ref": "#/components/schemas/LocalDamageRange"
+          },
+          "defenderHp": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "assumptions": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "limitation": {
+            "type": "string"
+          },
+          "attackerBaseStats": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "defenderBaseStats": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "attackerSource": {
+            "type": "string"
+          },
+          "defenderSource": {
+            "type": "string"
+          },
+          "attackerChecksum": {
+            "type": "string"
+          },
+          "defenderChecksum": {
+            "type": "string"
+          }
+        }
+      },
+      "LocalGuideDocument": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "gameReleaseId",
+          "author",
+          "updatedAt",
+          "content"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "gameReleaseId": {
+            "type": "string"
+          },
+          "keywords": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "sourceUrl": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "LocalGuideHit": {
+        "type": "object",
+        "required": [
+          "document",
+          "score",
+          "checksum"
+        ],
+        "properties": {
+          "document": {
+            "$ref": "#/components/schemas/LocalGuideDocument"
+          },
+          "score": {
+            "type": "integer"
+          },
+          "checksum": {
+            "type": "string"
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -6633,6 +8050,12 @@
         "in": "header",
         "name": "X-API-Key",
         "description": "Service-to-service key; never place a key in a URL."
+      },
+      "localSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "JSESSIONID",
+        "description": "Local browser session. Mutations also require CSRF and an allowed Origin."
       },
       "oidcSession": {
         "type": "apiKey",

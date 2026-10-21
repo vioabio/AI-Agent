@@ -13,6 +13,21 @@ function replay(events, seed = {}) {
   return events.reduce((model, event) => reduceRunEvent(model, event), createRunViewModel(seed))
 }
 
+test('tool.finished必须按业务结果区分成功与失败', () => {
+  for (const status of ['FAILED', 'AUDIT_FAILED', 'UNKNOWN', 'REJECTED', 'CANCELLED', 'TIMED_OUT']) {
+    const model = replay([
+      { id: '1', type: 'tool.started', data: { toolName: 'searchWeb' } },
+      { id: '2', type: 'tool.finished', data: { toolName: 'searchWeb', status } }
+    ])
+    assert.equal(model.toolTimeline[0].status, 'failed', status)
+  }
+  const model = replay([
+    { id: '1', type: 'tool.started', data: { toolName: 'getTypeChart' } },
+    { id: '2', type: 'tool.finished', data: { toolName: 'getTypeChart', status: 'SUCCEEDED' } }
+  ])
+  assert.equal(model.toolTimeline[0].status, 'completed')
+})
+
 test('Run 事件按 eventId 去重并保持游标单调', () => {
   const first = replay([
     { id: '1', type: 'run.started', data: { startedAt: '2026-09-02T00:00:00Z' } },

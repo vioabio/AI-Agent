@@ -43,6 +43,7 @@ candidate.components.securitySchemes = {
   ...(candidate.components.securitySchemes ?? {}),
   bearerAuth: {type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'Production identity is supplied by the configured trusted gateway/OIDC resource server.'},
   apiKeyAuth: {type: 'apiKey', in: 'header', name: 'X-API-Key', description: 'Service-to-service key; never place a key in a URL.'},
+  localSession: {type:'apiKey',in:'cookie',name:'JSESSIONID',description:'Local browser session. Mutations also require CSRF and an allowed Origin.'},
   oidcSession: {type: 'apiKey', in: 'cookie', name: 'VIO_SESSION', description: 'OIDC browser session. Cookie name is configurable; VIO_SESSION is the default. State changes also require the CSRF token and an allowed Origin.'}
 };
 candidate.components.parameters = {
@@ -82,16 +83,16 @@ Object.assign(schemas, {
       'serverTime', 'absoluteExpiresAt', 'loginUrl', 'logoutUrl', 'csrf'],
     description: 'Direct JSON session bootstrap. Nullable fields are always present. API-key and disabled modes report no personal login identity; the API-key credential remains a separate service authentication mechanism.',
     properties: {
-      mode: {type: 'string', enum: ['oidc', 'api_key', 'disabled']},
-      authenticated: {type: 'boolean', description: 'A validated OIDC principal also passed the server principal policy.'},
+      mode: {type: 'string', enum: ['oidc', 'local', 'api_key', 'disabled']},
+      authenticated: {type: 'boolean', description: 'Validated OIDC policy identity or local browser account session.'},
       accessDenied: {type: 'boolean', description: 'A validated OIDC identity was denied by the server principal policy.'},
       principalId: {type: 'string', nullable: true},
       tenantId: {type: 'string', nullable: true},
       roles: {type: 'array', items: {type: 'string'}, description: 'Sorted roles derived from the trusted OIDC principal; empty for anonymous, API-key and disabled modes.'},
       serverTime: {type: 'string', format: 'date-time', description: 'Server time used to calculate the remaining lifetime without relying on the browser clock.'},
       absoluteExpiresAt: {type: 'string', format: 'date-time', nullable: true, description: 'Server-enforced absolute deadline for a browser session, or exp for a validated Bearer JWT. Null when no usable OIDC identity is available.'},
-      loginUrl: {type: 'string', nullable: true, description: 'Context-relative browser navigation URL for starting OIDC login, such as /api/oauth2/authorization/vio. Null outside OIDC mode.'},
-      logoutUrl: {type: 'string', nullable: true, description: 'Context-relative POST URL for local browser logout, such as /api/logout. Null outside OIDC mode.'},
+      loginUrl: {type: 'string', nullable: true, description: 'OIDC navigation URL or local account POST endpoint /api/auth/local/login. Null for API-key and disabled modes.'},
+      logoutUrl: {type: 'string', nullable: true, description: 'Context-relative POST URL /api/logout for OIDC or local browser sessions. Null for API-key and disabled modes.'},
       csrf: {$ref: '#/components/schemas/CsrfStatus'}
     }
   },
@@ -447,6 +448,7 @@ addMemoryPaths();
 addOperationsPaths();
 addHealthPaths();
 addLegacyPaths();
+addLocalPokemonModules();
 
 // Marker consumed by local tooling/review; it is not a secret or runtime flag.
 candidate['x-generated-from'] = baselinePath.replaceAll('\\', '/');
@@ -493,6 +495,28 @@ function body(ref, required = true) { return {required, content: {'application/j
 function add(pathName, method, value) { candidate.paths[pathName] ??= {}; candidate.paths[pathName][method] = value; }
 
 function addAuthenticationPaths() {
+  const account={type:'object',required:['id','username','nickname','avatar','version'],properties:{id:{type:'string'},username:{type:'string'},nickname:{type:'string'},avatar:{type:'string',enum:['squirtle','bulbasaur','pikachu']},version:{type:'integer'}}};
+  const text={type:'string'}, password={type:'string',format:'password',writeOnly:true};
+  const secretResponse={type:'object',properties:{recoveryCode:{type:'string',description:'One-time recovery credential. Store privately; never log.'}}};
+  const routes=[
+    ['register','post','registerLocalAccount',{username:text,password,nickname:text},{type:'object',properties:{account,recoveryCode:text}},201],
+    ['login','post','loginLocalAccount',{username:text,password},account,200],
+    ['recover','post','recoverLocalAccount',{username:text,recoveryCode:password,newPassword:password},secretResponse,200],
+    ['profile','get','getLocalAccountProfile',null,account,200],
+    ['profile','patch','updateLocalAccountProfile',{nickname:text,avatar:text},account,200],
+    ['password','post','changeLocalAccountPassword',{currentPassword:password,newPassword:password},secretResponse,200],
+    ['legacy-data','get','previewLocalLegacyData',null,{type:'object',properties:{eligible:{type:'boolean'},conversations:{type:'integer'},teams:{type:'integer'}}},200],
+    ['legacy-data','post','claimLocalLegacyData',{password},{type:'object',additionalProperties:true},200]
+  ];
+  for(const [path,method,id,fields,result,status] of routes) {
+    add(`/auth/local/${path}`,method,operation(method,id,id,method==='get'?[]:[{name:'X-CSRF-TOKEN',in:'header',required:true,schema:text}],{
+      [status]:{description:'Local account result',content:{'application/json':{schema:result}}},
+      '400':emptyResponse('Invalid input or credentials'),'401':emptyResponse('Unauthenticated or login failed'),
+      '403':emptyResponse('CSRF/origin denied or legacy claim not authorized'),'409':emptyResponse('Username exists'),'429':emptyResponse('Retry after cooldown')
+    },{tags:['Authentication'],security:['register','login','recover'].includes(path)?[]:[{localSession:[]}],'x-availability':'local profile only; vio.local-accounts.enabled=true',
+      ...(fields?{requestBody:{required:true,content:{'application/json':{schema:{type:'object',properties:fields}}}}}:{}),
+      description:'Local SQLite account. Responses are no-store. Only register/login/recover allow anonymous access; every mutation requires CSRF. Password changes rotate the current session and invalidate older account versions. Recovery invalidates all old sessions.'}));
+  }
   add('/auth/session', 'get', operation('get', 'getAuthSession', '读取当前浏览器会话与认证模式', [], {
     '200': {
       ...jsonResponse('Session bootstrap, including anonymous or policy-denied state', '#/components/schemas/SessionStatus'),
@@ -540,8 +564,16 @@ function addPokemonPaths() {
   const teamEnvelope = {oneOf: [{$ref: '#/components/schemas/SavedTeamResultEnvelope'}, {type: 'array', items: {$ref: '#/components/schemas/SavedTeam'}}]};
   schemas.PokemonFactResultEnvelope = resultSchema('#/components/schemas/FactQueryResult');
   schemas.SavedTeamResultEnvelope = resultArraySchema('#/components/schemas/SavedTeam');
-  add('/pokemon/facts', 'get', operation('get', 'listPokemonFacts', '查询版本化宝可梦事实', [requiredQuery('dataReleaseId'), optionalQuery('slug'), optionalQuery('nationalNo', {type: 'integer', minimum: 1}), pageParam('limit')], {'200': {description: 'Fact query (v1.1 envelope or v1.0 array compatibility)', content: {'application/json': {schema: factEnvelope}}}, '400': emptyResponse('Invalid request'), '404': emptyResponse('Release not found'), '409': emptyResponse('Release not queryable')}));
-  add('/pokemon/facts/{slug}', 'get', operation('get', 'getPokemonFact', '按 slug 获取单个版本化事实', [requiredPath('slug'), requiredQuery('dataReleaseId')], {'200': resultResponse('Fact', '#/components/schemas/PokemonFact')['200'], '400': emptyResponse('Invalid request'), '404': emptyResponse('Not found')}));
+  add('/pokemon/facts', 'get', operation('get', 'listPokemonFacts', '查询版本化宝可梦事实', [requiredQuery('dataReleaseId'), optionalQuery('slug'), optionalQuery('nationalNo', {type: 'integer', minimum: 1}), pageParam('limit')], {'200': {description: 'Fact query (v1.1 envelope or v1.0 array compatibility)', content: {'application/json': {schema: factEnvelope}}}, '400': emptyResponse('Invalid request'), '404': emptyResponse('Release not found'), '409': emptyResponse('Release not queryable'), '503': emptyResponse('Local reference upstream unavailable; retry after checking network/proxy')}));
+  add('/pokemon/facts/{slug}', 'get', operation('get', 'getPokemonFact', '按 slug 获取单个版本化事实', [requiredPath('slug'), requiredQuery('dataReleaseId')], {'200': resultResponse('Fact', '#/components/schemas/PokemonFact')['200'], '400': emptyResponse('Invalid request'), '404': emptyResponse('Not found'), '503': emptyResponse('Local reference upstream unavailable')}));
+  add('/pokemon/facts/forms/{formId}', 'get', operation('get', 'getPokemonFactByFormId', '按形态 ID 获取单个版本化事实', [
+    {name: 'formId', in: 'path', required: true, schema: {type: 'integer', format: 'int64', minimum: 1}},
+    {name: 'dataReleaseId', in: 'query', required: true, schema: {type: 'string', minLength: 1}}
+  ], {
+    '200': resultEnvelopeResponse('Version-bound fact', '#/components/schemas/PokemonFact'),
+    '400': emptyResponse('Invalid request'), '404': emptyResponse('Fact or data release not found'),
+    '409': emptyResponse('Data release is not reviewed'), '503': emptyResponse('Local reference upstream unavailable')
+  }));
   add('/pokemon/teams', 'post', operation('post', 'createPokemonTeam', '创建版本化队伍（兼容入口）', [refParam('UserIdHeader'), refParam('Idempotency-Key')], {'201': {description: 'Team (envelope or v1.0 object compatibility)', content: {'application/json': {schema: {oneOf: [resultSchema('#/components/schemas/SavedTeam'), {$ref: '#/components/schemas/SavedTeam'}]}}}}, '400': emptyResponse('Invalid request'), '401': emptyResponse('Unauthenticated'), '409': emptyResponse('Conflict')}, {requestBody: body('#/components/schemas/SavedTeamRequest')}));
   add('/pokemon/teams', 'get', operation('get', 'listPokemonTeams', '查询当前主体队伍（兼容入口）', [pageParam('limit'), pageParam('cursor'), refParam('UserIdHeader')], {'200': {description: 'Teams (envelope or v1.0 array compatibility)', content: {'application/json': {schema: teamEnvelope}}}, '401': emptyResponse('Unauthenticated')}));
   add('/pokemon/teams/{teamId}', 'get', operation('get', 'getPokemonTeam', '查询当前主体队伍', [requiredPath('teamId', {type: 'integer', format: 'int64'}), refParam('UserIdHeader')], {'200': resultResponse('Team', '#/components/schemas/SavedTeam')['200'], '401': emptyResponse('Unauthenticated'), '404': emptyResponse('Not found')}));
@@ -703,6 +735,32 @@ function addLegacyPaths() {
 }
 
 function pageParam(name) { return {name, in: 'query', required: false, schema: {type: name === 'limit' ? 'integer' : 'string', ...(name === 'limit' ? {minimum: 1, maximum: 200, default: 50} : {})}}; }
+
+function addLocalPokemonModules() {
+  const ref = name => ({$ref:`#/components/schemas/${name}`});
+  const statProperties = maximum => Object.fromEntries(['hp','atk','def','spa','spd','spe'].map(key=>[key,{type:'integer',minimum:0,maximum}]));
+  schemas.BattleEVs = {type:'object',properties:statProperties(252),description:'Each stat <=252, total <=510; omitted stats are zero.'};
+  schemas.BattleIVs = {type:'object',required:['hp','atk','def','spa','spd','spe'],properties:statProperties(31),description:'Omitted ivs object defaults to all 31; explicit values are preserved.'};
+  schemas.TeamBuild = {type:'object',properties:{moves:{type:'array',maxItems:4,uniqueItems:true,items:{type:'string',minLength:1,maxLength:80}},ability:{type:'string',maxLength:80},item:{type:'string',maxLength:80},nature:{type:'string',default:'hardy'},level:{type:'integer',minimum:1,maximum:100,default:50},evs:ref('BattleEVs'),ivs:ref('BattleIVs')},description:'User configuration, not a competition legality assertion. Defaults remain backwards compatible.'};
+  schemas.TeamMember.properties.build = ref('TeamBuild');
+  schemas.TeamMemberInput.properties.build = ref('TeamBuild');
+  schemas.LocalPokemonReferenceStatus = {type:'object',required:['enabled','dataReleaseId','status','sourceUrl','limitation'],properties:{enabled:{type:'boolean'},dataReleaseId:{type:'string'},status:{type:'string',enum:['LOCAL_REFERENCE']},sourceUrl:{type:'string'},limitation:{type:'string'}}};
+  schemas.LocalPokemonDetail = {type:'object',required:['fact','abilities','moves','retrievedAt','limitation'],properties:{fact:ref('PokemonFact'),abilities:{type:'array',items:{type:'string'}},moves:{type:'array',items:{type:'string'},description:'Move names with scarlet-violet version-group entries; not a legality assertion.'},retrievedAt:{type:'string',format:'date-time'},limitation:{type:'string'}}};
+  schemas.BattleCombatant = {type:'object',required:['species'],properties:{species:{type:'string',minLength:1,maxLength:80},build:ref('TeamBuild')}};
+  schemas.LocalBattleField = {type:'object',properties:{gameType:{type:'string',enum:['Singles','Doubles']},weather:{type:'string'},terrain:{type:'string'}}};
+  schemas.LocalBattleDamageRequest = {type:'object',required:['generation','dataReleaseId','attacker','defender','move'],properties:{generation:{type:'integer',enum:[9]},dataReleaseId:{type:'string',enum:['pokeapi-reference-v1']},attacker:ref('BattleCombatant'),defender:ref('BattleCombatant'),move:{type:'string',minLength:1,maxLength:80},field:ref('LocalBattleField')}};
+  schemas.LocalDamageRange = {type:'object',required:['minimum','maximum'],properties:{minimum:{type:'number'},maximum:{type:'number'}}};
+  schemas.LocalBattleDamageResult = {type:'object',required:['engine','engineVersion','generation','dataReleaseId','range','percent','defenderHp','description','assumptions','limitation'],properties:{engine:{type:'string',enum:['@smogon/calc']},engineVersion:{type:'string'},generation:{type:'integer'},dataReleaseId:{type:'string'},range:ref('LocalDamageRange'),percent:ref('LocalDamageRange'),defenderHp:{type:'integer'},description:{type:'string'},assumptions:{type:'object',additionalProperties:true},limitation:{type:'string'},attackerBaseStats:{type:'object',additionalProperties:{type:'integer'}},defenderBaseStats:{type:'object',additionalProperties:{type:'integer'}},attackerSource:{type:'string'},defenderSource:{type:'string'},attackerChecksum:{type:'string'},defenderChecksum:{type:'string'}}};
+  schemas.LocalGuideDocument = {type:'object',required:['id','title','gameReleaseId','author','updatedAt','content'],properties:Object.fromEntries(['id','title','gameReleaseId','keywords','author','updatedAt','sourceUrl','content'].map(key=>[key,{type:'string'}]))};
+  schemas.LocalGuideHit = {type:'object',required:['document','score','checksum'],properties:{document:ref('LocalGuideDocument'),score:{type:'integer'},checksum:{type:'string'}}};
+  const response = schema => ({'200':{description:'Local module result',content:{'application/json':{schema}}},'400':emptyResponse('Invalid request'),'404':emptyResponse('Module disabled or resource not found'),'409':emptyResponse('Version conflict'),'500':emptyResponse('Dependency or cache error'),'503':emptyResponse('Reference upstream unavailable; retry after checking network/proxy')});
+  const extra = {tags:['Pokemon Resources'],'x-availability':'local profile only; optional module, no production auto-promotion'};
+  add('/pokemon/reference/status','get',operation('get','localPokemonReferenceStatus','读取本地参考资料配置',[],response(ref('LocalPokemonReferenceStatus')),extra));
+  add('/pokemon/reference/pokemon/{query}','get',operation('get','localPokemonReference','读取本地缓存的 PokéAPI 参考资料',[requiredPath('query'),requiredQuery('dataReleaseId')],response(ref('LocalPokemonDetail')),extra));
+  add('/pokemon/reference/resources/{kind}/{slug}','get',operation('get','localPokemonResource','读取招式、特性、道具或性格参考资料',[requiredPath('kind'),requiredPath('slug'),requiredQuery('dataReleaseId')],response({type:'object',additionalProperties:true}),extra));
+  add('/pokemon/calculations/engine-damage','post',operation('post','localBattleDamage','调用固定版本本地伤害引擎',[],response(ref('LocalBattleDamageResult')),{...extra,requestBody:body('#/components/schemas/LocalBattleDamageRequest')}));
+  add('/pokemon/guides','get',operation('get','searchLocalPokemonGuides','检索本地原创攻略',[requiredQuery('query'),requiredQuery('gameReleaseId')],response({type:'array',items:ref('LocalGuideHit')}),extra));
+}
 function requiredQuery(name, schema = {type: 'string'}) { return {name, in: 'query', required: true, schema}; }
 function optionalQuery(name, schema = {type: 'string'}) { return {name, in: 'query', required: false, schema}; }
 function requiredPath(name, schema = {type: 'string', minLength: 1}) { return {name, in: 'path', required: true, schema}; }

@@ -34,8 +34,8 @@ public class JdbcSavedTeamRepository implements SavedTeamRepository {
                 """, Long.class, team.ownerId(), team.name(), team.rulesetId(), team.dataReleaseId());
         if (id == null) throw new IllegalStateException("数据库未返回队伍 ID");
         for (TeamMember member : team.members()) {
-            jdbc.update("INSERT INTO team_member (team_id, form_id, slot) VALUES (?, ?, ?)",
-                    id, member.formId(), member.slot());
+            jdbc.update("INSERT INTO team_member (team_id, form_id, slot, build_json) VALUES (?, ?, ?, ?)",
+                    id, member.formId(), member.slot(), encodeBuild(member));
         }
         return findByIdForOwner(id, team.ownerId()).orElseThrow(
                 () -> new IllegalStateException("队伍写入后无法读取"));
@@ -69,8 +69,8 @@ public class JdbcSavedTeamRepository implements SavedTeamRepository {
         if (updated != 1) return false;
         jdbc.update("DELETE FROM team_member WHERE team_id = ?", id);
         for (TeamMember member : replacement.members()) {
-            jdbc.update("INSERT INTO team_member (team_id, form_id, slot) VALUES (?, ?, ?)",
-                    id, member.formId(), member.slot());
+            jdbc.update("INSERT INTO team_member (team_id, form_id, slot, build_json) VALUES (?, ?, ?, ?)",
+                    id, member.formId(), member.slot(), encodeBuild(member));
         }
         return true;
     }
@@ -106,8 +106,16 @@ public class JdbcSavedTeamRepository implements SavedTeamRepository {
 
     private List<TeamMember> loadMembers(long teamId) {
         return jdbc.query("""
-                SELECT id, form_id, slot FROM team_member WHERE team_id = ? ORDER BY slot
+                SELECT id, form_id, slot, build_json FROM team_member WHERE team_id = ? ORDER BY slot
                 """, (rs, row) -> new TeamMember(rs.getLong("id"), rs.getLong("form_id"),
-                        rs.getInt("slot")), teamId);
+                        rs.getInt("slot"), decodeBuild(rs.getString("build_json"))), teamId);
+    }
+    private String encodeBuild(TeamMember member) {
+        try { return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(member.build()); }
+        catch (Exception e) { throw new IllegalArgumentException("队伍配置无法序列化",e); }
+    }
+    private com.vio.vioaiagent.pokemon.domain.TeamBuild decodeBuild(String value) {
+        try { return new com.fasterxml.jackson.databind.ObjectMapper().readValue(value, com.vio.vioaiagent.pokemon.domain.TeamBuild.class); }
+        catch (Exception e) { throw new IllegalStateException("队伍配置损坏",e); }
     }
 }

@@ -1033,7 +1033,15 @@ public class ToolExecutionGateway {
             } catch (RuntimeException ex) {
                 throw new ToolAuthorizationException(safeMessage(ex), ex);
             }
-        }, () -> callback.call(input), timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT_MS);
+        }, () -> {
+            ToolExecutionContext previous = ToolExecutionContextHolder.peek();
+            ToolExecutionContextHolder.set(context);
+            try { return callback.call(input); }
+            finally {
+                if (previous == null) ToolExecutionContextHolder.clear();
+                else ToolExecutionContextHolder.set(previous);
+            }
+        }, timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT_MS);
     }
 
     private static final class ToolAuthorizationException extends SecurityException {

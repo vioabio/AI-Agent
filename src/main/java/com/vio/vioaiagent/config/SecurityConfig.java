@@ -55,6 +55,7 @@ public class SecurityConfig implements WebMvcConfigurer {
      * 运行期行为由 {@code ResourceIdentityHttpTest} 用真实 HTTP 过滤链验证。
      */
     public static final List<String> AUTHENTICATED_PATH_PATTERNS = List.of(
+            "/auth/local/profile", "/auth/local/password", "/auth/local/legacy-data",
             "/ai/**",          // 历史兼容链
             "/chat/**",        // 现代 Run 主链
             "/hitl/**",        // 人工审批
@@ -77,6 +78,7 @@ public class SecurityConfig implements WebMvcConfigurer {
      * 该列表需要显式且最小，公开面扩大必须经过评审。
      */
     public static final List<String> PUBLIC_PATH_PATTERNS = List.of(
+            "/auth/local/register", "/auth/local/login", "/auth/local/recover", // Local-only, CSRF protected and rate limited
             "/auth/session", // Read-only bootstrap; no credentials or business resources exposed
             "/health",
             "/swagger-ui/**",

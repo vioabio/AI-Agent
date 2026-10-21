@@ -34,7 +34,7 @@ export function clearAllRunResume() {
 /** Store only an opaque scope digest; never persist claims or credentials. */
 export async function syncRunResumeScope(snapshot, { isCurrent = () => true } = {}) {
   if (!isCurrent()) return
-  if (snapshot.mode === 'oidc' && !snapshot.authenticated) { clearAllRunResume(); return }
+  if (['oidc', 'local'].includes(snapshot.mode) && !snapshot.authenticated) { clearAllRunResume(); return }
   try {
     const bytes = new TextEncoder().encode(JSON.stringify([snapshot.mode,
       snapshot.principalId, snapshot.tenantId, snapshot.roles]))
@@ -147,6 +147,15 @@ export function clearRunResume(conversationId, runId = null, { epoch = resumeEpo
 }
 
 /** 为一个标签页生成稳定的会话 ID；不包含用户输入或凭据。 */
+export function selectConversationId(scope, conversationId) {
+  if (!validStorageId(conversationId) || conversationId.length > 128) return false
+  const normalizedScope = String(scope).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 32) || 'default'
+  try {
+    storage()?.setItem(`${CONVERSATION_STORAGE_PREFIX}${normalizedScope}`, conversationId)
+    return true
+  } catch { return false }
+}
+
 export function getOrCreateConversationId(scope = 'default') {
   const normalizedScope = String(scope).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 32) || 'default'
   const key = `${CONVERSATION_STORAGE_PREFIX}${normalizedScope}`

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "documents": [
+    {"id":"team-roles-v1","title":"围绕核心成员构建队伍","gameReleaseId":"pokemon-scarlet-violet","keywords":"组队 阵容 搭配 联防 核心 角色 team building synergy","author":"VIO project","updatedAt":"2026-10-20","sourceUrl":"","content":"这是项目原创的通用策略笔记，不是当前热门阵容榜单。先确定游戏、单打或双打、允许的规则，再确定核心成员承担的角色。检查队伍是否过度集中在同一弱点，是否缺少速度控制、耐久支点或可靠输出。属性覆盖只是第一步，必须结合招式、特性、道具、努力值与轮转机会。双打还要考虑队友协同与范围招式。没有使用率或赛事证据时，不宣称某套阵容是当前最强。建议给出至少一个替换方向，并解释该替换改善了什么、牺牲了什么。"},
+    {"id":"training-configuration-v1","title":"培养配置：性格、努力值与个体值","gameReleaseId":"pokemon-scarlet-violet","keywords":"培养 养成 努力值 个体值 EV IV 性格 nature 配招","author":"VIO project","updatedAt":"2026-10-20","sourceUrl":"","content":"这是项目原创的配置填写说明。保存配置前先明确输出方式和目标对手，再选择性格、等级、个体值和努力值。项目验证努力值单项不超过252、总和不超过510，个体值为0到31。不能仅凭这些边界就断言某种配置最优。性格、特性、道具和招式需要配合；低攻击个体值或低速度个体值属于特定战术条件，不应未经询问自动代入。初次分析应列出哪些是用户提供的条件、哪些是工具的默认条件，并询问未明确的赛制或配置。"},
+    {"id":"damage-assumptions-v1","title":"如何解读伤害区间","gameReleaseId":"pokemon-scarlet-violet","keywords":"伤害 计算 秒杀 击倒 倍率 damage calc 天气 场地","author":"VIO project","updatedAt":"2026-10-20","sourceUrl":"https://github.com/smogon/damage-calc","content":"本说明由项目编写，计算引擎的接口能力参考所列仓库。伤害区间依赖攻防双方的种族、等级、实际培养配置、招式、道具、特性与场地条件。应调用伤害工具并引用返回的引擎版本、最小最大伤害、目标HP、百分比和假设条件。只有属性倍率不能推导实际伤害。当前本地桥接只表达基础配置、单打或双打、天气和场地；未表达的强化、异常状态、墙、入场伤害、太晶等不能当作已经计算。区间计算不是胜率预测，也不能证明招式组合在某赛制合法。"},
+    {"id":"reference-vs-rules-v1","title":"图鉴资料、版本与比赛规则的区别","gameReleaseId":"pokemon-scarlet-violet","keywords":"版本 规则 合法性 资料 来源 图鉴 pokeapi 排位 最新 强势","author":"VIO project","updatedAt":"2026-10-20","sourceUrl":"https://pokeapi.co/docs/v2","content":"本说明由项目编写，资料接口字段参考所列文档。PokéAPI提供宝可梦、物种、招式和其他结构化资源。本地参考快照保留来源URL、抓取时间和摘要，缓存可以复用，但它不是官方赛事规则公告。不能根据物种存在或图鉴有数据，就判断其能参加当前排位。朱紫招式列表按接口中scarlet-violet的版本组过滤；这不能代替特定补丁、赛事或配招组合的完整合法性检查。回答当前强势阵容时需要有日期和赛制相符的使用率、赛事等证据；没有这些证据，应明确限制。"}
+  ]
+}

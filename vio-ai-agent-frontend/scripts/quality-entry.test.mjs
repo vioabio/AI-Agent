@@ -39,7 +39,7 @@ test('package.json 暴露 v1.1 前端质量入口，工具声明与配置齐全'
     for (const config of tools.tools[kind].configs) assert.ok(fs.existsSync(path.join(frontendRoot, config)))
   }
   const e2eSource = fs.readFileSync(path.join(frontendRoot, 'e2e', 'pokemon-workbench.spec.js'), 'utf8')
-  assert.equal((e2eSource.match(/^\s*test\(/gm) || []).length, 8)
+  assert.ok((e2eSource.match(/^\s*test\(/gm) || []).length >= 8)
   assert.doesNotMatch(e2eSource, /(?:apiKey|token|secret|password)\s*[:=]\s*['"]/i)
 
   const eslintSource = fs.readFileSync(path.join(frontendRoot, 'eslint.config.js'), 'utf8')

@@ -35,6 +35,13 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(com.vio.vioaiagent.pokemon.reference.PokeApiUnavailableException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public Result<Void> handleReferenceUnavailable(com.vio.vioaiagent.pokemon.reference.PokeApiUnavailableException e) {
+        log.warn("PokéAPI reference unavailable: {}", e.getMessage());
+        return Result.error(503, e.getMessage());
+    }
+
     // ==================== 业务异常 ====================
 
     @ExceptionHandler(BusinessException.class)

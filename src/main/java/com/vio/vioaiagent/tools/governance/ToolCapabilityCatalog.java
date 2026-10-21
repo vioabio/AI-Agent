@@ -18,6 +18,10 @@ import static com.vio.vioaiagent.tools.governance.ToolCapabilityCard.SideEffect.
 public final class ToolCapabilityCatalog {
 
     private static final Map<String, ToolCapabilityCard> CARDS = Map.ofEntries(
+            Map.entry("lookupPokemonReference", card("lookupPokemonReference", LOW, NETWORK, true, 25_000, List.of("trainer", "operator"))),
+            Map.entry("lookupPokemonResource", card("lookupPokemonResource", LOW, NETWORK, true, 10_000, List.of("trainer", "operator"))),
+            Map.entry("calculateBattleDamage", card("calculateBattleDamage", LOW, NETWORK, true, 45_000, List.of("trainer", "operator"))),
+            Map.entry("searchPokemonGuides", card("searchPokemonGuides", LOW, NONE, true, 3_000, List.of("trainer", "operator"))),
             Map.entry("checkTypeEffectiveness", card("checkTypeEffectiveness", LOW, NONE, true, 2_000,
                     List.of("trainer", "operator"))),
             Map.entry("getTypeChart", card("getTypeChart", LOW, NONE, true, 2_000,

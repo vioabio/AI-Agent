@@ -59,6 +59,9 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 @Slf4j
 public class PokemonAgentRunService {
 
+    @org.springframework.beans.factory.annotation.Value("${vio.run.answer-streaming-enabled:false}")
+    private boolean answerStreamingEnabled;
+
     private final RunRepository runRepository;
     private final EventRepository eventRepository;
     private final ConversationRepository conversationRepository;
@@ -975,7 +978,7 @@ public class PokemonAgentRunService {
             saveCheckpoint(run, 1, "commit-answer", lease.owner);
             // 当前 RunExecutor 以完整答案字符串返回；将答案首次可用时间记录为
             // TTFT 近似值，待真正 token streaming executor 接入后再替换为首 token 时间。
-            if (metrics != null) {
+            if (metrics != null && !execution.streamed()) {
                 metrics.recordTimeToFirstToken(Duration.between(startedAt, Instant.now()).toMillis());
             }
             if (run.status().isTerminal() || run.status() == AgentRunStatus.WAITING_APPROVAL) return;
@@ -1019,7 +1022,7 @@ public class PokemonAgentRunService {
                     answerDelta.put("text", answer);
                     answerDelta.put("answerId", committedProjection.answerId());
                     answerDelta.put("lineageStatus", committedProjection.lineageStatus().name());
-                    emitLocked(run, AgentEventType.ANSWER_DELTA, answerDelta);
+                    if (!execution.streamed()) emitLocked(run, AgentEventType.ANSWER_DELTA, answerDelta);
                     messageRepository.save(new ChatMessage("message-" + UUID.randomUUID(), run.conversationId(),
                             run.id(), run.userId(), "assistant", answer, Instant.now(), lineagePayload(run)));
                 }
@@ -1093,8 +1096,30 @@ public class PokemonAgentRunService {
      * 在生命周期服务内统一发出检索/引用事件；旧文本执行器仍沿用原路径。
      */
     private AnswerExecution executeAnswer(AgentRun run) throws Exception {
+        StringBuilder streamed = new StringBuilder();
+        boolean allowStreaming = answerStreamingEnabled && !durableRunProperties.durableResume()
+                && executor instanceof ContractAwareRunExecutor aware && !aware.usesKnowledgeGrounding();
+        Instant generationStarted = Instant.now();
+        AgentRunContext context = new AgentRunContext(run, allowStreaming ? delta -> {
+            if (delta == null || delta.isEmpty()) return;
+            workerWrite(run, () -> {
+                if (run.status() != AgentRunStatus.RUNNING || Thread.currentThread().isInterrupted()) {
+                    throw new java.util.concurrent.CancellationException("Run no longer running");
+                }
+                if (streamed.length() + delta.length() > 131072) {
+                    throw new IllegalStateException("模型回答超过本地长度上限");
+                }
+                if (streamed.isEmpty() && metrics != null) {
+                    metrics.recordTimeToFirstToken(Duration.between(generationStarted, Instant.now()).toMillis());
+                }
+                emitLocked(run, AgentEventType.ANSWER_DELTA, Map.of("text", delta));
+                streamed.append(delta);
+                return null;
+            });
+        } : null, ConversationHistory.window(run,
+                messageRepository.findByConversationForUser(run.conversationId(), run.userId())));
         if (!(executor instanceof ContractAwareRunExecutor contractExecutor)) {
-            return new AnswerExecution(executor.execute(new AgentRunContext(run)), null);
+            return new AnswerExecution(executor.execute(context), null);
         }
         boolean grounded = contractExecutor.usesKnowledgeGrounding();
         if (grounded) {
@@ -1103,7 +1128,7 @@ public class PokemonAgentRunService {
                             "battleFormat", safe(run.battleFormat()),
                             "rulesetVersionId", safe(run.rulesetVersionId())));
         }
-        AnswerContract contract = contractExecutor.executeContract(new AgentRunContext(run));
+        AnswerContract contract = contractExecutor.executeContract(context);
         if (contract == null) {
             throw new IllegalStateException("结构化执行器返回了空回答契约");
         }
@@ -1127,7 +1152,10 @@ public class PokemonAgentRunService {
                 }
             }
         }
-        return new AnswerExecution(contract.answer(), contract);
+        if (!streamed.isEmpty() && !streamed.toString().equals(contract.answer())) {
+            throw new IllegalStateException("流式内容与最终回答不一致，拒绝提交完成事实");
+        }
+        return new AnswerExecution(contract.answer(), contract, !streamed.isEmpty());
     }
 
     /**
@@ -1425,7 +1453,9 @@ public class PokemonAgentRunService {
                 ? null : second.trim()) : first.trim();
     }
 
-    private record AnswerExecution(String answer, AnswerContract contract) { }
+    private record AnswerExecution(String answer, AnswerContract contract, boolean streamed) {
+        private AnswerExecution(String answer, AnswerContract contract) { this(answer, contract, false); }
+    }
 
     private String safe(String value) {
         return value == null ? "" : value;

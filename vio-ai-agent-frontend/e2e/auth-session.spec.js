@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test'
 
+test.use({ video: 'off' })
+
 const WORKBENCH_PATH = '/pokemon-workbench'
-const WORKBENCH_TITLE = '🧭 宝可梦资料工作台'
+const WORKBENCH_TITLE = '宝可梦助手'
 const LOGIN_PATH = '/api/oauth2/authorization/vio'
 const LOGOUT_PATH = '/api/logout'
 const SESSION_PATH = '/api/auth/session'
@@ -277,7 +279,7 @@ test.describe('浏览器会话门禁（本地 fixture）', () => {
     await open(page, state)
     await expectWorkbench(page)
     await seedPointers(page)
-    await page.locator('button.context-submit').click()
+    await page.locator('.facts-panel button[type=submit]').click()
     await expect(page.getByRole('heading', { name: '登录已过期', exact: true })).toBeVisible()
     await expect(page.getByRole('heading', { name: WORKBENCH_TITLE })).toHaveCount(0)
     await expect(page.getByTestId('session-toolbar')).toHaveCount(0)
@@ -289,7 +291,7 @@ test.describe('浏览器会话门禁（本地 fixture）', () => {
     const state = fixture({ factsStatus: 403 })
     await open(page, state)
     await expectWorkbench(page)
-    await page.locator('button.context-submit').click()
+    await page.locator('.facts-panel button[type=submit]').click()
     await expect(page.getByRole('alert')).toContainText('需要登录或资源权限')
     await expectWorkbench(page)
     await expect(page.getByTestId('session-toolbar')).toContainText('fixture-user-a')
@@ -313,7 +315,7 @@ test.describe('浏览器会话门禁（本地 fixture）', () => {
       await expect(page.getByRole('heading', { name: WORKBENCH_TITLE })).toHaveCount(0)
       expect(state.businessRequests).toHaveLength(0)
       expect(state.requests.filter(item => item.path === LOGIN_PATH || item.path === LOGOUT_PATH)).toHaveLength(0)
-      expect(new URL(page.url()).pathname).toBe(WORKBENCH_PATH)
+      await expect(page).toHaveURL(/\/game-master(?:\?|$)/)
     })
   }
 

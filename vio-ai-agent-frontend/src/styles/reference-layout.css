@@ -1,0 +1,339 @@
+/* Reference design, with independent scrolling panels for desktop browser windows. */
+.reference-layout.in-workspace { --toolbar:0px; --ink:#172f28; --muted:#7e8985; --green:#316c56; }
+.reference-layout .workspace-toolbar { display:none; }
+.reference-layout .workspace-shell { grid-template-columns:264px minmax(0,1fr); height:100dvh; }
+.reference-layout .workspace-nav { padding:23px 18px 18px; background:linear-gradient(105deg,#f0f6f1,#f7faf6); }
+.reference-layout .workspace-brand { gap:14px; margin:0 12px 29px; }
+.reference-layout .workspace-brand .vio-mark { width:55px; height:55px; }
+.reference-layout .workspace-brand strong { font-size:36px; letter-spacing:.01em; line-height:1; }
+.reference-layout .workspace-brand small { font-size:14px; margin-top:7px; color:#475b51; }
+.reference-layout .new-chat { min-height:50px; font-size:17px; border-radius:8px; }
+.reference-layout .workspace-entry { margin-top:18px; padding:16px 14px; font-size:17px; border-radius:7px; }
+.reference-layout .entry-dot { display:none; }
+.reference-layout .recent-heading { padding:27px 12px 13px; font-size:14px; }
+.reference-layout .recent-item { margin-bottom:9px; padding:12px 16px; border-radius:7px; }
+.reference-layout .recent-item span { font-size:15px; line-height:1.6; }
+.reference-layout .recent-item small { font-size:13px; margin-top:5px; }
+.reference-layout .recent-item.selected { box-shadow:inset 3px 0 #e0ece1; background:#f9fcf8; }
+.reference-layout .all-history { padding:10px 12px; font-size:13px; }
+.reference-layout .sidebar-empty { font-size:14px; }
+.reference-layout .nav-footer { gap:9px; padding-top:23px; }
+.reference-layout .nav-footer>button { padding:10px 14px; font-size:15px; }
+.reference-layout .workspace-account { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:2px 14px; color:#9aa69d; font-size:11px; }
+.reference-layout .workspace-account span { max-width:100%; overflow-wrap:anywhere; }
+.reference-layout .workspace-account button { color:var(--green); text-decoration:underline; }
+.reference-layout .workspace-account small { padding:0; font-size:10px; }
+.reference-layout .workspace-header { height:80px; min-height:80px; padding:17px 28px; gap:25px; flex-wrap:nowrap; }
+.reference-layout .workspace-header h1 { font-size:30px; letter-spacing:-.03em; }
+.reference-layout .scenario-bar { gap:12px; }
+.reference-layout .scenario-bar select { height:40px; min-width:114px; max-width:154px; padding:8px 12px; font-size:15px; background:#eef3f0; border:0; }
+.reference-layout .source-toggle { font-size:14px; padding:10px 14px; border:0; background:#f0f5f1; gap:9px; }
+.reference-layout .source-toggle .ui-icon { width:18px; height:18px; }
+.reference-layout .workspace-settings { padding:16px 28px; }
+.reference-layout .workspace-settings label,.reference-layout .workspace-settings input { font-size:13px; }
+.reference-layout .workspace-body { grid-template-columns:minmax(0,1fr) 460px; gap:14px; padding:0 16px 12px; }
+.reference-layout .conversation-pane,.reference-layout .resource-sidebar { border-radius:12px; border-color:#e2e8e4; }
+.reference-layout .workspace-tabs { padding:6px 10px; min-height:46px; }
+.reference-layout .workspace-tabs button { min-width:96px; justify-content:center; padding:6px 12px; font-size:14px; border-radius:6px; }
+.reference-layout .workspace-tabs button[aria-pressed=true] { position:relative; }
+.reference-layout .conversation-tabs { border-bottom:1px solid #edf0ee; margin:0; flex:0 0 auto; }
+.reference-layout .conversation-tabs button[aria-pressed=true]::after { content:''; position:absolute; height:3px; width:52px; background:#3f7f61; bottom:-5px; left:calc(50% - 26px); border-radius:3px; }
+.reference-layout .conversation-tabs .resource-toggle { min-width:0; font-size:12px; color:#9aa79f; padding:8px; }
+.reference-layout .conversation-tabs .resource-toggle .ui-icon { display:none; }
+.reference-layout .workspace-notice { padding:5px 25px 9px; font-size:12px; }
+.reference-layout .message-list { padding:20px 18px; gap:20px; }
+.reference-layout .message-row { gap:16px; max-width:96%; }
+.reference-layout .user-row { max-width:92%; }
+.reference-layout .assistant-row { width:96%; }
+.reference-layout .ai-avatar { width:42px; height:42px; margin-top:3px; }
+.reference-layout .ai-avatar .vio-mark { width:42px; height:42px; }
+.reference-layout .message-author { display:none; }
+.reference-layout .assistant-row .message-content { border:1px solid #e1e8e3; border-radius:10px; padding:14px 14px 8px; }
+.reference-layout .message-bubble { font-size:17px; line-height:1.85; }
+.reference-layout .assistant-bubble { border:0; padding:0; border-radius:0; white-space:normal; background:transparent; }
+.reference-layout .user-bubble { padding:15px 19px; font-size:16px; line-height:1.65; background:#e7f0e9; border-radius:14px 3px 14px 14px; }
+.reference-layout .formatted-message h3 { font-size:20px; margin:0 0 14px; line-height:1.5; }
+.reference-layout .message-paragraph { white-space:pre-wrap; min-height:0; }
+.reference-layout .formatted-message code { font-size:.88em; background:#edf3ef; border-radius:4px; padding:1px 4px; }
+.reference-layout .message-time { display:block; margin-top:10px; font-size:12px; color:#9aa19e; }
+.reference-layout .user-row .message-time { text-align:right; }
+.reference-layout .message-actions { margin-top:12px; gap:12px; }
+.reference-layout .message-actions button { font-size:11px; padding:3px 0; }
+.reference-layout .message-actions .ui-icon { width:15px; height:15px; }
+.reference-layout .response-actions { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 4px; }
+.reference-layout .response-actions button,.reference-layout .team-advice-actions button { display:flex; align-items:center; justify-content:center; gap:8px; border:1px solid #dce5df; border-radius:9px; padding:7px 10px; background:white; color:#455c50; font-size:13px; }
+.reference-layout .response-actions .ui-icon { width:16px; height:16px; }
+.reference-layout .input-area { margin:8px 14px 0; padding:4px 7px; border-radius:14px; min-height:54px; box-shadow:0 4px 12px #25443007; }
+.reference-layout .input-area textarea { height:40px; font-size:15px; padding:8px; }
+.reference-layout .send-btn { width:38px; height:38px; }
+.reference-layout .send-btn .ui-icon { width:20px; height:20px; }
+.reference-layout .composer-hint { font-size:11px; padding:5px 17px 8px; }
+.reference-layout .resource-sidebar-heading { padding:13px 17px 2px; }
+.reference-layout .resource-sidebar-heading h2 { font-size:21px; }
+.reference-layout .close-resources { color:#a2aea5; padding:5px; }
+.reference-layout .resource-tabs { padding:3px 15px 7px; gap:9px; position:relative; }
+.reference-layout .resource-tabs>button { font-size:15px; padding:10px; }
+.reference-layout .resource-tabs>button[aria-pressed=true] { position:relative; }
+.reference-layout .resource-tabs>button[aria-pressed=true]::after { content:''; position:absolute; width:50px; height:3px; background:#3f7f61; bottom:-11px; left:calc(50% - 25px); }
+.reference-layout .more-resources summary { font-size:11px; padding:8px 0; }
+.reference-layout .more-resources>div { top:35px; }
+.reference-layout .more-resources button { font-size:13px; }
+.reference-layout .workbench-content { padding:9px 13px 12px; display:flex; flex-direction:column; gap:12px; }
+.reference-layout .trust-banner { order:3; font-size:11px; margin:0 2px; padding:0 3px; color:#929e97; }
+.reference-layout .trust-banner span { display:none; }
+.reference-layout .resource-status { font-size:12px; padding-top:8px; }
+.reference-layout .resource-status.positive-notice { position:absolute; width:1px; height:1px; overflow:hidden; padding:0; clip-path:inset(50%); }
+.reference-layout .facts-panel>.panel-heading { display:none; }
+.reference-layout .fact-search-form { position:relative; display:flex; flex-wrap:nowrap; align-items:center; padding:0 12px; gap:8px; border:1px solid #dce4de; border-radius:11px; margin:0 0 12px; min-height:47px; }
+.reference-layout .fact-search-form>.ui-icon { width:20px; height:20px; color:#9aa49e; }
+.reference-layout .fact-search-form .grow { min-width:0; }
+.reference-layout .fact-search-form .grow input { border:0; height:44px; background:transparent; padding:7px 0; box-shadow:none; outline-offset:-3px; font-size:15px; }
+.reference-layout .fact-search-form>button { padding:6px; font-size:12px; border:0; color:#708e7c; }
+.reference-layout .fact-search-options { color:#8a9c90; font-size:11px; }
+.reference-layout .fact-search-options summary { list-style:none; }
+.reference-layout .fact-search-options[open] .number-field { position:absolute; top:49px; right:0; width:160px; padding:12px; background:#fff; border:1px solid var(--line); border-radius:8px; z-index:5; box-shadow:0 8px 24px #25443015; }
+.reference-layout .fact-card { position:relative; padding:17px 17px 10px; background:linear-gradient(145deg,#fff 45%,#f8fbf9); border-radius:12px; }
+.reference-layout .fact-favorite { position:absolute; top:16px; right:17px; color:#adbaad; z-index:1; }
+.reference-layout .fact-favorite .ui-icon { width:22px; height:22px; }
+.reference-layout .fact-favorite[aria-pressed=true] { color:#e9b845; opacity:1; }
+.reference-layout .fact-favorite[aria-pressed=true] svg { fill:#f5c348; }
+.reference-layout .fact-hero { grid-template-columns:1fr 1.35fr; min-height:200px; }
+.reference-layout .fact-hero .pokemon-portrait { height:200px; background:radial-gradient(circle,#e5f5f5 57%,transparent 58%); }
+.reference-layout .fact-hero .pokemon-portrait img { max-height:200px; }
+.reference-layout .fact-hero h3 { font-size:33px; margin:8px 0; }
+.reference-layout .pokedex-number { font-size:18px; color:#858e8c; }
+.reference-layout .species-slug { font-size:18px; color:#75827c; }
+.reference-layout .type-tag { font-size:13px; padding:5px 19px; }
+.reference-layout .base-stats-heading { font-size:14px; margin:20px 0 12px; }
+.reference-layout .base-stats-heading small { font-size:13px; }
+.reference-layout .base-stat-bars { gap:10px; }
+.reference-layout .base-stat-bars>div { font-size:14px; grid-template-columns:59px 1fr; }
+.reference-layout .base-stat-bars strong { font-size:14px; min-width:24px; }
+.reference-layout .stat-track { height:10px; }
+.reference-layout .fact-actions { gap:12px; margin:22px 0 0; }
+.reference-layout .fact-actions button { height:48px; font-size:15px; border-radius:9px; }
+.reference-layout .fact-actions .ui-icon { width:20px; height:20px; }
+.reference-layout .fact-provenance { margin-top:12px; padding-top:10px; font-size:11px; }
+.reference-layout .fact-provenance summary { font-size:11px; }
+.reference-layout .lineage-block,.reference-layout .evidence-block { font-size:12px; }
+.reference-layout .draft-preview { margin-top:12px; padding:12px; }
+.reference-layout .draft-preview>div:first-child { font-size:13px; }
+.reference-layout .draft-preview>div:first-child button { font-size:12px; }
+.reference-layout .draft-preview-slots { margin-top:10px; gap:5px; }
+.reference-layout .draft-preview-slots>button { height:76px; }
+.reference-layout .draft-preview-slots .pokemon-portrait { height:59px; }
+.reference-layout .state-box { font-size:13px; }
+.reference-layout .fact-empty { padding:32px 15px; }
+.reference-layout .fact-empty strong { font-size:18px; }
+.reference-layout .fact-empty .pokemon-portrait { height:180px; width:180px; }
+
+/* Full-width roster ABOVE the two editing/calculation columns, with one shared form. */
+.reference-layout .team-mode .workspace-tabs { padding:6px 10px; min-height:46px; }
+.reference-layout .team-mode .workspace-tabs>div { gap:8px; }
+.reference-layout .team-mode .workspace-body { grid-template-columns:minmax(0,1fr) 360px; gap:14px; padding:0 16px 14px; }
+.reference-layout .team-mode .resource-sidebar-heading { display:none; }
+.reference-layout .workbench-page.team-workspace .workbench-content { padding:15px; gap:16px; }
+.reference-layout .workbench-page.team-workspace .workbench-grid { grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); align-items:start; gap:14px; }
+.reference-layout .team-roster { width:100%; min-width:0; }
+.reference-layout .roster-toolbar { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.reference-layout .roster-name { position:relative; flex:0 1 260px; min-width:100px; }
+.reference-layout .roster-name input { width:100%; height:42px; padding:9px 34px 9px 14px; font-size:16px; font-weight:600; }
+.reference-layout .team-roster .roster-name input { height:42px; font-size:16px; padding-right:34px; }
+.reference-layout .roster-name>.ui-icon { position:absolute; right:11px; top:12px; width:17px; height:17px; pointer-events:none; color:#6b7c72; }
+.reference-layout .roster-save-state { display:inline-flex; align-items:center; gap:4px; padding:5px 7px; border-radius:5px; color:#98a39b; font-size:12px; white-space:nowrap; }
+.reference-layout .roster-save-state.saved { background:#e9f4ea; color:#4b8b64; }
+.reference-layout .roster-save-state .ui-icon { width:13px; height:13px; }
+.reference-layout .roster-actions { display:flex; gap:9px; margin-left:auto; align-items:center; }
+.reference-layout .roster-actions .primary-btn { min-width:125px; height:42px; font-size:15px; }
+.reference-layout .roster-reset { font-size:11px; color:#95a298; }
+.reference-layout .team-roster .team-slot-strip { grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; }
+.reference-layout .team-roster .team-slot { min-height:133px; padding:8px 5px; border-radius:10px; }
+.reference-layout .team-roster .team-slot.selected { padding:7px 4px; border-width:2px; background:#edf5ed; }
+.reference-layout .team-roster .team-slot .pokemon-portrait { height:79px; width:100%; }
+.reference-layout .team-roster .team-slot strong { font-size:14px; margin-top:2px; }
+.reference-layout .team-roster .team-slot small { font-size:12px; margin-top:3px; }
+.reference-layout .team-roster .team-slot.vacant { gap:14px; }
+.reference-layout .team-roster .team-slot.vacant .ui-icon { width:25px; height:25px; }
+.reference-layout .team-roster .team-slot.vacant span { font-size:13px; }
+.reference-layout .team-workspace .team-panel { padding:0; border:0; background:transparent; grid-column:1; grid-row:1; }
+.reference-layout .team-workspace .team-panel>.panel-heading { display:none; }
+.reference-layout .team-editor-form { display:flex; flex-direction:column; gap:12px; margin:0; }
+.reference-layout .team-version-settings { font-size:12px; padding:9px 12px; order:2; }
+.reference-layout .member-build { border:1px solid var(--line); padding:15px; border-radius:12px; margin:0; }
+.reference-layout .member-build>summary { font-size:19px; color:#1d3328; list-style:none; margin-bottom:13px; font-weight:700; }
+.reference-layout .member-build>summary small { font-size:11px; color:#a0aaa2; margin-left:8px; font-weight:400; }
+.reference-layout .member-profile-grid { display:grid; grid-template-columns:125px minmax(0,1fr); align-items:start; gap:14px; }
+.reference-layout .member-identity { display:grid; justify-items:center; align-content:start; }
+.reference-layout .member-identity>.pokemon-portrait { height:100px; width:125px; }
+.reference-layout .member-identity strong { font-size:14px; }
+.reference-layout .member-identity>.type-tag { font-size:10px; padding:2px 12px; margin-top:3px; }
+.reference-layout .member-identity>.danger-link { font-size:9px; color:#aaada6; margin-top:3px; }
+.reference-layout .member-profile-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
+.reference-layout .workbench-page label { font-size:13px; gap:5px; color:#6c7d71; }
+.reference-layout .workbench-page input,.reference-layout .workbench-page select { font-size:14px; height:37px; padding:7px 9px; border-radius:7px; }
+.reference-layout .member-profile-fields label { font-size:12px; }
+.reference-layout .member-profile-fields input,.reference-layout .member-profile-fields select { height:34px; font-size:13px; }
+.reference-layout .moves-heading { font-size:15px; margin:11px 0 9px; }
+.reference-layout .move-slots { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 10px; }
+.reference-layout .move-slots>label { display:flex; flex-direction:row; gap:4px; align-items:center; border:1px solid var(--line); border-radius:7px; padding:0 7px; }
+.reference-layout .move-slots .ui-icon { width:14px; height:14px; color:#9ca89f; }
+.reference-layout .move-slots input { border:0; height:32px; min-width:0; padding:5px 2px; font-size:13px; }
+.reference-layout .bulk-moves { font-size:10px; color:#a1aaa2; margin:5px 0 0; }
+.reference-layout .bulk-moves label { margin-top:8px; }
+.reference-layout .training-table { margin-top:10px; font-size:13px; }
+.reference-layout .training-table caption { font-size:15px; padding:0 0 8px; }
+.reference-layout .training-table th { font-size:12px; padding:4px 10px; }
+.reference-layout .training-table td { padding:1px 7px; }
+.reference-layout .training-table input { font-size:13px; height:23px; padding:2px 7px; border-radius:4px; }
+.reference-layout .ev-total { font-size:12px; margin-top:5px; color:#6d7d71; }
+.reference-layout .team-workspace .engine-panel { grid-column:2; grid-row:1; border:1px solid var(--line); padding:16px; border-radius:12px; min-height:570px; display:flex; flex-direction:column; }
+.reference-layout .engine-panel h2 { font-size:19px; margin-bottom:13px; }
+.reference-layout .team-workspace .engine-panel>p { display:none; }
+.reference-layout .engine-help { font-size:10px; color:#a1aca3; margin:0 0 7px; order:3; }
+.reference-layout .engine-form { display:grid; gap:16px; margin:0; }
+.reference-layout .engine-form label { font-size:14px; }
+.reference-layout .engine-form input,.reference-layout .engine-form select { height:44px; font-size:14px; background:#fcfdfb; }
+.reference-layout .engine-conditions { border:1px solid var(--line); border-radius:9px; background:#f0f6f0; padding:12px; font-size:14px; }
+.reference-layout .engine-conditions summary { display:flex; align-items:center; justify-content:space-between; list-style:none; }
+.reference-layout .engine-conditions .two-fields { margin-top:14px; }
+.reference-layout .engine-form>.primary-btn { height:46px; font-size:16px; }
+.reference-layout .engine-empty { flex:1; min-height:140px; padding:22px 6px; align-content:center; gap:12px; }
+.reference-layout .engine-empty>.ui-icon { width:50px; height:50px; }
+.reference-layout .engine-empty strong { font-size:14px; }
+.reference-layout .engine-empty span { font-size:12px; line-height:1.6; }
+.reference-layout .team-mode .conversation-pane-heading { padding:20px 17px; border-bottom:0; }
+.reference-layout .team-mode .conversation-pane-heading h2 { font-size:20px; }
+.reference-layout .team-mode .conversation-pane-heading>.ui-icon,.reference-layout .team-mode .conversation-pane-heading>span { display:none; }
+.reference-layout .team-mode .message-list { padding:20px 17px; gap:23px; }
+.reference-layout .team-mode .message-row { max-width:100%; gap:9px; }
+.reference-layout .team-mode .ai-avatar { display:block; width:34px; height:34px; }
+.reference-layout .team-mode .ai-avatar .vio-mark { width:34px; height:34px; }
+.reference-layout .team-mode .assistant-row .message-content { padding:13px 12px 7px; }
+.reference-layout .team-mode .message-bubble { font-size:15px; line-height:1.8; }
+.reference-layout .team-mode .response-actions { display:none; }
+.reference-layout .team-mode .input-area { margin:7px 11px 0; border-radius:12px; padding:4px 6px; }
+.reference-layout .team-mode .input-area textarea { font-size:14px; }
+.reference-layout .team-mode .send-btn { border-radius:8px; width:36px; height:36px; }
+.reference-layout .team-mode .composer-hint { display:none; }
+.reference-layout .team-mode .chat-room { padding-bottom:13px; }
+.reference-layout .team-advice-actions { display:flex; gap:8px; flex-wrap:wrap; padding:10px 14px; }
+.reference-layout .team-advice-actions button { padding:9px 10px; font-size:12px; }
+.reference-layout .team-mode .team-advice-actions { padding:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.reference-layout .advice-reference-toggle { display:flex; align-items:center; gap:9px; border:1px solid var(--line); border-radius:8px; padding:12px; font-size:13px; color:#657b6d; text-align:left; }
+.reference-layout .advice-reference-toggle>.ui-icon:last-child { margin-left:auto; }
+.reference-layout .team-mode .team-list { margin-top:16px; }
+.reference-layout .team-mode .team-card h3 { font-size:15px; }
+.reference-layout .team-mode .team-card .muted { display:none; }
+.reference-layout .team-mode .member-list { font-size:12px; }
+.reference-layout .team-mode .team-actions button { font-size:12px; }
+.reference-layout .workspace-body.resources-hidden { grid-template-columns:minmax(0,1fr); }
+.reference-layout .workspace-header,.reference-layout .workspace-tabs,.reference-layout .workspace-settings { flex-shrink:0; }
+.reference-layout .workspace-settings { max-height:32dvh; overflow:auto; }
+.reference-layout .message-content { min-width:0; overflow-wrap:anywhere; }
+.reference-layout .resource-sidebar,.reference-layout .message-list { overscroll-behavior:contain; scrollbar-gutter:stable; }
+
+@media(min-width:768px) and (max-width:1449px) {
+  .reference-layout .workspace-shell { grid-template-columns:220px minmax(0,1fr); }
+  .reference-layout .workspace-brand { margin-left:4px; gap:10px; }
+  .reference-layout .workspace-brand strong { font-size:31px; }
+  .reference-layout .workspace-brand small { font-size:12px; }
+  .reference-layout .workspace-body { grid-template-columns:minmax(0,1fr) 390px; }
+  .reference-layout .workspace-header { gap:15px; padding:16px 20px; }
+  .reference-layout .workspace-header h1 { font-size:26px; }
+  .reference-layout .scenario-bar { gap:7px; }
+  .reference-layout .scenario-bar select { min-width:90px; max-width:120px; font-size:13px; }
+  .reference-layout .message-list { padding:24px 16px; }
+  .reference-layout .message-row { gap:9px; }
+  .reference-layout .message-bubble { font-size:15px; }
+  .reference-layout .team-mode .workspace-body { grid-template-columns:minmax(0,1fr) 300px; }
+  .reference-layout .workbench-page.team-workspace .workbench-grid { grid-template-columns:minmax(0,1fr); }
+  .reference-layout .team-workspace .engine-panel { grid-column:1; grid-row:2; min-height:0; }
+  .reference-layout .team-roster .team-slot { min-height:111px; }
+  .reference-layout .team-roster .team-slot .pokemon-portrait { height:60px; }
+  .reference-layout .team-roster .team-slot strong { font-size:12px; }
+  .reference-layout .team-roster .team-slot.vacant span { font-size:10px; }
+  .reference-layout .roster-toolbar { flex-wrap:wrap; }
+  .reference-layout .roster-name { flex:1; }
+  .reference-layout .roster-reset { display:none; }
+}
+/* Collapse only navigation on smaller web windows; keep chat and resources inline. */
+@media(min-width:768px) and (max-width:1199px) {
+  .reference-layout .workspace-shell { grid-template-columns:minmax(0,1fr); }
+  .reference-layout .workspace-nav { position:fixed; top:0; bottom:0; left:0; width:264px; z-index:31; transform:translateX(-100%); transition:transform .2s; }
+  .reference-layout .workspace-nav.mobile-open { transform:translateX(0); }
+  .reference-layout .nav-scrim { display:block; position:fixed; inset:0; z-index:30; background:#16372640; backdrop-filter:blur(2px); }
+  .reference-layout .mobile-nav-toggle { display:block; padding:4px; }
+  .reference-layout .workspace-header { gap:10px; padding:14px 16px; }
+  .reference-layout .workspace-header h1 { font-size:24px; }
+  .reference-layout .source-toggle { margin-left:auto; padding:9px; font-size:12px; }
+  .reference-layout .scenario-bar select { min-width:80px; max-width:110px; padding:7px; }
+  .reference-layout .workspace-body { grid-template-columns:minmax(0,1fr) clamp(320px,36vw,390px); gap:10px; padding:0 12px 12px; }
+  .reference-layout .team-mode .workspace-body { grid-template-columns:minmax(0,1fr) 290px; gap:10px; padding:0 12px 12px; }
+  .reference-layout .team-roster .team-slot-strip { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .reference-layout .member-profile-grid { grid-template-columns:100px minmax(0,1fr); gap:10px; }
+  .reference-layout .member-identity>.pokemon-portrait { width:100px; }
+  .reference-layout .workspace-body.resources-hidden { grid-template-columns:minmax(0,1fr); }
+}
+@media(min-width:1920px) {
+  .reference-layout .workspace-body { grid-template-columns:minmax(0,1fr) clamp(460px,25vw,560px); }
+  .reference-layout .team-mode .workspace-body { grid-template-columns:minmax(0,1fr) clamp(360px,22vw,480px); }
+  .reference-layout .message-row { max-width:min(96%,960px); }
+  .reference-layout .workspace-body.resources-hidden { grid-template-columns:minmax(0,1fr); }
+}
+@media(max-width:767px) {
+  .reference-layout .workspace-shell { display:flex; height:100dvh; }
+  .reference-layout .workspace-nav { top:0; width:264px; }
+  .reference-layout .workspace-header { height:auto; min-height:105px; flex-wrap:wrap; padding:12px 15px; gap:11px; }
+  .reference-layout .workspace-header h1 { font-size:23px; }
+  .reference-layout .source-toggle { font-size:12px; padding:8px; }
+  .reference-layout .scenario-bar { width:100%; gap:6px; }
+  .reference-layout .scenario-bar select { min-width:0; max-width:none; width:100%; height:35px; font-size:12px; }
+  .reference-layout .workspace-tabs,.reference-layout .team-mode .workspace-tabs { min-height:44px; padding:6px 8px; }
+  .reference-layout .workspace-tabs button { min-width:78px; padding:6px 9px; font-size:13px; }
+  .reference-layout .conversation-tabs .resource-toggle { font-size:11px; }
+  .reference-layout .workspace-body,.reference-layout .team-mode .workspace-body { display:flex; padding:0 8px 9px; }
+  .reference-layout .resource-sidebar { top:112px; right:8px; left:8px; bottom:9px; }
+  .reference-layout .team-mode .resource-sidebar { top:166px; }
+  .reference-layout .resource-sidebar-heading,.reference-layout .team-mode .resource-sidebar-heading { display:flex; padding:13px 15px 6px; }
+  .reference-layout .resource-sidebar-heading h2 { font-size:18px; }
+  .reference-layout .resource-tabs { padding:7px 10px 10px; }
+  .reference-layout .resource-tabs>button { padding:8px 6px; font-size:14px; }
+  .reference-layout .workbench-content,.reference-layout .workbench-page.team-workspace .workbench-content { padding:12px; }
+  .reference-layout .message-list,.reference-layout .team-mode .message-list { padding:16px 10px; gap:18px; }
+  .reference-layout .message-row { gap:8px; max-width:100%; }
+  .reference-layout .assistant-row { width:100%; }
+  .reference-layout .ai-avatar,.reference-layout .ai-avatar .vio-mark { width:31px; height:31px; }
+  .reference-layout .assistant-row .message-content { padding:13px 12px 8px; }
+  .reference-layout .message-bubble { font-size:15px; }
+  .reference-layout .user-bubble { font-size:14px; padding:12px 15px; }
+  .reference-layout .formatted-message h3 { font-size:18px; }
+  .reference-layout .response-actions { gap:6px; margin-top:11px; }
+  .reference-layout .response-actions button { font-size:11px; padding:6px 8px; gap:5px; }
+  .reference-layout .response-actions .ui-icon { width:14px; height:14px; }
+  .reference-layout .input-area { margin:7px 9px 0; min-height:50px; padding:4px; }
+  .reference-layout .input-area textarea { font-size:14px; height:36px; padding:6px 8px; }
+  .reference-layout .send-btn { width:36px; height:36px; }
+  .reference-layout .composer-hint { font-size:10px; padding:4px 11px 7px; }
+  .reference-layout .fact-hero { min-height:190px; }
+  .reference-layout .fact-hero .pokemon-portrait { height:190px; }
+  .reference-layout .fact-hero h3 { font-size:29px; }
+  .reference-layout .fact-actions button { font-size:13px; }
+  .reference-layout .roster-toolbar { flex-wrap:wrap; gap:8px; }
+  .reference-layout .roster-name { flex:1 1 180px; }
+  .reference-layout .roster-name input { font-size:15px; height:39px; }
+  .reference-layout .roster-actions { width:100%; justify-content:space-between; margin-left:0; }
+  .reference-layout .roster-actions .primary-btn { height:38px; min-width:120px; font-size:14px; }
+  .reference-layout .team-roster .team-slot-strip { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+  .reference-layout .team-roster .team-slot { min-height:110px; }
+  .reference-layout .team-roster .team-slot .pokemon-portrait { height:63px; }
+  .reference-layout .workbench-page.team-workspace .workbench-grid { grid-template-columns:minmax(0,1fr); }
+  .reference-layout .team-workspace .engine-panel { grid-column:1; grid-row:2; min-height:0; }
+  .reference-layout .member-build { padding:12px; }
+  .reference-layout .member-profile-grid { grid-template-columns:95px minmax(0,1fr); gap:10px; }
+  .reference-layout .member-identity>.pokemon-portrait { width:95px; height:91px; }
+  .reference-layout .member-profile-fields { gap:8px; }
+  .reference-layout .member-profile-fields label { font-size:11px; }
+  .reference-layout .member-profile-fields input,.reference-layout .member-profile-fields select { font-size:12px; height:32px; padding:5px; }
+  .reference-layout .team-mode .conversation-pane-heading { display:none; }
+  .reference-layout .team-advice-actions { display:none; }
+}

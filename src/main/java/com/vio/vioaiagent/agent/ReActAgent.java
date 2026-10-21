@@ -71,7 +71,7 @@ public abstract class ReActAgent extends BaseAgent {
             // 第一步：思考
             boolean shouldAct = think();
             if (!shouldAct) {
-                return "思考完成 - 无需行动";
+                return noActionResult();
             }
             // 第二步：行动
             return act();
@@ -79,5 +79,9 @@ public abstract class ReActAgent extends BaseAgent {
             log.error("ReAct 步骤执行失败", e);
             return "步骤执行失败：" + e.getMessage();
         }
+    }
+
+    protected String noActionResult() {
+        return "思考完成 - 无需行动";
     }
 }

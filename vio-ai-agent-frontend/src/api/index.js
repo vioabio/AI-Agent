@@ -128,6 +128,14 @@ function unwrapResult(payload, response) {
 }
 
 async function readJson(response, operation) {
+  if (!response.ok && response.status === 404) {
+    const error = httpError(response, operation)
+    try {
+      const payload = await response.json()
+      if (typeof payload?.message === 'string') error.resourceMissing = /data_release/.test(payload.message)
+    } catch { /* A proxy may return HTML; retain the HTTP error. */ }
+    throw error
+  }
   ensureOk(response, operation)
   if (response.status === 204) return null
   const body = await response.json()
@@ -217,10 +225,27 @@ export async function fetchAuthSession({ signal } = {}) {
   return readJson(response, '读取登录状态失败')
 }
 
+/** Local account forms never store passwords or recovery codes in browser storage. */
+export async function localAccountRequest(action, body, method = 'POST') {
+  const response = await authenticatedFetch(`${API_BASE_URL}/auth/local/${action}`, {
+    method, credentials: 'include', cache: 'no-store',
+    headers: requestHeaders(body ? { 'Content-Type': 'application/json' } : {}),
+    ...(body ? { body: JSON.stringify(body) } : {})
+  })
+  const payload = await response.json().catch(() => null)
+  if (!response.ok) {
+    if (!['login', 'register', 'recover'].includes(action)) notifyAuthenticationFailure(response.status, response)
+    const error = new Error(payload?.message || `请求失败（HTTP ${response.status}），请重试`)
+    error.status = response.status
+    throw error
+  }
+  return payload
+}
+
 /** Refresh CSRF before logout, and only accept the documented no-content success. */
 export async function logoutSession({ signal } = {}) {
   const session = await fetchAuthSession({ signal })
-  if (session?.mode !== 'oidc' || !session.csrf?.enabled || !session.csrf?.available || !csrfToken()) {
+  if (!['oidc', 'local'].includes(session?.mode) || !session.csrf?.enabled || !session.csrf?.available || !csrfToken()) {
     throw new Error('缺少可用的退出校验，请重试')
   }
   const response = await authenticatedFetch(`${API_BASE_URL}/logout`, {
@@ -566,6 +591,40 @@ export async function updatePokemonTeam(teamId, payload, { idempotencyKey, signa
 }
 
 /** 查询单个队伍。 */
+export async function fetchPokemonFactByFormId(formId, { dataReleaseId, signal } = {}) {
+  if (!Number.isSafeInteger(Number(formId)) || Number(formId) <= 0 || !dataReleaseId) {
+    throw new Error('缺少有效的形态 ID 或数据版本')
+  }
+  const response = await authenticatedFetch(`${API_BASE_URL}/pokemon/facts/forms/${Number(formId)}${queryString({ dataReleaseId })}`, {
+    credentials: 'include', signal, headers: requestHeaders()
+  })
+  return readJson(response, '读取队伍成员资料失败')
+}
+
+export async function fetchPokemonReferenceStatus({ signal } = {}) {
+  return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/reference/status`, {
+    credentials: 'include', signal, headers: requestHeaders()
+  }), '读取参考资料配置失败')
+}
+
+export async function fetchPokemonReference(query, { dataReleaseId, signal } = {}) {
+  return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/reference/pokemon/${encodeURIComponent(query)}${queryString({ dataReleaseId })}`, {
+    credentials: 'include', signal, headers: requestHeaders()
+  }), '读取宝可梦详细资料失败')
+}
+
+export async function calculateEngineDamage(payload, { signal } = {}) {
+  return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/calculations/engine-damage`, {
+    method:'POST',credentials:'include',signal,headers:requestHeaders({'Content-Type':'application/json'}),body:JSON.stringify(payload)
+  }), '本地伤害计算失败')
+}
+
+export async function searchPokemonGuides(query, gameReleaseId, { signal } = {}) {
+  return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/guides${queryString({query,gameReleaseId})}`, {
+    credentials:'include',signal,headers:requestHeaders()
+  }), '本地攻略检索失败')
+}
+
 export async function fetchPokemonTeam(teamId, { signal } = {}) {
   if (!teamId) throw new Error('缺少 teamId')
   const response = await authenticatedFetch(`${API_BASE_URL}/teams/${encodeURIComponent(teamId)}`, {

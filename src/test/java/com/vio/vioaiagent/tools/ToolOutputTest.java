@@ -49,9 +49,8 @@ class ToolOutputTest {
 
     @Test
     void testSearchReturnsFormattedText() {
-        WebSearchTool tool = new WebSearchTool("test-key");
-        // 注意：用假 key 调 searchapi.io 会返回错误
-        // 但我们可以验证错误信息格式
+        WebSearchTool tool = new WebSearchTool("fixture-key", (query, key) -> new WebSearchTool.SearchResponse(
+                200, "{\"organic_results\":[{\"title\":\"fixture\",\"link\":\"https://example.invalid\",\"snippet\":\"readable text\"}]}"));
         String result = tool.searchWeb("test query");
         System.out.println("Search result: " + result);
 

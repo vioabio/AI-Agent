@@ -2,7 +2,7 @@ package com.vio.vioaiagent.agent;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
+import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import com.vio.vioaiagent.agent.model.AgentState;
 import com.vio.vioaiagent.tools.governance.ToolExecutionContext;
 import com.vio.vioaiagent.tools.governance.ToolExecutionContextHolder;
@@ -65,14 +65,21 @@ public class ToolCallAgent extends ReActAgent {
     /** 连续错误计数器 */
     private int consecutiveErrors = 0;
 
+    /** User-facing response, kept separate from the execution transcript. */
+    private String finalAnswer;
+
+    /** Invoked on the run worker thread, preserving lease and governance context. */
+    private java.util.function.Consumer<String> answerDeltaSink;
+    private final StringBuilder streamedAnswer = new StringBuilder();
+
     // ==================== 构造器 ====================
 
     public ToolCallAgent(ToolCallback[] availableTools) {
         super();
         this.availableTools = availableTools;
         this.toolCallingManager = ToolCallingManager.builder().build();
-        this.chatOptions = DashScopeChatOptions.builder()
-                .withInternalToolExecutionEnabled(false)
+        this.chatOptions = ToolCallingChatOptions.builder()
+                .internalToolExecutionEnabled(false)
                 .build();
     }
 
@@ -115,11 +122,11 @@ public class ToolCallAgent extends ReActAgent {
         List<Message> messageList = getMessageList();
         Prompt prompt = new Prompt(messageList, this.chatOptions);
         try {
-            ChatResponse chatResponse = getChatClient().prompt(prompt)
+            var request = getChatClient().prompt(prompt)
                     .system(getSystemPrompt())
-                    .toolCallbacks(getMergedTools())
-                    .call()
-                    .chatResponse();
+                    .toolCallbacks(getMergedTools());
+            ChatResponse chatResponse = answerDeltaSink == null
+                    ? request.call().chatResponse() : streamResponse(request);
 
             // 成功调用，重置错误计数
             this.consecutiveErrors = 0;
@@ -141,11 +148,21 @@ public class ToolCallAgent extends ReActAgent {
 
             if (toolCallList.isEmpty()) {
                 getMessageList().add(assistantMessage);
+                if (StrUtil.isNotBlank(thinkText)) {
+                    finalAnswer = answerDeltaSink == null ? thinkText : streamedAnswer.toString();
+                    setState(AgentState.FINISHED);
+                }
                 return false;
             } else {
                 return true;
             }
         } catch (Exception e) {
+            if (answerDeltaSink != null) {
+                // Never retry a generation that may already have emitted public chunks.
+                setState(AgentState.FINISHED);
+                log.warn("模型生成失败，停止流式任务: {}", e.getClass().getSimpleName());
+                return false;
+            }
             consecutiveErrors++;
             log.error("{} 的思考过程遇到问题（连续错误 {}/{}）：{}",
                     getName(), consecutiveErrors, MAX_CONSECUTIVE_ERRORS, e.getMessage());
@@ -167,6 +184,16 @@ public class ToolCallAgent extends ReActAgent {
     // ==================== Act：行动阶段 ====================
 
     @Override
+    protected String noActionResult() {
+        if (getState() == AgentState.FINISHED && toolCallChatResponse != null
+                && !toolCallChatResponse.hasToolCalls()) {
+            String answer = finalAnswer;
+            if (StrUtil.isNotBlank(answer)) return answer;
+        }
+        return super.noActionResult();
+    }
+
+    @Override
     public String act() {
         if (!toolCallChatResponse.hasToolCalls()) {
             return "没有工具需要调用";
@@ -180,6 +207,7 @@ public class ToolCallAgent extends ReActAgent {
         // RunService 会在异步 worker 中预置完整上下文；不要再次从 RequestContext 生成新的 run/trace。
         // 兼容旧版 /ai/manus 端点：它不经过 Run Service 时没有预置上下文，
         // 仍然要生成受限的请求级上下文，不能因为治理接入而 NPE。
+        ToolExecutionContext previous = ToolExecutionContextHolder.peek();
         ToolExecutionContext inherited = ToolExecutionContextHolder.current();
         if (inherited == null) {
             inherited = ToolExecutionContext.fromRequest();
@@ -199,7 +227,8 @@ public class ToolCallAgent extends ReActAgent {
         try {
             toolExecutionResult = toolCallingManager.executeToolCalls(prompt, toolCallChatResponse);
         } finally {
-            ToolExecutionContextHolder.clear();
+            if (previous == null) ToolExecutionContextHolder.clear();
+            else ToolExecutionContextHolder.set(previous);
         }
 
         // HITL 不是普通工具文本：暂停当前 Agent loop，由 RunService 将 Run 置为
@@ -209,7 +238,7 @@ public class ToolCallAgent extends ReActAgent {
         }
 
         // 2. 更新消息上下文
-        setMessageList(toolExecutionResult.conversationHistory());
+        setMessageList(new java.util.ArrayList<>(toolExecutionResult.conversationHistory()));
 
         // 3. 检查是否调用了终止工具
         ToolResponseMessage toolResponseMessage =
@@ -220,6 +249,9 @@ public class ToolCallAgent extends ReActAgent {
         if (terminateToolCalled) {
             setState(AgentState.FINISHED);
             log.info("{} 调用了终止工具，任务正常结束", getName());
+            if (!approvalRequired.get() && getChatClient() != null) {
+                finalAnswer = summarizeAnswer();
+            }
         }
 
         // 4. 格式化返回结果（截断过长的输出）
@@ -232,6 +264,69 @@ public class ToolCallAgent extends ReActAgent {
                 .collect(Collectors.joining("\n"));
         log.info("工具执行结果：\n{}", results);
         return results;
+    }
+
+    /** No tools are registered for this final synthesis: it cannot perform another action. */
+    protected String summarizeAnswer() {
+        var request = getChatClient().prompt()
+                .system(getSystemPrompt())
+                .messages(getMessageList())
+                .user("请直接回答用户原始问题，使用用户的语言。结合已有工具结果给出最终总结，"
+                        + "不要输出执行日志或任务结束提示。明确说明搜索失败、数据缺失和时效不确定性；"
+                        + "不要把属性表当成当前赛季强度证据，不要捏造排名、引用或工具执行成功。");
+        String answer;
+        if (answerDeltaSink == null) {
+            answer = request.call().content();
+        } else {
+            ChatResponse response = streamResponse(request);
+            if (StrUtil.isBlank(response.getResult().getOutput().getText())) {
+                throw new IllegalStateException("模型未返回最终回答");
+            }
+            answer = streamedAnswer.toString();
+        }
+        if (StrUtil.isBlank(answer)) throw new IllegalStateException("模型未返回最终回答");
+        return answer;
+    }
+
+    /** Stream once for both tool selection and direct answers. Tool argument chunks are
+     * assembled by the provider adapter; only content (never reasoning_content) is public.
+     * Read on the run worker so thread-local leases and governance remain intact. */
+    private ChatResponse streamResponse(org.springframework.ai.chat.client.ChatClient.ChatClientRequestSpec request) {
+        StringBuilder turn = new StringBuilder();
+        var calls = new java.util.LinkedHashMap<String, AssistantMessage.ToolCall>();
+        boolean separated = false;
+        try (var chunks = request.stream().chatResponse()
+                .timeout(java.time.Duration.ofSeconds(60)).toStream()) {
+            var iterator = chunks.iterator();
+            while (iterator.hasNext()) {
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new java.util.concurrent.CancellationException("Run cancelled");
+                }
+                ChatResponse chunk = iterator.next();
+                if (chunk.getResult() == null) continue;
+                AssistantMessage output = chunk.getResult().getOutput();
+                for (var call : output.getToolCalls()) {
+                    if (call.id() == null || call.id().isBlank() || call.name() == null || call.name().isBlank()) {
+                        throw new IllegalStateException("工具调用片段不完整");
+                    }
+                    calls.put(call.id(), call);
+                }
+                String delta = output.getText();
+                if (delta == null || delta.isEmpty()) continue;
+                if (!separated && !streamedAnswer.isEmpty()) publishDelta("\n\n");
+                separated = true;
+                publishDelta(delta);
+                turn.append(delta);
+            }
+        }
+        if (turn.isEmpty() && calls.isEmpty()) throw new IllegalStateException("模型返回空内容");
+        return new ChatResponse(List.of(new org.springframework.ai.chat.model.Generation(
+                new AssistantMessage(turn.toString(), java.util.Map.of(), List.copyOf(calls.values())))));
+    }
+
+    private void publishDelta(String delta) {
+        answerDeltaSink.accept(delta);
+        streamedAnswer.append(delta);
     }
 
     /**

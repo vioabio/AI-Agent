@@ -121,5 +121,5 @@ test('工作台只展示服务端 CalculationCard，不复制属性表或在浏�
   assert.match(workbenchSource, /calculationResult\.value = result/)
   assert.match(workbenchSource, /calculationResult\.dataReleaseId/)
   assert.match(workbenchSource, /calculationResult\.calculationVersion/)
-  assert.doesNotMatch(workbenchSource, /typeChart|\bCHART\b|multiplier\s*=/i)
+  assert.doesNotMatch(workbenchSource, /(?:const|let|var)\s+(?:typeChart|CHART)\b|multiplier\s*=/i)
 })

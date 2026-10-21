@@ -122,8 +122,7 @@ public class BattleCalculationService {
         VersionedDataRelease release = releaseRepository.findDataRelease(releaseId.trim())
                 .orElseThrow(() -> new IllegalArgumentException("找不到 data_release_id: " + releaseId.trim()));
         String status = release.status();
-        if (!("ACTIVE".equalsIgnoreCase(status) || "REVIEWED".equalsIgnoreCase(status)
-                || "PUBLISHED".equalsIgnoreCase(status))) {
+        if (!releaseRepository.isQueryableRelease(release)) {
             throw new IllegalArgumentException("data_release 尚未通过审核: " + release.id());
         }
     }

@@ -32,6 +32,8 @@ public class AuthSessionController {
     private final OidcProperties oidc;
     private final SecurityProperties security;
     private final OidcPrincipalPolicyAdapter adapter;
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private com.vio.vioaiagent.security.LocalAccountService localAccounts;
 
     public AuthSessionController(OidcProperties oidc, SecurityProperties security,
                                  OidcPrincipalPolicyAdapter adapter) {
@@ -52,6 +54,15 @@ public class AuthSessionController {
         CsrfStatus csrf = new CsrfStatus(oidc.enabled(), oidc.enabled() && csrfValue instanceof CsrfToken,
                 "X-CSRF-TOKEN", "CSRF-TOKEN");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (localAccounts != null) {
+            var account = authentication != null && authentication.getPrincipal() instanceof com.vio.vioaiagent.security.LocalAccountService.Account a
+                    ? localAccounts.find(a.id()).orElse(null) : null;
+            var session = request.getSession(false);
+            return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new SessionStatus("local", account!=null,
+                    false, account==null?null:account.id(), account==null?null:"local", account==null?List.of():List.of("trainer"),
+                    account==null?null:account.id(), serverTime, account==null?null:(Instant)session.getAttribute("localAccountDeadline"),
+                    "/api/auth/local/login", "/api/logout", new CsrfStatus(true, csrfValue instanceof CsrfToken,"X-CSRF-TOKEN","CSRF-TOKEN")));
+        }
         boolean trusted = OidcSessionLifetime.isBrowserAuthentication(authentication)
                 || authentication instanceof JwtAuthenticationToken && authentication.isAuthenticated();
         PrincipalPolicyDecision decision = oidc.enabled() && trusted

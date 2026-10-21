@@ -104,6 +104,25 @@ public class ApiKeyAuthInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response,
                             Object handler) throws Exception {
+        // Local session identity is authoritative even when the legacy API-Key module is disabled.
+        Authentication local = SecurityContextHolder.getContext().getAuthentication();
+        if (local != null && local.isAuthenticated() && local.getPrincipal() instanceof LocalAccountService.Account account) {
+            java.time.Instant deadline = (java.time.Instant) request.getSession().getAttribute("localAccountDeadline");
+            Set<String> tools = com.vio.vioaiagent.tools.governance.ToolCapabilityCatalog.all().values().stream()
+                    .filter(card -> card.allowedRoles().contains("trainer")).map(card -> card.name()).collect(java.util.stream.Collectors.toSet());
+            TokenBinding binding = TokenBinding.oidc(account.id(), "local", Set.of("trainer"), tools,
+                    "local-account-v1-" + account.version(), 60, deadline);
+            PrincipalPolicy policy = new PrincipalPolicy(account.id(), "local", Set.of("trainer"), tools,
+                    binding.policyVersion(), deadline, binding);
+            RequestContext.setPrincipalId(account.id());
+            RequestContext.setOwnerId(account.id());
+            RequestContext.setUserId(Long.valueOf(stablePrincipalId(account.id())));
+            RequestContext.setUsername(account.username());
+            RequestContext.setTenantId("local"); RequestContext.setRoles(Set.of("trainer"));
+            RequestContext.setPrincipalPolicy(policy); RequestContext.setTokenBinding(binding);
+            tokenStore.register(binding);
+            return true;
+        }
         // 安全模块未启用 → 放行所有请求
         if (!properties.isEnabled()) {
             return true;

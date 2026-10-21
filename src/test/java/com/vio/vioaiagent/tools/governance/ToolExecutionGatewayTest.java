@@ -39,6 +39,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** M4 网关最小安全回归：未知工具、HITL、Schema 和幂等。 */
 class ToolExecutionGatewayTest {
 
+    @Test
+    void actualExecutorCallbackReceivesRunScopeAndDoesNotContaminateCaller() {
+        ToolExecutionGateway gateway=gateway();
+        java.util.concurrent.atomic.AtomicReference<ToolExecutionContext> seen=new java.util.concurrent.atomic.AtomicReference<>();
+        ToolCallback tool=new ToolCallback(){
+            public ToolDefinition getToolDefinition(){return ToolDefinition.builder().name("getTypeChart").description("scope test").inputSchema("{}").build();}
+            public String call(String input){seen.set(ToolExecutionContextHolder.peek());return "ok";}
+        };
+        gateway.wrap(tool);
+        var context=new ToolExecutionContext("alice","run-scope-test",Set.of("trainer"),"trace-scope",null,null);
+        try {
+            assertEquals(ToolGovernanceResult.Status.EXECUTED,gateway.execute("getTypeChart","{}",context).status());
+            assertEquals(context,seen.get());
+            org.junit.jupiter.api.Assertions.assertNull(ToolExecutionContextHolder.peek());
+        }finally{gateway.shutdown();}
+    }
+
     @AfterEach
     void clearAuthenticationContext() {
         SecurityContextHolder.clearContext();

@@ -52,6 +52,14 @@ public class VioManus extends ToolCallAgent {
             - **Governance**: Unknown tools, unsafe parameters and unapproved side effects must fail closed
             - **Administrative tools**: May be available only in a separately authenticated operator run
 
+            For Pokémon facts, prefer lookupPokemonReference/lookupPokemonResource when exposed.
+            Preserve the exact Run dataReleaseId; never switch data versions merely to make a tool succeed.
+            For training/team strategy, retrieve searchPokemonGuides when available and cite title/author/date.
+            For numeric damage claims, use calculateBattleDamage with explicit battle assumptions and report
+            its engine version, range and actual assumptions. A type multiplier is not a damage calculation.
+            Local reference snapshots and project-authored guides do not prove competition legality,
+            historical patch accuracy or current metagame strength. Never invent sources or missing results.
+
             Always work step by step. Break down complex tasks into manageable parts.
             After completing each tool call, analyze the results and decide the next action.
             Be thorough and proactive — don't wait for the user to specify every detail.

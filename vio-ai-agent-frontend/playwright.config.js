@@ -42,6 +42,7 @@ export default defineConfig({
   use: {
     baseURL,
     ...devices['Desktop Chrome'],
+    channel: process.env.N5_E2E_BROWSER_CHANNEL || undefined,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

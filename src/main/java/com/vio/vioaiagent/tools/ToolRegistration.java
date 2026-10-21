@@ -18,14 +18,26 @@ public class ToolRegistration {
     @Autowired(required = false)
     private com.vio.vioaiagent.tools.governance.ToolExecutionGateway governanceGateway;
 
-    @Value("${search-api.api-key}")
+    @Value("${search-api.api-key:}")
     private String searchApiKey;
+
+    @Value("${vio.tools.search.enabled:true}")
+    private boolean searchEnabled = true;
 
     @Value("${vio.tools.high-risk.enabled:false}")
     private boolean highRiskToolsEnabled;
 
     @Autowired(required = false)
     private ResourceDownloadProperties resourceDownloadProperties;
+
+    @Autowired(required = false)
+    private com.vio.vioaiagent.pokemon.reference.LocalPokeApiRepository referenceRepository;
+    @Autowired(required = false)
+    private com.vio.vioaiagent.pokemon.engine.LocalDamageEngine damageEngine;
+    @Autowired(required = false)
+    private com.vio.vioaiagent.pokemon.guides.LocalGuideSearch guideSearch;
+    @Autowired(required = false)
+    private com.vio.vioaiagent.pokemon.reference.RunToolScope toolScope;
 
     @Bean
     public ToolCallback[] allTools() {
@@ -56,10 +68,16 @@ public class ToolRegistration {
     }
 
     private ToolCallback[] createPokemonTools() {
-        WebSearchTool webSearchTool = new WebSearchTool(searchApiKey);
         PokeTypeTool pokeTypeTool = new PokeTypeTool();
         // 终止工具属于控制面低风险能力；即使高风险工具关闭，Agent 也能显式结束。
-        return ToolCallbacks.from(pokeTypeTool, webSearchTool, new TerminateTool());
+        ToolCallback[] base = searchEnabled && WebSearchTool.isConfigured(searchApiKey)
+                ? ToolCallbacks.from(pokeTypeTool, new WebSearchTool(searchApiKey), new TerminateTool())
+                : ToolCallbacks.from(pokeTypeTool, new TerminateTool());
+        java.util.List<ToolCallback> tools = new java.util.ArrayList<>(java.util.Arrays.asList(base));
+        if (referenceRepository != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.PokemonReferenceTools(referenceRepository,toolScope))));
+        if (damageEngine != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.engine.DamageEngineController.Tools(damageEngine,toolScope))));
+        if (guideSearch != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.guides.LocalGuideController.Tools(guideSearch,toolScope))));
+        return tools.toArray(ToolCallback[]::new);
     }
 
     private ToolCallback[] createAdminTools() {
