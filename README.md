@@ -1,646 +1,242 @@
-# 🎮 VIO AI Agent — 企业级宝可梦智能体
+# VIO 宝可梦智能体
 
-> 面向朱/紫首发范围的企业级宝可梦智能体候选构建：版本化知识与确定性计算、受治理工具/MCP、唯一 Run 事件流、反馈评测与可回滚运维基线。真实生产依赖和发布门禁见 [`document/正式版v1.0开发计划/M2-M7实施完成记录.md`](document/正式版v1.0开发计划/M2-M7实施完成记录.md)。
+基于 **Java 21、Spring Boot、Spring AI 与 Vue** 的宝可梦知识问答和队伍分析应用。接入真实图鉴资料与确定性伤害计算，支持工具调用、正文流式输出、本地账号和数据持久化。
 
-[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.org/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.16-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![Spring AI](https://img.shields.io/badge/Spring%20AI-1.0.0-green.svg)](https://spring.io/projects/spring-ai)
-[![Vue](https://img.shields.io/badge/Vue-3.4-4FC08D.svg)](https://vuejs.org/)
-![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
+项目面向 AI 应用开发与智能体工程实践，默认支持在个人电脑运行，无需购买服务器。本仓库也保留版本化知识、工具治理、MCP 和生产适配代码；这些扩展的实现、启用和实测状态需要分别确认。
 
----
+> **秋招升级路线：** [秋招智能体项目完整升级方案](document/秋招智能体项目完整升级方案_2026-10-22.md)。当前可演示应用已具备基础，下一步优先补齐队伍任务执行闭环和真实效果评测。
 
-## 📋 目录
+## 能做什么
 
-- [项目简介](#-项目简介)
-- [核心亮点](#-核心亮点)
-- [系统架构](#-系统架构)
-- [技术栈](#-技术栈)
-- [项目结构](#-项目结构)
-- [快速启动](#-快速启动)
-- [API 文档](#-api-文档)
-- [部署指南](#-部署指南)
-- [CI/CD](#-cicd)
-- [文档索引](#-文档索引)
-- [项目规模](#-项目规模)
-- [贡献指南](#-贡献指南)
+- **知识问答**：围绕朱／紫资料和队伍配置进行多轮问答，增量展示回答。
+- **图鉴查询**：通过 PokéAPI 适配器获取资料，保存本地缓存、来源、抓取时间与摘要。
+- **队伍配置**：保存成员、招式、特性、道具、性格、等级、努力值和个体值。
+- **伤害分析**：Java 调用本地固定版本 `@smogon/calc`，由模型结合返回结果解释条件与搭配。
+- **攻略检索**：检索内置原创攻略，返回标题、正文、作者、日期等信息。
+- **本地账户**：注册、登录、预设头像、昵称、修改密码、恢复码、切换账户及退出。
+- **统一工作区**：对话、图鉴、队伍和计算集中使用，支持历史消息、编辑/复制、取消与重连。
 
----
+图鉴中存在某个物种或招式，不代表其符合当前比赛规则；资料缓存也不代表实时环境强度排名。伤害结果依赖输入条件，不等于胜率或完整对战模拟。
 
-## 📋 项目简介
+## 核心设计
 
-VIO AI Agent 是一个以宝可梦游戏为场景的**企业级 AI 智能体候选实现**，覆盖版本化知识、确定性计算、受控工具、Run 事件流、反馈评测和容器化运维。生产发布仍以开发计划中的真实环境证据为准。
-
-### 应用场景
-
-| 场景 | 说明 |
-|------|------|
-| 🎯 **AI 宝可梦大师** | 版本化图鉴/规则事实、属性/伤害/速度和队伍合法性确定性计算 |
-| 🤖 **AI 超级智能体** | 基于 Run 状态机和受控工具网关的多步骤编排，支持 SSE 事件流与人工审批 |
-| 🛠️ **MCP 服务** | MCP 能力通过配置开关和治理网关接入；自研协议栈保留为实验/兼容模块，需单独现场验收 |
-
----
-
-## ✨ 核心亮点
-
-### 🏗️ MCP 协议与治理网关
-
-仓库保留自研 JSON-RPC 2.0 协议栈作为实验/兼容模块；生产接入必须经过 capability card、白名单、Schema、HITL、超时、脱敏和审计网关：
-
-```
-┌─────────────────────────────────────────┐
-│            MCP Gateway (会话管理层)        │
-├─────────────────────────────────────────┤
-│  JSON-RPC 2.0 编解码  │  MCP 协议生命周期  │
-├─────────────────────────────────────────┤
-│   STDIO Transport     │   SSE Transport   │
-└─────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    UI[Vue 统一工作区] --> API[Spring Boot 身份与 Run API]
+    API --> RUN[Run 生命周期与事件]
+    RUN --> AGENT[工具调用循环]
+    AGENT <--> MODEL[配置的大模型]
+    AGENT --> GATE[工具治理网关]
+    GATE --> FACT[PokéAPI 与本地缓存]
+    GATE --> GUIDE[本地攻略检索]
+    GATE --> CALC[本地伤害计算桥接]
+    API --> SQLITE[SQLite 账号与用户资源]
 ```
 
-- ✅ 完整的 JSON-RPC 2.0 请求/响应/错误编解码（13 个错误码）
-- ✅ MCP 协议生命周期：`Initialize → ToolsList → ToolsCall`
-- ✅ 双传输模式：STDIO（进程通信）+ SSE（HTTP 流式）
-- ✅ Spring AI 桥接层：可对接 ToolCallback；生产是否启用由 profile 和现场配置决定
+1. **模型与程序分工**：模型组织语言和选择工具；结构化事实、参数校验和伤害数值交给相应工具。
+2. **执行有边界**：工具调用经过白名单、参数、权限与超时等约束，运行过程以事件记录；高风险工具默认不向训练家开放。
+3. **数据按账号隔离**：认证上下文确定当前主体，历史、队伍和收藏按归属读取。本地密码及恢复码使用哈希存储。
+4. **回答与过程分开**：正文以增量事件展示，工具过程可展开。任务阶段与工具结果不等于模型内部推理内容。
 
-### 🔒 四层安全防护
+## 当前能力与边界
 
-```
-API Key 认证 → HITL 人机审批 → 路径围栏 → 审计追溯
-```
+| 模块 | 当前状态 | 说明 |
+|---|---|---|
+| DeepSeek 对话与工具循环 | 已实现，有本地验证记录 | 实际输出效果仍受模型、网络和资料影响 |
+| 图鉴、队伍、伤害计算 | 已实现，有功能测试 | 本地计算依赖 Node.js 与引擎包 |
+| 本地账号与资源持久化 | 已实现，有隔离/恢复/浏览器测试 | 不提供跨设备同步；重启后重新登录 |
+| 默认攻略知识库 | 基础可用 | 当前 4 篇原创笔记、关键词检索，不是成熟语义知识库 |
+| 混合检索、PGVector、版本化知识门面 | 有实现，按配置启用 | 不能据此认定当前本地链已完成真实向量检索与质量验收 |
+| 多智能体与自研 MCP 协议栈 | 实验/兼容能力 | 不作为已验收的生产多 Agent 集群宣传 |
+| Run 恢复、租约、生产持久适配 | 有实现与测试，存在启用边界 | 不承诺本地重启后自动续跑任意模型或有副作用步骤 |
+| 模型质量评测 | 待补强 | v1.1 七类数据集共 17 条样例，manifest 仍为 draft/scaffold |
+| 生产部署与多实例 | 独立验收范围 | 本机功能测试不替代 PostgreSQL、多实例和发布现场证据 |
 
-| 层级 | 组件 | 能力 |
-|------|------|------|
-| **L1 认证** | `ApiKeyAuthInterceptor` | Header API-Key/Bearer 校验；TokenBinding 工具范围与进程内配额（多实例待 Redis/边缘限流） |
-| **L2 审批** | `HitlManager` | 高危操作人工确认（DangerLevel：LOW/MEDIUM/HIGH/CRITICAL） |
-| **L3 围栏** | `PathGuard` + `CommandGuard` | 文件路径白名单 + 命令黑名单（内置 9 条危险命令拦截） |
-| **L4 审计** | `AuditLogger` + `ParameterMasker` | 结构化审计日志 + 敏感参数脱敏 |
+当前主链每次最多回填同一账号、同一会话的最近 20 条已完成历史，总计不超过 12000 字符；这属于基础上下文窗口，不能等同于完整长期记忆系统。
 
-### 🧠 Plan-and-Execute 多智能体协作（兼容/实验模块）
+## 本地快速启动
 
-```
-用户输入 → Planner（任务规划）→ Worker（并行执行）→ Reviewer（质量审查）→ 最终输出
-```
+### 环境
 
-- **Planner Agent**：将复杂任务拆解为 DAG 子任务
-- **Worker Agent**：并行执行子任务，支持依赖管理
-- **Reviewer Agent**：审查执行结果，决定是否重新规划
-- **Orchestrator**：兼容链的编排示例；v1.0 推荐使用持久化 `PokemonAgentRunService`，不要把该示例当作生产多 Agent 集群
+- JDK 21，并正确设置 `JAVA_HOME`；可先运行 `java -version` 检查。
+- Node.js 20 与 npm。
+- Git；Maven 可使用仓库提供的 Wrapper。
+- 个人模型 API Key。下面以现有 DeepSeek profile 为例；模型服务需要网络访问。
 
-### 💾 三层记忆系统（当前默认关闭持久记忆）
+默认本地模式使用 SQLite，不需要安装 PostgreSQL、Redis、Docker 或云服务器。首次安装 Maven/npm 依赖，以及首次拉取图鉴资料时仍需要相应网络。
 
-| 记忆类型 | 存储 | 容量 | 策略 |
-|----------|------|------|------|
-| **短期记忆** | 内存 | 4000 tokens | 滑动窗口 + 自动截断 |
-| **长期记忆** | 文件（Kryo 序列化，单机） | 无限制 | Top-K 语义检索召回；生产需按用户隔离的持久适配器 |
-| **工作记忆** | Agent 状态机 | 会话生命周期 | 上下文压缩 + 任务链追踪 |
+### 1. 获取项目并安装 Node 依赖
 
-### 🛡️ 会话编排基线（候选 v1.0）
+以下命令在 PowerShell 中运行：
 
-- **会话状态机**：IDLE → PLANNING → EXECUTING → REVIEWING → COMPLETED / FAILED
-- **并发控制**：Agent 线程池隔离 + `AgentConcurrencyGuard` 限流
-- **超时重试**：治理网关提供有限、可审计的重试（当前实现最多 1 次）；跨实例重试和持久化队列仍待生产验收
-- **幂等管理**：Run/工具具备请求级幂等契约；部分兼容编排链的 `IdempotencyManager` 仍是 JVM 内存实现，不能作为跨重启保证
-
-### 📊 可观测性
-
-- **健康检查**：`/api/health` + `/api/ready`（含 DB 连接检测）
-- **指标监控**：Micrometer/Actuator `/api/actuator/prometheus` → Prometheus → Grafana；`/api/metrics` 保留为受保护的诊断快照（现场 Targets/Alerts 仍需验收）
-- **结构化日志**：Logback MDC 注入 traceId/sessionId，生产环境 JSON 格式输出
-- **结构化审计日志**：所有工具调用 + 审批操作可追溯
-
-### ⚡ Run 事件流与 SSE 兼容架构
-
-- **现代 Run 主链**：后端 `SseEmitter`/结构化事件 → 前端 `fetch` + `ReadableStream`，按 `runId/lastEventId` 重放
-- **旧兼容链**：历史 `/ai/**` 接口仍使用 `EventSource`；生产默认关闭，不作为 v1.0 主链
-- **Nginx 优化**：`proxy_buffering off` + `chunked_transfer_encoding off` + 600s 超时
-- **智能体流式推送**：VioManus 每步执行结果实时推送到前端
-- **认证边界**：现代 Run 使用受保护的 Header API-Key/可信边缘身份；浏览器不会把 API Key 写入 URL、历史记录或 localStorage。前端已预留 CSRF 头，但后端 CSRF/Origin 强校验仍是发布前门禁；旧 EventSource 兼容链默认关闭于生产。
-
-### 🔧 工程化细节
-
-- **环境自适应前端**：自动切换 `localhost:8123`（开发）/ `/api`（生产 Nginx 代理）
-- **OpenAPI 契约**：后端 SpringDoc/Swagger UI 暴露接口；当前前端使用受控的 JavaScript API wrapper，代码生成客户端仍是后续工作
-- **配置安全**：`application-local.yml` 被 `.gitignore` 忽略，提供 `.example.yml` 模板
-- **优雅关闭**：`GracefulShutdown` 处理 Spring 上下文关闭事件，确保资源释放
-- **Profile 分级**：`local` 默认关闭安全/PGVector/远程 MCP/高危工具/持久记忆以便开发；`prod` 打开认证、Run/PGVector 与观测骨架，但 MCP、高危工具和记忆仍由显式环境开关控制，不能写作“全部开启”。
-
----
-
-## 🏗️ 系统架构
-
-现代生产主链为 `Vue → AgentRunController → PokemonAgentRunService → DefaultRunExecutor`；
-`AiController/GameApp/VioManus` 在下图中作为本地兼容/迁移链保留，生产可通过开关关闭。
-
-```
-                              ┌──────────────────────┐
-                              │   Vue 3 前端 (Vite)   │
-                              │   localhost:3000      │
-                              └──────────┬───────────┘
-                                         │ HTTP / SSE
-                              ┌──────────▼───────────┐
-                              │   Spring Boot 3.5.16  │
-                              │   REST Controller     │
-                              │   port: 8123          │
-                              └──────────┬───────────┘
-                                         │
-          ┌──────────────────────────────┼──────────────────────────────┐
-          │                              │                              │
-┌─────────▼─────────┐    ┌───────────────▼───────────────┐    ┌────────▼────────┐
-│  AI 宝可梦大师     │    │  VioManus 超级智能体          │    │  安全过滤链      │
-│  (GameApp)        │    │  (ReAct Agent)               │    │  Auth → HITL     │
-│  RAG + Tools +    │    │  自主规划 → 工具调用 → 审查   │    │  → Guard → Audit │
-│  MCP              │    └───────────────┬───────────────┘    └─────────────────┘
-└──────────────────┘                    │
-          │                             │
-┌─────────▼─────────────────────────────▼──────────────┐
-│              Spring AI 1.0.0 / LangChain4j           │
-│   ChatClient · ToolCallback · Advisor · ChatMemory   │
-└─────────┬───────────────────────────┬───────────────┘
-          │                           │
-┌─────────▼─────────┐   ┌─────────────▼─────────────┐
-│   DashScope (Qwen) │   │   Ollama (Gemma/Llama)    │
-│   云大模型          │   │   本地大模型               │
-└───────────────────┘   └───────────────────────────┘
-
-工具层:
-┌──────────────────────────────────────────────────────────┐
-│ WebSearch │ WebScraping │ FileOp │ Terminal │ PDF │ ...  │
-│ MCP Server (vio-image-search) │ PokeTypeTool            │
-│ PostgreSQL + PGVector (RAG 向量知识库)                   │
-└──────────────────────────────────────────────────────────┘
+```powershell
+git clone https://github.com/vioabio/AI-Agent.git
+cd AI-Agent
+npm --prefix tools/pokemon-engine ci
+npm --prefix vio-ai-agent-frontend ci
 ```
 
----
+已有项目时直接进入项目根目录，不需要再次克隆。Maven Wrapper 必须在项目根目录执行。
 
-## 🛠️ 技术栈
+### 2. 启动后端
 
-| 类别 | 技术 | 版本 | 说明 |
-|------|------|------|------|
-| **语言** | Java | 21 | Record、虚拟线程、Switch 表达式 |
-| **基础框架** | Spring Boot | 3.5.16 | 企业级应用框架 |
-| **AI 框架** | Spring AI | 1.0.0 GA | 核心 AI 开发框架 |
-| **AI 框架（兼容/示例）** | LangChain4j | 1.0.0-beta2 | 历史多框架示例，现代 Run 主链以 Spring AI 为准 |
-| **大模型** | DashScope (Qwen-Plus) | — | 阿里云百炼大模型平台 |
-| **本地模型** | Ollama (Gemma 3) | — | 离线推理 / 开发调试 |
-| **前端** | Vue 3 + Vite | 3.4 / 5.4 | 响应式 UI 框架 |
-| **HTTP 客户端（兼容）** | Axios | 1.7 | 历史接口封装；现代 Run 流使用原生 fetch |
-| **向量数据库** | PostgreSQL + PGVector | 16 | 向量存储与语义检索 |
-| **序列化** | Kryo | 5.6.2 | 对话记忆高性能持久化 |
-| **网页抓取** | Jsoup | 1.19.1 | HTML 解析与内容提取 |
-| **PDF 生成** | iText | 9.1.0 | PDF 文档生成 |
-| **工具库** | Hutool | 5.8.37 | Java 工具类库 |
-| **API 文档** | SpringDoc + Swagger UI | 2.7.0 | OpenAPI 3.0 接口文档 |
-| **容器化** | Docker + Docker Compose | — | 一键部署 |
-| **监控** | Prometheus + Grafana | — | 指标采集与可视化（可选启用） |
-| **测试** | JUnit 5 + Spring Boot Test | — | 测试数量以最新 CI/`mvnw clean test` 输出为准 |
+在当前 PowerShell 中设置个人 Key，再启动：
 
----
-
-## 📁 项目结构
-
-```
-vio-ai-agent/
-├── src/main/java/com/vio/vioaiagent/
-│   ├── VioAiAgentApplication.java      # 应用入口
-│   ├── controller/                     # REST API 控制层
-│   │   ├── AgentRunController.java     # v1.0 Run 创建/事件/取消主链
-│   │   ├── KnowledgeLifecycleController.java # 摄取/审核/发布接口
-│   │   ├── FeedbackController.java     # 反馈与纠错闭环
-│   │   ├── AiController.java           # 历史兼容 AI/Manus 接口
-│   │   ├── HealthController.java       # 健康检查（/health）
-│   │   ├── ReadyController.java        # 就绪探针（/ready）
-│   │   ├── HitlController.java         # HITL 人机审批接口
-│   │   └── MetricsController.java      # 指标采集接口
-│   ├── agent/                          # 🤖 AI 智能体继承体系
-│   │   ├── BaseAgent.java              #   Agent 抽象基类
-│   │   ├── ReActAgent.java             #   ReAct 模式（Thought → Action → Observe）
-│   │   ├── ToolCallAgent.java          #   工具调用分发
-│   │   └── VioManus.java               #   自主规划超级智能体
-│   ├── app/                            # 宝可梦大师对话应用
-│   │   └── GameApp.java                #   4 类对话能力，各提供同步/流式入口（兼容模块）
-│   ├── mcp/                            # 🔧 自建 MCP 协议栈
-│   │   ├── jsonrpc/                    #   JSON-RPC 2.0 编解码（5 文件）
-│   │   ├── protocol/                   #   MCP 协议模型 + 生命周期
-│   │   ├── transport/                  #   STDIO / SSE 传输层
-│   │   ├── gateway/                    #   会话管理 + MCP 网关
-│   │   └── bridge/                     #   Spring AI ToolCallback 桥接
-│   ├── security/                       # 🔒 四层安全防护
-│   │   ├── ApiKeyAuthInterceptor.java  #   L1: API Key 认证
-│   │   ├── HitlManager.java            #   L2: 人机审批
-│   │   ├── PathGuard.java              #   L3: 路径围栏
-│   │   ├── CommandGuard.java           #   L3: 命令围栏
-│   │   ├── AuditLogger.java            #   L4: 审计日志
-│   │   └── ParameterMasker.java        #   敏感参数脱敏
-│   ├── multiagent/                     # 🧠 Plan-and-Execute 多智能体
-│   │   ├── MultiAgentOrchestrator.java #   主编排器
-│   │   ├── PlannerAgent.java           #   任务规划智能体
-│   │   ├── WorkerAgent.java            #   任务执行智能体
-│   │   ├── ReviewerAgent.java          #   质量审查智能体
-│   │   └── model/                      #   任务模型 (Task, ExecutionPlan, TaskResult)
-│   ├── orchestration/                  # 🔄 会话编排与容错
-│   │   ├── SessionStateMachine.java    #   会话状态机
-│   │   ├── AgentConcurrencyGuard.java  #   并发限流
-│   │   ├── ToolRetryStrategy.java      #   分类重试策略
-│   │   ├── ToolTimeoutManager.java     #   超时管理
-│   │   └── IdempotencyManager.java     #   幂等管理
-│   ├── memory/                         # 💾 三层记忆系统
-│   │   ├── model/                      #   记忆模型 (MemoryType, MemoryEntry)
-│   ├── observability/                  # 📊 可观测性
-│   │   ├── AgentMetrics.java           #   Micrometer + 诊断快照指标
-│   │   ├── AgentLogContext.java        #   MDC traceId/sessionId 注入
-│   │   └── ObservabilityFilter.java    #   HTTP 请求日志过滤器
-│   ├── rag/                            # 📚 RAG 知识库
-│   │   ├── catalog/                    #   JDBC/内存版本目录
-│   │   ├── ingestion/                  #   显式摄取、索引与发布生命周期
-│   │   ├── retrieval/                  #   词法/语义/RRF 检索
-│   │   ├── contract/                   #   AnswerContract/Citation
-│   │   ├── GameAppDocumentLoader.java  #   兼容文档 ETL 加载
-│   │   ├── VersionedPgVectorStoreConfig.java  # 生产 PGVector 配置
-│   │   ├── QueryRewriter.java          #   查询重写
-│   │   └── GameAppContextualQueryAugmenterFactory.java  # 上下文增强
-│   ├── tools/                          # 🛠️ 工具集
-│   │   ├── governance/                 #   Capability card + 统一执行网关
-│   │   ├── WebSearchTool.java          #   联网搜索
-│   │   ├── WebScrapingTool.java        #   网页抓取
-│   │   ├── FileOperationTool.java      #   文件操作
-│   │   ├── TerminalOperationTool.java  #   终端操作
-│   │   ├── ResourceDownloadTool.java   #   资源下载
-│   │   ├── PDFGenerationTool.java      #   PDF 生成（中文支持）
-│   │   ├── PokeTypeTool.java           #   宝可梦 18 属性克制矩阵
-│   │   └── TerminateTool.java          #   终止工具
-│   ├── config/                         # ⚙️ 配置 (CORS / OpenAPI / Security)
-│   ├── advisor/                        # ChatClient 自定义 Advisor（日志 / 复读）
-│   ├── chatmemory/                     # 对话记忆持久化（Kryo）
-│   ├── demo/                           # 📖 学习示例（4 种大模型调用方式）
-│   └── common/                         # 公共基础设施
-│       ├── Result.java                 #   统一 API 响应封装
-│       ├── AgentErrorCode.java         #   23 个错误码（5 个域）
-│       ├── RequestContext.java         #   ThreadLocal 请求上下文
-│       └── GracefulShutdown.java       #   优雅关闭
-├── src/main/resources/
-│   ├── application.yml                 # 主配置
-│   ├── application-local.yml           # 本地环境配置（gitignore）
-│   ├── application-prod.yml            # 生产环境配置
-│   └── application-local.example.yml   # 配置模板
-├── src/test/                           # JUnit/Spring Boot 测试（数量以 CI 输出为准）
-├── vio-ai-agent-frontend/              # Vue 3 前端
-│   ├── src/
-│   │   ├── views/
-│   │   │   ├── Home.vue                # 首页
-│   │   │   ├── GameMaster.vue          # AI 宝可梦大师
-│   │   │   └── SuperAgent.vue          # AI 超级智能体
-│   │   ├── components/
-│   │   │   ├── ChatRoom.vue            # 聊天室组件
-│   │   │   └── AiAvatarFallback.vue    # AI 头像
-│   │   ├── router/index.js             # Vue Router 路由配置
-│   │   └── api/index.js                # Run fetch/事件流 + 兼容 API 封装
-│   ├── Dockerfile                      # 前端 Nginx 容器
-│   └── package.json                    # 前端依赖
-├── vio-image-search-mcp-server/        # MCP 图片搜索服务
-├── .github/workflows/                   # GitHub Actions CI/CD
-│   ├── ci.yml                           #   持续集成（构建 + 测试）
-│   └── deploy.yml                       #   自动部署（Docker Compose）
-├── docker-compose.yml                  # 一键部署编排
-├── Dockerfile                          # 后端容器
-├── .env.example                        # 环境变量模板
-├── prometheus.yml                      # Prometheus 指标采集配置
-├── alert-rules.yml                     # 告警规则（4 条）
-├── grafana-dashboard.json              # Grafana 仪表板（3 面板）
-├── pom.xml                             # Maven 依赖管理
-└── document/                            # 📖 架构、范围、实施与领域资料
+```powershell
+$env:DEEPSEEK_API_KEY = '替换为你的个人 API Key'
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local,deepseek"
 ```
 
----
+Key 仅应存于本机环境或受忽略的本地配置，不要提交到 Git。IDEA 运行时，Active profiles 设为 `local,deepseek`，并在该运行配置中设置 `DEEPSEEK_API_KEY`。
 
-## 🚀 快速启动
+DeepSeek profile 使用 OpenAI 兼容客户端并关闭 DashScope 自动装配，不需要同时填写百炼 Key。模型默认值以 [application-deepseek.yml](src/main/resources/application-deepseek.yml) 为准；如账号支持的模型不同，可设置 `DEEPSEEK_MODEL`。
 
-### 前置要求
+后端默认地址：`http://localhost:8123/api`。如果提示端口被占用，先检查是否已有后端运行，避免同时启动多个实例。
 
-- **JDK 21+**
-- **Maven 3.8+**（或使用项目自带的 Maven Wrapper `./mvnw`）
-- **Node.js 18+**（前端开发）
-- **PostgreSQL + PGVector**（可选，RAG 知识库需要）
-- **DashScope API Key**（阿里云百炼，[免费申请](https://dashscope.aliyun.com/)）
+Linux/macOS 可使用 `./mvnw spring-boot:run -Dspring-boot.run.profiles=local,deepseek`，环境变量使用当前 shell 对应的设置方式。
 
-### 1. 克隆项目
+### 3. 启动前端
 
-```bash
-git clone https://github.com/vioviovio/vio-ai-agent.git
-cd vio-ai-agent
+在另一个终端进入项目根目录：
+
+```powershell
+npm --prefix vio-ai-agent-frontend run dev
 ```
 
-### 2. 配置 API Key
+访问 `http://localhost:3000`，根路径会转到 `/game-master`。创建本地账号、保存恢复码并登录后，直接进入助手，无需经过中间首页。
 
-```bash
-# 复制配置模板
-cp src/main/resources/application-local.example.yml src/main/resources/application-local.yml
+### 4. 完成一次演示
 
-# 编辑 application-local.yml，填入你的 DashScope API Key
-# dashscope.api-key: your-api-key-here
-# 本地前端默认允许 http://localhost:3000；生产环境必须配置
-# VIO_CORS_ALLOWED_ORIGINS，并通过 Session/CSRF 或可信代理提供 API 认证。
+1. 查询“杰尼龟”，查看图鉴和来源。
+2. 加入队伍，填写招式与培养配置并保存。
+3. 将当前成员资料带入对话，请助手分析。
+4. 在计算区填写完整攻防条件，执行伤害计算并讨论结果。
+5. 从左下角账户菜单修改资料；如有旧匿名数据，首次创建的账号可确认认领自己的旧会话和队伍。
+
+目前界面可以完成以上操作；“自然语言分析后由 Agent 预览并确认保存队伍修改”的完整闭环列入下一阶段开发，不提前视为已实现。
+
+## 本地数据与配置
+
+| 数据 | 默认位置 |
+|---|---|
+| 账号、密码/恢复码哈希 | `.local-data/accounts.sqlite` |
+| 会话与完整历史消息 | `.local-data/history.sqlite` |
+| 队伍配置 | `.local-data/teams.sqlite` |
+| 收藏 | `.local-data/favorites.sqlite` |
+| PokéAPI 缓存 | `.local-data/pokeapi/` |
+| 内置攻略 | `src/main/resources/pokemon-guides/index.json` |
+
+`.local-data/` 已被 Git 忽略。SQLite 文件中还有个人聊天和配置内容，备份时应按个人数据处理。恢复码仅在生成时显示，重设或修改密码后会轮换。
+
+本地账号只允许在 `local` 且非 `prod/demo` 环境启用，与 OIDC 互斥。需要使用企业 OIDC 时，先设置 `VIO_LOCAL_ACCOUNTS_ENABLED=false`，再按对应身份配置和验收流程接入。
+
+可选配置：
+
+- `DEEPSEEK_MODEL`：覆盖本地模型配置。
+- `VIO_LOCAL_HISTORY_PATH`：覆盖历史数据库位置。
+- `vio.local-accounts.path` / `vio.local-teams.path` / `vio.local-favorites.path`：覆盖对应存储位置。
+- `VIO_POKEMON_REFERENCE_ENABLED`：本地图鉴资料模块开关。
+- `VIO_DAMAGE_ENGINE_ENABLED`：本地伤害引擎开关。
+- `VIO_LOCAL_GUIDES_ENABLED`：本地攻略模块开关。
+
+联网搜索需要单独配置有效的 `search-api.api-key` 并启用 `vio.tools.search.enabled`。模型 Key 不等于搜索服务 Key；未配置时不提供搜索工具。
+
+### 常见问题
+
+- **找不到 Maven Wrapper**：先进入包含 `mvnw.cmd` 的项目根目录，不要在 `C:\WINDOWS\system32` 执行。
+- **JAVA_HOME 无效**：指向 JDK 安装目录，不能指向 `bin` 或 `java.exe`；先更新 `JAVA_HOME`，再把它的 `bin` 加入当前终端的 `Path`。
+- **图鉴上游不可达**：可设置 `VIO_POKEAPI_PROXY=http://127.0.0.1:你的代理端口`，或在 `.local-data/pokeapi-network.properties` 配置 `proxy=http://127.0.0.1:端口` 后重启后端。此处不填写模型 Key，不使用带账号密码的代理 URL；已有校验通过的缓存可继续复用。
+- **需要预热图鉴缓存**：可在根目录运行 `./tools/warm-pokemon-reference.ps1 -Query squirtle`；脚本说明与限制见[资料代理修复记录](document/正式版v1.1开发计划/PokéAPI查询500与本地代理修复_2026-10-21.md)。
+
+## 测试与评测
+
+在项目根目录运行后端测试和引擎测试：
+
+```powershell
+.\mvnw.cmd test
+npm --prefix tools/pokemon-engine test
 ```
 
-### 3. 启动后端
+前端检查：
 
-```bash
-# 使用 Maven Wrapper（无需安装 Maven）
-./mvnw spring-boot:run
-
-# 后端启动在 http://localhost:8123/api
-# Swagger UI: http://localhost:8123/api/swagger-ui.html
-```
-
-### 4. 启动前端（可选）
-
-#### 本地改用 DeepSeek（无需服务器、数据库或 Docker）
-
-1. 在 IDEA 的运行配置中将 **Active profiles** 设置为 `local,deepseek`。
-2. 在同一运行配置的环境变量中设置 `DEEPSEEK_API_KEY`，值填自己的 DeepSeek Key；不要提交或发到聊天。
-3. 停止旧后端后重新启动，避免占用同一个 8123 端口。
-4. 终端启动可使用 `./mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local,deepseek"`，前提是该终端已配置 `DEEPSEEK_API_KEY`。
-5. 默认模型为 `deepseek-flash`，可通过 `DEEPSEEK_MODEL` 修改为账号可用的模型。
-
-DeepSeek profile 使用专用的 OpenAI 兼容客户端，关闭 DashScope 自动装配，因此不需要百炼 Key。
-它开启本地 Run 的模型正文流式生成；前端通过约 500ms 的事件游标补读逐步显示真实增量，
-不是把完整答案拆成打字动画。普通回答只做一次流式生成；模型选择工具时，执行工具后再继续生成。
-当前 Spring AI 1.0 适配器不回传 DeepSeek 的 `reasoning_content`，因此请求显式关闭厂商 thinking 模式，
-避免多轮工具调用 400；仍支持任务规划、工具调用和最终回答，不展示模型内部推理。
-知识库和 durable resume 路径保持原有完成提交规则，不提前开放未校验的流式答案。
-本地聊天的资料版本、反馈和限制信息默认折叠；工具错误和取消按钮继续可见。
-API Key 不等于搜索 Key，联网搜索超时仍需单独排查；不能将旧知识宣称为当前赛季排名。
-
-本地会话默认保存到 `.local-data/history.sqlite`（已加入 Git 忽略），不需要安装数据库服务。
-`VIO_LOCAL_HISTORY_PATH` 可覆盖存储路径，`VIO_LOCAL_HISTORY_ENABLED=false` 可切回内存模式。
-这里只持久化会话和完整聊天消息，不宣称运行中的 Run/工具在重启后可自动续跑。
-已完成的历史可在资料工作台查看；同一标签页刷新也会回读已保存消息。
-每次提问最多带入同一用户、同一会话的最近 20 条已完成历史，总计不超过 12000 字符。
-未完成请求、当前问题和 system/tool 消息不会被回填为历史。
-联网搜索仅在配置有效 `search-api.api-key` 且 `vio.tools.search.enabled=true` 时提供，
-没有配置时模型不会看到搜索工具。HTTP 连接/请求超时为 2/3 秒，认证失败与空搜索结果分别处理。
-
-接口依据：[DeepSeek 官方接入说明](https://api-docs.deepseek.com/)、[Thinking 模式与工具历史要求](https://api-docs.deepseek.com/guides/thinking_mode/)。
-
-#### 启动前端
-
-本地模式现已提供账号登录：重启后端后，在页面选择“创建账户”，保存恢复码再登录。
-工作区左下角头像可进入账户设置、切换账号或退出；账号、聊天、队伍、收藏均保存在本机 `.local-data/`。
-首次创建的账号可在账户设置中确认认领旧匿名聊天和队伍。
-本地账号与企业 OIDC 互斥，切换企业登录前设置 `VIO_LOCAL_ACCOUNTS_ENABLED=false`。
-详见[本地账号实施与使用说明](document/正式版v1.1开发计划/本地账号与登录界面实施_2026-10-21.md)。
-
-```bash
+```powershell
 cd vio-ai-agent-frontend
-npm ci
-npm run dev
-
-# 访问 http://localhost:3000
+npm run lint
+npm run typecheck
+npm run test:contract
+npm run build
+npm run test:e2e
 ```
 
-### 5. 启动 RAG 知识库（可选）
-
-```bash
-# 启动 PostgreSQL + PGVector
-docker-compose up -d postgres
+浏览器测试需要 Playwright 浏览器运行环境；本项目的已有 Windows 验证记录使用本机 Edge。PostgreSQL 集成测试还需要可用的对应测试环境，不能把跳过视为通过。
 
-# 切换配置文件以启用 PGVector
-# 在 application-local.yml 中设置：
-#   spring.profiles.active: local,pgvector
-```
+已有验证记录（2026-10-21，属于历史证据，不是本次文档修改重新执行的结果）：
 
----
+| 范围 | 记录 |
+|---|---|
+| 后端完整离线 Maven 回归 | 847 项，0 失败、0 错误、3 跳过 |
+| 最终账号/安全/持久化定向验证 | 16 项通过 |
+| 前端契约 | 100 项通过 |
+| 浏览器完整回归 | 55 项通过 |
+| 后续登录布局、紧凑聊天专项 | 有单独验证记录，与完整回归存在重叠，不累加总数 |
 
-## 📡 API 文档
+上述记录支持工程行为验证，不能转换为模型回答准确率、真实任务成功率或生产吞吐量。运行证据目录 `artifacts/` 被忽略，记录并不随克隆自动提供；请按命令复现。
 
-启动后端后，访问 Swagger UI 查看完整 API 文档：
+评测入口与规则见 [evaluation/README.md](evaluation/README.md)。CI 模式验证契约和样例；发布模式要求真实数据、实测报告和门禁证据。当前样例不能充当完整黄金集，新增秋招评测也不应降低既有发布标准。
 
-> **http://localhost:8123/api/swagger-ui.html**
+## 下一阶段升级
 
-### 主要接口
+| 顺序 | 优先级 | 目标 |
+|---|---|---|
+| S0 | P0 | 冻结演示范围与模型/数据/工具基线 |
+| S1 | P0 | 读取队伍 → 追问 → 查询/计算 → 变更预览 → 确认保存 |
+| S2 | P0 | 构建真实任务评测集，形成基线与失败分析 |
+| S3 | P1 | 扩充资料，完成可引用、可评测的检索链路 |
+| S4 | P1 | 完善 Token 预算、上下文和任务耗时/费用记录 |
+| S5 | P1 | 交付架构图、演示视频、效果报告与面试材料 |
 
-| 接口 | 方法 | 说明 |
-|------|------|------|
-| `/api/ai/game_app/...` | GET | 历史兼容对话链；生产建议关闭/不作为 v1.0 主链 |
-| `/api/ai/manus/chat` | GET | 历史 Manus SSE；生产默认 410，使用现代 Run |
-| `/api/ai/manus/stop` | GET | 历史停止接口；生产默认 410，不能替代 Run cancel |
-| `/api/chat/runs` | POST | 创建可恢复 Agent Run（返回 202） |
-| `/api/chat/runs/{runId}` | GET | 查询 Run 快照 |
-| `/api/chat/runs/{runId}/events/stream` | GET | 按游标订阅 Run 事件 |
-| `/api/chat/runs/{runId}/cancel` | POST | 幂等取消 Run |
-| `/api/chat/conversations/{conversationId}` | DELETE | 删除会话及关联消息 |
-| `/api/answers/{answerId}/feedback` | POST | 提交 Helpful/Not helpful 反馈 |
-| `/api/health` | GET | 健康检查 |
-| `/api/ready` | GET | 就绪探针 |
-| `/api/metrics` | GET | 指标采集 |
+详细开发步骤、建议验收目标、测试设计和完成定义见 [完整升级方案](document/秋招智能体项目完整升级方案_2026-10-22.md)。目标值均为规划，不是当前成绩。
 
-> 说明：Spring Boot 的 context-path 是 `/api`，Controller 内部路径因此写作 `/chat/...`、`/knowledge/...`。上表是外部 URL。现代 Run 是推荐入口；旧 `/api/ai/**` 仅用于本地兼容和迁移验证。
-
-### 前端路由
-
-| 路由 | 页面 | 说明 |
-|------|------|------|
-| `/` | Home | 首页 / 导航 |
-| `/game-master` | AI 宝可梦大师 | 宝可梦智能对话 |
-| `/super-agent` | AI 超级智能体 | VioManus 自主规划 |
+## 代码入口
 
----
+| 目录/文件 | 职责 |
+|---|---|
+| `src/main/java/com/vio/vioaiagent/run/` | Run 生命周期、事件、历史与持久化适配 |
+| `src/main/java/com/vio/vioaiagent/agent/` | Agent 执行与工具调用循环 |
+| `src/main/java/com/vio/vioaiagent/tools/governance/` | 工具参数、权限、执行边界与审计 |
+| `src/main/java/com/vio/vioaiagent/pokemon/` | 事实、队伍、资料、攻略和伤害引擎 |
+| `src/main/java/com/vio/vioaiagent/rag/` | 检索、知识生命周期与相关扩展 |
+| `src/main/java/com/vio/vioaiagent/security/` | 身份、账号、授权和安全基础 |
+| `vio-ai-agent-frontend/src/views/GameMaster.vue` | 统一工作区 |
+| `tools/pokemon-engine/` | 固定版本的本地计算桥接与测试 |
+| `evaluation/` | 评测数据、契约、运行和门禁 |
 
-## 🐳 部署指南
+## API、路由与扩展文档
 
-### Docker Compose 一键部署
+Swagger 默认入口：`http://localhost:8123/api/swagger-ui.html`。本地账号模式下，受保护接口需要已登录会话；程序客户端也需要遵守对应认证与 CSRF 约束。接口快照见 [OpenAPI 契约](contracts/openapi-v1.1.json)。
 
-```bash
-# 1. 构建后端 JAR
-./mvnw clean package -DskipTests
+| 前端路由 | 行为 |
+|---|---|
+| `/` | 重定向到助手 |
+| `/game-master` | 登录后使用的统一助手工作区 |
+| `/pokemon-workbench` | 兼容入口，转到助手并打开资料面板 |
+| `/super-agent` | 兼容入口，转到统一助手工作区 |
 
-# 2. 构建前端
-cd vio-ai-agent-frontend && npm ci && npm run build && cd ..
+生产适配、OIDC、MCP、PostgreSQL/pgvector、容器化和监控属于独立配置与验收范围。CI 工作流存在不代表最近远程流水线已通过，也不代表完成真实生产部署。
 
-# 3. 启动全部服务
-cp .env.example .env
-# 编辑 .env，填入 DB_PASSWORD、VIO_API_KEY、AI_DASHSCOPE_API_KEY 等真实密钥
-docker compose up -d --build
+- [秋招完整升级方案](document/秋招智能体项目完整升级方案_2026-10-22.md)
+- [本地账号实施与使用说明](document/正式版v1.1开发计划/本地账号与登录界面实施_2026-10-21.md)
+- [PokéAPI、队伍、伤害与攻略落地记录](document/正式版v1.1开发计划/PokéAPI与队伍伤害攻略四阶段落地_2026-10-20.md)
+- [网页端响应式适配](document/正式版v1.1开发计划/网页端响应式适配_2026-10-21.md)
+- [历史 v1.0 开发计划](document/正式版v1.0开发计划/README.md)
+- [历史企业级实现与待验收边界](document/正式版v1.0开发计划/M2-M7实施完成记录.md)
+- [第三方计算引擎说明](tools/pokemon-engine/THIRD_PARTY_NOTICES.md)
+- [图鉴插图来源](vio-ai-agent-frontend/public/pokemon/SOURCES.md)
 
-# 4. 访问
-# 前端: http://localhost
-# 后端: http://localhost:8123/api
-# Swagger: http://localhost:8123/api/swagger-ui.html
-```
+历史计划用于追溯，不替代当前代码和指定运行配置的验证结果。
 
-### 启用监控（可选）
+## 许可证与第三方来源
 
-```bash
-docker-compose --profile monitoring up -d
-
-# Grafana: http://localhost:3001（账号/密码由 GRAFANA_ADMIN_USER/GRAFANA_ADMIN_PASSWORD 提供）
-# Prometheus: http://localhost:9090
-```
-
-### 服务架构
-
-```
-┌──────────────────────────────────────────────┐
-│                  Docker Compose               │
-│                                               │
-│  ┌──────────┐  ┌──────────┐  ┌────────────┐  │
-│  │ Frontend │  │ Backend  │  │ PostgreSQL │  │
-│  │ :80      │  │ :8123    │  │ :5432      │  │
-│  └──────────┘  └──────────┘  └────────────┘  │
-│                                               │
-│  ┌──────────┐  ┌──────────┐  ┌────────────┐  │
-│  │Prometheus│  │ Grafana  │  │AlertManager│  │
-│  │ :9090    │  │ :3001    │  │ :9093      │  │
-│  └──────────┘  └──────────┘  └────────────┘  │
-│           (monitoring profile)                │
-└──────────────────────────────────────────────┘
-```
-
----
+项目源代码沿用原有的 Apache 2.0 许可声明。第三方依赖与宝可梦名称、插图等资源分别遵循其对应许可与使用范围，不能将项目源码许可视为这些资源的授权。
 
-## 🔄 CI/CD
-
-项目通过 GitHub Actions 实现持续集成与部署：
-
-### CI 流水线（`.github/workflows/ci.yml`）
-
-触发条件：`push` / `pull_request` 到 `main` 分支
-
-| 步骤 | 说明 |
-|------|------|
-| 检出代码 | `actions/checkout@v4` |
-| JDK 21 环境 | `actions/setup-java@v4` (Eclipse Temurin 21) |
-| 后端构建 | `./mvnw -B -ntp -DskipTests compile`（发布前再执行 package/image） |
-| 运行测试 | `./mvnw test` |
-| 前端构建 | `npm ci && npm run build` |
-
-### 部署流水线（`.github/workflows/deploy.yml`）
-
-触发条件：`workflow_dispatch`（手动触发）或 `v*` 标签推送
-
-| 步骤 | 说明 |
-|------|------|
-| 构建 JAR | `./mvnw clean package -DskipTests` |
-| 构建前端 | `npm ci && npm run build` |
-| Docker/Compose | 由发布门禁执行构建、拓扑校验与可选 smoke；当前仓库未在本机完成现场演练 |
-| 健康检查 | `curl` 轮询 `/api/health`（30s 超时） |
-
-### 环境变量（`.env.example`）
-
-| 变量 | 必填 | 说明 |
-|------|------|------|
-| `AI_DASHSCOPE_API_KEY` | ✅ | 阿里云百炼大模型 API Key |
-| `SEARCH_API_KEY` | — | SearchAPI 联网搜索 Key |
-| `DB_PASSWORD` | Compose 必填 | PostgreSQL 数据库密码（无公开默认值） |
-| `VIO_API_KEY` | 生产必填 | 后端 API Key；仅由 Header/可信边缘代理传递 |
-| `VIO_CORS_ALLOWED_ORIGINS` | 生产必填 | 逗号分隔的完整前端 origin 白名单，禁止 `*` |
-| `VIO_LEGACY_AI_ENABLED` | — | 旧 `/api/ai/**` 兼容链开关；生产默认 `false` |
-| `VIO_LEGACY_MANUS_ENABLED` | — | 旧 Manus GET 链开关；生产默认 `false` |
-| `AMAP_API_KEY` | — | 高德地图 API Key |
-| `PEXELS_API_KEY` | — | Pexels 图片搜索 API Key |
-
----
-
-## 📖 文档索引
-
-### 架构、范围与实施记录
-
-| 文档 | 说明 |
-|------|------|
-| [📦 正式版 v1.0 开发计划](document/正式版v1.0开发计划/README.md) | M0～M7 实施手册、验收清单与实施完成记录 |
-| [🚀 正式版 v1.1 开发步骤手册](document/正式版v1.1开发计划/正式版v1.1开发步骤手册.md) | 基于 v1.0 当前差距推进生产化收口、灾备和 GA 验收 |
-| [📐 VIO-AI-Agent 架构图](document/VIO-AI-Agent-architecture.md) | 当前模块边界、运行链和外部依赖 |
-| [📊 企业级架构与技术对照报告](document/企业级智能体架构与技术对照报告.md) | 企业级能力对照与成熟度边界（历史快照） |
-| [📚 宝可梦图鉴与对战攻略](document/宝可梦图鉴与对战攻略.md) | 首发知识范围与领域资料 |
-
-### 分期教程与运维材料
-
-| 文档 | 说明 |
-|------|------|
-| [🧪 评测与质量门禁](evaluation/README.md) | 数据集、指标字典、CI/release 门禁 |
-| [🛟 恢复演练手册](ops/recovery/README.md) | 备份、探针、恢复、RPO/RTO 记录模板 |
-| [📦 M6-M7 交付说明](document/正式版v1.0开发计划/M6-M7交付说明.md) | 评测、容器、发布和演示交付边界 |
-
----
-
-## 📊 项目规模
-
-| 指标 | 数值 |
-|------|------|
-| 源文件 | 以 `rg --files` 与构建产物为准（当前 Java 主源码 223 个） |
-| 测试用例 | 以最新 `mvnw clean test` 输出为准 |
-| 测试通过率 | 以 CI/本地命令输出为准 |
-| 核心包数 | 18 |
-| MCP 协议自建文件 | 15+ |
-| 安全模块文件 | 10+ |
-| 多智能体文件 | 8+ |
-| 内置工具 | 8 |
-| 错误码定义 | 23 个（5 个域：AG/TL/MCP/SEC/SES） |
-| 开发文档 | 以 document/、evaluation/、ops/ 目录中的最新文件为准 |
-| 依赖清单 | 以后端 `pom.xml` 与前端 `package-lock.json` 的锁定版本为准 |
-
----
-
-## 🧪 运行测试
-
-```bash
-# 运行全部测试
-./mvnw test
-
-# 运行指定模块测试
-./mvnw test -pl vio-image-search-mcp-server
-
-# 运行并生成测试报告
-./mvnw test jacoco:report
-```
-
----
-
-## 🤝 贡献指南
-
-本项目为学习型项目，欢迎提 Issue 或 PR 讨论交流：
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
-3. 提交改动 (`git commit -m 'Add some amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 开启 Pull Request
-
-### 开发规范
-
-- Java 代码遵循阿里巴巴 Java 开发手册
-- 前端使用 ESLint + Prettier 统一格式
-- 提交信息遵循 [Conventional Commits](https://www.conventionalcommits.org/) 规范
-
----
-
-## 🎮 本地宝可梦助手扩展（2026-10-20）
-
-使用 `local,deepseek` 启动后，新对话可按需读取真实 PokéAPI 资料并在本地缓存，支持中文名称、英文名称和编号。队伍现在保存招式、特性、道具、性格、等级、EV/IV，并用 SQLite 保留至下次启动。
-
-伤害计算通过 Java 调用本地 `@smogon/calc` 0.12.0，无需额外服务器。首次准备在 `tools/pokemon-engine` 执行 `npm ci`；可以从已保存队伍选择攻防成员，计算后交给 AI 解释。新增“攻略”支持检索四篇原创基础笔记并携带证据提问。
-
-参考资料不等同于排位合法性或实时热门阵容；当前计算桥接的条件范围见[四阶段落地与操作说明](document/正式版v1.1开发计划/PokéAPI与队伍伤害攻略四阶段落地_2026-10-20.md)。
-
-如果浏览器可以联网、图鉴查询却超时，可通过 `VIO_POKEAPI_PROXY=http://127.0.0.1:你的代理端口` 为资料客户端指定 HTTP 代理。也可在 `.local-data/pokeapi-network.properties` 写入 `proxy=http://127.0.0.1:端口`，重启后端生效；环境配置优先，`direct` 表示显式直连。这里不填写模型 API Key，也不支持带账号密码的代理 URL。资料上游不可达时返回 503；原有校验通过的缓存仍可查询。
-
-Windows 本地排障可执行 `./tools/warm-pokemon-reference.ps1 -Query squirtle`，通过系统代理下载官方 Pokémon 与 species 资料并写入相同校验格式的缓存，无需重启即可查询。脚本保留已有文件，不会覆盖损坏或人工修改的快照。
-
-## 📄 许可证
-
-本项目基于 Apache 2.0 许可证开源。
-
----
-
-## 🙏 致谢
-
-- [Spring AI](https://spring.io/projects/spring-ai) — Java 生态 AI 开发框架
-- [阿里云百炼](https://dashscope.aliyun.com/) — 大模型服务平台
-- [Ollama](https://ollama.com/) — 本地大模型部署
-- [PGVector](https://github.com/pgvector/pgvector) — PostgreSQL 向量扩展
-
----
-
-<p align="center">
-  <b>⭐ 如果这个项目对你有帮助，欢迎 Star 支持！</b><br>
-  <sub>Built with ❤️ by VIO</sub>
-</p>
+计算引擎许可说明和图鉴插图来源见上方链接；对外发布前应同时核对完整许可文件、依赖声明与资源来源记录。
