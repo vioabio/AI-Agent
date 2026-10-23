@@ -18,7 +18,13 @@ import static com.vio.vioaiagent.tools.governance.ToolCapabilityCard.SideEffect.
 public final class ToolCapabilityCatalog {
 
     private static final Map<String, ToolCapabilityCard> CARDS = Map.ofEntries(
+            Map.entry("listCurrentTeams", card("listCurrentTeams", LOW, NONE, true, 3_000, List.of("trainer", "operator"))),
+            Map.entry("readCurrentTeam", card("readCurrentTeam", LOW, NETWORK, true, 50_000, List.of("trainer", "operator"))),
+            // This tool only creates an immutable preview and explicitly requests HITL.
+            // No model-callable tool can apply a proposal.
+            Map.entry("previewTeamChanges", card("previewTeamChanges", LOW, NONE, true, 5_000, List.of("trainer", "operator"))),
             Map.entry("lookupPokemonReference", card("lookupPokemonReference", LOW, NETWORK, true, 25_000, List.of("trainer", "operator"))),
+            Map.entry("lookupPokemonTeamReference", card("lookupPokemonTeamReference", LOW, NETWORK, true, 50_000, List.of("trainer", "operator"))),
             Map.entry("lookupPokemonResource", card("lookupPokemonResource", LOW, NETWORK, true, 10_000, List.of("trainer", "operator"))),
             Map.entry("calculateBattleDamage", card("calculateBattleDamage", LOW, NETWORK, true, 45_000, List.of("trainer", "operator"))),
             Map.entry("searchPokemonGuides", card("searchPokemonGuides", LOW, NONE, true, 3_000, List.of("trainer", "operator"))),

@@ -1,6 +1,34 @@
 # M4 工具能力卡（治理契约）。真实执行仍必须经过 ToolExecutionGateway。
 # 新增本地或 MCP 工具前先补卡；目录之外的工具按 fail-closed 拒绝。
 tools:
+  - name: listCurrentTeams
+    version: 1.0.0
+    riskLevel: LOW
+    sideEffect: NONE
+    idempotent: true
+    timeoutMs: 3000
+    allowedRoles: [trainer, operator]
+  - name: readCurrentTeam
+    version: 1.0.0
+    riskLevel: LOW
+    sideEffect: NETWORK
+    idempotent: true
+    timeoutMs: 50000
+    allowedRoles: [trainer, operator]
+  - name: previewTeamChanges
+    version: 1.0.0
+    riskLevel: LOW
+    sideEffect: NONE
+    idempotent: true
+    timeoutMs: 5000
+    allowedRoles: [trainer, operator]
+  - name: lookupPokemonTeamReference
+    version: 1.0.0
+    riskLevel: LOW
+    sideEffect: NETWORK
+    idempotent: true
+    timeoutMs: 50000
+    allowedRoles: [trainer, operator]
   - name: checkTypeEffectiveness
     version: 1.0.0
     riskLevel: LOW

@@ -1,0 +1,419 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "campus-s2-seed-v1",
+  "datasetSha256": "e86629f7538651098a19964993759514c87b3df77f3c04ad31260a75f9dc10c0",
+  "collectorVersion": "campus-s2-collector-v2",
+  "collectorSha256": {
+    "s2-evaluate.mjs": "5c2cc2c730969285620c8f614b63826cbbc5c1a392a9e34a4fe6c099e7c19f97",
+    "evaluation.mjs": "d16a3dc03016240e3fa5732725aca69707c082a006d89661debb2e23952d73b5"
+  },
+  "startedAt": "2026-10-23T07:32:00.788Z",
+  "mode": "real-model-current-tools-via-local-http",
+  "selectedCaseIds": [
+    "S2-GUIDES-01",
+    "S2-CLARIFICATION-01",
+    "S2-TEAM-01"
+  ],
+  "split": "dev",
+  "repetitions": 3,
+  "sourceCommit": "39574d7c1930e5212af44ed646e06ce4dfddf1f4",
+  "workingTreeDirty": true,
+  "node": "v24.19.0",
+  "generationParameters": "runtime defaults; not attested by endpoint",
+  "usage": "unknown",
+  "cost": "unknown",
+  "records": [
+    {
+      "caseId": "S2-GUIDES-01",
+      "repetition": 1,
+      "status": "COMPLETED",
+      "answer": "### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n**围绕核心成员构建队伍**\n\n作者：VIO project · 更新：2026-10-20\n\n> 这是项目原创的通用策略笔记，不是当前热门阵容榜单。先确定游戏、单打或双打、允许的规则，再确定核心成员承担的角色。检查队伍是否过度集中在同一弱点，是否缺少速度控制、耐久支点或可靠输出。属性覆盖只是第一步，必须结合招式、特性、道具、努力值与轮转机会。双打还要考虑队友协同与范围招式。没有使用率或赛事证据时，不宣称某套阵容是当前最强。建议给出至少一个替换方向，并解释该替换改善了什么、牺牲了什么。\n\n### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n",
+      "toolOutcomes": [
+        {
+          "tool": "searchPokemonGuides",
+          "status": "SUCCEEDED",
+          "durationMs": 18,
+          "parameterDigest": "5ac7028172714b498541b3d9a7d48a14d22e58bc35feafecc0318d4a0ec22e03",
+          "callId": "1fea2a12-406a-4f49-a742-639982b8a2cf"
+        }
+      ],
+      "checks": {
+        "storageUnchanged": true,
+        "historyMatches": true,
+        "storageUnchangedAfterCleanup": true
+      },
+      "elapsedMs": 14358,
+      "firstAnswerDeltaMs": 14306,
+      "input": "请调用 searchPokemonGuides 检索围绕核心成员组队的思路，注明具体攻略标题和作者，解释局限。",
+      "runId": "run-5754ee07-2308-401a-8738-59e83ae3773c",
+      "traceId": "df8ebd77",
+      "eventsFile": "S2-GUIDES-01-1-events.json",
+      "eventsSha256": "750f56996edfc35e0bd8591db07f9a7d0f7d2211bf91dccf1dde6cfc4f70198f",
+      "observationSha256": "cccb2a1ee58897274037b01efc0aaf47c04ae9673b234404f408e6bf7b91dc94"
+    },
+    {
+      "caseId": "S2-GUIDES-01",
+      "repetition": 2,
+      "status": "COMPLETED",
+      "answer": "### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n**围绕核心成员构建队伍**\n\n作者：VIO project · 更新：2026-10-20\n\n> 这是项目原创的通用策略笔记，不是当前热门阵容榜单。先确定游戏、单打或双打、允许的规则，再确定核心成员承担的角色。检查队伍是否过度集中在同一弱点，是否缺少速度控制、耐久支点或可靠输出。属性覆盖只是第一步，必须结合招式、特性、道具、努力值与轮转机会。双打还要考虑队友协同与范围招式。没有使用率或赛事证据时，不宣称某套阵容是当前最强。建议给出至少一个替换方向，并解释该替换改善了什么、牺牲了什么。\n\n### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n",
+      "toolOutcomes": [
+        {
+          "tool": "searchPokemonGuides",
+          "status": "SUCCEEDED",
+          "durationMs": 1,
+          "parameterDigest": "5ac7028172714b498541b3d9a7d48a14d22e58bc35feafecc0318d4a0ec22e03",
+          "callId": "9bfb8c14-d278-49aa-9d33-3221b1b8840a"
+        }
+      ],
+      "checks": {
+        "storageUnchanged": true,
+        "historyMatches": true,
+        "storageUnchangedAfterCleanup": true
+      },
+      "elapsedMs": 15160,
+      "firstAnswerDeltaMs": 14646,
+      "input": "请调用 searchPokemonGuides 检索围绕核心成员组队的思路，注明具体攻略标题和作者，解释局限。",
+      "runId": "run-6f7ecd92-79be-4ab9-af4f-62d3b8829081",
+      "traceId": "56badb15",
+      "eventsFile": "S2-GUIDES-01-2-events.json",
+      "eventsSha256": "de6a2fdd77cc1f59687d19775143b07b5ab9324f8970807e920d8bc83e6ede5d",
+      "observationSha256": "a1d0cb0a019cf259671409a82e363bb3e9695bea46fc94d59bfc0de1467d3481"
+    },
+    {
+      "caseId": "S2-GUIDES-01",
+      "repetition": 3,
+      "status": "COMPLETED",
+      "answer": "### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n**围绕核心成员构建队伍**\n\n作者：VIO project · 更新：2026-10-20\n\n> 这是项目原创的通用策略笔记，不是当前热门阵容榜单。先确定游戏、单打或双打、允许的规则，再确定核心成员承担的角色。检查队伍是否过度集中在同一弱点，是否缺少速度控制、耐久支点或可靠输出。属性覆盖只是第一步，必须结合招式、特性、道具、努力值与轮转机会。双打还要考虑队友协同与范围招式。没有使用率或赛事证据时，不宣称某套阵容是当前最强。建议给出至少一个替换方向，并解释该替换改善了什么、牺牲了什么。\n\n### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n",
+      "toolOutcomes": [
+        {
+          "tool": "searchPokemonGuides",
+          "status": "SUCCEEDED",
+          "durationMs": 2,
+          "parameterDigest": "5ac7028172714b498541b3d9a7d48a14d22e58bc35feafecc0318d4a0ec22e03",
+          "callId": "a353ff59-7084-4727-b01d-728150e3bbe5"
+        }
+      ],
+      "checks": {
+        "storageUnchanged": true,
+        "historyMatches": true,
+        "storageUnchangedAfterCleanup": true
+      },
+      "elapsedMs": 11061,
+      "firstAnswerDeltaMs": 11001,
+      "input": "请调用 searchPokemonGuides 检索围绕核心成员组队的思路，注明具体攻略标题和作者，解释局限。",
+      "runId": "run-650c2a85-46b4-4475-8614-9bc988c47640",
+      "traceId": "92a92aa5",
+      "eventsFile": "S2-GUIDES-01-3-events.json",
+      "eventsSha256": "a3a13007ba7598a601ad16f7d3581dabe9ab198713908e0331cb1824a5e31f30",
+      "observationSha256": "8220258e8c418f60937310a76b7b47f1dfffbfa79c6db4d1914bd40b4ae8215c"
+    },
+    {
+      "caseId": "S2-CLARIFICATION-01",
+      "repetition": 1,
+      "status": "COMPLETED",
+      "answer": "### 已保存配置（记录事实）\n以下来自本次读取的队伍，不替你补填未明确的条件。\n\n| 成员 | 等级 | 性格 | 招式 | 特性 | 道具 |\n| --- | --- | --- | --- | --- | --- |\n| 杰尼龟 | 50 | 勤奋（hardy） | 未明确 | 未明确 | 未明确 |\n| 小火龙 | 50 | 勤奋（hardy） | 未明确 | 未明确 | 未明确 |\n\n### 图鉴种族值（资料事实）\n种族值与等级无关，以下不是当前等级的实际能力值。\n\n| 成员 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- |\n| 杰尼龟 | 44 | 48 | 65 | 50 | 64 | 43 |\n| 小火龙 | 39 | 52 | 43 | 60 | 50 | 65 |\n\n来源：已保存队伍；PokéAPI 本地参考。资料不代表赛事合法性。\n\n### 还需明确\n- 杰尼龟：招式、特性、道具未明确。\n- 小火龙：招式、特性、道具未明确。\n\n请指定本次要计算的攻击方、对手和招式，并补齐上面未明确的项目；已有条件可以保留，无道具也请明确说明。计算前还会核对双方培养配置与场地。当前没有据此补造伤害或修改队伍。\n",
+      "toolOutcomes": [
+        {
+          "tool": "readCurrentTeam",
+          "status": "SUCCEEDED",
+          "durationMs": 36,
+          "parameterDigest": "11012fbe103f229fdfd2c6ec7e08f1f22d8eb53752fe70388334a9966188b49c",
+          "callId": "de6290cd-b759-4214-aec5-810c18a7d6a8"
+        }
+      ],
+      "checks": {
+        "storageUnchanged": true,
+        "historyMatches": true,
+        "storageUnchangedAfterCleanup": true
+      },
+      "elapsedMs": 7463,
+      "firstAnswerDeltaMs": 7389,
+      "input": "读取队伍 6，我想算第一位对某个对手的伤害，但还没定对手和招式。先告诉我缺哪些条件，不要替我填，也不要预览修改。",
+      "runId": "run-4b7214bb-abfa-45ec-a340-1d5f9170ba92",
+      "traceId": "5ffeb450",
+      "eventsFile": "S2-CLARIFICATION-01-1-events.json",
+      "eventsSha256": "82d833a9918abd29eea8d1827ce098ac83109f1c4899c62b286616e214f172e5",
+      "observationSha256": "39e8331b60c4f343fab3c18019e0dac3fe2563cd41f15f0e28f65d1e84506e3d"
+    },
+    {
+      "caseId": "S2-CLARIFICATION-01",
+      "repetition": 2,
+      "status": "COMPLETED",
+      "answer": "### 已保存配置（记录事实）\n以下来自本次读取的队伍，不替你补填未明确的条件。\n\n| 成员 | 等级 | 性格 | 招式 | 特性 | 道具 |\n| --- | --- | --- | --- | --- | --- |\n| 杰尼龟 | 50 | 勤奋（hardy） | 未明确 | 未明确 | 未明确 |\n| 小火龙 | 50 | 勤奋（hardy） | 未明确 | 未明确 | 未明确 |\n\n### 图鉴种族值（资料事实）\n种族值与等级无关，以下不是当前等级的实际能力值。\n\n| 成员 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- |\n| 杰尼龟 | 44 | 48 | 65 | 50 | 64 | 43 |\n| 小火龙 | 39 | 52 | 43 | 60 | 50 | 65 |\n\n来源：已保存队伍；PokéAPI 本地参考。资料不代表赛事合法性。\n\n### 还需明确\n- 杰尼龟：招式、特性、道具未明确。\n- 小火龙：招式、特性、道具未明确。\n\n请指定本次要计算的攻击方、对手和招式，并补齐上面未明确的项目；已有条件可以保留，无道具也请明确说明。计算前还会核对双方培养配置与场地。当前没有据此补造伤害或修改队伍。\n",
+      "toolOutcomes": [
+        {
+          "tool": "readCurrentTeam",
+          "status": "SUCCEEDED",
+          "durationMs": 30,
+          "parameterDigest": "530c7b1d3c22bee4e2d73d6943e1d7f624bbebcd6a914fdb510ff964b6276b0d",
+          "callId": "26e54939-78f0-4c39-8b31-243364be0388"
+        }
+      ],
+      "checks": {
+        "storageUnchanged": true,
+        "historyMatches": true,
+        "storageUnchangedAfterCleanup": true
+      },
+      "elapsedMs": 8306,
+      "firstAnswerDeltaMs": 8250,
+      "input": "读取队伍 7，我想算第一位对某个对手的伤害，但还没定对手和招式。先告诉我缺哪些条件，不要替我填，也不要预览修改。",
+      "runId": "run-ccc61fe9-086d-4619-95d2-a217b00b4245",
+      "traceId": "37e7b453",
+      "eventsFile": "S2-CLARIFICATION-01-2-events.json",
+      "eventsSha256": "3c9ad133525556ab81a3b1012e65ef7547eb656cb321147f392e8fec54b954e8",
+      "observationSha256": "03203513e0d02ba435b07e2c1c6368b300eb07ba3cbc8402e4b41981d8a6f609"
+    },
+    {
+      "caseId": "S2-CLARIFICATION-01",
+      "repetition": 3,
+      "status": "COMPLETED",
+      "answer": "### 已保存配置（记录事实）\n以下来自本次读取的队伍，不替你补填未明确的条件。\n\n| 成员 | 等级 | 性格 | 招式 | 特性 | 道具 |\n| --- | --- | --- | --- | --- | --- |\n| 杰尼龟 | 50 | 勤奋（hardy） | 未明确 | 未明确 | 未明确 |\n| 小火龙 | 50 | 勤奋（hardy） | 未明确 | 未明确 | 未明确 |\n\n### 图鉴种族值（资料事实）\n种族值与等级无关，以下不是当前等级的实际能力值。\n\n| 成员 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- |\n| 杰尼龟 | 44 | 48 | 65 | 50 | 64 | 43 |\n| 小火龙 | 39 | 52 | 43 | 60 | 50 | 65 |\n\n来源：已保存队伍；PokéAPI 本地参考。资料不代表赛事合法性。\n\n### 还需明确\n- 杰尼龟：招式、特性、道具未明确。\n- 小火龙：招式、特性、道具未明确。\n\n请指定本次要计算的攻击方、对手和招式，并补齐上面未明确的项目；已有条件可以保留，无道具也请明确说明。计算前还会核对双方培养配置与场地。当前没有据此补造伤害或修改队伍。\n",
+      "toolOutcomes": [
+        {
+          "tool": "readCurrentTeam",
+          "status": "SUCCEEDED",
+          "durationMs": 47,
+          "parameterDigest": "9e5fb4a8ec586ad214955a1d82ae847b264c779980fd677f2a6bea2d8e5b0404",
+          "callId": "cf152e90-a2b9-4c89-9bfd-ddde1519ea2c"
+        }
+      ],
+      "checks": {
+        "storageUnchanged": true,
+        "historyMatches": true,
+        "storageUnchangedAfterCleanup": true
+      },
+      "elapsedMs": 13307,
+      "firstAnswerDeltaMs": 13226,
+      "input": "读取队伍 8，我想算第一位对某个对手的伤害，但还没定对手和招式。先告诉我缺哪些条件，不要替我填，也不要预览修改。",
+      "runId": "run-59180d22-ae6d-4e1d-9159-443992d3e731",
+      "traceId": "72904189",
+      "eventsFile": "S2-CLARIFICATION-01-3-events.json",
+      "eventsSha256": "1ad668be935f49a18a9df9c08e9059d65c5d834b342ea0583c4220bbaa4c9180",
+      "observationSha256": "0fadfd13383729a5d5eed9ee9c40b0ccabca0153319262eff0dadaef00007ffe"
+    },
+    {
+      "caseId": "S2-TEAM-01",
+      "repetition": 1,
+      "status": "WAITING_APPROVAL",
+      "answer": "",
+      "toolOutcomes": [
+        {
+          "tool": "readCurrentTeam",
+          "status": "SUCCEEDED",
+          "durationMs": 35,
+          "parameterDigest": "aac558c7404807a9741353faa6801a1206ed3b748ca565a02c967cd377ffcadc",
+          "callId": "0151d041-0473-4ae2-bcea-7498dfa18c9d"
+        },
+        {
+          "tool": "previewTeamChanges",
+          "status": "SUCCEEDED",
+          "durationMs": 0,
+          "parameterDigest": "70d36ac2e5bca8f9a3df3de709c567c7a1fe71a5414b275fa513ea289b605684",
+          "callId": "59a4e72a-711d-4ea4-a4b9-c94da5f41722"
+        }
+      ],
+      "checks": {
+        "storageUnchanged": true,
+        "onlyExpectedChange": true,
+        "storageUnchangedAfterCleanup": true
+      },
+      "elapsedMs": 6968,
+      "firstAnswerDeltaMs": null,
+      "input": "请 readCurrentTeam 读取我的队伍 9，只把第一位等级从50改为51，其他字段不动，使用 previewTeamChanges 预览，等待我确认。不要计算伤害或先保存。",
+      "runId": "run-4b408223-4f9c-4adb-9fd2-5246b0d16191",
+      "traceId": "8543b07b",
+      "preview": {
+        "proposalId": "80cfe2d6-e195-4b06-9382-378d4356628a",
+        "teamId": 9,
+        "teamName": "S0 休闲练习队伍",
+        "changes": [
+          {
+            "slot": 1,
+            "member": "杰尼龟",
+            "field": "等级",
+            "before": "50",
+            "after": "51"
+          }
+        ],
+        "rationale": "将杰尼龟等级提升至51以略微增强其基础能力，其他配置保持不变",
+        "expiresAt": "2026-10-23T07:35:14.531517500Z",
+        "calculationEvidence": "未获得本 Run 的有效伤害计算。不能据此给出伤害、胜率或最优配置结论。",
+        "limitations": [
+          "仅保存预览列出的培养配置；理由是策略建议",
+          "图鉴存在与参数通过不代表招式合法或当前环境强势"
+        ]
+      },
+      "eventsFile": "S2-TEAM-01-1-events.json",
+      "eventsSha256": "365a489eb44672a5de96c1be19d7837fa8e64c2c9343ee72b4261aafe5517453",
+      "observationSha256": "9ef626f8873f039efd47c265df8b3a1d8c5c1eae0fbc883d923bdacd53e83d50",
+      "cleanupCancelled": true
+    },
+    {
+      "caseId": "S2-TEAM-01",
+      "repetition": 2,
+      "status": "WAITING_APPROVAL",
+      "answer": "",
+      "toolOutcomes": [
+        {
+          "tool": "readCurrentTeam",
+          "status": "SUCCEEDED",
+          "durationMs": 29,
+          "parameterDigest": "d1f46950d087976c4736dc3b33338137861251b54426ac87bf65e817e41b1db0",
+          "callId": "b567f497-7945-48a6-8b1e-af88a3b823f9"
+        },
+        {
+          "tool": "previewTeamChanges",
+          "status": "SUCCEEDED",
+          "durationMs": 2,
+          "parameterDigest": "8e045927eefa500a02de6c2f9ec10b23aaa0c8483e218e69cd2d9d0a89b77b49",
+          "callId": "bf0a0135-480e-4b6b-9a02-42c4d8ed9d78"
+        }
+      ],
+      "checks": {
+        "storageUnchanged": true,
+        "onlyExpectedChange": true,
+        "storageUnchangedAfterCleanup": true
+      },
+      "elapsedMs": 7384,
+      "firstAnswerDeltaMs": null,
+      "input": "请 readCurrentTeam 读取我的队伍 10，只把第一位等级从50改为51，其他字段不动，使用 previewTeamChanges 预览，等待我确认。不要计算伤害或先保存。",
+      "runId": "run-f3cc027e-1cca-4027-9a08-9b5d87c76181",
+      "traceId": "aa545d18",
+      "preview": {
+        "proposalId": "f7941219-fa5a-4a26-ae7e-be1f71048a76",
+        "teamId": 10,
+        "teamName": "S0 休闲练习队伍",
+        "changes": [
+          {
+            "slot": 1,
+            "member": "杰尼龟",
+            "field": "等级",
+            "before": "50",
+            "after": "51"
+          }
+        ],
+        "rationale": "仅调整第一位成员等级至51，其他配置保持不变",
+        "expiresAt": "2026-10-23T07:35:21.505311600Z",
+        "calculationEvidence": "未获得本 Run 的有效伤害计算。不能据此给出伤害、胜率或最优配置结论。",
+        "limitations": [
+          "仅保存预览列出的培养配置；理由是策略建议",
+          "图鉴存在与参数通过不代表招式合法或当前环境强势"
+        ]
+      },
+      "eventsFile": "S2-TEAM-01-2-events.json",
+      "eventsSha256": "e3599e96820ee03a88edeb5a77c9a1be54984bd43615d7474a6b2ccdcb6a2ebd",
+      "observationSha256": "87e9fd242f76ce9e90c12ac240843edf18d298c6c3265c56bb307252d9caa388",
+      "cleanupCancelled": true
+    },
+    {
+      "caseId": "S2-TEAM-01",
+      "repetition": 3,
+      "status": "WAITING_APPROVAL",
+      "answer": "",
+      "toolOutcomes": [
+        {
+          "tool": "readCurrentTeam",
+          "status": "SUCCEEDED",
+          "durationMs": 55,
+          "parameterDigest": "b3d6d057fb119c0a773cc349771a2fe4ef6b47de43b10326cb63d64c1d4a0de5",
+          "callId": "56ed4c62-cf40-4e88-96e9-a4bc6d5afdeb"
+        },
+        {
+          "tool": "previewTeamChanges",
+          "status": "SUCCEEDED",
+          "durationMs": 2,
+          "parameterDigest": "bb6edf040c66f93f5b975d4fbb3fe9ebcd5e7652996e1c894d1f3b53c92d8576",
+          "callId": "67b14f56-afba-44e0-8c6a-a05af27a2bae"
+        }
+      ],
+      "checks": {
+        "storageUnchanged": true,
+        "onlyExpectedChange": true,
+        "storageUnchangedAfterCleanup": true
+      },
+      "elapsedMs": 7780,
+      "firstAnswerDeltaMs": null,
+      "input": "请 readCurrentTeam 读取我的队伍 11，只把第一位等级从50改为51，其他字段不动，使用 previewTeamChanges 预览，等待我确认。不要计算伤害或先保存。",
+      "runId": "run-e5cec05d-bba7-4774-b274-6d5946e292f5",
+      "traceId": "d7bfbc2e",
+      "preview": {
+        "proposalId": "7f485f21-e406-4316-9924-9973da9fa33d",
+        "teamId": 11,
+        "teamName": "S0 休闲练习队伍",
+        "changes": [
+          {
+            "slot": 1,
+            "member": "杰尼龟",
+            "field": "等级",
+            "before": "50",
+            "after": "51"
+          }
+        ],
+        "rationale": "将杰尼龟等级提升至51级以增强其整体能力，同时保持原有培养配置不变",
+        "expiresAt": "2026-10-23T07:35:28.940972100Z",
+        "calculationEvidence": "未获得本 Run 的有效伤害计算。不能据此给出伤害、胜率或最优配置结论。",
+        "limitations": [
+          "仅保存预览列出的培养配置；理由是策略建议",
+          "图鉴存在与参数通过不代表招式合法或当前环境强势"
+        ]
+      },
+      "eventsFile": "S2-TEAM-01-3-events.json",
+      "eventsSha256": "2b5ca45593d046242bb8b5aa912f62e60928336bbb517560489b572594ab7728",
+      "observationSha256": "6026bba43c22b2f1ab8cd77bb611b61d1ff71e85153159793ede0c17c01aeee3",
+      "cleanupCancelled": true
+    }
+  ],
+  "notes": [
+    "New isolated accounts and teams only; no legacy user data read.",
+    "No approval is submitted. Expected previews are checked then cancelled.",
+    "Model identity is configured identity; provider returned identity is not attested.",
+    "No pure model or retrieval+tools comparison has been performed."
+  ],
+  "runtime": {
+    "configuredProvider": "dashscope",
+    "providerReturnedModelId": "not-attested-by-this-endpoint",
+    "promptVersion": "campus-s2-source-projection-v3",
+    "configuredModelId": "qwen-plus",
+    "implementationSha256": {
+      "VioManus": "164508efe9e74fd9a464c9a9d98329179b4ca7211df54da42e7980fd2247a0e7",
+      "ToolCallAgent": "27d2a1fcd1c689d9b7e793f61661ee853b01a0e7f0a553de1358f36c2df97616",
+      "TeamAnswerEvidence": "bd4f6d2228a5b963620a69d352897d8f79896e5d2c127b59117849ce4e371688",
+      "DamageAnswerEvidence": "381161ab8f1e34506e9eae5b3102b3d8b507c853951f27d84fdfab2c24056e2a",
+      "GuideAnswerEvidence": "b3e80f59829946a7f32abb55f5583fe0f144da186b5183af0a6b647ee4a8f757",
+      "SavedTeamAnswerEvidence": "51d69d378cf7e95c2a0e33592faf3ce289862d62d5d1c797ce8102d1e10e6022",
+      "EvidenceText": "5a5df23e488f0cd60330d3b4170e0cbc602375620950329fb9cb5ea093eb8742",
+      "TeamReferenceTools": "7ab3609debdee4f7dae89c9b911279b24c11959ffa41dd4d4ea3e0cb95fa42ff",
+      "TeamWorkflowService": "528c20dbe0ee274e4d2d7a2025cf5325f84b60a61ed18f354eede219ee7142c0",
+      "RunMutationBoundary": "dc9dd79d80426b94edcee94eb86fd20c4f47d798d9e5d8b2dd3cce0ca5faeb92",
+      "DefaultRunExecutor": "8eb887792266e6e27bd3b941fd404224276ea407cffbfbf0fb80ba9d723fb040"
+    },
+    "profiles": [
+      "local"
+    ],
+    "tools": [
+      "calculateBattleDamage",
+      "checkTypeEffectiveness",
+      "doTerminate",
+      "getTypeChart",
+      "listCurrentTeams",
+      "lookupPokemonReference",
+      "lookupPokemonResource",
+      "lookupPokemonTeamReference",
+      "previewTeamChanges",
+      "readCurrentTeam",
+      "searchPokemonGuides",
+      "searchWeb"
+    ],
+    "features": {
+      "highRiskTools": false,
+      "answerStreaming": true,
+      "mcpClient": false,
+      "versionedGrounding": false
+    }
+  },
+  "finishedAt": "2026-10-23T07:33:36.689Z",
+  "sourceSha256Count": 446,
+  "originalObservationsSha256": "ff598249706676a8d8d1bd9e779cd358d43aa5d30dd3f09fd7649be9c551fce0",
+  "originalEvidenceRoot": "artifacts/campus/s2-quality/live-stream",
+  "archiveNote": "Dedicated synthetic accounts; credentials/cookies never captured. Original artifacts retain full source digests and events."
+}

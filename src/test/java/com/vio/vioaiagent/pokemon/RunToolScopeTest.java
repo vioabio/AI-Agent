@@ -16,8 +16,12 @@ class RunToolScopeTest {
             assertDoesNotThrow(()->scope.check("pokeapi-reference-v1","pokemon-scarlet-violet"));
             assertThrows(IllegalArgumentException.class,()->scope.check("different-version",null));
             assertThrows(IllegalArgumentException.class,()->scope.check(null,"different-game"));
+            var guide=scope.guideQuery("培养攻略","pokemon-scarlet-violet");
+            assertEquals("zh-CN",guide.language());assertEquals("casual-singles",guide.battleFormatId());
+            assertEquals("casual-v1",guide.rulesetVersionId());
             ToolExecutionContextHolder.set(new ToolExecutionContext("bob","run-reference",java.util.Set.of("trainer"),"trace",null,null));
             assertThrows(IllegalStateException.class,()->scope.check("pokeapi-reference-v1",null));
+            assertThrows(IllegalStateException.class,()->scope.guideQuery("培养攻略","pokemon-scarlet-violet"));
         }finally{ToolExecutionContextHolder.clear();}
     }
 }

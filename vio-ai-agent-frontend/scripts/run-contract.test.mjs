@@ -8,10 +8,54 @@ import {
   normalizeRunStatus,
   normalizeCursorId
 } from '../src/api/run-contract.js'
+import { toolFailureLabel } from '../src/api/run-contract.js'
 
 function replay(events, seed = {}) {
   return events.reduce((model, event) => reduceRunEvent(model, event), createRunViewModel(seed))
 }
+
+test('同名工具按治理调用ID关联，失败后结算保留原因和耗时', () => {
+  const model = replay([
+    { id: '1', type: 'tool.started', data: { toolName: 'searchWeb', governanceEventId: 'call-a' } },
+    { id: '2', type: 'tool.started', data: { toolName: 'searchWeb', governanceEventId: 'call-b' } },
+    { id: '3', type: 'tool.finished', data: { toolName: 'searchWeb', governanceEventId: 'call-a', status: 'FAILED', error: 'SEARCH_PROVIDER_HTTP_401' } },
+    { id: '4', type: 'tool.finished', data: { toolName: 'searchWeb', governanceEventId: 'call-a', status: 'FAILED', durationMs: 164 } },
+    { id: '5', type: 'tool.finished', data: { toolName: 'searchWeb', governanceEventId: 'call-b', status: 'SUCCEEDED', durationMs: 704 } }
+  ])
+  assert.equal(model.toolTimeline[0].status, 'failed')
+  assert.equal(model.toolTimeline[0].durationMs, 164)
+  assert.equal(model.toolTimeline[0].error, 'SEARCH_PROVIDER_HTTP_401')
+  assert.match(toolFailureLabel(model.toolTimeline[0]), /SearchAPI Key/)
+  assert.equal(model.toolTimeline[1].status, 'completed')
+  assert.equal(model.toolTimeline[1].durationMs, 704)
+  assert.equal(toolFailureLabel(model.toolTimeline[1]), '')
+})
+
+test('搜索失败提示区分额度和超时，未知异常不泄露原始内容', () => {
+  const failed = error => ({ toolName: 'searchWeb', status: 'failed', error })
+  assert.match(toolFailureLabel(failed('SEARCH_PROVIDER_HTTP_429')), /额度/)
+  assert.match(toolFailureLabel(failed('SEARCH_TIMEOUT')), /网络/)
+  assert.match(toolFailureLabel(failed('TOOL_EXECUTION_TIMEOUT')), /排队/)
+  assert.doesNotMatch(toolFailureLabel(failed('private-provider-body secret=private')), /private|secret/)
+})
+
+test('问答总超时显示可读原因，保留部分回答且不标为完成', () => {
+  for (const answer of ['', '已经生成的部分回答']) {
+    const model = replay([
+      { id: '1', type: 'answer.delta', data: answer },
+      { id: '2', type: 'run.timed_out', data: { reason: 'deadline_exceeded' } }
+    ])
+    assert.equal(model.status, RUN_STATUS.TIMED_OUT)
+    assert.equal(model.answer, answer)
+    assert.match(model.error, /本次问答已超时/)
+    assert.doesNotMatch(model.error, /deadline_exceeded/)
+    if (answer) assert.match(model.error, /尚未完成/)
+  }
+  const specific = replay([
+    { id: '1', type: 'run.timed_out', data: { message: '队列等待超时' } }
+  ])
+  assert.equal(specific.error, '队列等待超时')
+})
 
 test('tool.finished必须按业务结果区分成功与失败', () => {
   for (const status of ['FAILED', 'AUDIT_FAILED', 'UNKNOWN', 'REJECTED', 'CANCELLED', 'TIMED_OUT']) {
@@ -148,7 +192,8 @@ test('canonical run.timed_out 事件不会被下划线归一化误判为未知�
 
   const model = replay([normalized], { runId: 'run-timeout' })
   assert.equal(model.status, RUN_STATUS.TIMED_OUT)
-  assert.equal(model.error, 'deadline_exceeded')
+  assert.match(model.error, /本次问答已超时/)
+  assert.equal(model.events[0].data.reason, 'deadline_exceeded')
   assert.equal(model.lastEventId, '11')
   assert.equal(model.ignoredEvents.length, 0)
 })

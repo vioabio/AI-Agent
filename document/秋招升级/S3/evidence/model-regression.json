@@ -1,0 +1,253 @@
+{
+  "mode": "real-model-current-tools-via-local-http",
+  "datasetId": "campus-s2-seed-v1",
+  "datasetSha256": "e86629f7538651098a19964993759514c87b3df77f3c04ad31260a75f9dc10c0",
+  "startedAt": "2026-10-23T08:01:26.819Z",
+  "finishedAt": "2026-10-23T08:02:13.186Z",
+  "runtime": {
+    "promptVersion": "campus-s3-local-index-v1",
+    "configuredModelId": "qwen-plus",
+    "implementationSha256": {
+      "VioManus": "4171c507382969530bd397656256cccde67c83e0f9cbfc589b708de4841f73b5",
+      "ToolCallAgent": "27d2a1fcd1c689d9b7e793f61661ee853b01a0e7f0a553de1358f36c2df97616",
+      "TeamAnswerEvidence": "bd4f6d2228a5b963620a69d352897d8f79896e5d2c127b59117849ce4e371688",
+      "DamageAnswerEvidence": "381161ab8f1e34506e9eae5b3102b3d8b507c853951f27d84fdfab2c24056e2a",
+      "GuideAnswerEvidence": "08b086ecfd31ee4289062f4c198438d0cf2d0fd66601f45f962e1320356cb3e0",
+      "SavedTeamAnswerEvidence": "51d69d378cf7e95c2a0e33592faf3ce289862d62d5d1c797ce8102d1e10e6022",
+      "EvidenceText": "5a5df23e488f0cd60330d3b4170e0cbc602375620950329fb9cb5ea093eb8742",
+      "TeamReferenceTools": "7ab3609debdee4f7dae89c9b911279b24c11959ffa41dd4d4ea3e0cb95fa42ff",
+      "TeamWorkflowService": "528c20dbe0ee274e4d2d7a2025cf5325f84b60a61ed18f354eede219ee7142c0",
+      "RunMutationBoundary": "dc9dd79d80426b94edcee94eb86fd20c4f47d798d9e5d8b2dd3cce0ca5faeb92",
+      "DefaultRunExecutor": "8eb887792266e6e27bd3b941fd404224276ea407cffbfbf0fb80ba9d723fb040",
+      "LocalGuideSearch": "0b1eaab21ac027a508fbbd83b4e11b928ddd832391f1d5aaca728c1a4a11dc1f",
+      "GuideChunks": "a74f01880b61e560dc9b72546c164fe80f22934a842c527f047006d63ce9e3dd",
+      "SqliteGuideKnowledgeRetriever": "e62aaf5007dc25515cdd1c8dea56469293d8b307f6b647c4ff130b69283622a4",
+      "RunToolScope": "1f143ef344d352ff7df64cb051614655ad589ca4a139dc8903ebe5bf075e381d"
+    },
+    "profiles": [
+      "local"
+    ],
+    "tools": [
+      "calculateBattleDamage",
+      "checkTypeEffectiveness",
+      "doTerminate",
+      "getTypeChart",
+      "listCurrentTeams",
+      "lookupPokemonReference",
+      "lookupPokemonResource",
+      "lookupPokemonTeamReference",
+      "previewTeamChanges",
+      "readCurrentTeam",
+      "searchPokemonGuides",
+      "searchWeb"
+    ],
+    "features": {
+      "answerStreaming": true,
+      "mcpClient": false,
+      "versionedGrounding": false,
+      "highRiskTools": false
+    },
+    "configuredProvider": "dashscope",
+    "providerReturnedModelId": "not-attested-by-this-endpoint"
+  },
+  "originalObservationSha256": "e0805b38b345c8cc9501b5e237e5e1d63d3a0888a17c49b2a7334e6874ce2a08",
+  "quality": {
+    "mode": "deterministic-source-and-snapshot-regression",
+    "scope": "Only fixed guide, incomplete-build and preview cases; not universal prose verification or human acceptance",
+    "datasetId": "campus-s2-seed-v1",
+    "runtime": {
+      "promptVersion": "campus-s3-local-index-v1",
+      "configuredModelId": "qwen-plus",
+      "implementationSha256": {
+        "VioManus": "4171c507382969530bd397656256cccde67c83e0f9cbfc589b708de4841f73b5",
+        "ToolCallAgent": "27d2a1fcd1c689d9b7e793f61661ee853b01a0e7f0a553de1358f36c2df97616",
+        "TeamAnswerEvidence": "bd4f6d2228a5b963620a69d352897d8f79896e5d2c127b59117849ce4e371688",
+        "DamageAnswerEvidence": "381161ab8f1e34506e9eae5b3102b3d8b507c853951f27d84fdfab2c24056e2a",
+        "GuideAnswerEvidence": "08b086ecfd31ee4289062f4c198438d0cf2d0fd66601f45f962e1320356cb3e0",
+        "SavedTeamAnswerEvidence": "51d69d378cf7e95c2a0e33592faf3ce289862d62d5d1c797ce8102d1e10e6022",
+        "EvidenceText": "5a5df23e488f0cd60330d3b4170e0cbc602375620950329fb9cb5ea093eb8742",
+        "TeamReferenceTools": "7ab3609debdee4f7dae89c9b911279b24c11959ffa41dd4d4ea3e0cb95fa42ff",
+        "TeamWorkflowService": "528c20dbe0ee274e4d2d7a2025cf5325f84b60a61ed18f354eede219ee7142c0",
+        "RunMutationBoundary": "dc9dd79d80426b94edcee94eb86fd20c4f47d798d9e5d8b2dd3cce0ca5faeb92",
+        "DefaultRunExecutor": "8eb887792266e6e27bd3b941fd404224276ea407cffbfbf0fb80ba9d723fb040",
+        "LocalGuideSearch": "0b1eaab21ac027a508fbbd83b4e11b928ddd832391f1d5aaca728c1a4a11dc1f",
+        "GuideChunks": "a74f01880b61e560dc9b72546c164fe80f22934a842c527f047006d63ce9e3dd",
+        "SqliteGuideKnowledgeRetriever": "e62aaf5007dc25515cdd1c8dea56469293d8b307f6b647c4ff130b69283622a4",
+        "RunToolScope": "1f143ef344d352ff7df64cb051614655ad589ca4a139dc8903ebe5bf075e381d"
+      },
+      "profiles": [
+        "local"
+      ],
+      "tools": [
+        "calculateBattleDamage",
+        "checkTypeEffectiveness",
+        "doTerminate",
+        "getTypeChart",
+        "listCurrentTeams",
+        "lookupPokemonReference",
+        "lookupPokemonResource",
+        "lookupPokemonTeamReference",
+        "previewTeamChanges",
+        "readCurrentTeam",
+        "searchPokemonGuides",
+        "searchWeb"
+      ],
+      "features": {
+        "answerStreaming": true,
+        "mcpClient": false,
+        "versionedGrounding": false,
+        "highRiskTools": false
+      },
+      "configuredProvider": "dashscope",
+      "providerReturnedModelId": "not-attested-by-this-endpoint"
+    },
+    "planned": 3,
+    "pass": 3,
+    "failed": 0,
+    "humanAcceptance": "not performed",
+    "rows": [
+      {
+        "caseId": "S2-GUIDES-01",
+        "repetition": 1,
+        "pass": true,
+        "checks": {
+          "storageUnchanged": true,
+          "completed": true,
+          "historyMatches": true,
+          "actualSearch": true,
+          "quotesSupportedByCapturedSources": true,
+          "noKnownUnattributedExamples": true
+        }
+      },
+      {
+        "caseId": "S2-CLARIFICATION-01",
+        "repetition": 1,
+        "pass": true,
+        "checks": {
+          "storageUnchanged": true,
+          "completed": true,
+          "historyMatches": true,
+          "actualRead": true,
+          "storedHardyPreserved": true,
+          "baseStatsSeparatedFromLevel": true,
+          "missingFieldsAskedWithoutFabricatedExamples": true,
+          "noCalculationOrPreview": true
+        }
+      },
+      {
+        "caseId": "S2-TEAM-01",
+        "repetition": 1,
+        "pass": true,
+        "checks": {
+          "storageUnchanged": true,
+          "waitingApproval": true,
+          "actualRead": true,
+          "actualPreview": true,
+          "onlyExpectedChange": true,
+          "cancelledAfterCheck": true
+        }
+      }
+    ]
+  },
+  "streaming": [
+    {
+      "caseId": "S2-GUIDES-01",
+      "status": "COMPLETED",
+      "deltaCount": 6,
+      "concatenationMatches": true,
+      "historyMatches": true,
+      "originalEventSha256": "342bfded08c12f809c45203010616cbf77d211a827935ce368bc6258da58f28f"
+    },
+    {
+      "caseId": "S2-CLARIFICATION-01",
+      "status": "COMPLETED",
+      "deltaCount": 7,
+      "concatenationMatches": true,
+      "historyMatches": true,
+      "originalEventSha256": "2ce42f10ed939b09d050a720dd7b25634a2768ee8812e8486fe32d3d62dd1927"
+    },
+    {
+      "caseId": "S2-TEAM-01",
+      "status": "WAITING_APPROVAL",
+      "deltaCount": 0,
+      "concatenationMatches": null,
+      "historyMatches": null,
+      "originalEventSha256": "e1402908f4edfeaf88dd786798d3195c40e8c033fb579935f0c54e017d92854f"
+    }
+  ],
+  "reportRecomputedIdentically": true,
+  "records": [
+    {
+      "caseId": "S2-GUIDES-01",
+      "status": "COMPLETED",
+      "answer": "### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n**围绕核心成员构建队伍**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n> 这是项目原创的通用策略笔记，不是当前热门阵容榜单。先确定游戏、单打或双打、允许的规则，再确定核心成员承担的角色。检查队伍是否过度集中在同一弱点，是否缺少速度控制、耐久支点或可靠输出。属性覆盖只是第一步，必须结合招式、特性、道具、努力值与轮转机会。双打还要考虑队友协同与范围招式。没有使用率或赛事证据时，不宣称某套阵容是当前最强。建议给出至少一个替换方向，并解释该替换改善了什么、牺牲了什么。\n\n### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n",
+      "toolOutcomes": [
+        {
+          "tool": "searchPokemonGuides",
+          "status": "SUCCEEDED",
+          "durationMs": 13,
+          "parameterDigest": "5ac7028172714b498541b3d9a7d48a14d22e58bc35feafecc0318d4a0ec22e03",
+          "callId": "66e23ad9-0a7d-4644-9784-2d642c2f6c6c"
+        }
+      ],
+      "checks": {
+        "storageUnchanged": true,
+        "historyMatches": true,
+        "storageUnchangedAfterCleanup": true
+      },
+      "elapsedMs": 14372
+    },
+    {
+      "caseId": "S2-CLARIFICATION-01",
+      "status": "COMPLETED",
+      "answer": "### 已保存配置（记录事实）\n以下来自本次读取的队伍，不替你补填未明确的条件。\n\n| 成员 | 等级 | 性格 | 招式 | 特性 | 道具 |\n| --- | --- | --- | --- | --- | --- |\n| 杰尼龟 | 50 | 勤奋（hardy） | 未明确 | 未明确 | 未明确 |\n| 小火龙 | 50 | 勤奋（hardy） | 未明确 | 未明确 | 未明确 |\n\n### 图鉴种族值（资料事实）\n种族值与等级无关，以下不是当前等级的实际能力值。\n\n| 成员 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- |\n| 杰尼龟 | 44 | 48 | 65 | 50 | 64 | 43 |\n| 小火龙 | 39 | 52 | 43 | 60 | 50 | 65 |\n\n来源：已保存队伍；PokéAPI 本地参考。资料不代表赛事合法性。\n\n### 还需明确\n- 杰尼龟：招式、特性、道具未明确。\n- 小火龙：招式、特性、道具未明确。\n\n请指定本次要计算的攻击方、对手和招式，并补齐上面未明确的项目；已有条件可以保留，无道具也请明确说明。计算前还会核对双方培养配置与场地。当前没有据此补造伤害或修改队伍。\n",
+      "toolOutcomes": [
+        {
+          "tool": "readCurrentTeam",
+          "status": "SUCCEEDED",
+          "durationMs": 47,
+          "parameterDigest": "57a0ce7922ce7f6dbd0a640c35e65807d46928259ed122c309ecfb7e9dcc585b",
+          "callId": "7bd29f32-879a-42f2-a311-c3bbf302bf68"
+        }
+      ],
+      "checks": {
+        "storageUnchanged": true,
+        "historyMatches": true,
+        "storageUnchangedAfterCleanup": true
+      },
+      "elapsedMs": 23805
+    },
+    {
+      "caseId": "S2-TEAM-01",
+      "status": "WAITING_APPROVAL",
+      "answer": "",
+      "toolOutcomes": [
+        {
+          "tool": "readCurrentTeam",
+          "status": "SUCCEEDED",
+          "durationMs": 35,
+          "parameterDigest": "123c8994ee3515a0fd37d3d8ad5377b26e6cd9124e793821ca60f32ee14f1a0d",
+          "callId": "d5ff1c75-5398-4157-972b-a8e62d2aa3e2"
+        },
+        {
+          "tool": "previewTeamChanges",
+          "status": "SUCCEEDED",
+          "durationMs": 18,
+          "parameterDigest": "db9a2aaa61800cf0e17391c8c43bbdb0650010abdb2fa706f737c633eff35d52",
+          "callId": "c0283053-83ee-4a8d-b28f-ae8a247d11ac"
+        }
+      ],
+      "checks": {
+        "storageUnchanged": true,
+        "onlyExpectedChange": true,
+        "storageUnchangedAfterCleanup": true
+      },
+      "elapsedMs": 6015,
+      "cleanupCancelled": true
+    }
+  ],
+  "usage": "unknown",
+  "cost": "unknown",
+  "humanAcceptance": "not performed",
+  "note": "Three fixed S2 development cases, one run each; not heldout ablation or a general accuracy score."
+}

@@ -66,7 +66,7 @@ import PokemonWorkbench from '@/views/PokemonWorkbench.vue'
 import VioMark from '@/components/VioMark.vue'
 import UiIcon from '@/components/UiIcon.vue'
 import { useRoute, useRouter } from 'vue-router'
-import { chatWithGameApp, decideRunApproval, submitAnswerFeedback, fetchConversationMessages, fetchPokemonReferenceStatus } from '@/api'
+import { chatWithGameApp, decideRunApproval, decideTeamChange, submitAnswerFeedback, fetchConversationMessages, fetchPokemonReferenceStatus, fetchRunTeamChange } from '@/api'
 import { BATTLE_FORMAT_OPTIONS, serializeRunContext } from '@/api/version-registry'
 import { useRunStream } from '@/composables/useRunStream'
 import { getOrCreateConversationId, selectConversationId } from '@/composables/runPersistence'
@@ -135,6 +135,10 @@ const connectionStatus = ref('idle') // 'idle' | 'connecting' | 'done'
 let currentEventSource = null
 let legacyDoneTimer = null
 const activeRun = ref(null)
+const teamApprovalRuns = new Set()
+watch(() => activeRun.value?.approval, approval => {
+  if (approval?.teamChange && activeRun.value?.runId) teamApprovalRuns.add(activeRun.value.runId)
+})
 const modernRunEnabled = import.meta.env.VITE_V1_RUNS_ENABLED !== 'false'
 const runStream = useRunStream()
 let stopAnswerWatch = null
@@ -157,6 +161,14 @@ watch(() => activeRun.value?.status, status => {
   if (!status) return
   if (TERMINAL_STATUSES.has(status)) {
     connectionStatus.value = 'done'
+    const runId = activeRun.value.runId
+    if (teamApprovalRuns.has(runId)) {
+      teamApprovalRuns.delete(runId)
+      fetchRunTeamChange(runId).then(result => {
+        if (activeRun.value?.runId === runId && result.status === 'APPLIED') return workbenchRef.value?.refreshConfirmedTeam(result.savedTeam)
+        if (activeRun.value?.runId === runId && result.message) activeRun.value.error = result.message
+      }).catch(error => { if (activeRun.value?.runId === runId) activeRun.value.error = `请手动回读队伍核对保存结果：${error.message}` })
+    }
   } else if (status === RUN_STATUS.RECONNECTING) {
     connectionStatus.value = 'reconnecting'
   } else if (status === RUN_STATUS.WAITING_APPROVAL) {
@@ -216,8 +228,12 @@ async function handleSend(message) {
 
 function bindAnswerBubble(aiMessage) {
   stopAnswerWatch?.()
-  stopAnswerWatch = watch(() => activeRun.value?.answer, value => {
+  stopAnswerWatch = watch(() => [activeRun.value?.answer, activeRun.value?.status, activeRun.value?.modelUsageAttempts], ([value]) => {
     aiMessage.content = value || ''
+    if(activeRun.value) {
+      aiMessage.runId=activeRun.value.runId
+      if(activeRun.value.modelUsageAttempts?.length)aiMessage.metadata={ ...aiMessage.metadata, modelUsageAttempts: activeRun.value.modelUsageAttempts }
+    }
     if (activeRun.value && TERMINAL_STATUSES.has(activeRun.value.status)) {
       connectionStatus.value = 'done'
     }
@@ -286,10 +302,11 @@ async function handleReconnectRun(runId) {
 }
 
 async function handleApproveRun(approval) {
-  if (!approval?.approvalId || !activeRun.value?.runId) return
+  if (!approval?.approvalId || !activeRun.value?.runId || activeRun.value.approvalSubmitting) return
   const runId = activeRun.value.runId
+  activeRun.value.approvalSubmitting = true
   try {
-    const response = await decideRunApproval(approval.approvalId, {
+    const response = approval.teamChange ? await decideTeamChange(runId,approval.approvalId,approval.approved !== false) : await decideRunApproval(approval.approvalId, {
       runId,
       approved: approval.approved !== false,
       reason: approval.approved === false ? '用户拒绝工具调用' : ''
@@ -309,7 +326,9 @@ async function handleApproveRun(approval) {
     // 让时间线从 waiting_approval 正确收敛到最终状态。
     await runStream.reconnect(runId)
   } catch (error) {
-    activeRun.value.error = error.message
+    if (activeRun.value?.runId === runId) activeRun.value.error = error.message
+  } finally {
+    if (activeRun.value?.runId === runId) activeRun.value.approvalSubmitting = false
   }
 }
 

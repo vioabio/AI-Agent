@@ -25,7 +25,7 @@
 <script setup>
 import AppFooter from '@/components/AppFooter.vue'
 import PokemonPortrait from '@/components/PokemonPortrait.vue'
-import { useHead } from '@vueuse/head'
+import { useHead } from '@unhead/vue'
 
 useHead({
   title: 'VIO AI Agent',

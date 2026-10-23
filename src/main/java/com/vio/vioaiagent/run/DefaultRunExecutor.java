@@ -28,6 +28,10 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
     private final GameApp gameApp;
     private final VersionedKnowledgeRunFacade knowledgeFacade;
     private final boolean groundingEnabled;
+    @Autowired(required=false)
+    private com.vio.vioaiagent.pokemon.team.TeamWorkflowService teamWorkflow;
+
+    public void setTeamWorkflow(com.vio.vioaiagent.pokemon.team.TeamWorkflowService workflow) { this.teamWorkflow=workflow; }
 
     /** Spring 构造器；ObjectProvider/可选注入保持本地无模型时可启动。 */
     @Autowired
@@ -116,15 +120,21 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
 
     private String executeLegacy(AgentRunContext context) {
         AgentRun run = context.run();
+        if(teamWorkflow!=null) {
+            String confirmed=teamWorkflow.finishIfPending(context);
+            if(confirmed!=null){context.modelUsage().noModelCalls();return confirmed;}
+        }
         var answerDeltaSink = context.answerDeltaSink();
         String prompt = scopedPrompt(run);
         if (chatModel != null) {
-            VioManus agent = new VioManus(allTools, mcpToolProvider, chatModel);
+            VioManus agent = new VioManus(allTools, mcpToolProvider,
+                    new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage()));
             agent.setToolExecutionGateway(toolExecutionGateway);
+            agent.setTeamWorkflow(teamWorkflow);
             agent.setAnswerDeltaSink(answerDeltaSink);
             agent.setMessageList(new java.util.ArrayList<>(context.history()));
             String transcript = agent.run(prompt);
-            if (answerDeltaSink != null && agent.getFinalAnswer() == null) {
+            if (answerDeltaSink != null && agent.getFinalAnswer() == null && run.status() != AgentRunStatus.WAITING_APPROVAL) {
                 throw new IllegalStateException("模型回答生成失败，请检查 DeepSeek Key、模型权限和网络连接");
             }
             return agent.getFinalAnswer() == null ? transcript : agent.getFinalAnswer();
@@ -138,7 +148,8 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
     private String generateAnswer(String groundedPrompt, AgentRunContext context) {
         AgentRun run = context.run();
         if (chatModel != null && allTools.length > 0) {
-            VioManus agent = new VioManus(allTools, mcpToolProvider, chatModel);
+            VioManus agent = new VioManus(allTools, mcpToolProvider,
+                    new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage()));
             agent.setToolExecutionGateway(toolExecutionGateway);
             agent.setMessageList(new java.util.ArrayList<>(context.history()));
             String transcript = agent.run(groundedPrompt);

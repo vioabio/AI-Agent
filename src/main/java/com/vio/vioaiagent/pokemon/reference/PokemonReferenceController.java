@@ -10,6 +10,11 @@ import java.util.Map;
 public class PokemonReferenceController {
     private final LocalPokeApiRepository repository;
     public PokemonReferenceController(LocalPokeApiRepository repository) { this.repository=repository; }
+    @ExceptionHandler(IllegalArgumentException.class)
+    public org.springframework.http.ResponseEntity<com.vio.vioaiagent.common.Result<Void>> invalidInput(IllegalArgumentException error) {
+        return org.springframework.http.ResponseEntity.badRequest().body(com.vio.vioaiagent.common.Result.error(400,
+                error.getMessage() == null ? "资料查询参数无效" : error.getMessage()));
+    }
     @GetMapping("/status") public Map<String,Object> status() {
         return Map.of("enabled",true,"dataReleaseId",LocalPokeApiRepository.RELEASE,
                 "status","LOCAL_REFERENCE","sourceUrl","https://pokeapi.co/", "limitation","通用参考资料，不代表排位合法性或实时强度");

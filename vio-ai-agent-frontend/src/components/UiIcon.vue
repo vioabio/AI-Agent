@@ -6,6 +6,8 @@
 <script setup>
 defineProps({ name: { type: String, default: 'chat' } })
 const paths = {
+  pokeball: ['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', 'M3 12h6m6 0h6', 'M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z'],
+  info: ['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', 'M12 11v6m0-10v1'],
   chat: ['M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2V11.5a9.5 9.5 0 0 1 19 0Z'],
   book: ['M12 5v16M12 5C9 2 5 2 2 3v16c4-1 7-1 10 2 3-3 6-3 10-2V3c-3-1-7-1-10 2Z'],
   team: ['M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM2 21v-3a7 7 0 0 1 14 0v3H2ZM17 4a4 4 0 0 1 0 7M19 14a6 6 0 0 1 3 5v2h-3'],

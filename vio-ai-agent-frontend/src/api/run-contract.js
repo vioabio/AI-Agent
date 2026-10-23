@@ -5,6 +5,8 @@
  * 该文件不依赖 Vue，便于单元测试和断线恢复时重放事件。
  */
 
+import { upsertModelUsage } from './model-usage.js'
+
 export const RUN_STATUS = Object.freeze({
   CREATING: 'creating',
   RUNNING: 'running',
@@ -116,6 +118,7 @@ export function createRunViewModel(seed = {}) {
       errors: cardList(seedCards.errors)
     },
     toolTimeline: Array.isArray(seed.toolTimeline) ? [...seed.toolTimeline] : [],
+    modelUsageAttempts: (Array.isArray(seed.modelUsageAttempts) ? seed.modelUsageAttempts : []).reduce(upsertModelUsage, []),
     events: Array.isArray(seed.events) ? [...seed.events] : [],
     error: seed.error || null,
     approval: seed.approval || null,
@@ -226,6 +229,11 @@ export function reduceRunEvent(model, rawEvent) {
   // the user-facing error useful without rendering arbitrary payload fields.
   const eventErrorMessage = data.message || data.reason || data.recoveryReason
     || data.errorMessage || event.message || text
+  const timeoutMessage = eventErrorMessage === 'deadline_exceeded' || !eventErrorMessage
+    ? (next.answer
+        ? '本次问答已超时，以上为尚未完成的回答。可以缩小问题范围后重试。'
+        : '本次问答已超时，工具完成后仍可能需要模型生成回答。请缩小问题范围后重试。')
+    : eventErrorMessage
   const cardPayload = data.card && typeof data.card === 'object' ? data.card : data
   const mergedCards = data.cards && typeof data.cards === 'object'
     ? Object.fromEntries(Object.entries(next.cards).map(([key, current]) => [
@@ -234,7 +242,10 @@ export function reduceRunEvent(model, rawEvent) {
     ]))
     : next.cards
 
+  if (data.modelUsage) next.modelUsageAttempts = upsertModelUsage(next.modelUsageAttempts, data.modelUsage)
   switch (event.type) {
+    case 'usage':
+      return { ...next, modelUsageAttempts: upsertModelUsage(next.modelUsageAttempts, data) }
     case 'run.created':
       return { ...next, runId: data.runId || next.runId, conversationId: data.conversationId || next.conversationId, status: RUN_STATUS.CREATING }
     case 'run.started':
@@ -277,7 +288,13 @@ export function reduceRunEvent(model, rawEvent) {
     case 'tool.failed':
     case 'tool.rejected': {
       const name = data.toolName || event.toolName
-      const timeline = next.toolTimeline.map(item => item.toolName === name && item.status === 'running'
+      // A call emits both failed/completed and finished. Correlate by the
+      // governance call ID so its final duration is retained, without updating
+      // another concurrent or later invocation of the same tool.
+      const timeline = next.toolTimeline.map(item => item.toolName === name
+        && (data.governanceEventId
+          ? item.governanceEventId === data.governanceEventId
+          : item.status === 'running')
         ? { ...item, ...data, status: ['FAILED', 'AUDIT_FAILED', 'UNKNOWN', 'REJECTED', 'CANCELLED', 'TIMED_OUT']
           .includes(String(data.status || '').toUpperCase()) ? 'failed'
           : (event.type === 'tool.completed' || event.type === 'tool.finished') ? 'completed' : 'failed' }
@@ -308,13 +325,35 @@ export function reduceRunEvent(model, rawEvent) {
     case 'run.cancelled':
       return { ...next, status: RUN_STATUS.CANCELLED, finishedAt: data.finishedAt || new Date().toISOString() }
     case 'run.timed_out':
-      return { ...next, status: RUN_STATUS.TIMED_OUT, error: eventErrorMessage || '任务超时', finishedAt: data.finishedAt || new Date().toISOString() }
+      return { ...next, status: RUN_STATUS.TIMED_OUT, error: timeoutMessage, finishedAt: data.finishedAt || new Date().toISOString() }
     case 'run.failed':
     case 'error':
       return { ...next, status: RUN_STATUS.FAILED, error: eventErrorMessage || '任务执行失败', finishedAt: data.finishedAt || new Date().toISOString() }
     default:
       return next
   }
+}
+
+/** Known diagnostic codes only: never render arbitrary provider error bodies. */
+export function toolFailureLabel(item) {
+  if (item?.status !== 'failed') return ''
+  const error = String(item.error || item.reason || '')
+  const labels = [
+    ['SEARCH_NOT_CONFIGURED', '未配置独立的 SearchAPI 搜索凭证'],
+    ['SEARCH_PROVIDER_HTTP_401', '搜索凭证无效或已失效，请检查 SearchAPI Key'],
+    ['SEARCH_PROVIDER_HTTP_403', '搜索服务拒绝访问，请检查凭证权限'],
+    ['SEARCH_PROVIDER_HTTP_429', '搜索请求受限或额度不足，请检查 SearchAPI 用量'],
+    ['SEARCH_TIMEOUT', '搜索服务响应超时，请检查网络后重试'],
+    ['TOOL_EXECUTION_TIMEOUT', '工具执行超时（包含排队等待）'],
+    ['SEARCH_INTERRUPTED', '搜索已中止'],
+    ['SEARCH_INVALID_RESPONSE', '搜索服务返回无效数据'],
+    ['SEARCH_PROVIDER_REJECTED', '搜索服务未返回有效搜索结果'],
+    ['SEARCH_UNAVAILABLE', '搜索服务暂不可用，请检查网络连接']
+  ]
+  return labels.find(([code]) => error.includes(code))?.[1]
+    || (item.toolName === 'searchWeb'
+      ? '网页搜索失败，可继续使用已读取的图鉴资料；请检查搜索服务配置或后端日志'
+      : '工具执行失败，请查看后端日志中的对应 Run / trace')
 }
 
 export function statusLabel(status) {

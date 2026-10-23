@@ -4,7 +4,8 @@
 # 使用方法：
 #   1. 复制此文件为 application-local.yml
 #      cp application-local.example.yml application-local.yml
-#   2. 将 your-xxx-key-here 替换为你的真实 API Key
+#   2. DeepSeek 用户启用 local,deepseek 并设置 DEEPSEEK_API_KEY；无需填写百炼 Key
+#      可选搜索另设 SEARCH_API_KEY。不要将真实 Key 写回此模板。
 #   3. application-local.yml 已在 .gitignore 中，不会被提交
 # ============================================================
 # 本地开发环境配置（spring.profiles.active: local）
@@ -32,7 +33,7 @@ spring:
 
 # 替换为你的 SearchAPI Key（用于联网搜索工具）
 search-api:
-  api-key: your-searchapi-key-here
+  api-key: ${SEARCH_API_KEY:}
 
 # 浏览器跨域白名单（只填写完整 origin，不要使用 '*' 或带路径的 URL）
 vio:

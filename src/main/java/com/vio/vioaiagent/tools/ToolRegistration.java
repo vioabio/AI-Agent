@@ -38,6 +38,8 @@ public class ToolRegistration {
     private com.vio.vioaiagent.pokemon.guides.LocalGuideSearch guideSearch;
     @Autowired(required = false)
     private com.vio.vioaiagent.pokemon.reference.RunToolScope toolScope;
+    @Autowired(required = false)
+    private com.vio.vioaiagent.pokemon.team.TeamWorkflowService teamWorkflow;
 
     @Bean
     public ToolCallback[] allTools() {
@@ -74,7 +76,9 @@ public class ToolRegistration {
                 ? ToolCallbacks.from(pokeTypeTool, new WebSearchTool(searchApiKey), new TerminateTool())
                 : ToolCallbacks.from(pokeTypeTool, new TerminateTool());
         java.util.List<ToolCallback> tools = new java.util.ArrayList<>(java.util.Arrays.asList(base));
+        if (teamWorkflow != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(teamWorkflow)));
         if (referenceRepository != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.PokemonReferenceTools(referenceRepository,toolScope))));
+        if (referenceRepository != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.TeamReferenceTools(referenceRepository,toolScope))));
         if (damageEngine != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.engine.DamageEngineController.Tools(damageEngine,toolScope))));
         if (guideSearch != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.guides.LocalGuideController.Tools(guideSearch,toolScope))));
         return tools.toArray(ToolCallback[]::new);

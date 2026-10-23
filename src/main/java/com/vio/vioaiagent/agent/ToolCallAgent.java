@@ -71,6 +71,11 @@ public class ToolCallAgent extends ReActAgent {
     /** Invoked on the run worker thread, preserving lease and governance context. */
     private java.util.function.Consumer<String> answerDeltaSink;
     private final StringBuilder streamedAnswer = new StringBuilder();
+    private TeamAnswerEvidence teamAnswerEvidence;
+    private DamageAnswerEvidence damageAnswerEvidence;
+    private GuideAnswerEvidence guideAnswerEvidence;
+    private SavedTeamAnswerEvidence savedTeamAnswerEvidence;
+    private com.vio.vioaiagent.pokemon.team.TeamWorkflowService teamWorkflow;
 
     // ==================== 构造器 ====================
 
@@ -112,6 +117,19 @@ public class ToolCallAgent extends ReActAgent {
 
     @Override
     public boolean think() {
+        if (teamAnswerEvidence != null && !teamAnswerEvidence.initialized()) {
+            String prompt = getMessageList().stream().filter(message -> message instanceof UserMessage)
+                    .reduce((first, last) -> last).map(Message::getText).orElse("");
+            teamAnswerEvidence.begin(prompt);
+        }
+        if (damageAnswerEvidence != null && !damageAnswerEvidence.initialized()) {
+            damageAnswerEvidence.begin(getMessageList().stream().filter(message -> message instanceof UserMessage)
+                    .reduce((first, last) -> last).map(Message::getText).orElse(""));
+        }
+        String currentQuestion = getMessageList().stream().filter(message -> message instanceof UserMessage)
+                .reduce((first, last) -> last).map(Message::getText).orElse("");
+        if (guideAnswerEvidence != null && !guideAnswerEvidence.initialized()) guideAnswerEvidence.begin(currentQuestion);
+        if (savedTeamAnswerEvidence != null && !savedTeamAnswerEvidence.initialized()) savedTeamAnswerEvidence.begin(currentQuestion);
         // 1. 将"下一步提示词"追加到消息列表，引导 AI 主动规划
         if (StrUtil.isNotBlank(getNextStepPrompt())) {
             UserMessage userMessage = new UserMessage(getNextStepPrompt());
@@ -123,10 +141,12 @@ public class ToolCallAgent extends ReActAgent {
         Prompt prompt = new Prompt(messageList, this.chatOptions);
         try {
             var request = getChatClient().prompt(prompt)
-                    .system(getSystemPrompt())
+                    .system(getSystemPrompt() + (teamAnswerEvidence == null ? "" : teamAnswerEvidence.planningInstruction())
+                            + (guideAnswerEvidence == null ? "" : guideAnswerEvidence.planningInstruction()))
                     .toolCallbacks(getMergedTools());
-            ChatResponse chatResponse = answerDeltaSink == null
-                    ? request.call().chatResponse() : streamResponse(request);
+            // Tool selection is private. A model can put planning text in content,
+            // not only reasoning_content, so it must never share the answer stream.
+            ChatResponse chatResponse = request.call().chatResponse();
 
             // 成功调用，重置错误计数
             this.consecutiveErrors = 0;
@@ -149,7 +169,7 @@ public class ToolCallAgent extends ReActAgent {
             if (toolCallList.isEmpty()) {
                 getMessageList().add(assistantMessage);
                 if (StrUtil.isNotBlank(thinkText)) {
-                    finalAnswer = answerDeltaSink == null ? thinkText : streamedAnswer.toString();
+                    finalAnswer = summarizeAnswer();
                     setState(AgentState.FINISHED);
                 }
                 return false;
@@ -243,6 +263,16 @@ public class ToolCallAgent extends ReActAgent {
         // 3. 检查是否调用了终止工具
         ToolResponseMessage toolResponseMessage =
                 (ToolResponseMessage) CollUtil.getLast(toolExecutionResult.conversationHistory());
+        if (teamAnswerEvidence != null) toolResponseMessage.getResponses().forEach(response ->
+                teamAnswerEvidence.observe(response.name(), response.responseData()));
+        if (damageAnswerEvidence != null) toolResponseMessage.getResponses().forEach(response ->
+                damageAnswerEvidence.observe(response.name(), response.responseData()));
+        if (guideAnswerEvidence != null) toolResponseMessage.getResponses().forEach(response ->
+                guideAnswerEvidence.observe(response.name(), response.responseData()));
+        if (savedTeamAnswerEvidence != null) toolResponseMessage.getResponses().forEach(response ->
+                savedTeamAnswerEvidence.observe(response.name(), response.responseData()));
+        if (teamWorkflow != null) toolResponseMessage.getResponses().forEach(response ->
+                teamWorkflow.observeCalculation(response.name(), response.responseData()));
         boolean terminateToolCalled = toolResponseMessage.getResponses().stream()
                 .anyMatch(response -> "doTerminate".equals(response.name()));
 
@@ -268,14 +298,64 @@ public class ToolCallAgent extends ReActAgent {
 
     /** No tools are registered for this final synthesis: it cannot perform another action. */
     protected String summarizeAnswer() {
+        if (savedTeamAnswerEvidence != null && savedTeamAnswerEvidence.ownsClarification()
+                && (damageAnswerEvidence == null || !damageAnswerEvidence.complete())) {
+            return publishVerified(savedTeamAnswerEvidence.verifiedClarification()
+                    + (guideAnswerEvidence != null && guideAnswerEvidence.active() ? "\n" + guideAnswerEvidence.verifiedAnswer(false) : ""));
+        }
+        boolean guardedTeam = teamAnswerEvidence != null && teamAnswerEvidence.active();
+        boolean guardedDamage = damageAnswerEvidence != null && damageAnswerEvidence.active();
+        boolean guardedSaved = savedTeamAnswerEvidence != null && savedTeamAnswerEvidence.complete();
+        boolean guarded = guardedTeam || guardedDamage || guardedSaved;
+        if (guardedTeam && !teamAnswerEvidence.complete()) {
+            String answer = teamAnswerEvidence.missingAnswer();
+            if (answerDeltaSink != null) publishDelta(answer);
+            return answer;
+        }
+        if (!guardedTeam && guardedDamage && !damageAnswerEvidence.complete()) {
+            String answer = damageAnswerEvidence.missingAnswer();
+            if (answerDeltaSink != null) publishDelta(answer);
+            return answer;
+        }
+        String verifiedPrefix = (guardedSaved ? savedTeamAnswerEvidence.verifiedSummary() + "\n" : "")
+                + (guardedTeam ? teamAnswerEvidence.verifiedSummary() + "\n" : "")
+                + (guardedDamage ? (damageAnswerEvidence.complete() ? damageAnswerEvidence.verifiedSummary() : damageAnswerEvidence.missingAnswer()) + "\n" : "");
+        if (guideAnswerEvidence != null && guideAnswerEvidence.active()) {
+            // Search success cannot authorize arbitrary prose to inherit citations.
+            // Preserve independently checked team/calculation facts for mixed tasks.
+            return publishVerified(verifiedPrefix + guideAnswerEvidence.verifiedAnswer(!guardedTeam && !guardedSaved));
+        }
+        if (guarded && answerDeltaSink != null) publishDelta(verifiedPrefix);
         var request = getChatClient().prompt()
                 .system(getSystemPrompt())
                 .messages(getMessageList())
-                .user("请直接回答用户原始问题，使用用户的语言。结合已有工具结果给出最终总结，"
+                .user("现在只输出给用户阅读的最终回答。遵循 Run language，未指定时使用简体中文。"
+                        + "直接给出介绍和可执行建议，不要说‘我已经有足够资料’‘接下来给出答案’，"
+                        + "不要输出内部计划、推理过程或对工具行为的猜测。"
+                        + "不要展示 JSON、checksum、UUID、内部版本标识、run/trace 编号；"
+                        + "保留有意义的种族值、努力值、伤害范围和简短来源名称。"
+                        + "宝可梦介绍或培养问题使用训练家笔记风格：先用一句话给出定位，"
+                        + "再按需要使用 Markdown 小标题‘图鉴速览（资料事实）’、‘培养方案（策略建议）’、"
+                        + "‘队伍搭配（策略建议）’、‘训练家提醒’。属性单独写成‘属性：冰 / 幽灵’这样的形式，"
+                        + "只填写实际已知的属性。配招和培养配置优先使用简洁列表或短表格，避免长篇堆砌。"
+                        + "不要为了填充样式编造信息；简单问候或单一问题正常简短回答，不强制套用全部栏目。"
+                        + "结合已有工具结果给出最终总结，"
                         + "不要输出执行日志或任务结束提示。明确说明搜索失败、数据缺失和时效不确定性；"
-                        + "不要把属性表当成当前赛季强度证据，不要捏造排名、引用或工具执行成功。");
+                        + "不要把属性表当成当前赛季强度证据，不要捏造排名、引用或工具执行成功。"
+                        + (guardedTeam ? teamAnswerEvidence.finalInstruction() : "")
+                        + (guardedSaved ? savedTeamAnswerEvidence.finalInstruction() : "")
+                        + (guardedDamage && damageAnswerEvidence.complete() ? damageAnswerEvidence.finalInstruction() : ""));
         String answer;
-        if (answerDeltaSink == null) {
+        if (guarded) {
+            // Do not publish unverified strategy fragments. Evidence is already visible;
+            // release coaching only after the bounded mechanism checks have completed.
+            String draft = request.call().content();
+            if (StrUtil.isBlank(draft)) throw new IllegalStateException("模型未返回最终回答");
+            String advice = (teamAnswerEvidence == null ? new TeamAnswerEvidence() : teamAnswerEvidence).checkedAdvice(draft);
+            if (guardedSaved) advice = savedTeamAnswerEvidence.checkedAdvice(advice);
+            if (answerDeltaSink != null) publishDelta(advice);
+            answer = verifiedPrefix + advice;
+        } else if (answerDeltaSink == null) {
             answer = request.call().content();
         } else {
             ChatResponse response = streamResponse(request);
@@ -288,8 +368,12 @@ public class ToolCallAgent extends ReActAgent {
         return answer;
     }
 
-    /** Stream once for both tool selection and direct answers. Tool argument chunks are
-     * assembled by the provider adapter; only content (never reasoning_content) is public.
+    private String publishVerified(String answer) {
+        if (answerDeltaSink != null) for (String block : answer.split("(?<=\\n\\n)")) if (!block.isEmpty()) publishDelta(block);
+        return answer;
+    }
+
+    /** Stream the dedicated final answer only; planning content is never public.
      * Read on the run worker so thread-local leases and governance remain intact. */
     private ChatResponse streamResponse(org.springframework.ai.chat.client.ChatClient.ChatClientRequestSpec request) {
         StringBuilder turn = new StringBuilder();

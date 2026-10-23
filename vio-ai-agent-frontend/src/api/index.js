@@ -868,7 +868,8 @@ export async function decideRunApproval(approvalId, { runId, approved, reason = 
     credentials: 'include',
     headers: requestHeaders({ 'Content-Type': 'application/json' })
   })
-  return ensureOk(response, '审批处理失败').json()
+  return ensureOk(response, response.status === 410 ? '审批已过期，请重新生成预览'
+    : response.status === 409 ? '审批已处理或状态冲突，请刷新任务' : '审批处理失败').json()
 }
 
 /**
@@ -952,3 +953,19 @@ export async function subscribeRunEvents(runId, { lastEventId = null, onEvent, s
 }
 
 export { connectSSE, API_BASE_URL, requestHeaders, API_KEY_HEADER }
+
+export async function fetchRunTeamChange(runId, { signal } = {}) {
+  if (!runId) throw new Error('缺少 Run ID')
+  return readJson(await authenticatedFetch(`${API_BASE_URL}/chat/runs/${encodeURIComponent(runId)}/team-change`, {
+    method: 'GET', signal, headers: requestHeaders()
+  }), '读取队伍修改结果失败')
+}
+
+export async function decideTeamChange(runId, approvalId, approved) {
+  const response = await authenticatedFetch(`${API_BASE_URL}/chat/runs/${encodeURIComponent(requiredIdentifier(runId, 'runId'))}/team-change/decision`, {
+    method: 'POST', credentials: 'include', headers: requestHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ approvalId: requiredIdentifier(approvalId, 'approvalId'), approved: Boolean(approved) })
+  })
+  return readJson(response, response.status === 410 ? '审批已过期，请重新生成预览'
+    : response.status === 409 ? '审批已处理或状态冲突，请刷新任务' : '队伍确认失败')
+}

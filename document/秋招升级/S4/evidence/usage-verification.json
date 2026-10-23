@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "scope": "PLANNED_DEVELOPMENT_RUNS",
+  "denominator": 4,
+  "snapshotChecksPassed": 4,
+  "completeUsageRuns": 4,
+  "unknownOrIncompleteUsageRuns": 0,
+  "completeRunTokenSubtotal": 43598,
+  "tokenSubtotalScope": "ONLY_VALIDATED_COMPLETE_RUNS_NOT_ALL_RUNS",
+  "httpRequestCount": "UNKNOWN",
+  "cost": "UNKNOWN",
+  "rows": [
+    {
+      "caseId": "S2-FACTS-01",
+      "repetition": 1,
+      "status": "COMPLETED",
+      "failures": [],
+      "modelCalls": 3,
+      "callsWithUsage": 3,
+      "complete": true,
+      "tokens": {
+        "inputTokens": 10871,
+        "outputTokens": 464,
+        "totalTokens": 11335
+      },
+      "modelDurationMs": 12488,
+      "streamCalls": 1,
+      "sdkFirstTextSamples": 1
+    },
+    {
+      "caseId": "S2-GUIDES-01",
+      "repetition": 1,
+      "status": "COMPLETED",
+      "failures": [],
+      "modelCalls": 3,
+      "callsWithUsage": 3,
+      "complete": true,
+      "tokens": {
+        "inputTokens": 12902,
+        "outputTokens": 822,
+        "totalTokens": 13724
+      },
+      "modelDurationMs": 20326,
+      "streamCalls": 0,
+      "sdkFirstTextSamples": 0
+    },
+    {
+      "caseId": "S2-CLARIFICATION-01",
+      "repetition": 1,
+      "status": "COMPLETED",
+      "failures": [],
+      "modelCalls": 2,
+      "callsWithUsage": 2,
+      "complete": true,
+      "tokens": {
+        "inputTokens": 8798,
+        "outputTokens": 791,
+        "totalTokens": 9589
+      },
+      "modelDurationMs": 18652,
+      "streamCalls": 0,
+      "sdkFirstTextSamples": 0
+    },
+    {
+      "caseId": "S2-TEAM-01",
+      "repetition": 1,
+      "status": "WAITING_APPROVAL",
+      "failures": [],
+      "modelCalls": 2,
+      "callsWithUsage": 2,
+      "complete": true,
+      "tokens": {
+        "inputTokens": 8733,
+        "outputTokens": 217,
+        "totalTokens": 8950
+      },
+      "modelDurationMs": 5838,
+      "streamCalls": 0,
+      "sdkFirstTextSamples": 0
+    }
+  ],
+  "observationsSha256": "c44d31617be5377eb046e69b3c3043d069ff62109308a386ec680fb5abf33927",
+  "configuredProvider": "dashscope",
+  "configuredModelId": "qwen-plus",
+  "promptVersion": "campus-s3-provenance-v2"
+}

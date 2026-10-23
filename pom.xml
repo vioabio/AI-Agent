@@ -368,6 +368,13 @@
         </profile>
     </profiles>
     <repositories>
+        <!-- Resolve release artifacts from Central before the optional milestone repository.
+             A warm ~/.m2 can otherwise hide first-install hangs on repo.spring.io. -->
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
         <repository>
             <id>spring-milestones</id>
             <name>Spring Milestones</name>

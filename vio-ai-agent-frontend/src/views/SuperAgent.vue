@@ -32,7 +32,7 @@
 <script setup>
 import { ref, onBeforeUnmount, onMounted, watch, reactive } from 'vue'
 import ChatRoom from '@/components/ChatRoom.vue'
-import { chatWithManus, stopManus, decideRunApproval, submitAnswerFeedback, fetchConversationMessages } from '@/api'
+import { chatWithManus, stopManus, decideRunApproval, decideTeamChange, submitAnswerFeedback, fetchConversationMessages } from '@/api'
 import { serializeRunContext } from '@/api/version-registry'
 import { useRunStream } from '@/composables/useRunStream'
 import { getOrCreateConversationId } from '@/composables/runPersistence'
@@ -183,8 +183,12 @@ async function handleSend(message) {
 
 function bindAnswerBubble(aiMessage) {
   stopAnswerWatch?.()
-  stopAnswerWatch = watch(() => activeRun.value?.answer, value => {
+  stopAnswerWatch = watch(() => [activeRun.value?.answer, activeRun.value?.status, activeRun.value?.modelUsageAttempts], ([value]) => {
     aiMessage.content = value || ''
+    if(activeRun.value) {
+      aiMessage.runId=activeRun.value.runId
+      if(activeRun.value.modelUsageAttempts?.length)aiMessage.metadata={ ...aiMessage.metadata, modelUsageAttempts: activeRun.value.modelUsageAttempts }
+    }
     if (activeRun.value) applyRunStatus(activeRun.value.status)
   }, { immediate: true })
 }
@@ -262,10 +266,11 @@ async function handleReconnectRun(runId) {
 }
 
 async function handleApproveRun(approval) {
-  if (!approval?.approvalId || !activeRun.value?.runId) return
+  if (!approval?.approvalId || !activeRun.value?.runId || activeRun.value.approvalSubmitting) return
   const runId = activeRun.value.runId
+  activeRun.value.approvalSubmitting = true
   try {
-    const response = await decideRunApproval(approval.approvalId, {
+    const response = approval.teamChange ? await decideTeamChange(runId,approval.approvalId,approval.approved !== false) : await decideRunApproval(approval.approvalId, {
       runId,
       approved: approval.approved !== false,
       reason: approval.approved === false ? '用户拒绝工具调用' : ''
@@ -283,7 +288,9 @@ async function handleApproveRun(approval) {
     await runStream.reconnect(runId)
     applyRunStatus(activeRun.value?.status)
   } catch (error) {
-    activeRun.value.error = error.message
+    if (activeRun.value?.runId === runId) activeRun.value.error = error.message
+  } finally {
+    if (activeRun.value?.runId === runId) activeRun.value.approvalSubmitting = false
   }
 }
 

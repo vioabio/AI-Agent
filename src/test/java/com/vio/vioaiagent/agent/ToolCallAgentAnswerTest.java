@@ -22,14 +22,146 @@ import static org.mockito.Mockito.*;
 
 class ToolCallAgentAnswerTest {
     @Test
-    void streamingToolRoundUsesOneGenerationPerTurnAndPreservesParentContext() {
+    void guardedCalculationCannotBeRewrittenByModelBeforePublication() throws Exception {
+        ChatModel model = mock(ChatModel.class);
+        var call = new AssistantMessage("计算规划", Map.of(), List.of(
+                new AssistantMessage.ToolCall("damage-1", "function", "calculateBattleDamage", "{}")));
+        when(model.call(any(Prompt.class))).thenReturn(
+                new ChatResponse(List.of(new Generation(call))),
+                new ChatResponse(List.of(new Generation(new AssistantMessage("准备解释计算")))),
+                new ChatResponse(List.of(new Generation(new AssistantMessage("必定一击必杀，伤害999点。")))));
+        var manager = mock(ToolCallingManager.class);
+        String evidence = DamageAnswerEvidenceTest.result().toString();
+        when(manager.executeToolCalls(any(),any())).thenReturn(new DefaultToolExecutionResult(List.of(call,
+                new ToolResponseMessage(List.of(new ToolResponseMessage.ToolResponse("damage-1","calculateBattleDamage",evidence)))),false));
+        var agent = new ToolCallAgent(new ToolCallback[0]);
+        agent.setSystemPrompt("Be accurate."); agent.setChatClient(ChatClient.builder(model).build());
+        agent.setToolCallingManager(manager); agent.setDamageAnswerEvidence(new DamageAnswerEvidence());
+        List<String> chunks = new java.util.ArrayList<>(); agent.setAnswerDeltaSink(chunks::add);
+        agent.run("请调用calculateBattleDamage计算伤害");
+        assertTrue(agent.getFinalAnswer().contains("164～194 HP"));
+        assertFalse(agent.getFinalAnswer().contains("999"));
+        assertFalse(agent.getFinalAnswer().contains("必定一击必杀"));
+        assertEquals(String.join("",chunks),agent.getFinalAnswer());
+    }
+
+    @Test
+    void guardedTeamPublishesVerifiedFactsButNeverLeaksRejectedAdvice() throws Exception {
+        ChatModel model = mock(ChatModel.class);
+        var call = new AssistantMessage("内部规划", Map.of(), List.of(
+                new AssistantMessage.ToolCall("team-1", "function", "lookupPokemonTeamReference", "{}")));
+        when(model.call(any(Prompt.class))).thenReturn(
+                new ChatResponse(List.of(new Generation(call))),
+                new ChatResponse(List.of(new Generation(new AssistantMessage("资料已齐，准备回答")))),
+                new ChatResponse(List.of(new Generation(new AssistantMessage("雨天强化冰光束，火系威力下降25%。")))));
+        var manager = mock(ToolCallingManager.class);
+        String evidenceJson = TeamAnswerEvidenceTest.MAPPER.writeValueAsString(TeamAnswerEvidenceTest.evidence());
+        when(manager.executeToolCalls(any(),any())).thenReturn(new DefaultToolExecutionResult(List.of(call,
+                new ToolResponseMessage(List.of(new ToolResponseMessage.ToolResponse("team-1","lookupPokemonTeamReference",
+                        evidenceJson)))), false));
+        ToolCallAgent agent = new ToolCallAgent(new ToolCallback[0]);
+        agent.setSystemPrompt("Be accurate.");
+        agent.setChatClient(ChatClient.builder(model).build());
+        agent.setToolCallingManager(manager);
+        agent.setTeamAnswerEvidence(new TeamAnswerEvidence());
+        List<String> chunks = new java.util.ArrayList<>();
+        agent.setAnswerDeltaSink(chunks::add);
+        agent.run("请分析队伍。\n参考成员：squirtle、charmander");
+        assertEquals(2, chunks.size());
+        assertTrue(chunks.getFirst().contains("杰尼龟 | 水 | 43"));
+        assertFalse(String.join("",chunks).contains("25%"));
+        assertFalse(String.join("",chunks).contains("内部规划"));
+        assertEquals(String.join("",chunks),agent.getFinalAnswer());
+        verify(model,never()).stream(any(Prompt.class));
+    }
+
+    @Test
+    void missingWholeTeamEvidenceReturnsClarificationWithoutAnotherGeneration() {
+        ChatModel model = mock(ChatModel.class);
+        when(model.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(
+                new Generation(new AssistantMessage("我会凭记忆分析队伍")))));
+        var agent = new ToolCallAgent(new ToolCallback[0]);
+        agent.setSystemPrompt("Be accurate.");
+        agent.setChatClient(ChatClient.builder(model).build());
+        agent.setTeamAnswerEvidence(new TeamAnswerEvidence());
+        List<String> chunks = new java.util.ArrayList<>(); agent.setAnswerDeltaSink(chunks::add);
+        agent.run("请分析队伍。\n参考成员：squirtle、charmander");
+        assertTrue(agent.getFinalAnswer().contains("没有读齐"));
+        assertFalse(agent.getFinalAnswer().contains("凭记忆"));
+        verify(model,times(1)).call(any(Prompt.class));
+    }
+
+    @Test
+    void terminationPlanningIsPrivateAndFinalAnswerIsGeneratedSeparately() {
+        for (boolean streaming : List.of(false, true)) {
+            ChatModel model = mock(ChatModel.class);
+            var output = new AssistantMessage("Let me proceed with the final answer.", Map.of(), List.of(
+                    new AssistantMessage.ToolCall("term-1", "function", "doTerminate", "{}")));
+            var response = new ChatResponse(List.of(new Generation(output)));
+            var finalResponse = new ChatResponse(List.of(new Generation(new AssistantMessage("水系克制火系。"))));
+            when(model.call(any(Prompt.class))).thenReturn(response, finalResponse);
+            when(model.stream(any(Prompt.class))).thenReturn(reactor.core.publisher.Flux.just(finalResponse));
+            ToolCallingManager manager = mock(ToolCallingManager.class);
+            when(manager.executeToolCalls(any(), any())).thenReturn(new DefaultToolExecutionResult(
+                    List.of(output, new ToolResponseMessage(List.of(
+                            new ToolResponseMessage.ToolResponse("term-1", "doTerminate", "任务结束")))), false));
+            ToolCallAgent agent = new ToolCallAgent(new ToolCallback[0]);
+            agent.setChatClient(ChatClient.builder(model).build());
+            agent.setSystemPrompt("Be accurate.");
+            agent.setToolCallingManager(manager);
+            List<String> chunks = new java.util.ArrayList<>();
+            if (streaming) agent.setAnswerDeltaSink(chunks::add);
+
+            agent.run("水打火？");
+
+            assertEquals("水系克制火系。", agent.getFinalAnswer());
+            assertEquals(AgentState.FINISHED, agent.getState());
+            if (streaming) {
+                assertEquals(List.of("水系克制火系。"), chunks);
+                verify(model, times(1)).stream(any(Prompt.class));
+                verify(model, times(1)).call(any(Prompt.class));
+            } else {
+                verify(model, times(2)).call(any(Prompt.class));
+            }
+        }
+    }
+
+    @Test
+    void mixedTerminationAndFactLookupStillSynthesizesAfterToolResult() {
+        ChatModel model = mock(ChatModel.class);
+        when(model.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(
+                new Generation(new AssistantMessage("根据工具结果整理的回答")))));
+        var output = new AssistantMessage("先查询属性。", Map.of(), List.of(
+                new AssistantMessage.ToolCall("fact-1", "function", "getTypeChart", "{}"),
+                new AssistantMessage.ToolCall("term-1", "function", "doTerminate", "{}")));
+        ToolCallingManager manager = mock(ToolCallingManager.class);
+        when(manager.executeToolCalls(any(), any())).thenReturn(new DefaultToolExecutionResult(
+                List.of(output, new ToolResponseMessage(List.of(
+                        new ToolResponseMessage.ToolResponse("fact-1", "getTypeChart", "水克制火"),
+                        new ToolResponseMessage.ToolResponse("term-1", "doTerminate", "任务结束")))), false));
+        ToolCallAgent agent = new ToolCallAgent(new ToolCallback[0]);
+        agent.setChatClient(ChatClient.builder(model).build());
+        agent.setSystemPrompt("Be accurate.");
+        agent.setToolCallingManager(manager);
+        agent.setToolCallChatResponse(new ChatResponse(List.of(new Generation(output))));
+
+        agent.act();
+
+        assertEquals("根据工具结果整理的回答", agent.getFinalAnswer());
+        verify(model, times(1)).call(any(Prompt.class));
+    }
+
+    @Test
+    void toolPlanningNeverEntersPublicAnswerAndPreservesParentContext() {
         var original = new com.vio.vioaiagent.tools.governance.ToolExecutionContext(
                 "user-a", "run-a", java.util.Set.of("trainer"), "trace-a", "key-a", event -> {});
         ChatModel model = mock(ChatModel.class);
-        var call = new AssistantMessage("", Map.of(), List.of(
+        var call = new AssistantMessage("I see the issue; let me check a tool.", Map.of(), List.of(
                 new AssistantMessage.ToolCall("tool-1", "function", "getTypeChart", "{\"attackType\":\"火\"}")));
+        when(model.call(any(Prompt.class))).thenReturn(
+                new ChatResponse(List.of(new Generation(call))),
+                new ChatResponse(List.of(new Generation(new AssistantMessage("Let me proceed with the final answer.")))));
         when(model.stream(any(Prompt.class))).thenReturn(
-                reactor.core.publisher.Flux.just(new ChatResponse(List.of(new Generation(call)))),
                 reactor.core.publisher.Flux.just(new ChatResponse(List.of(new Generation(new AssistantMessage("火克制草。"))))));
         ToolCallingManager manager = mock(ToolCallingManager.class);
         when(manager.executeToolCalls(any(), any())).thenAnswer(invocation -> {
@@ -52,8 +184,8 @@ class ToolCallAgentAnswerTest {
             assertSame(original, com.vio.vioaiagent.tools.governance.ToolExecutionContextHolder.peek());
             assertEquals("火克制草。", agent.getFinalAnswer());
             assertEquals(List.of("火克制草。"), chunks);
-            verify(model, times(2)).stream(any(Prompt.class));
-            verify(model, never()).call(any(Prompt.class));
+            verify(model, times(1)).stream(any(Prompt.class));
+            verify(model, times(2)).call(any(Prompt.class));
         } finally { com.vio.vioaiagent.tools.governance.ToolExecutionContextHolder.clear(); }
     }
 
@@ -93,7 +225,7 @@ class ToolCallAgentAnswerTest {
         assertNull(agent.getFinalAnswer());
         assertEquals(AgentState.FINISHED, agent.getState());
         verify(model, times(1)).stream(any(Prompt.class));
-        verify(model, never()).call(any(Prompt.class));
+        verify(model, times(1)).call(any(Prompt.class));
     }
     @Test
     void finalAnswerUsesModelStreamAndDeliversChunksOnWorkerThread() {
@@ -118,7 +250,7 @@ class ToolCallAgentAnswerTest {
         assertEquals(List.of("你好，", "杰尼龟！"), chunks);
         assertEquals("你好，杰尼龟！", agent.getFinalAnswer());
         verify(model, times(1)).stream(any(Prompt.class));
-        verify(model, never()).call(any(Prompt.class));
+        verify(model, times(1)).call(any(Prompt.class));
     }
     @Test
     void terminationSynthesizesUserAnswerSeparatelyFromToolTranscript() {
@@ -162,6 +294,6 @@ class ToolCallAgentAnswerTest {
         assertFalse(result.contains("无需行动"));
         assertFalse(result.contains("doTerminate"));
         assertEquals(AgentState.FINISHED, agent.getState());
-        verify(model, times(1)).call(any(Prompt.class));
+        verify(model, times(2)).call(any(Prompt.class));
     }
 }

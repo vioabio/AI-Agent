@@ -101,6 +101,7 @@ public class PokemonAgentRunService {
     private final ConcurrentMap<String, FutureTask<Void>> tasks = new ConcurrentHashMap<>();
     /** 当前进程正在执行的聚合快照；避免超时/取消从 JDBC 重新加载出另一份对象。 */
     private final ConcurrentMap<String, AgentRun> activeRuns = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String,com.vio.vioaiagent.observability.ModelUsageLedger> modelUsageByRun=new ConcurrentHashMap<>();
     /** 仅保存当前进程活跃 Run 的令牌绑定引用；密钥不会写入 Run/事件数据库。 */
     private final ConcurrentMap<String, TokenBinding> tokenBindings = new ConcurrentHashMap<>();
     /** OIDC 主体/租户/角色/工具的短期不可变快照；不保存 JWT 或 Secret。 */
@@ -924,6 +925,7 @@ public class PokemonAgentRunService {
 
     private void execute(AgentRun run, FutureTask<Void> ownerTask) {
         Instant startedAt = Instant.now();
+        var modelUsage=new com.vio.vioaiagent.observability.ModelUsageLedger();
         boolean metricsActive = false;
         ExecutionLease lease = new ExecutionLease(run.id(), ownerTask);
         if (ownerTask instanceof ManagedRunTask task) task.bindExecutionLease(lease);
@@ -974,7 +976,11 @@ public class PokemonAgentRunService {
                 timeout(run.id());
                 return;
             }
-            AnswerExecution execution = executeAnswer(run);
+            workerWrite(run,()->{
+                if(run.status()!=AgentRunStatus.RUNNING)throw new java.util.concurrent.CancellationException("Run stopped");
+                modelUsageByRun.put(run.id(),modelUsage);return null;
+            });
+            AnswerExecution execution = executeAnswer(run,modelUsage);
             saveCheckpoint(run, 1, "commit-answer", lease.owner);
             // 当前 RunExecutor 以完整答案字符串返回；将答案首次可用时间记录为
             // TTFT 近似值，待真正 token streaming executor 接入后再替换为首 token 时间。
@@ -1023,8 +1029,10 @@ public class PokemonAgentRunService {
                     answerDelta.put("answerId", committedProjection.answerId());
                     answerDelta.put("lineageStatus", committedProjection.lineageStatus().name());
                     if (!execution.streamed()) emitLocked(run, AgentEventType.ANSWER_DELTA, answerDelta);
+                    Map<String,Object> historyMetadata=new LinkedHashMap<>(lineagePayload(run));
+                    historyMetadata.put("modelUsageAttempts",usageHistory(run,modelUsage));
                     messageRepository.save(new ChatMessage("message-" + UUID.randomUUID(), run.conversationId(),
-                            run.id(), run.userId(), "assistant", answer, Instant.now(), lineagePayload(run)));
+                            run.id(), run.userId(), "assistant", answer, Instant.now(), historyMetadata));
                 }
                 // ANSWER_COMPLETED 位于 RUN_COMPLETED 之前，保证非终态事件仍
                 // 可追加；它携带投影的稳定 answerId 和完整/部分血缘状态。
@@ -1032,7 +1040,7 @@ public class PokemonAgentRunService {
                 answerCompleted.put("status", committedProjection.status());
                 answerCompleted.put("answerDigest", committedProjection.answerDigest());
                 emitLocked(run, AgentEventType.ANSWER_COMPLETED, answerCompleted);
-                emitLocked(run, AgentEventType.USAGE, Map.of("executor", executor.getClass().getSimpleName()));
+                emitLocked(run, AgentEventType.USAGE, modelUsage.freeze());
                 run.complete();
                 runRepository.save(run);
                 Map<String, Object> completed = new LinkedHashMap<>();
@@ -1072,6 +1080,16 @@ public class PokemonAgentRunService {
             catch (RunConflictException conflict) { log.info("Run 已由其他实例推进: runId={}", run.id()); }
         } finally {
             ToolExecutionContextHolder.clear();
+            if(modelUsageByRun.get(run.id())==modelUsage) {
+                try {
+                    if(run.status()==AgentRunStatus.WAITING_APPROVAL)workerWrite(run,()->{
+                        if(run.status()==AgentRunStatus.WAITING_APPROVAL)emitLocked(run,AgentEventType.USAGE,modelUsage.freeze());
+                        return null;
+                    });
+                } catch(RuntimeException observationFailure) {
+                    log.warn("模型用量快照未提交: runId={}, errorType={}",run.id(),observationFailure.getClass().getSimpleName());
+                } finally {modelUsage.freeze();modelUsageByRun.remove(run.id(),modelUsage);}
+            }
             try {
                 if (metrics != null && metricsActive) {
                     metrics.decrementActiveAgents();
@@ -1095,7 +1113,7 @@ public class PokemonAgentRunService {
     /**
      * 在生命周期服务内统一发出检索/引用事件；旧文本执行器仍沿用原路径。
      */
-    private AnswerExecution executeAnswer(AgentRun run) throws Exception {
+    private AnswerExecution executeAnswer(AgentRun run,com.vio.vioaiagent.observability.ModelUsageLedger modelUsage) throws Exception {
         StringBuilder streamed = new StringBuilder();
         boolean allowStreaming = answerStreamingEnabled && !durableRunProperties.durableResume()
                 && executor instanceof ContractAwareRunExecutor aware && !aware.usesKnowledgeGrounding();
@@ -1117,7 +1135,17 @@ public class PokemonAgentRunService {
                 return null;
             });
         } : null, ConversationHistory.window(run,
-                messageRepository.findByConversationForUser(run.conversationId(), run.userId())));
+                messageRepository.findByConversationForUser(run.conversationId(), run.userId())), new RunMutationBoundary() {
+            public void check() {
+                ExecutionLease lease = executionLease.get();
+                if (lease == null) throw new RunLeaseLostException();
+                lease.requireActive();
+                if (!run.id().equals(lease.runId) || run.status()!=AgentRunStatus.RUNNING
+                        || Thread.currentThread().isInterrupted() || !Instant.now().isBefore(run.deadlineAt()))
+                    throw new java.util.concurrent.CancellationException("Run 已停止或超过写入期限");
+            }
+            public <T> T write(Supplier<T> action) { return workerWrite(run, () -> { check(); return action.get(); }); }
+        },modelUsage);
         if (!(executor instanceof ContractAwareRunExecutor contractExecutor)) {
             return new AnswerExecution(executor.execute(context), null);
         }
@@ -1635,6 +1663,18 @@ public class PokemonAgentRunService {
         workerWrite(run, () -> { emitLocked(run, type, payload); return null; });
     }
 
+    /** Persist completed attempt snapshots with the owner-scoped answer, including pre-approval model work. */
+    private List<Map<String,Object>> usageHistory(AgentRun run,com.vio.vioaiagent.observability.ModelUsageLedger current) {
+        Map<String,Map<String,Object>> attempts=new LinkedHashMap<>();
+        for(var event:eventRepository.findAfter(run.id(),0)) {
+            var payload=event.payload();
+            if(event.type()==AgentEventType.USAGE && "model-usage-v1".equals(payload.get("schemaVersion"))
+                    && payload.get("attemptId") instanceof String id)attempts.put(id,payload);
+        }
+        var snapshot=current.freeze();attempts.put((String)snapshot.get("attemptId"),snapshot);
+        return List.copyOf(attempts.values());
+    }
+
     private void emitLocked(AgentRun run, AgentEventType type, Map<String, Object> payload) {
         // 取消/超时一旦把本地快照推进到终态，旧 worker 不得再追加普通事件。
         // 终态事件本身由仓储的唯一约束保证单例，重复调用直接短路。
@@ -1646,6 +1686,10 @@ public class PokemonAgentRunService {
         // 使用执行器实际回读的 release 覆盖 Run 创建时的空值，但不会写入 unknown。
         Map<String, Object> enrichedPayload = new LinkedHashMap<>(lineagePayload(run));
         if (payload != null) enrichedPayload.putAll(payload);
+        if(type.isTerminal()) {
+            var usage=modelUsageByRun.get(run.id());
+            if(usage!=null)enrichedPayload.put("modelUsage",usage.freeze());
+        }
         // 新增领域卡片事件必须通过机器契约校验；在补入 Run 冻结上下文后
         // 再校验，允许旧执行器只提供业务字段而由 Run 补齐版本键。
         AgentEventContractRegistry.validate(type, enrichedPayload);

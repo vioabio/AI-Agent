@@ -36,7 +36,7 @@ class PokemonLocalModulesTest {
         assertThrows(IllegalArgumentException.class,()->new TeamBuild(List.of(),"","","hardy",50,null,TeamBuild.Stats.filled(32)));
     }
     @Test void localGuidesReturnEvidenceNotFabricatedResultsAndFilterVersions() {
-        var index=new LocalGuideSearch(mapper,new DefaultResourceLoader(),"classpath:pokemon-guides/index.json");
+        var index=new LocalGuideSearch(mapper,new DefaultResourceLoader(),"classpath:pokemon-guides/index.json",directory.resolve("guides.sqlite").toString());
         var result=index.search("努力值和性格如何选择","pokemon-scarlet-violet");
         assertFalse(result.isEmpty());assertEquals("training-configuration-v1",result.get(0).document().id());
         assertTrue(result.get(0).checksum().startsWith("sha256:"));

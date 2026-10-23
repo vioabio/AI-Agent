@@ -421,7 +421,8 @@ test.describe('N5 宝可梦工作台关键交互', () => {
     await page.getByRole('button',{name:'检索攻略',exact:true}).click()
     await expect(page.getByRole('heading',{name:'培养配置说明',exact:true})).toBeVisible()
     await page.getByRole('button',{name:'结合攻略提问',exact:true}).click()
-    await expect(page.getByRole('textbox',{name:'输入消息',exact:true})).toHaveValue(/sha256:guide-fixture/)
+    await expect(page.getByRole('textbox',{name:'输入消息',exact:true})).not.toHaveValue(/sha256:guide-fixture/)
+    await expect(page.getByRole('textbox',{name:'输入消息',exact:true})).toHaveValue(/标题：/)
   })
 
   test('手机侧栏查询后可以把资料带回聊天，且不产生横向溢出', async ({ page }) => {
@@ -454,7 +455,8 @@ test.describe('N5 宝可梦工作台关键交互', () => {
     await page.getByRole('button', { name: '让 AI 分析', exact: true }).click()
     const input = page.getByRole('textbox', { name: '输入消息', exact: true })
     await expect(input).toHaveValue(/喷火龙测试队/)
-    await expect(input).toHaveValue(/"speed":100/)
+    await expect(input).toHaveValue(/速度 100/)
+    await expect(input).not.toHaveValue(/checksum|sha256|formId/)
     expect(state.runs).toHaveLength(0) // A handoff is a reviewable draft, not an implicit paid model call.
     await page.getByRole('button', { name: '发送', exact: true }).click()
     await expect(page.locator('.assistant-bubble').filter({ hasText: '请补充配招和道具' })).toBeVisible()

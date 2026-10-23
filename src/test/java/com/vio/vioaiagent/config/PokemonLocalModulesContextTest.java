@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(properties={"spring.profiles.active=local,deepseek", "vio.model.deepseek.api-key=offline-test-only",
         "spring.config.name=application-test", "vio.model.provider=deepseek", "vio.pokemon.reference.enabled=true", "vio.local-history.enabled=true",
-        "vio.damage-engine.enabled=true","vio.local-guides.enabled=true","spring.ai.mcp.client.enabled=false"})
+        "vio.damage-engine.enabled=true","vio.local-guides.enabled=true","vio.local-guides.location=classpath:pokemon-guides/index.json","spring.ai.mcp.client.enabled=false"})
 @org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 class PokemonLocalModulesContextTest {
     @Autowired ApplicationContext context;
@@ -24,6 +24,7 @@ class PokemonLocalModulesContextTest {
         Path root=Files.createTempDirectory("vio-pokemon-modules-");
         registry.add("vio.local-history.path",()->root.resolve("history.sqlite").toString());
         registry.add("vio.local-teams.path",()->root.resolve("teams.sqlite").toString());
+        registry.add("vio.local-guides.path",()->root.resolve("guides.sqlite").toString());
         registry.add("vio.pokemon.reference.path",()->root.resolve("reference").toString());
         var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
         var client=new PokeApiClient(mapper,root.resolve("reference"),url->{
@@ -62,5 +63,24 @@ class PokemonLocalModulesContextTest {
                 .param("gameReleaseId","pokemon-scarlet-violet").param("query","努力值性格"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$[0].document.id").value("training-configuration-v1"));
+    }
+    @Test void guideHttpReturnsRealChunksLocatorsAndStrictScopeWithoutAmbiguousRetrieverBeans() throws Exception {
+        var get=org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/pokemon/guides/retrieve")
+                .param("gameReleaseId","pokemon-scarlet-violet").param("query","努力值性格");
+        var response=mvc.perform(get).andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk()).andReturn();
+        var data=new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8));
+        String id=data.get(0).path("view").path("chunk").path("id").asText();
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/pokemon/guides/chunks/{id}",id))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.citation.chunkId").value(id))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.document.id").value("training-configuration-v1"));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/pokemon/guides/chunks/unknown"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNotFound());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/pokemon/guides/retrieve")
+                .param("query","努力值性格").param("gameReleaseId","pokemon-scarlet-violet").param("battleFormatId","vgc"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().json("[]"));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/pokemon/guides/index"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.documentCount").value(4))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.embeddingModel").value("none"));
+        assertEquals(1,context.getBeansOfType(com.vio.vioaiagent.rag.retrieval.KnowledgeRetriever.class).size());
     }
 }

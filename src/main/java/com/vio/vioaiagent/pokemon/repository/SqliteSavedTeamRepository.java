@@ -16,6 +16,7 @@ import java.util.*;
 public class SqliteSavedTeamRepository implements SavedTeamRepository {
     private final ObjectMapper mapper;
     private final JdbcTemplate jdbc;
+    private final org.springframework.transaction.support.TransactionTemplate transactions;
     public SqliteSavedTeamRepository(ObjectMapper mapper,
             @Value("${vio.local-teams.path:${user.dir}/.local-data/teams.sqlite}") String file) {
         this.mapper=mapper;
@@ -24,7 +25,10 @@ public class SqliteSavedTeamRepository implements SavedTeamRepository {
             SQLiteConfig config=new SQLiteConfig(); config.setBusyTimeout(5000); config.setJournalMode(SQLiteConfig.JournalMode.WAL);
             SQLiteDataSource source=new SQLiteDataSource(config); source.setUrl("jdbc:sqlite:"+path);
             jdbc=new JdbcTemplate(source);
+            transactions=new org.springframework.transaction.support.TransactionTemplate(new org.springframework.jdbc.datasource.DataSourceTransactionManager(source));
             jdbc.execute("CREATE TABLE IF NOT EXISTS local_team(id INTEGER PRIMARY KEY AUTOINCREMENT,owner_id TEXT NOT NULL,payload TEXT NOT NULL)");
+            if (jdbc.queryForList("PRAGMA table_info(local_team)").stream().noneMatch(column -> "revision".equals(column.get("name"))))
+                jdbc.execute("ALTER TABLE local_team ADD COLUMN revision INTEGER NOT NULL DEFAULT 0");
         } catch(Exception e) { throw new IllegalStateException("本地队伍数据库初始化失败",e); }
     }
     @Override public synchronized SavedTeam create(SavedTeam team) {
@@ -33,7 +37,7 @@ public class SqliteSavedTeamRepository implements SavedTeamRepository {
     }
     @Override public synchronized boolean updateForOwner(long id,String owner,SavedTeam replacement) {
         if (!replacement.ownerId().equals(owner)) throw new IllegalArgumentException("队伍归属冲突");
-        return jdbc.update("UPDATE local_team SET payload=? WHERE id=? AND owner_id=?",encode(replacement),id,owner)==1;
+        return jdbc.update("UPDATE local_team SET payload=?,revision=revision+1 WHERE id=? AND owner_id=?",encode(replacement),id,owner)==1;
     }
     @Override public synchronized Optional<SavedTeam> findByIdForOwner(long id,String owner) {
         return jdbc.query("SELECT id,payload FROM local_team WHERE id=? AND owner_id=?",(rs,n)->decode(rs.getLong(1),owner,rs.getString(2)),id,owner).stream().findFirst();
@@ -44,6 +48,22 @@ public class SqliteSavedTeamRepository implements SavedTeamRepository {
         return jdbc.query("SELECT id,payload FROM local_team WHERE owner_id=? ORDER BY id DESC LIMIT ? OFFSET ?",(rs,n)->decode(rs.getLong(1),owner,rs.getString(2)),owner,Math.min(limit,201),offset);
     }
     @Override public synchronized boolean deleteForOwner(long id,String owner) { return jdbc.update("DELETE FROM local_team WHERE id=? AND owner_id=?",id,owner)==1; }
+    @Override public synchronized Snapshot snapshotForOwner(long id, String owner) {
+        return jdbc.query("SELECT id,payload,revision FROM local_team WHERE id=? AND owner_id=?",
+                (rs,n)->new Snapshot(decode(rs.getLong(1),owner,rs.getString(2)),rs.getLong(3)),id,owner)
+                .stream().findFirst().orElseThrow(()->new com.vio.vioaiagent.pokemon.service.PokemonResourceNotFoundException("队伍不存在或不属于当前主体"));
+    }
+    @Override public synchronized Optional<SavedTeam> compareAndSet(Snapshot expected, SavedTeam replacement, Runnable beforeCommit) {
+        if (replacement.id()!=expected.team().id() || !replacement.ownerId().equals(expected.team().ownerId()))
+            throw new IllegalArgumentException("队伍归属冲突");
+        return transactions.execute(status -> {
+            beforeCommit.run();
+            var updated=jdbc.query("UPDATE local_team SET payload=?,revision=revision+1 WHERE id=? AND owner_id=? AND revision=? RETURNING id,payload",
+                    (rs,n)->decode(rs.getLong(1),replacement.ownerId(),rs.getString(2)),encode(replacement),replacement.id(),replacement.ownerId(),expected.revision());
+            beforeCommit.run(); // A deadline/lease loss rolls back the actual SQLite transaction.
+            return updated.stream().findFirst();
+        });
+    }
     private String encode(SavedTeam team) { try{return mapper.writeValueAsString(team);}catch(Exception e){throw new IllegalArgumentException("队伍配置无法保存",e);} }
     private SavedTeam decode(long id,String owner,String json) {
         try { SavedTeam saved=mapper.readValue(json,SavedTeam.class);

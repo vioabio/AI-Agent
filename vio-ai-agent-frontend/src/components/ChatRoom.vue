@@ -27,9 +27,10 @@
             class="message-bubble"
             :class="msg.role === 'user' ? 'user-bubble' : 'assistant-bubble'"
           >
-            <MessageBody v-if="msg.role === 'assistant'" :content="msg.content" /><template v-else>{{ msg.content }}</template>
+            <MessageBody v-if="msg.role === 'assistant'" :content="msg.content" /><template v-else>{{ readableUserMessage(msg.content) }}</template>
           </div>
           <div v-if="msg.role === 'assistant' && msg.content && index === messages.length - 1" class="response-actions"><button type="button" @click="$emit('resource-section','facts')"><UiIcon name="book" />查看图鉴</button><button type="button" @click="$emit('resource-section','teams')"><UiIcon name="team" />搭配建议</button><button type="button" @click="$emit('resource-section','guides')"><UiIcon name="search" />查找攻略</button></div>
+          <ModelUsageDetails v-if="msg.role === 'assistant' && msg.metadata?.modelUsageAttempts && (!runViewModel?.runId || msg.runId !== runViewModel.runId)" :attempts="msg.metadata.modelUsageAttempts" />
           <time v-if="msg.createdAt" class="message-time" :datetime="msg.createdAt">{{ messageTime(msg.createdAt) }}</time>
           <div v-if="msg.content" class="message-actions">
             <button v-if="msg.role === 'user'" type="button" :disabled="isBusy" @click="editMessage(msg)"><UiIcon name="edit" />编辑消息</button>
@@ -99,9 +100,11 @@
 </template>
 
 <script setup>
+import { readableUserMessage } from '@/api/reference-prompts'
 import { ref, watch, nextTick, computed } from 'vue'
 import AiAvatarFallback from '@/components/AiAvatarFallback.vue'
 import RunTimeline from '@/components/RunTimeline.vue'
+import ModelUsageDetails from '@/components/ModelUsageDetails.vue'
 import UiIcon from '@/components/UiIcon.vue'
 import MessageBody from '@/components/MessageBody.vue'
 
@@ -167,7 +170,7 @@ function editMessage(message) {
   if (isBusy.value) return
   if (!isEditing.value) savedDraft = inputText.value
   isEditing.value = true
-  inputText.value = message.content
+  inputText.value = readableUserMessage(message.content)
   nextTick(() => inputRef.value?.focus())
 }
 
@@ -183,7 +186,7 @@ async function copyMessage(message) {
   const request = ++copyRequest
   actionStatus.value = ''
   try {
-    await navigator.clipboard.writeText(message.content)
+    await navigator.clipboard.writeText(message.role === 'user' ? readableUserMessage(message.content) : message.content)
     if (request === copyRequest) actionStatus.value = '消息已复制'
   } catch {
     if (request === copyRequest) actionStatus.value = '复制失败，请手动选择消息文字复制。'

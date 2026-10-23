@@ -284,7 +284,8 @@ vio:
     node: ${VIO_DAMAGE_NODE:node}
   local-guides:
     enabled: ${VIO_LOCAL_GUIDES_ENABLED:true}
-    location: ${VIO_LOCAL_GUIDES_LOCATION:classpath:pokemon-guides/index.json}
+    location: ${VIO_LOCAL_GUIDES_LOCATION:classpath:pokemon-guides/expanded-v1.json}
+    path: ${VIO_LOCAL_GUIDES_PATH:${user.dir}/.local-data/guides.sqlite}
   local-accounts:
     enabled: ${VIO_LOCAL_ACCOUNTS_ENABLED:true}
   local-history:

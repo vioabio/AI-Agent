@@ -422,9 +422,19 @@ public class ResourceController {
      * <p>刻意不区分「不存在」与「无权访问」：两者都返回 404，
      * 避免通过状态码差异探测其他主体的资源是否存在。
      */
-    @org.springframework.web.bind.annotation.ExceptionHandler(RunNotFoundException.class)
+    @org.springframework.web.bind.annotation.ExceptionHandler({RunNotFoundException.class, com.vio.vioaiagent.pokemon.service.PokemonResourceNotFoundException.class})
     public ResponseEntity<Result<Void>> resourceNotFound() {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Result.error(404, "资源不存在或无权访问"));
+    }
+
+    @org.springframework.web.bind.annotation.ExceptionHandler(com.vio.vioaiagent.pokemon.service.PokemonResourceConflictException.class)
+    public ResponseEntity<Result<Void>> teamConflict() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Result.error(409,"队伍版本或配置冲突，请重新读取"));
+    }
+
+    @org.springframework.web.bind.annotation.ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Result<Void>> invalidResourceInput() {
+        return ResponseEntity.badRequest().body(Result.error(400,"资源参数或队伍配置无效"));
     }
 
     @org.springframework.web.bind.annotation.ExceptionHandler(IdempotencyConflictException.class)

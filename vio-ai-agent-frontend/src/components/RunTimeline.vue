@@ -1,5 +1,5 @@
 <template>
-  <section v-if="run" class="run-panel" aria-live="polite">
+  <section v-if="run" class="run-panel" :class="{ 'has-team-preview': !!run.approval?.teamChange }" aria-live="polite">
     <div class="run-summary">
       <span class="run-status" :class="run.status">{{ statusLabel(run.status) }}</span>
       <span class="transport-badge" title="事件快照 · 游标可重连；按游标补读，支持断线重连">回答与资料记录</span>
@@ -24,7 +24,7 @@
       </button>
     </div>
 
-    <details :open="!localChat" class="audit-details">
+    <details class="audit-details">
     <summary>资料版本与反馈（可选）</summary>
     <code v-if="run.runId">Run {{ run.runId }}</code>
     <code v-if="run.traceId" class="trace-id">trace {{ run.traceId }}</code>
@@ -113,7 +113,7 @@
       </article>
     </section>
 
-    <details v-if="run.limitations?.length" :open="!localChat" class="limitations-card" aria-label="回答限制">
+    <details v-if="run.limitations?.length" class="limitations-card" aria-label="回答限制">
       <summary>回答来源与限制</summary>
       <h4>回答限制</h4>
       <ul>
@@ -122,18 +122,33 @@
     </details>
 
     <div v-if="run.approval" class="approval-card">
-      <strong>需要人工审批</strong>
-      <span>审批号：{{ run.approval.approvalId || '待生成' }}</span>
-      <button type="button" @click="$emit('approve', { ...run.approval, approved: true })">批准执行</button>
-      <button type="button" class="deny-btn" @click="$emit('approve', { ...run.approval, approved: false })">拒绝</button>
+      <strong>{{ run.approval.teamChange ? '队伍修改预览' : '需要人工审批' }}</strong>
+      <template v-if="run.approval.teamChange">
+        <div class="proposal-content">
+        <p>队伍：{{ run.approval.teamChange.teamName }} · 确认前不会保存</p>
+        <p class="proposal-reason">策略理由（待核实）：{{ run.approval.teamChange.rationale }}</p>
+        <div class="proposal-table"><table><thead><tr><th>成员</th><th>配置</th><th>修改前</th><th>修改后</th></tr></thead><tbody>
+          <tr v-for="(line,index) in run.approval.teamChange.changes" :key="index"><td>{{ line.member }}</td><td>{{ line.field }}</td><td>{{ line.before || '未配置' }}</td><td>{{ line.after || '未配置' }}</td></tr>
+        </tbody></table></div>
+        <details><summary>计算证据与适用边界</summary><p class="proposal-evidence">{{ run.approval.teamChange.calculationEvidence }}</p><p v-for="line in run.approval.teamChange.limitations" :key="line">{{ line }}</p></details>
+        <small>有效期至 {{ formatDate(run.approval.teamChange.expiresAt) }}；队伍被修改后需重新生成预览。</small>
+        </div>
+      </template>
+      <span v-else>审批号：{{ run.approval.approvalId || '待生成' }}</span>
+      <div class="proposal-actions">
+      <button type="button" :disabled="run.approvalSubmitting" @click="$emit('approve', { ...run.approval, approved: true })">{{ run.approvalSubmitting ? '处理中…' : run.approval.teamChange ? '确认保存' : '批准执行' }}</button>
+      <button type="button" class="deny-btn" :disabled="run.approvalSubmitting" @click="$emit('approve', { ...run.approval, approved: false })">{{ run.approval.teamChange ? '取消修改' : '拒绝' }}</button>
+      </div>
     </div>
 
+    <ModelUsageDetails :attempts="run.modelUsageAttempts || []" />
     <details v-if="run.toolTimeline?.length" class="process-details"><summary>查看执行过程 · {{ run.toolTimeline.length }} 次工具调用</summary>
     <ol class="tool-timeline">
       <li v-for="(item, index) in run.toolTimeline" :key="item.eventId || index">
         <span class="tool-name">{{ item.toolName || 'tool' }}</span>
         <span :class="['tool-state', item.status]">{{ toolStatus(item.status) }}</span>
-        <small v-if="item.durationMs">{{ item.durationMs }} ms</small>
+        <small v-if="item.durationMs != null">{{ item.durationMs }} ms</small>
+        <small v-if="item.status === 'failed'" class="tool-failure-reason">{{ toolFailureLabel(item) }}</small>
       </li>
     </ol>
     </details>
@@ -151,10 +166,15 @@
   </section>
 </template>
 
+<style scoped>
+.proposal-table{width:100%;overflow-x:auto}.proposal-table table{border-collapse:collapse;width:100%;font-size:12px}.proposal-table th,.proposal-table td{padding:7px;border:1px solid #dce7e1;text-align:left;overflow-wrap:anywhere;min-width:56px}.proposal-reason,.proposal-evidence{white-space:pre-wrap;overflow-wrap:anywhere}.run-panel.has-team-preview{max-height:54%;min-height:200px;display:flex;flex-direction:column;overflow:hidden}.has-team-preview .approval-card{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden}.proposal-content{min-height:0;overflow:auto;width:100%;flex:1 1 auto}.proposal-content p{margin:5px 0}.proposal-actions{display:flex;gap:8px;flex-shrink:0;padding-top:6px}.approval-card button:disabled{opacity:.55;cursor:wait}
+</style>
+
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import ModelUsageDetails from '@/components/ModelUsageDetails.vue'
 import { fetchAnswerFeedback } from '@/api'
-import { statusLabel } from '@/api/run-contract'
+import { statusLabel, toolFailureLabel } from '@/api/run-contract'
 import { useAuthSession } from '@/composables/useAuthSession'
 
 const { state: authState } = useAuthSession()
@@ -312,3 +332,8 @@ function effectiveWindow(card) {
   return card.effectiveTo ? `${card.effectiveFrom} – ${card.effectiveTo}` : `${card.effectiveFrom} 起`
 }
 </script>
+
+<style scoped>
+.tool-timeline li { flex-wrap: wrap; }
+.tool-failure-reason { flex-basis: 100%; color: var(--danger); overflow-wrap: anywhere; }
+</style>

@@ -20,14 +20,16 @@ import java.util.concurrent.atomic.AtomicLong;
 public class InMemorySavedTeamRepository implements SavedTeamRepository {
     private final AtomicLong sequence = new AtomicLong(0);
     private final ConcurrentMap<Long, SavedTeam> teams = new ConcurrentHashMap<>();
+    private final java.util.Map<Long,Long> revisions = new java.util.HashMap<>();
 
     @Override
-    public SavedTeam create(SavedTeam team) {
+    public synchronized SavedTeam create(SavedTeam team) {
         if (team == null) throw new IllegalArgumentException("队伍不能为空");
         long id = team.id() > 0 ? team.id() : sequence.incrementAndGet();
         sequence.accumulateAndGet(id, Math::max);
         SavedTeam persisted = copy(id, team);
         teams.put(id, persisted);
+        revisions.merge(id,1L,Long::sum);
         return persisted;
     }
 
@@ -38,12 +40,12 @@ public class InMemorySavedTeamRepository implements SavedTeamRepository {
     }
 
     @Override
-    public boolean updateForOwner(long id, String ownerId, SavedTeam replacement) {
+    public synchronized boolean updateForOwner(long id, String ownerId, SavedTeam replacement) {
         if (id <= 0 || ownerId == null || ownerId.isBlank() || replacement == null
                 || !ownerId.equals(replacement.ownerId()) || replacement.id() != id) return false;
         SavedTeam current = teams.get(id);
-        return current != null && ownerId.equals(current.ownerId())
-                && teams.replace(id, current, copy(id, replacement));
+        if (current == null || !ownerId.equals(current.ownerId())) return false;
+        teams.put(id,copy(id,replacement)); revisions.merge(id,1L,Long::sum); return true;
     }
 
     @Override
@@ -63,10 +65,22 @@ public class InMemorySavedTeamRepository implements SavedTeamRepository {
     }
 
     @Override
-    public boolean deleteForOwner(long id, String ownerId) {
+    public synchronized boolean deleteForOwner(long id, String ownerId) {
         if (id <= 0 || ownerId == null || ownerId.isBlank()) return false;
         SavedTeam current = teams.get(id);
         return current != null && ownerId.equals(current.ownerId()) && teams.remove(id, current);
+    }
+
+    @Override public synchronized Snapshot snapshotForOwner(long id,String owner) {
+        return new Snapshot(findByIdForOwner(id,owner).orElseThrow(()->new com.vio.vioaiagent.pokemon.service.PokemonResourceNotFoundException("队伍不存在或不属于当前主体")),revisions.get(id));
+    }
+    @Override public synchronized Optional<SavedTeam> compareAndSet(Snapshot expected,SavedTeam replacement,Runnable beforeCommit) {
+        beforeCommit.run();
+        if (!replacement.ownerId().equals(expected.team().ownerId()) || replacement.id()!=expected.team().id()) throw new IllegalArgumentException("队伍归属冲突");
+        if (!java.util.Objects.equals(revisions.get(replacement.id()),expected.revision()) || !teams.containsKey(replacement.id())) return Optional.empty();
+        beforeCommit.run();
+        updateForOwner(replacement.id(),replacement.ownerId(),replacement);
+        return findByIdForOwner(replacement.id(),replacement.ownerId());
     }
 
     private SavedTeam copy(SavedTeam value) {

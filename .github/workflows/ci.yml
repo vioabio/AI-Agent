@@ -60,6 +60,14 @@ jobs:
       - name: Backend compile
         run: ./mvnw -B -ntp -DskipTests compile
 
+      # Campus S2 validates frozen cases and the scorer only. No model requests,
+      # user accounts, real credentials or changes to release gates are involved.
+      - name: Campus evaluation dataset and scorer contracts
+        run: |
+          node tools/campus/s2-evaluate.mjs validate
+            node tools/campus/audit-s3-corpus.mjs
+            node --test tools/campus/evaluation.test.mjs tools/campus/s2-quality-regression.test.mjs tools/campus/s3-retrieval.test.mjs
+
       - name: Backend tests
         run: ./mvnw -B -ntp test
 

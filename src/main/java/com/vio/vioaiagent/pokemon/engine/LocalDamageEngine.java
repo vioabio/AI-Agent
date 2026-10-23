@@ -62,6 +62,18 @@ public class LocalDamageEngine {
     public record Combatant(String species,TeamBuild build) {
         public Combatant { if(species==null||species.isBlank()||species.length()>80)throw new IllegalArgumentException("缺少有效物种名称");build=build==null?TeamBuild.defaults():build; }
     }
-    public record Field(String gameType,String weather,String terrain) { }
+    public record Field(String gameType,@org.springframework.ai.tool.annotation.ToolParam(required=false) String weather,
+                        @org.springframework.ai.tool.annotation.ToolParam(required=false) String terrain) {
+        public Field {
+            gameType=gameType==null||gameType.isBlank()?"Singles":gameType.trim();
+            if(!java.util.Set.of("Singles","Doubles").contains(gameType))throw new IllegalArgumentException("gameType 必须为 Singles 或 Doubles");
+            weather=emptyCondition(weather);terrain=emptyCondition(terrain);
+            if(weather!=null&&!java.util.Set.of("Sun","Rain","Sand","Hail","Snow","Harsh Sunshine","Heavy Rain","Strong Winds").contains(weather))
+                throw new IllegalArgumentException("未知 weather；无天气请填 null，已知天气使用 Rain/Sun/Sand/Hail/Snow 等引擎名称");
+            if(terrain!=null&&!java.util.Set.of("Electric","Grassy","Misty","Psychic").contains(terrain))
+                throw new IllegalArgumentException("未知 terrain；无地形请填 null，地形仅支持 Electric/Grassy/Misty/Psychic");
+        }
+        private static String emptyCondition(String value) { return value==null||value.isBlank()||value.trim().equalsIgnoreCase("none")||value.trim().equals("无")?null:value.trim(); }
+    }
     public record Request(int generation,String dataReleaseId,Combatant attacker,Combatant defender,String move,Field field) { }
 }

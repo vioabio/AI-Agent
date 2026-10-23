@@ -7,6 +7,11 @@ import java.util.Optional;
 
 /** 用户队伍资源仓储；所有读取/删除方法都要求 ownerId。 */
 public interface SavedTeamRepository {
+    record Snapshot(SavedTeam team, long revision) { }
+    default Snapshot snapshotForOwner(long id, String owner) { throw new UnsupportedOperationException("当前存储不支持队伍确认写入"); }
+    default Optional<SavedTeam> compareAndSet(Snapshot expected, SavedTeam replacement, Runnable beforeCommit) {
+        throw new UnsupportedOperationException("当前存储不支持队伍确认写入");
+    }
     SavedTeam create(SavedTeam team);
 
     /** Replace a team only when the write still matches its owner. */
