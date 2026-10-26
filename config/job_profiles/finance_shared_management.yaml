@@ -1,0 +1,119 @@
+id: "finance_shared_management_v1"
+title: "财务共享与管理经理"
+source_jd_title: "财务共享与管理经理"
+coze_workflow_key: "finance"
+analysis_prompt_path: "config/prompts/finance_shared_management_v3.txt"
+required_job_intent_city: "上海"
+education: "统招本科及以上，财务、会计、审计等相关专业"
+education_requirement:
+  minimum_degree: "本科"
+  require_unified_admission: true
+age:
+  maximum: 35
+experience:
+  related_years_min: 8
+  shared_or_group_management_years_min: 3
+selection:
+  relevant_score_min: 80
+  review_score_min: 65
+  score_breakdown_limits:
+    industry_depth: 35
+    beauty_continuity: 25
+    role_evidence: 40
+search_pack_scheduling: "interleaved"
+search_packs:
+  - id: "finance_shared"
+    label: "财务共享与管理经理"
+    include_unbranded: true
+    terms:
+      - "财务共享中心负责人"
+      - "财务共享中心经理"
+      - "财务共享负责人"
+      - "财务共享运营经理"
+      - "SSC负责人"
+      - "SSC经理"
+      - "财务共享项目经理"
+      - "共享中心运营经理"
+      - "财务共享中心总监"
+      - "企业财务共享 流程迁移"
+      - "财务共享 标准化 SOP"
+      - "财务共享 月结关账"
+      - "财务共享 总账核算"
+      - "财务共享 自动凭证"
+      - "财务共享 RPA"
+      - "财务共享 BI 数据质量"
+    brands: []
+  - id: "group_accounting"
+    label: "财务共享与管理经理"
+    include_unbranded: true
+    terms:
+      - "集团核算负责人"
+      - "集团核算经理"
+      - "多法人财务经理"
+      - "多主体核算经理"
+      - "集团关账经理"
+      - "集团总账经理"
+      - "民营集团 多主体核算"
+      - "民营集团 多法人管理"
+      - "连锁企业 多门店财务"
+      - "集团月结 关账"
+      - "集团会计政策 核算标准"
+      - "集团合并报表 数据质量"
+      - "账务整改 往来清理"
+    brands: []
+  - id: "finance_transformation"
+    label: "财务共享与管理经理"
+    include_unbranded: true
+    terms:
+      - "财务流程优化经理"
+      - "财务变革经理"
+      - "财务转型经理"
+      - "财务数字化项目经理"
+      - "业财一体化经理"
+      - "ERP财务项目经理"
+      - "财务标准化经理"
+      - "财务流程 SOP 制度建设"
+      - "费控 报销 付款流程"
+      - "ERP 系统切换 财务"
+      - "OCR RPA 自动凭证"
+      - "财务BI 数据质量"
+      - "审计转企业 集团核算"
+    brands: []
+card_screening:
+  minimum_score: 6
+  enforce_age_range: true
+  minimum_age: 22
+  maximum_age: 35
+  positive_groups:
+    - id: "finance_shared"
+      weight: 5
+      terms: ["财务共享", "共享中心", "共享财务", "SSC", "共享运营"]
+    - id: "group_accounting"
+      weight: 4
+      terms: ["集团核算", "多法人", "多主体", "合并报表", "集团关账", "集团总账", "核算管理"]
+    - id: "process_transform"
+      weight: 4
+      terms: ["财务流程优化", "财务变革", "财务转型", "共享项目", "财务数字化项目", "ERP财务项目", "业财一体化", "财务标准化", "流程再造"]
+    - id: "finance_leadership"
+      weight: 3
+      terms: ["经理", "负责人", "总监", "主管", "高级专家", "项目负责人", "团队管理"]
+    - id: "digital_systems"
+      weight: 1
+      terms: ["ERP", "BI", "OCR", "RPA", "AI", "财务数字化", "财务系统"]
+    - id: "preferred_industry"
+      weight: 1
+      terms: ["医疗", "医美", "连锁", "零售", "消费"]
+  negative_groups:
+    - id: "non_target_basic_role"
+      weight: -8
+      terms: ["出纳", "收银", "销售", "客户经理", "财务助理", "会计助理"]
+  broad_title_terms: ["财务经理", "财务总监", "高级财务经理", "财务负责人", "财务主管", "财务BP", "税务经理", "资金经理", "审计经理"]
+  required_direction_terms: ["财务共享", "共享中心", "共享财务", "SSC", "集团核算", "多法人", "多主体", "合并报表", "集团关账", "集团总账", "财务流程优化", "财务变革", "财务转型", "共享项目", "财务数字化项目", "ERP财务项目", "业财一体化", "财务标准化", "流程再造"]
+  selection_paths:
+    - id: "shared_management"
+      all_of_groups: ["finance_shared", "finance_leadership"]
+    - id: "group_accounting_management"
+      all_of_groups: ["group_accounting", "finance_leadership"]
+    - id: "finance_transformation_management"
+      all_of_groups: ["process_transform", "finance_leadership"]
+  target_brand_bonus: 0

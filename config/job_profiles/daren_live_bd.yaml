@@ -1,0 +1,73 @@
+id: "daren_live_bd_v1"
+title: "达人营销与达播负责人"
+source_jd_title: "达人营销总监/达播总监/达播负责人"
+analysis_prompt_path: "docs/coze_daren_marketing_prompt_v3.txt"
+location: "上海-黄浦区"
+required_job_intent_city: "上海"
+education: "全日制本科及以上"
+education_requirement:
+  minimum_degree: "本科"
+  require_unified_admission: true
+experience:
+  related_years_min: 10
+  management_years_min: 5
+selection:
+  relevant_score_min: 80
+  review_score_min: 65
+  require_both_business_tracks_for_relevant: true
+  score_breakdown_limits:
+    industry_depth: 25
+    beauty_continuity: 15
+    role_evidence: 60
+search_pack_scheduling: "interleaved"
+search_packs:
+  - id: "daren_kol"
+    label: "达人营销/KOL种草"
+    include_unbranded: true
+    brand_tier: "A"
+    terms: ["达人营销负责人", "达人营销总监", "KOL营销负责人", "种草营销负责人"]
+    brands: ["海蓝之谜", "HR赫莲娜", "SK-II", "雅诗兰黛", "兰蔻", "植村秀", "倩碧", "资生堂", "丸美", "珀莱雅"]
+  - id: "live_commerce"
+    label: "达播/直播电商"
+    include_unbranded: true
+    brand_tier: "A"
+    terms: ["达播负责人", "达人直播负责人", "直播电商负责人", "达人分销负责人"]
+    brands: ["海蓝之谜", "HR赫莲娜", "SK-II", "雅诗兰黛", "兰蔻", "植村秀", "倩碧", "资生堂", "丸美", "珀莱雅"]
+  - id: "resource_bd"
+    label: "达人商务/媒介BD"
+    include_unbranded: true
+    terms: ["达人商务负责人", "KOL商务负责人", "媒介BD负责人", "MCN商务负责人"]
+    brands: []
+  - id: "social_content"
+    label: "社交内容营销"
+    include_unbranded: true
+    terms: ["社交营销总监", "内容媒介负责人", "小红书营销负责人", "抖音营销负责人"]
+    brands: []
+card_screening:
+  minimum_score: 5
+  enforce_age_range: false
+  required_any_positive_groups: ["daren_kol", "live_commerce"]
+  required_any_support_groups: ["leadership", "target_industry"]
+  positive_groups:
+    - id: "daren_kol"
+      weight: 3
+      terms: ["达人", "KOL", "KOS", "种草", "MCN", "红人", "博主"]
+    - id: "live_commerce"
+      weight: 3
+      terms: ["达播", "达人直播", "直播带货", "达人分销", "直播电商"]
+    - id: "leadership"
+      weight: 2
+      terms: ["总监", "负责人", "主管", "经理", "Head", "团队管理"]
+    - id: "target_industry"
+      weight: 2
+      terms: ["美妆", "医美", "护肤", "个护", "化妆品", "大健康", "高端消费", "消费医疗"]
+    - id: "platform"
+      weight: 1
+      terms: ["抖音", "小红书", "微博", "视频号", "天猫", "京东"]
+  negative_groups:
+    - id: "traditional_b2b_sales"
+      weight: -4
+      terms: ["医院渠道", "医疗器械销售", "耗材销售", "设备销售", "IVD销售", "经销商管理"]
+  broad_title_terms: ["媒介总监", "BD总监", "BD负责人", "电商总经理", "市场总监"]
+  required_direction_terms: ["达人", "KOL", "KOS", "种草", "MCN", "达播", "直播带货", "达人分销"]
+  target_brand_bonus: 1

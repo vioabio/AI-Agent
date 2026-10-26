@@ -1,0 +1,8 @@
+jobs_dashboard_page:
+  all_of:
+    - content_desc: "职位"
+  any_of:
+    - content_desc_contains: "招聘中"
+    - content_desc_contains: "待发布"
+    - content_desc_contains: "已关闭"
+    - content_desc_contains: "收到简历"

@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "liepin-talent-rpa"
+version = "0.1.0"
+description = "Android device diagnostics and project bootstrap for Liepin talent automation."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "argon2-cffi>=25.1,<26.0",
+  "fastapi>=0.115,<1.0",
+  "uvicorn>=0.30,<1.0",
+  "alembic>=1.16,<2.0",
+  "cozepy>=0.20,<0.21",
+  "openai>=2.0,<3.0",
+  "pydantic-settings>=2.14,<3.0",
+  "pymysql>=1.2,<2.0",
+  "paramiko>=4.0,<5.0",
+  "pillow>=11.0,<13.0",
+  "pypdf>=6.14,<7.0",
+  "pypdfium2>=5.11,<6.0",
+  "pyyaml>=6.0,<7.0",
+  "rapidfuzz>=3.14,<4.0",
+  "reportlab>=5.0,<6.0",
+  "sqlalchemy>=2.0,<3.0",
+  "uiautomator2>=3.7,<4.0",
+  "xxhash>=3.5,<4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=9.1,<10.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q -p no:cacheprovider --basetemp=.pytest-tmp"
+
+[tool.setuptools.packages.find]
+where = ["src"]
