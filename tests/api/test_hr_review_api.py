@@ -559,7 +559,8 @@ def test_communication_status_uses_normalized_history_in_list_detail_and_filters
         item["candidate_fingerprint"]: item for item in all_candidates.json()["items"]
     }
     assert by_fingerprint["relevant-low"]["communication_status"] == "sent"
-    assert by_fingerprint["review-90"]["communication_status"] == "sent"
+    # Selecting a job is not evidence that a greeting was sent.
+    assert by_fingerprint["review-90"]["communication_status"] == "not_sent"
     assert by_fingerprint["review-89"]["communication_status"] == "previously_contacted"
     assert by_fingerprint["temporary-failure"]["communication_status"] == "failed"
     assert (
@@ -578,7 +579,7 @@ def test_communication_status_uses_normalized_history_in_list_detail_and_filters
     assert detail.json()["summary"]["communication_status"] == "sent"
 
     expected_by_filter = {
-        "sent": {"relevant-low", "review-90"},
+        "sent": {"relevant-low"},
         "previously_contacted": {"review-89"},
         "failed": {"temporary-failure"},
     }
@@ -599,9 +600,9 @@ def test_communication_status_uses_normalized_history_in_list_detail_and_filters
         params={"scope": "all", "communication_status": "not_sent", "page_size": 100},
     )
     assert not_sent.status_code == 200
-    assert {"relevant-low", "review-90"}.isdisjoint(
-        item["candidate_fingerprint"] for item in not_sent.json()["items"]
-    )
+    not_sent_fingerprints = {item["candidate_fingerprint"] for item in not_sent.json()["items"]}
+    assert "relevant-low" not in not_sent_fingerprints
+    assert "review-90" in not_sent_fingerprints
 
 
 def test_candidate_detail_collapses_repeated_batch_source_observations(
@@ -987,8 +988,8 @@ def seed_database(engine: Engine) -> None:
         )
         candidates = [
             (1, "relevant-low", "匹配", 95),
-            (2, "review-90", "待复核", 80),
-            (3, "review-89", "待复核", 79),
+            (2, "review-90", "待复核", 90),
+            (3, "review-89", "待复核", 89),
             (4, "temporary-failure", "待复核", 99),
             (5, "finance-hidden", "匹配", 95),
             (6, "relevant-under-threshold", "匹配", 70),

@@ -52,7 +52,9 @@ class ApplicationServices:
 def build_engine(settings: HRReviewSettings) -> Engine:
     """只接受 HR Web 专用连接，禁止隐式回退到采集主库配置。"""
 
-    return create_engine(settings.database_url, future=True, pool_pre_ping=True)
+    return create_engine(
+        settings.database_url, future=True, pool_pre_ping=True, hide_parameters=True
+    )
 
 
 def build_services(engine: Engine, settings: HRReviewSettings) -> ApplicationServices:
