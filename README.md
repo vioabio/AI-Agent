@@ -199,7 +199,7 @@ npx.cmd --yes pnpm@10 build
 
 ## 文档
 
-- [服务器私有部署与 SSH 隧道访问](docs/SERVER_DEPLOYMENT.md)
+- [服务器部署与访问](docs/SERVER_DEPLOYMENT.md)
 - [本机双入口启动说明](docs/HR_LOCAL_START.md)
 - [HR 工作台运行手册](docs/HR_REVIEW_PORTAL_RUNBOOK.md)
 - [项目交接与运行约束](docs/PROJECT_HANDOFF.md)

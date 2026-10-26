@@ -1,37 +1,18 @@
-# 服务器私有部署与访问
+# 服务器部署与直接访问
 
 部署日期：2026-10-26。当前仅部署真实 HR 工作台；安卓手机采集继续在本机运行。
 
-## 访问
+## 当前访问方式
 
-服务器：`47.98.197.126`，SSH 端口 `22`。
-Web 与 API 都只监听服务器回环地址，不开放公网招聘页面。
+直接打开 **http://47.98.197.126:5016/login**，使用已有 HR 账号登录。
+不需要 SSH 隧道，也不需要安装浏览器证书。
 
-在 Windows 项目根目录运行并保持终端开启：
+用户已明确授权公网 HTTP 访问。HTTP 不加密登录密码、会话与简历内容；
+此模式通过 `HR_ALLOW_HTTP=true` 显式启用，默认生产配置仍要求安全 Cookie。
+以后接入域名和 HTTPS 时，应恢复 `HR_COOKIE_SECURE=true` 并关闭 HTTP 开关。
 
-```powershell
-.\scripts\open_hr_server_tunnel.ps1
-```
-
-等价命令：
-
-```powershell
-ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 127.0.0.1:8443:127.0.0.1:18443 root@47.98.197.126
-```
-
-按终端提示输入 SSH 密码，随后访问 **https://localhost:8443/login**。
-浏览器首次访问会提示本服务的自签名 localhost 证书；核验后可继续。
-该证书仅用于 SSH 私有入口，不是公网域名证书。
-
-部署时核验的证书 SHA-256 指纹：
-
-```text
-D5:06:C1:1B:1E:CB:AD:86:4E:65:BA:ED:25:94:6F:BA:8F:9A:97:A8:89:3B:B2:59:96:4C:92:57:D1:DA:97:CD
-```
-
-使用原有 HR 账号，或本机已创建的只读账号登录。密码不记录在本文或仓库中。
-如果本机 8443 端口已有本次建立的隧道，不要重复启动；原隧道断开后再运行命令。
-关闭 SSH 终端只会断开访问隧道，不会停止服务器服务。
+服务器 SSH：`47.98.197.126:22`，用于运维，不是浏览器访问入口。
+原 SSH/TLS 入口已停用；`scripts/open_hr_server_tunnel.ps1` 仅保留为历史配置参考。
 
 ## 部署结构
 
@@ -43,14 +24,14 @@ D5:06:C1:1B:1E:CB:AD:86:4E:65:BA:ED:25:94:6F:BA:8F:9A:97:A8:89:3B:B2:59:96:4C:92
 | 批次元数据 | `/opt/ai-recruitment/shared/batches.json`，容器只读挂载 |
 | TLS 证书和私钥 | `/opt/ai-recruitment/shared/tls/` |
 | API 容器 | `ai-recruitment-api` |
-| API 镜像 | `ai-recruitment-api:20261026-01` |
+| API 镜像 | `ai-recruitment-api:20261026-02` |
 | API 回环端口 | `127.0.0.1:18080` |
-| Nginx 回环 HTTPS | `127.0.0.1:18443` |
+| Nginx 公网 HTTP | `0.0.0.0:5016` |
 | Nginx 站点配置 | `/etc/nginx/conf.d/ai-recruitment-private.conf` |
 
 前端是 Vite 生产构建产物，由现有 Nginx 服务静态文件并代理 `/api/`。
 API 使用 Python 3.12，容器以非 root 用户运行、只读根文件系统、限制内存与 CPU，
-设置自动重启和日志轮转。没有替换原有业务容器，没有新增公网监听端口。
+设置自动重启和日志轮转。没有替换原有业务容器，用户授权的公网入口为 5016 端口，API 仍只监听回环地址。
 
 ## 配置与账号
 
@@ -59,7 +40,7 @@ API 使用 Python 3.12，容器以非 root 用户运行、只读根文件系统�
 需要收敛数据库权限时，由 DBA 创建专用账号，并在服务器原位替换该项后重建 API 容器。
 不要把服务器配置文件、数据库密码或 SSH 凭据加入 Git。
 
-生产配置为：`APP_ENV=production`、`HR_COOKIE_SECURE=true`、`HR_ENABLE_OPENAPI=false`。
+生产配置为：`APP_ENV=production`、`HR_COOKIE_SECURE=false`、`HR_ALLOW_HTTP=true`、`HR_ENABLE_OPENAPI=false`。
 数据库迁移不会随容器启动执行；本次没有修改生产表结构或候选人审核状态。
 
 批次文件是部署时导入的 11 个已完成批次元数据快照，字段只有批次 ID、开始和结束时间。
@@ -75,7 +56,7 @@ API 使用 Python 3.12，容器以非 root 用户运行、只读根文件系统�
 docker ps --filter name=ai-recruitment-api
 docker inspect --format '{{.State.Health.Status}}' ai-recruitment-api
 docker logs --tail 50 ai-recruitment-api
-curl -k -I https://127.0.0.1:18443/login
+curl -I http://127.0.0.1:5016/login
 nginx -t
 ```
 
@@ -96,7 +77,7 @@ nginx -t
 ## 本次验证
 
 - 前端 TypeScript 检查和生产构建通过。
-- API 回归测试 20 项通过；对齐了历史测试样本的 90 分门槛，以及“职位选择不代表发送成功”的断言。
-- 通过真实 SSH/TLS 隧道验证登录、安全 Cookie、候选人列表、看板、批次和日报预览。
+- API 回归测试 21 项通过；对齐了历史测试样本的 90 分门槛，以及“职位选择不代表发送成功”的断言。
+- 从外网 HTTP 入口验证登录、候选人列表、看板和批次；早期私有部署另验证过日报预览。
 - 验证会话使用只读账号，完成后已注销；未提交候选人审核。
-- 服务 API 文档返回 404，未登录 API 返回 401，HTTPS 登录页返回 200。
+- 服务 API 文档返回 404，未登录 API 返回 401，HTTP 登录页返回 200。

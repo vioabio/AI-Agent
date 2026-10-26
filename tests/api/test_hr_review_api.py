@@ -944,6 +944,22 @@ def test_database_url_is_required_and_only_report_needs_a_completed_batch(
     assert report_response.json()["code"] == "batch_not_found"
 
 
+def test_production_http_requires_explicit_opt_in() -> None:
+    settings = {
+        "_env_file": None,
+        "APP_ENV": "production",
+        "HR_REVIEW_DATABASE_URL": "sqlite+pysqlite://",
+        "HR_COOKIE_SECURE": False,
+        "HR_ENABLE_OPENAPI": False,
+    }
+    with pytest.raises(ValidationError, match="HR_COOKIE_SECURE"):
+        HRReviewSettings(**settings, HR_ALLOW_HTTP=False)
+    assert HRReviewSettings(**settings, HR_ALLOW_HTTP=True).allow_http
+    settings["HR_ENABLE_OPENAPI"] = True
+    with pytest.raises(ValidationError, match="HR_ENABLE_OPENAPI"):
+        HRReviewSettings(**settings, HR_ALLOW_HTTP=True)
+
+
 def seed_database(engine: Engine) -> None:
     password_hash = PasswordHasher().hash("correct-password")
     with engine.begin() as connection:
