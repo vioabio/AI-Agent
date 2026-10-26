@@ -1,335 +1,207 @@
-> 本仓库已导入当前项目源码。真实数据与隔离演示的启动方式见 [本机启动说明](docs/HR_LOCAL_START.md)。演示数据由脚本生成，不包含真实候选人数据；数据库与模型凭据需自行配置。
+# AI 招聘自动化与候选人审核平台
 
-# 猎聘美妆人才自动搜索与页面采集项目
+面向企业招聘场景，将 **岗位搜索、简历采集、AI 匹配分析、候选人管理和人工审核** 串联起来，帮助招聘人员减少重复检索与信息整理，把精力集中在候选人判断和沟通上。
 
-> **当前权威入口（2026-08-17）**：先读 [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) 和 [docs/PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md)。当前生产链路是达人 96 词 + 财务 22 词的单手机串行任务；可行动报表口径为 `relevant` 全部 + `needs_review >= 90`。本页其余内容主要保留早期迁移与工具说明，若有冲突，以两份权威文档和主目录当前代码为准。
+系统通过安卓手机操作猎聘 App 获取简历，使用大模型按岗位要求输出匹配结论、评分和证据，再由 HR 在 Web 工作台完成筛选、审核与进度跟踪。
 
-当前仓库已经恢复到迁移后的可运行状态，并覆盖了以下能力：
+> 项目定位是可配置的 AI 招聘平台。当前手机采集任务面向 AI 前沿部署工程师（FDE）与 AI 开发工程师；仓库保留了部分历史岗位配置，Web 工作台与本地演示目前仍沿用历史岗位目录，尚未与这两个 AI 岗位全面统一。
 
-- Python 项目骨架与本地 `.venv`
-- 统一配置模块与 JSON 日志
-- `DeviceClient` 设备连接封装
-- ADB 与 `uiautomator2` 诊断链路
-- 页面状态识别与控件探索
-- 冻结品牌/岗位搜索任务生成
-- 搜索只读流程、结果页筛选流程
-- 候选人详情页“展开全部 + 滑动到底 + 简历采集”
-- 基于历史样本的单元测试
-- 一键迁移恢复与自检脚本
+## 核心能力
 
-## 当前阶段
+| 模块 | 实现能力 |
+| --- | --- |
+| 岗位任务配置 | 通过 YAML 配置岗位要求、关键词目录、提示词及评分规则 |
+| 手机端采集 | 页面识别、关键词搜索、结果卡片筛选、详情展开与滚动采集 |
+| AI 匹配分析 | 岗位独立提示词、结构化输出、匹配结论、分项评分及简历证据 |
+| 候选人去重 | 候选人指纹、简历正文哈希、分析版本缓存和跨批次冷却 |
+| 任务恢复 | 关键词级断点、运行锁、批次状态与异常停止 |
+| HR 工作台 | 候选人筛选、简历详情、审核反馈、负责人及招聘进度看板 |
+| 权限与审计 | 角色和岗位权限、Argon2 密码哈希、Cookie 会话、CSRF 校验、审核事件记录 |
+| 审核一致性 | revision 乐观锁与事务提交，保留 AI 分析事实和人工审核历史 |
+| 报告生成 | 基于数据库生成候选人 PDF 与日报，支持独立配置飞书投递 |
 
-当前已具备：
+手机工作流还支持对满足条件的候选人进行沟通、保存正式分享链接或收藏。是否执行取决于岗位规则、去重结果及运行参数；启动 Web 工作台不会启动手机采集或发送日报。
 
-- 首页、搜索页、结果页、详情页的真机回归能力
-- 候选人详情页采集后的结构化 JSON 输出
-- 迁移后环境恢复、自检、回归验证能力
+## 业务流程
 
-当前不包含：
-
-- 自动沟通
-- 验证码绕过
-- 私有接口逆向
-
-## Windows 环境准备
-
-1. 创建并激活虚拟环境
-
-```powershell
-.\scripts\rebuild_venv.ps1
-.\.venv\Scripts\Activate.ps1
+```mermaid
+flowchart LR
+    A[岗位配置与关键词] --> B[手机搜索与简历采集]
+    B --> C[规则过滤与身份去重]
+    C --> D[岗位独立 AI 分析]
+    D --> E[MySQL 持久化]
+    E --> F[HR 筛选与人工审核]
+    E --> G[PDF 与日报]
+    D --> H[满足条件后沟通]
+    H --> E
 ```
 
-2. 安装依赖
+AI 结果分为 `relevant`（匹配）、`needs_review`（待复核）和 `not_relevant`（不匹配）。模型异常或不确定结果进入待复核流程；自动沟通仅允许明确匹配且通过业务校验的候选人。
+
+## 技术栈与设计
+
+| 技术 | 解决的问题 |
+| --- | --- |
+| Python、ADB、uiautomator2 | 将重复的手机搜索、页面操作与简历采集转为可恢复的自动化流程 |
+| OpenAI 兼容 API、Pydantic | 将简历与岗位要求转换为可校验的结构化分析，减少自由文本输出的不确定性 |
+| YAML 岗位配置、独立提示词 | 分离岗位规则与流程代码，便于调整搜索策略和评分标准 |
+| FastAPI、SQLAlchemy、MySQL | 提供候选人、权限、审核和统计接口，并持久化业务事实 |
+| React、TypeScript、Ant Design | 构建类型明确的候选人审核界面与招聘进度展示 |
+| TanStack Query | 管理服务端数据请求、缓存及审核后的界面刷新 |
+| Argon2、CSRF、岗位权限 | 保护登录凭据、限制岗位访问并校验审核请求 |
+| 乐观锁、事务、审核事件表 | 防止多人审核相互覆盖，保留可追溯的人工处置记录 |
+| pytest、Vitest、Playwright | 验证规则解析、后端接口、前端交互和端到端审核流程 |
+
+项目采用规则约束与 AI 分析结合的工作流：确定性条件由代码校验，语义匹配交给模型，人工决定最终招聘处置。
+
+## 快速体验：独立演示环境
+
+演示环境使用本地 SQLite 和虚构简历，不需要安卓手机、MySQL 或模型密钥。它适合体验页面与审核流程，不代替真实 MySQL 环境的兼容性验证。
+
+### 1. 获取代码并安装依赖
+
+推荐环境：Windows PowerShell、Python 3.12、Node.js 22.12+。
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install --upgrade pip
-.\.venv\Scripts\python.exe -m pip install -e .[dev]
+git clone https://github.com/vioabio/HR-.git
+cd HR-
+
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+
+Push-Location web\hr-review
+npx.cmd --yes pnpm@10 install --frozen-lockfile
+Pop-Location
 ```
 
-3. 准备 `.env`
+已有虚拟环境时可直接安装依赖，无需重新创建。
+
+### 2. 启动演示后端
+
+在仓库根目录打开 PowerShell：
 
 ```powershell
-Copy-Item .env.example .env
+.\scripts\start_hr_demo.ps1
 ```
 
-4. 检查 ADB
+### 3. 启动演示前端
+
+另开一个 PowerShell，进入仓库根目录：
 
 ```powershell
-adb version
+.\scripts\start_hr_demo_web.ps1
+```
+
+打开 **[演示工作台](http://localhost:5174/login)**：
+
+- 用户名：`demo`
+- 密码：`DemoReview2026!`
+- 后端端口：`8001`
+
+演示初始化后包含 99 份虚构简历、两个演示岗位与五个批次，覆盖 AI 结论、评分、沟通结果和审核进度。工作台沿用业务筛选规则，因此列表人数可能少于原始简历数。数据保存在 `artifacts/hr_demo/`；重复启动不会重复插入，也不会覆盖已完成的演示审核。
+
+以上账号仅用于本机演示。请使用 `localhost:5174` 访问演示、`127.0.0.1:5173` 访问真实入口，以分开浏览器会话。
+
+## 连接真实招聘数据
+
+真实工作台使用独立配置项 `HR_REVIEW_DATABASE_URL`，不会自动回退到手机采集使用的 `MYSQL_*` 配置。
+
+```powershell
+# 仅首次创建；不要覆盖已有配置
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+```
+
+在 `.env` 中填写自己的 HR 数据库连接：
+
+```dotenv
+HR_REVIEW_DATABASE_URL=mysql+pymysql://USER:URL_ENCODED_PASSWORD@HOST:3306/DATABASE?charset=utf8mb4
+HR_COOKIE_SECURE=false
+HR_ENABLE_OPENAPI=true
+HR_ALLOWED_ORIGINS=http://127.0.0.1:5173,http://localhost:5173
+```
+
+该连接需要可用的候选人业务表、HR 相关表和登录账号。现有 Alembic 迁移是增量迁移，不能直接用来初始化任意空库；数据库准备、迁移和账号创建请先阅读 [HR 工作台运行手册](docs/HR_REVIEW_PORTAL_RUNBOOK.md)。本地开发和演示应使用隔离数据，连接真实业务库时应配置适当的账号权限。
+
+分别在两个终端的仓库根目录执行：
+
+```powershell
+# 终端一：API，端口 8000
+.\scripts\start_hr_real.ps1
+```
+
+```powershell
+# 终端二：Web，端口 5173
+.\scripts\start_hr_real_web.ps1
+```
+
+打开 **[真实工作台](http://127.0.0.1:5173/login)**，使用自行创建或已有的 HR 账号登录。审核操作会写入当前连接的数据库。开发环境接口文档位于 [API 文档](http://127.0.0.1:8000/docs)。
+
+## 运行手机招聘任务
+
+先准备已登录猎聘的安卓真机，开启 USB 调试，并在 `.env` 中配置设备、采集数据库及模型服务。配置项以 [.env.example](.env.example) 为准。
+
+```powershell
 adb devices -l
-```
-
-## 迁移恢复
-
-迁移到新目录后，优先执行：
-
-```powershell
-.\scripts\rebuild_venv.ps1
-.\.venv\Scripts\python.exe scripts\migration_selfcheck.py
-```
-
-如果你只想跳过详情页采集阶段：
-
-```powershell
-.\.venv\Scripts\python.exe scripts\migration_selfcheck.py --skip-live-profile
-```
-
-迁移 runbook 见 [MIGRATION_RUNBOOK.md](/D:/lx/jianlizhuanqu/docs/MIGRATION_RUNBOOK.md)。
-
-## 数据库连接方式
-
-当前项目约定使用 MySQL + `pymysql`，并从环境变量读取连接信息。
-
-### 环境变量
-
-```env
-MYSQL_HOST=your-host
-MYSQL_PORT=3306
-MYSQL_USER=your-user
-MYSQL_PASSWORD=your-password
-MYSQL_DATABASE=phone-rpa
-MYSQL_CHARSET=utf8mb4
-```
-
-### Python 连接示例
-
-```python
-from liepin_rpa.config import get_settings
-from liepin_rpa.db import build_mysql_connection_kwargs
-
-settings = get_settings()
-kwargs = build_mysql_connection_kwargs(settings)
-
-# import pymysql
-# conn = pymysql.connect(**kwargs)
-```
-
-## 设备诊断
-
-```powershell
 .\.venv\Scripts\python.exe scripts\device_diagnose.py
 ```
 
-如需指定设备：
+检查完成后，选择一个岗位运行：
 
 ```powershell
-$env:DEVICE_ID="your-device-serial"
-.\.venv\Scripts\python.exe scripts\device_diagnose.py
+# AI 前沿部署工程师（FDE）
+.\scripts\run_fde_search.ps1
 ```
-
-输出默认写入 `artifacts/device_diagnose/`。
-
-## 页面识别与控件探索
-
-检测当前 XML 样本：
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\inspect_current_page.py --xml-path outputs\navigation_signatures\03_result_list\hierarchy.xml
+# AI 开发工程师
+.\scripts\run_ai_development_search.ps1
 ```
 
-探索当前设备页面控件：
+同一手机只能运行一个采集实例。任务支持断点续跑；正常续跑不应清空 checkpoint。遇登录异常、验证码、账号风控或设备离线时应停止并人工处理。正式任务可能调用模型接口、写入数据库并向符合条件的候选人发起沟通。
 
-```powershell
-.\.venv\Scripts\python.exe scripts\explore_current_controls.py --output-dir outputs\control_explorer\current_page
-```
+日报是独立链路。相关运维细节见 [项目交接文档](docs/PROJECT_HANDOFF.md)，不要把历史岗位配置或旧文档中的规则直接套用到新岗位。
 
-采集当前页面样本：
-
-```powershell
-.\.venv\Scripts\python.exe scripts\capture_page_sample.py --name home_recommend
-```
-
-选择器配置目录：
+## 目录结构
 
 ```text
-config/selectors/
-  common.yaml
-  home.yaml
-  jobs.yaml
-  search.yaml
-  result.yaml
-  profile.yaml
-  chat.yaml
-  exceptions.yaml
+apps/hr_review_api/       FastAPI 接口、权限、查询与审核服务
+src/liepin_rpa/           手机采集、AI 分析、去重及报告逻辑
+web/hr-review/           React + TypeScript 审核工作台
+config/job_profiles/     岗位要求、搜索目录和分析配置
+config/prompts/          岗位提示词
+scripts/                 启动、采集、诊断、演示及运维入口
+migrations/              数据库增量迁移
+openapi/                 接口契约
+sql/                     SQL 文件
+tests/                   单元、接口及集成测试
+docs/                    运行手册和设计说明
 ```
 
-## 冻结业务配置
+`.env`、虚拟环境、数据库文件、真实简历、运行日志及本机登录信息不随源码发布。演示资料由脚本生成。
 
-品牌与岗位关键词固定维护在：
+## 开发验证
 
-```text
-config/brands.yaml
-config/roles.yaml
-```
-
-当前约束：
-
-- 只使用 `config/brands.yaml` 与 `config/roles.yaml` 中启用的关键词
-- 不自动扩词
-- 默认任职范围是 `CURRENT_AND_FORMER`
-- 组合总数随 YAML 配置自动计算，修改配置后断点会自动切换到新的关键词目录
-
-预览搜索任务：
-
-```powershell
-.\.venv\Scripts\python.exe scripts\preview_search_tasks.py
-```
-
-## 真机流程脚本
-
-只读搜索流程：
-
-```powershell
-.\.venv\Scripts\python.exe scripts\run_search_workflow.py --brand 珀莱雅 --role 达播总监 --output-dir outputs\search_workflow
-```
-
-只采集、分析并写入数据库，不发起候选人沟通：
-
-```powershell
-.\.venv\Scripts\python.exe scripts\run_search_workflow.py --collect-only
-```
-
-默认使用旧版前置规则：结果卡片必须同时精确命中品牌词与岗位词，且通过年龄、
-学历和去重检查后才进入详情，再由 Coze 判断岗位匹配。AI 前置筛选版本仍保留；
-设置 `WORKFLOW_AI_FIRST_SELECTION=true` 后，会让基础过滤通过的候选人直接进入
-详情和 AI 分析，并按 `WORKFLOW_MAX_PROFILES_PER_KEYWORD` 限制每个关键词的数量。
-
-结果页筛选流程：
-
-```powershell
-.\.venv\Scripts\python.exe scripts\filter_current_result_page.py --brand 珀莱雅 --role 达播总监 --output-dir outputs\result_filter
-```
-
-详情页简历采集：
-
-```powershell
-.\.venv\Scripts\python.exe scripts\collect_current_profile_resume.py --brand 珀莱雅 --role 达播总监 --search-task-id task_000123 --output-dir outputs\profile_collection\current_profile
-```
-
-## 候选人简历 JSON 输出
-
-`collect_current_profile_resume.py` 现在默认输出两类文件：
-
-- `report.json`
-  结构化候选人简历，遵循候选人简历 JSON 方案
-- `collection_debug.json`
-  原始采集调试信息，保留每次滑动、截图、层级 XML 与可见文本证据
-
-### `report.json` 结构
-
-```json
-{
-  "schema_version": "1.0",
-  "candidate_id": "candidate_xxxxxxxx",
-  "source": {
-    "platform": "liepin",
-    "collected_at": "2026-07-08T14:30:00+08:00",
-    "search_task_id": "task_000123",
-    "search_brand_keyword": "珀莱雅",
-    "search_role_keyword": "达播总监"
-  },
-  "basic_info": {
-    "name": "李女士",
-    "gender": null,
-    "age": 37,
-    "city": "上海",
-    "work_years": 14,
-    "education": "本科",
-    "current_company": "珀莱雅",
-    "current_position": "抖音达播负责人",
-    "expected_position": "销售总监",
-    "resume_updated_at": null
-  },
-  "work_experiences": [],
-  "education_experiences": [],
-  "skills": [],
-  "self_description": "...",
-  "raw_resume": {
-    "full_text": "...",
-    "screenshots": [],
-    "xml_files": []
-  },
-  "parse_metadata": {
-    "parse_status": "SUCCESS",
-    "parser_version": "resume-parser-1.0.0",
-    "warnings": [],
-    "requires_manual_review": false
-  }
-}
-```
-
-### 规则
-
-- 单值缺失字段输出 `null`
-- 列表缺失字段输出 `[]`
-- 日期优先使用 `YYYY-MM`
-- 采集时间使用 ISO 8601
-- 每段工作经历独立输出公司、岗位、时间、职责、业绩和页面证据
-- 原始全文、截图路径、XML 路径继续保留在 `raw_resume`
-
-详细规范来源于你提供的“候选人简历代码输出 JSON 规范”，当前实现已经按这个方向输出。
-
-## 运行测试
+在仓库根目录运行后端测试：
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-当前测试覆盖：
-
-- 冻结任务生成数量
-- 页面识别样本
-- 结果页候选卡片抽取
-- 详情页文本/展开控件解析
-- 候选人简历 schema 构建
-- 跨账号候选人来源索引提取、持久化和回查策略
-
-## 跨账号候选人回查
-
-详情采集会写入 `candidate_resume_source_locators`：保存账号别名、设备、岗位配置、
-搜索词、结果轮次和排名、候选卡片快照、详情 Activity/截图，以及授权 UI 明确暴露的
-候选人 ID、简历 ID 或猎聘深链。平台定位信息不保证跨账号可见，因此打开或重搜后仍以
-`experience_hash` 确认是否为同一份简历。
-
-分享链接采用稀缺额度保护策略：进入详情页时只记录普通定位证据；AI 判定为
-`relevant`，或 `needs_review` 且评分不低于 85 时，才尝试保存官方分享链接。已有链接会
-直接复用，不重复消耗额度；猎聘提示当日分享额度耗尽（或复制后剪贴板没有变化）时，
-程序按账号记录当日额度状态，并对后续高价值候选人改用“收藏”。次日自动恢复首次分享尝试。
-
-财务共享岗位使用三组交错搜索目录：共享中心管理、集团核算/多主体管理、财务流程变革。
-结果卡片必须同时具备一个目标方向和管理职级，普通财务经理、纯审计、纯财务 BP、纯资金或
-税务岗位，以及仅出现 ERP/BI 等系统词的候选人不会进入详情页。卡片未展示年龄时仍允许进入
-详情核验；详情明确超过 35 岁则在 Coze 分析和沟通前跳过。
-
-先在 `.env` 给当前猎聘账号配置一个不含密码的稳定标签：
-
-```dotenv
-LIEPIN_ACCOUNT_ALIAS=recruiter_a
-```
-
-按候选人指纹或简历正文哈希查看历史定位记录：
+在 `web/hr-review` 目录运行前端检查：
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\find_candidate_locator.py --candidate-fingerprint <fingerprint>
-.\.venv\Scripts\python.exe scripts\find_candidate_locator.py --experience-hash <experience_hash>
+npx.cmd --yes pnpm@10 typecheck
+npx.cmd --yes pnpm@10 test
+npx.cmd --yes pnpm@10 build
 ```
 
-输出策略分为：有平台 ID/深链时先尝试平台定位再核验正文；没有时按账号、搜索词和卡片
-特征重新搜索，再以正文哈希确认。系统不会绕过账号权限或猎聘可见范围。
+端到端测试另需配置 Playwright 浏览器及测试服务，具体入口为 `pnpm test:e2e`。
 
-## 目录结构
+## 文档
 
-```text
-src/liepin_rpa/                核心源码
-src/liepin_rpa/device/         ADB 与设备连接封装
-src/liepin_rpa/page_detection/ 页面识别
-src/liepin_rpa/search_execution/ 搜索与结果页流程
-src/liepin_rpa/profile_collection/ 详情页采集与简历 JSON 生成
-scripts/                       脚本入口
-tests/unit/                    单元测试
-artifacts/                     设备诊断产物
-outputs/                       真机回归和页面采样输出
-logs/                          运行日志
-docs/                          迁移与流程说明
-```
+- [本机双入口启动说明](docs/HR_LOCAL_START.md)
+- [HR 工作台运行手册](docs/HR_REVIEW_PORTAL_RUNBOOK.md)
+- [项目交接与运行约束](docs/PROJECT_HANDOFF.md)
+- [开发计划](DEVELOPMENT_PLAN.md)
+
+部分交接材料记录的是历史运行状态，当前岗位及行为应同时核对配置文件与代码。
