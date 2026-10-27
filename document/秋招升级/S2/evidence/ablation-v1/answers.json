@@ -1,0 +1,238 @@
+{
+  "schemaVersion": "tool-ablation-answers-v1",
+  "scope": "Same configured model and prompts, differing tool availability and program evidence guards; literal corpus matching is not citation relevance, semantic quality, causal RAG gain or heldout acceptance",
+  "captures": [
+    {
+      "mode": "MODEL_ONLY",
+      "captureSha256": "a927b0c67d3034a979bb97e0f1d5039d9d3601ebff2960314890b3b6b1e9ab4f",
+      "configuredProvider": "dashscope",
+      "configuredModelId": "qwen-plus",
+      "generationDefaults": {
+        "temperature": 0,
+        "topP": 1,
+        "maxTokens": null,
+        "scope": "CONFIGURED_DEFAULTS_NOT_PROVIDER_REQUEST_ATTESTATION"
+      },
+      "contextBudgetPolicy": {
+        "historyTokens": 4096,
+        "outputReserve": 1024,
+        "historyTurns": 8,
+        "contextTokens": 32768,
+        "estimator": "cl100k-base-proxy-v1",
+        "safetyPercent": 125
+      },
+      "taskBudgetPolicy": {
+        "maxModelCalls": 16,
+        "tokenLimit": 131072,
+        "accounting": "MAX_RESERVATION_OR_PROVIDER_V1"
+      },
+      "effectiveTools": [],
+      "records": [
+        {
+          "caseId": "ABLATION-DEFAULTS",
+          "runId": "run-9cbac28a-8f0a-4ec9-bd2c-56643a941dbf",
+          "status": "COMPLETED",
+          "answer": "在《宝可梦 朱／紫》（casual-singles 规则 v1）中：\n\n- **图鉴种族值**（Base Stats）是每只宝可梦固有的、与等级无关的六维基础数值（HP、攻击、防御、特攻、特防、速度），例如喷火龙的种族值为 HP 78 / 攻击 84 / 防御 78 / 特攻 109 / 特防 85 / 速度 100。这些数值写死于游戏数据，不随等级、性格等变化。\n\n- **50级实际能力值**（Actual Stats at Level 50）是根据公式计算得出的实时战斗数值，计算式为：  \n  `能力值 = ⌊(2 × 种族值 + 个体值 + ⌊努力值 ÷ 4⌋) × 等级 ÷ 100⌋ + 5 + 调整项`  \n  其中「调整项」由性格决定（某项×1.1，另一项×0.9，其余×1.0）；最终结果向下取整。\n\n- **默认值设定（未填写时）**：  \n  - 等级：**50**（符合 casual-singles 规则设定）  \n  - 性格：**无性格加成**（即所有能力×1.0，等效于「勇敢」或「大胆」等中性性格，但系统不应用任何±10%修正）  \n  - 努力值：**全为0**  \n  - 个体值（IV）：**全为0**（注意：非31；本地参考明确说明“未指定时按最小值0处理”，与对战规则中默认31不同）  \n\n以上定义源自本项目 `pokemon-scarlet-violet` 数据快照中的 `base-stats-and-level-calculation` 参考文档，无外部搜索补充。未找到关于“默认性格名称”的显式记载，故仅按效果描述（无修正）；所有默认值均以可验证的本地 reference 条目为准，未作推断或跨版本移植。",
+          "startedTools": [],
+          "excerpts": [],
+          "modelCalls": 2,
+          "elapsedMs": 15423,
+          "eventsSha256": "ee02b13eaa713a0b96e31b039502234708a236c82ee6401433667ed5f127780a",
+          "historySha256": "bbb80f58f78c6c868aed560dfedd7fc3f46feadb10fdc7705cafa3ebcd17bb2e",
+          "historyMatches": true,
+          "usageMatchesHistory": true
+        },
+        {
+          "caseId": "ABLATION-CONFIRMATION",
+          "runId": "run-49dfa83a-3fed-4441-9bcb-12e2b9519872",
+          "status": "COMPLETED",
+          "answer": "本项目当前为只读运行环境，**不支持队伍修改、预览、确认或保存等任何写入操作**。所有队伍相关内容（如成员、等级、努力值、技能等）均不可编辑、暂存或提交；亦无取消编辑、处理并发修改等机制。\n\n原因在于：  \n- 公共训练员路径仅开放版本化只读查询（如查宝可梦属性、基础数值、招式效果）及允许列表内的搜索功能；  \n- 行政级操作（如保存队伍、应用变更、管理编辑会话）**未启用且不可用**；  \n- `readCurrentTeam` 等用于获取用户当前队伍状态的工具**未在本次运行中暴露**，因此无法读取、比对或验证任何本地队伍数据。\n\n若您需要调整队伍配置，建议：  \n✅ 使用官方《宝可梦 朱／紫》游戏内队伍编辑功能；  \n✅ 参考已加载的训练家笔记（如通过 `searchPokemonGuides` 获取的“队伍构建原则”“休闲单打配队思路”等公开指南）进行离线规划；  \n❌ 不依赖本系统执行保存或同步操作。\n\n所有展示信息均为静态参考，不反映实时编辑状态，也不构成任何形式的队伍持久化服务。",
+          "startedTools": [],
+          "excerpts": [],
+          "modelCalls": 2,
+          "elapsedMs": 18515,
+          "eventsSha256": "eaeed9009304dde2d95d5948de3b752b7266b0c686d474cf8daf799b5611b998",
+          "historySha256": "fc56f1b2068556c0ca58d99acd2ae34b9b8901b1a31f7c5ee6ab6b927ce04011",
+          "historyMatches": true,
+          "usageMatchesHistory": true
+        }
+      ]
+    },
+    {
+      "mode": "GUIDES_ONLY",
+      "captureSha256": "c8c5fac2b877c7a3aad31b658722bcb27667efbcda86bcf67e116d222306ba85",
+      "configuredProvider": "dashscope",
+      "configuredModelId": "qwen-plus",
+      "generationDefaults": {
+        "temperature": 0,
+        "topP": 1,
+        "maxTokens": null,
+        "scope": "CONFIGURED_DEFAULTS_NOT_PROVIDER_REQUEST_ATTESTATION"
+      },
+      "contextBudgetPolicy": {
+        "historyTokens": 4096,
+        "outputReserve": 1024,
+        "historyTurns": 8,
+        "contextTokens": 32768,
+        "estimator": "cl100k-base-proxy-v1",
+        "safetyPercent": 125
+      },
+      "taskBudgetPolicy": {
+        "maxModelCalls": 16,
+        "tokenLimit": 131072,
+        "accounting": "MAX_RESERVATION_OR_PROVIDER_V1"
+      },
+      "effectiveTools": [
+        "searchPokemonGuides"
+      ],
+      "records": [
+        {
+          "caseId": "ABLATION-DEFAULTS",
+          "runId": "run-9273be44-4c75-4b9d-8daf-0788d5a23bfb",
+          "status": "COMPLETED",
+          "answer": "### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n**种族值、实际配置与填写默认值**\n\n作者：VIO project · 更新：2026-10-23\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 图鉴里的六项种族值是物种或形态参考数值，不能标成50级或100级的实际能力。本项目的队伍配置单独保存等级、性格、努力值和个体值；计算时还要读取该成员与目标的实际配置。说明一只成员的速度时，应区分种族值、已保存的等级与培养条件，以及计算结果，不能用其中一种数值冒充另一种。\n\n**培养配置：性格、努力值与个体值**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 这是项目原创的配置填写说明。保存配置前先明确输出方式和目标对手，再选择性格、等级、个体值和努力值。项目验证努力值单项不超过252、总和不超过510，个体值为0到31。不能仅凭这些边界就断言某种配置最优。性格、特性、道具和招式需要配合；低攻击个体值或低速度个体值属于特定战术条件，不应未经询问自动代入。初次分析应列出哪些是用户提供的条件、哪些是工具的默认条件，并询问未明确的赛制或配置。\n\n**如何解读伤害区间**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 本说明由项目编写，计算引擎的接口能力参考所列仓库。伤害区间依赖攻防双方的种族、等级、实际培养配置、招式、道具、特性与场地条件。应调用伤害工具并引用返回的引擎版本、最小最大伤害、目标HP、百分比和假设条件。只有属性倍率不能推导实际伤害。当前本地桥接只表达基础配置、单打或双打、天气和场地；未表达的强化、异常状态、墙、入场伤害、太晶等不能当作已经计算。区间计算不是胜率预测，也不能证明招式组合在某赛制合法。\n\n**发起伤害计算前要补齐什么**\n\n作者：VIO project · 更新：2026-10-23\n\n原文位置：第 2 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 建议逐项确认双方等级、性格、努力值、个体值、特性、道具，随后确认单打或双打以及天气和场地。若用户允许采用某些假设，应在结果旁明确列出，而不是把默认配置说成用户已经确认的事实。调用calculateBattleDamage成功后，再引用引擎版本、最小最大伤害、目标HP和百分比；工具失败时不能拿印象中的百分比补齐。\n\n### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n",
+          "startedTools": [
+            "searchPokemonGuides"
+          ],
+          "excerpts": [
+            {
+              "text": "图鉴里的六项种族值是物种或形态参考数值，不能标成50级或100级的实际能力。本项目的队伍配置单独保存等级、性格、努力值和个体值；计算时还要读取该成员与目标的实际配置。说明一只成员的速度时，应区分种族值、已保存的等级与培养条件，以及计算结果，不能用其中一种数值冒充另一种。",
+              "documentIds": [
+                "build-values-and-defaults-v1"
+              ]
+            },
+            {
+              "text": "这是项目原创的配置填写说明。保存配置前先明确输出方式和目标对手，再选择性格、等级、个体值和努力值。项目验证努力值单项不超过252、总和不超过510，个体值为0到31。不能仅凭这些边界就断言某种配置最优。性格、特性、道具和招式需要配合；低攻击个体值或低速度个体值属于特定战术条件，不应未经询问自动代入。初次分析应列出哪些是用户提供的条件、哪些是工具的默认条件，并询问未明确的赛制或配置。",
+              "documentIds": [
+                "training-configuration-v1"
+              ]
+            },
+            {
+              "text": "本说明由项目编写，计算引擎的接口能力参考所列仓库。伤害区间依赖攻防双方的种族、等级、实际培养配置、招式、道具、特性与场地条件。应调用伤害工具并引用返回的引擎版本、最小最大伤害、目标HP、百分比和假设条件。只有属性倍率不能推导实际伤害。当前本地桥接只表达基础配置、单打或双打、天气和场地；未表达的强化、异常状态、墙、入场伤害、太晶等不能当作已经计算。区间计算不是胜率预测，也不能证明招式组合在某赛制合法。",
+              "documentIds": [
+                "damage-assumptions-v1"
+              ]
+            },
+            {
+              "text": "建议逐项确认双方等级、性格、努力值、个体值、特性、道具，随后确认单打或双打以及天气和场地。若用户允许采用某些假设，应在结果旁明确列出，而不是把默认配置说成用户已经确认的事实。调用calculateBattleDamage成功后，再引用引擎版本、最小最大伤害、目标HP和百分比；工具失败时不能拿印象中的百分比补齐。",
+              "documentIds": [
+                "damage-request-checklist-v1"
+              ]
+            }
+          ],
+          "modelCalls": 2,
+          "elapsedMs": 18644,
+          "eventsSha256": "a39922f9a00c99d44ec4945d0cee0c2c9f26e3eb5b5b651d8bca7784a37d1bcb",
+          "historySha256": "83d720011f6d2d2cc25421fcd46a8c4e6fdba058b4069963316717b5001bdd54",
+          "historyMatches": true,
+          "usageMatchesHistory": true
+        },
+        {
+          "caseId": "ABLATION-CONFIRMATION",
+          "runId": "run-488cef7a-257e-4d58-b012-801eb8da830a",
+          "status": "COMPLETED",
+          "answer": "本项目未提供关于队伍编辑流程（包括预览、确认、保存、取消或并发编辑处理）的本地文档或规范说明。所有可用工具均聚焦于 Pokémon 养成、配队策略与战斗计算，不涵盖系统交互逻辑、数据持久化机制或前端状态管理规则。因此，该流程的具体实现方式无法从当前环境获取，亦不可编造或推测。如需了解相关操作行为，请参考游戏内实际界面反馈，或查阅官方《宝可梦 朱／紫》用户指南中“队伍管理”章节。",
+          "startedTools": [],
+          "excerpts": [],
+          "modelCalls": 2,
+          "elapsedMs": 11493,
+          "eventsSha256": "1feb3c13c129a0805117123816a2ef731877f62d999a57646f5d040ee6d0dcf4",
+          "historySha256": "19e591bbc73caf0270e82cc004ac2ecdf76308bae4cdbb4184bc50d2a522e47c",
+          "historyMatches": true,
+          "usageMatchesHistory": true
+        }
+      ]
+    },
+    {
+      "mode": "READ_ONLY_TOOLS",
+      "captureSha256": "1b4d43c4a10841712ff5972d790a4c9ecadac753403e70693a1bb91dd0c98d3b",
+      "configuredProvider": "dashscope",
+      "configuredModelId": "qwen-plus",
+      "generationDefaults": {
+        "temperature": 0,
+        "topP": 1,
+        "maxTokens": null,
+        "scope": "CONFIGURED_DEFAULTS_NOT_PROVIDER_REQUEST_ATTESTATION"
+      },
+      "contextBudgetPolicy": {
+        "historyTokens": 4096,
+        "outputReserve": 1024,
+        "historyTurns": 8,
+        "contextTokens": 32768,
+        "estimator": "cl100k-base-proxy-v1",
+        "safetyPercent": 125
+      },
+      "taskBudgetPolicy": {
+        "maxModelCalls": 16,
+        "tokenLimit": 131072,
+        "accounting": "MAX_RESERVATION_OR_PROVIDER_V1"
+      },
+      "effectiveTools": [
+        "calculateBattleDamage",
+        "checkTypeEffectiveness",
+        "getTypeChart",
+        "lookupPokemonReference",
+        "lookupPokemonResource",
+        "lookupPokemonTeamReference",
+        "searchPokemonGuides"
+      ],
+      "records": [
+        {
+          "caseId": "ABLATION-DEFAULTS",
+          "runId": "run-d20da1a3-0b98-4a75-a0d5-55ff16216711",
+          "status": "COMPLETED",
+          "answer": "### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n**种族值、实际配置与填写默认值**\n\n作者：VIO project · 更新：2026-10-23\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 图鉴里的六项种族值是物种或形态参考数值，不能标成50级或100级的实际能力。本项目的队伍配置单独保存等级、性格、努力值和个体值；计算时还要读取该成员与目标的实际配置。说明一只成员的速度时，应区分种族值、已保存的等级与培养条件，以及计算结果，不能用其中一种数值冒充另一种。\n\n**如何解读伤害区间**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 本说明由项目编写，计算引擎的接口能力参考所列仓库。伤害区间依赖攻防双方的种族、等级、实际培养配置、招式、道具、特性与场地条件。应调用伤害工具并引用返回的引擎版本、最小最大伤害、目标HP、百分比和假设条件。只有属性倍率不能推导实际伤害。当前本地桥接只表达基础配置、单打或双打、天气和场地；未表达的强化、异常状态、墙、入场伤害、太晶等不能当作已经计算。区间计算不是胜率预测，也不能证明招式组合在某赛制合法。\n\n**图鉴资料、版本与比赛规则的区别**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 本说明由项目编写，资料接口字段参考所列文档。PokéAPI提供宝可梦、物种、招式和其他结构化资源。本地参考快照保留来源URL、抓取时间和摘要，缓存可以复用，但它不是官方赛事规则公告。不能根据物种存在或图鉴有数据，就判断其能参加当前排位。朱紫招式列表按接口中scarlet-violet的版本组过滤；这不能代替特定补丁、赛事或配招组合的完整合法性检查。回答当前强势阵容时需要有日期和赛制相符的使用率、赛事等证据；没有这些证据，应明确限制。\n\n**从AI建议到队伍保存的确认流程**\n\n作者：VIO project · 更新：2026-10-23\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> AI的建议与实际保存分为两个步骤。当前本地工作流先读取当前账号的指定队伍，再对现有成员的培养配置生成变更预览。预览列出修改前后内容，用户确认之前不写入保存队伍。聊天中说同意不是绕过确认接口的授权；真正保存必须走该预览关联的确认操作。当前流程不能借培养配置修改来偷偷增删成员或切换物种。\n\n### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n",
+          "startedTools": [
+            "searchPokemonGuides"
+          ],
+          "excerpts": [
+            {
+              "text": "图鉴里的六项种族值是物种或形态参考数值，不能标成50级或100级的实际能力。本项目的队伍配置单独保存等级、性格、努力值和个体值；计算时还要读取该成员与目标的实际配置。说明一只成员的速度时，应区分种族值、已保存的等级与培养条件，以及计算结果，不能用其中一种数值冒充另一种。",
+              "documentIds": [
+                "build-values-and-defaults-v1"
+              ]
+            },
+            {
+              "text": "本说明由项目编写，计算引擎的接口能力参考所列仓库。伤害区间依赖攻防双方的种族、等级、实际培养配置、招式、道具、特性与场地条件。应调用伤害工具并引用返回的引擎版本、最小最大伤害、目标HP、百分比和假设条件。只有属性倍率不能推导实际伤害。当前本地桥接只表达基础配置、单打或双打、天气和场地；未表达的强化、异常状态、墙、入场伤害、太晶等不能当作已经计算。区间计算不是胜率预测，也不能证明招式组合在某赛制合法。",
+              "documentIds": [
+                "damage-assumptions-v1"
+              ]
+            },
+            {
+              "text": "本说明由项目编写，资料接口字段参考所列文档。PokéAPI提供宝可梦、物种、招式和其他结构化资源。本地参考快照保留来源URL、抓取时间和摘要，缓存可以复用，但它不是官方赛事规则公告。不能根据物种存在或图鉴有数据，就判断其能参加当前排位。朱紫招式列表按接口中scarlet-violet的版本组过滤；这不能代替特定补丁、赛事或配招组合的完整合法性检查。回答当前强势阵容时需要有日期和赛制相符的使用率、赛事等证据；没有这些证据，应明确限制。",
+              "documentIds": [
+                "reference-vs-rules-v1"
+              ]
+            },
+            {
+              "text": "AI的建议与实际保存分为两个步骤。当前本地工作流先读取当前账号的指定队伍，再对现有成员的培养配置生成变更预览。预览列出修改前后内容，用户确认之前不写入保存队伍。聊天中说同意不是绕过确认接口的授权；真正保存必须走该预览关联的确认操作。当前流程不能借培养配置修改来偷偷增删成员或切换物种。",
+              "documentIds": [
+                "team-change-confirmation-v1"
+              ]
+            }
+          ],
+          "modelCalls": 2,
+          "elapsedMs": 21748,
+          "eventsSha256": "f69ea4996a4b47abe1469a7e85ba67fb7fa6455bbeb7198d2cb55f7430dfefa3",
+          "historySha256": "de2055372551a87e0cbeb171251bf68c9be7c3d9e052c526bc60efbdac4fc7a9",
+          "historyMatches": true,
+          "usageMatchesHistory": true
+        },
+        {
+          "caseId": "ABLATION-CONFIRMATION",
+          "runId": "run-9da86678-19a9-4443-9c03-5effa78b2873",
+          "status": "COMPLETED",
+          "answer": "本项目为只读公共训练路径，**不支持队伍修改、预览、确认或保存操作**。所有工具仅提供即时查询与分析（如图鉴数据、属性相克、基础战力估算），无任何本地存储、编辑状态管理或事务流程。\n\n- 用户无法“暂存更改”“对比差异”或“取消未保存编辑”——因系统不维护队伍编辑会话或草稿状态；  \n- 不存在“同时编辑冲突检测”——因无并发写入能力，亦无后台服务响应修改请求；  \n- 若尝试执行保存类操作，将无对应工具可用，也不会触发错误提示，而是直接不可用。\n\n如需构建或优化队伍，可使用 `searchPokemonGuides` 查询本地配队原则（例如“平衡型单打队伍设计要点”），但结果仅为静态参考文档，不涉及实际队伍操作。\n\n当前环境不提供队伍持久化功能，所有分析均基于一次性输入即时生成，不保留、不缓存、不同步任何用户配置。",
+          "startedTools": [],
+          "excerpts": [],
+          "modelCalls": 2,
+          "elapsedMs": 12462,
+          "eventsSha256": "e13c1d32b567b610552c897cd5fabe035d5ae032f1d53190f0109db169623f32",
+          "historySha256": "c1e8b392dec23d156382790e75606cf15366498bdf6b143ed4bd25217b86f7f2",
+          "historyMatches": true,
+          "usageMatchesHistory": true
+        }
+      ]
+    }
+  ]
+}

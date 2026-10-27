@@ -1,0 +1,104 @@
+{
+  "suiteId": "campus-tool-input-development-v1",
+  "scope": "Fixed development inputs; supplied conditions only, not S2 heldout or semantic answer accuracy.",
+  "repetitions": 2,
+  "cases": [
+    {
+      "id": "TI-TYPE",
+      "prompt": "请调用 checkTypeEffectiveness，attackType填火、defendType填草，核对火攻击草的基础属性倍率。简短回答，不讨论阵容。",
+      "tool": "checkTypeEffectiveness",
+      "expectedArguments": {
+        "attackType": "火",
+        "defendType": "草"
+      }
+    },
+    {
+      "id": "TI-IMMUNE",
+      "prompt": "请调用 checkTypeEffectiveness，attackType填幽灵、defendType填一般，核对幽灵攻击一般的基础属性倍率。简短回答，不讨论阵容。",
+      "tool": "checkTypeEffectiveness",
+      "expectedArguments": {
+        "attackType": "幽灵",
+        "defendType": "一般"
+      }
+    },
+    {
+      "id": "TI-CHART",
+      "prompt": "请调用 getTypeChart，attackType必须填幽灵，查询幽灵的攻击属性表；简短说明对一般属性的效果，不要查询冰属性。",
+      "tool": "getTypeChart",
+      "expectedArguments": {
+        "attackType": "幽灵"
+      }
+    },
+    {
+      "id": "TI-DAMAGE",
+      "prompt": "请调用 calculateBattleDamage，按以下JSON原样提供request参数，不更换攻防、招式或配置；只解释实际计算范围与限制，不读取或修改保存队伍：\n{\"generation\":9,\"dataReleaseId\":\"pokeapi-reference-v1\",\"attacker\":{\"species\":\"charizard\",\"build\":{\"moves\":[\"flamethrower\"],\"ability\":\"blaze\",\"item\":\"\",\"nature\":\"modest\",\"level\":50,\"evs\":{\"hp\":0,\"atk\":0,\"def\":0,\"spa\":252,\"spd\":4,\"spe\":252},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}},\"defender\":{\"species\":\"venusaur\",\"build\":{\"moves\":[],\"ability\":\"overgrow\",\"item\":\"\",\"nature\":\"hardy\",\"level\":50,\"evs\":{\"hp\":0,\"atk\":0,\"def\":0,\"spa\":0,\"spd\":0,\"spe\":0},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}},\"move\":\"Flamethrower\",\"field\":{\"gameType\":\"Singles\",\"weather\":null,\"terrain\":null}}",
+      "tool": "calculateBattleDamage",
+      "expectedArguments": {
+        "request": {
+          "generation": 9,
+          "dataReleaseId": "pokeapi-reference-v1",
+          "attacker": {
+            "species": "charizard",
+            "build": {
+              "moves": [
+                "flamethrower"
+              ],
+              "ability": "blaze",
+              "item": "",
+              "nature": "modest",
+              "level": 50,
+              "evs": {
+                "hp": 0,
+                "atk": 0,
+                "def": 0,
+                "spa": 252,
+                "spd": 4,
+                "spe": 252
+              },
+              "ivs": {
+                "hp": 31,
+                "atk": 31,
+                "def": 31,
+                "spa": 31,
+                "spd": 31,
+                "spe": 31
+              }
+            }
+          },
+          "defender": {
+            "species": "venusaur",
+            "build": {
+              "moves": [],
+              "ability": "overgrow",
+              "item": "",
+              "nature": "hardy",
+              "level": 50,
+              "evs": {
+                "hp": 0,
+                "atk": 0,
+                "def": 0,
+                "spa": 0,
+                "spd": 0,
+                "spe": 0
+              },
+              "ivs": {
+                "hp": 31,
+                "atk": 31,
+                "def": 31,
+                "spa": 31,
+                "spd": 31,
+                "spe": 31
+              }
+            }
+          },
+          "move": "Flamethrower",
+          "field": {
+            "gameType": "Singles",
+            "weather": null,
+            "terrain": null
+          }
+        }
+      }
+    }
+  ]
+}

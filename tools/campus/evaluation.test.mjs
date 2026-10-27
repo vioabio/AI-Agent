@@ -18,6 +18,16 @@ test('36 source-linked cases and 20 groups split 14/22 without group leakage', (
   assert.deepEqual(validateSuite(suite), { cases: 36, groups: 20, dev: 14, heldout: 22,
     categories: { facts: 6, guides: 8, team: 6, damage: 4, clarification: 8, safety: 4 } })
 })
+
+test('bound AI assistance may flag issues but cannot become human acceptance or task success', () => {
+  const record = observation(), assisted = review(record); assisted.reviewerType = 'ai-assisted'
+  assert.equal(assess(item, record, assisted).taskOutcome, 'PENDING_REVIEW')
+  assisted.decisions[0].verdict = 'fail'
+  const result = assess(item, record, assisted)
+  assert.equal(result.reviewState, 'ASSISTED_REVIEW_ONLY'); assert.equal(result.assistedFlagged, true)
+  assert.equal(result.taskOutcome, 'PENDING_REVIEW')
+  const summary = summarize(suite, [record], [assisted]); assert.equal(summary.assistedReviewed, 1); assert.equal(summary.humanReviewed, 0); assert.equal(summary.pass, 0)
+})
 test('changing frozen case content is detected before collection', () => {
   const directory = mkdtempSync(join(tmpdir(), 's2-manifest-'))
   try {

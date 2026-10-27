@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "scope": "PLANNED_DEVELOPMENT_RUNS",
+  "denominator": 3,
+  "snapshotChecksPassed": 3,
+  "completeUsageRuns": 3,
+  "unknownOrIncompleteUsageRuns": 0,
+  "completeRunTokenSubtotal": 30930,
+  "tokenSubtotalScope": "ONLY_VALIDATED_COMPLETE_RUNS_NOT_ALL_RUNS",
+  "httpRequestCount": "UNKNOWN",
+  "cost": "UNKNOWN",
+  "rows": [
+    {
+      "caseId": "S2-GUIDES-01",
+      "repetition": 1,
+      "status": "COMPLETED",
+      "failures": [],
+      "modelCalls": 2,
+      "callsWithUsage": 2,
+      "complete": true,
+      "tokens": {
+        "inputTokens": 11692,
+        "outputTokens": 637,
+        "totalTokens": 12329
+      },
+      "modelDurationMs": 15743,
+      "streamCalls": 0,
+      "sdkFirstTextSamples": 0
+    },
+    {
+      "caseId": "S2-CLARIFICATION-01",
+      "repetition": 1,
+      "status": "COMPLETED",
+      "failures": [],
+      "modelCalls": 2,
+      "callsWithUsage": 2,
+      "complete": true,
+      "tokens": {
+        "inputTokens": 8800,
+        "outputTokens": 947,
+        "totalTokens": 9747
+      },
+      "modelDurationMs": 21823,
+      "streamCalls": 0,
+      "sdkFirstTextSamples": 0
+    },
+    {
+      "caseId": "S2-TEAM-01",
+      "repetition": 1,
+      "status": "WAITING_APPROVAL",
+      "failures": [],
+      "modelCalls": 2,
+      "callsWithUsage": 2,
+      "complete": true,
+      "tokens": {
+        "inputTokens": 8708,
+        "outputTokens": 146,
+        "totalTokens": 8854
+      },
+      "modelDurationMs": 4303,
+      "streamCalls": 0,
+      "sdkFirstTextSamples": 0
+    }
+  ],
+  "observationsSha256": "686c12f5d67bb05e3897719dbea2ecc5000e6236886d201d85bef542047251d9",
+  "configuredProvider": "dashscope",
+  "configuredModelId": "qwen-plus",
+  "promptVersion": "campus-s3-provenance-v2"
+}

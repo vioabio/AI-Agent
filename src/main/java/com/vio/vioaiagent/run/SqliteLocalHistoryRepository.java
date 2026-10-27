@@ -48,6 +48,11 @@ public class SqliteLocalHistoryRepository implements ConversationRepository, Cha
                       created_at TEXT NOT NULL, metadata TEXT NOT NULL)
                     """);
             jdbc.execute("CREATE INDEX IF NOT EXISTS idx_local_message_owner ON local_message(conversation_id,user_id)");
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS local_conversation_constraints (
+                      conversation_id TEXT PRIMARY KEY REFERENCES local_conversation(id) ON DELETE CASCADE,
+                      revision INTEGER NOT NULL CHECK (revision > 0), settings_json TEXT NOT NULL)
+                    """);
         } catch (Exception e) {
             throw new IllegalStateException("本地会话数据库无法初始化，请检查 vio.local-history.path 和目录权限", e);
         }
@@ -62,6 +67,15 @@ public class SqliteLocalHistoryRepository implements ConversationRepository, Cha
                 """, c.id(), c.userId(), c.title(), c.createdAt().toString(), c.updatedAt().toString());
         if (written != 1) throw new IllegalStateException("会话归属冲突");
         return findByIdForUser(c.id(), c.userId()).orElseThrow();
+    }
+
+    @Override
+    public synchronized Optional<ConversationConstraints> constraintsForUser(String id, String userId) {
+        return new JdbcConversationConstraints(jdbc, true).read(id, userId);
+    }
+    @Override
+    public synchronized boolean replaceConstraintsForUser(String id, String userId, ConversationConstraints expected) {
+        return new JdbcConversationConstraints(jdbc, true).replace(id, userId, expected);
     }
 
     @Override

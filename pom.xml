@@ -52,6 +52,10 @@
         </dependencies>
     </dependencyManagement>
     <dependencies>
+        <!-- Explicit local budget proxy; it is not the DeepSeek/DashScope billing tokenizer. -->
+        <dependency>
+            <groupId>com.knuddels</groupId><artifactId>jtokkit</artifactId><version>1.1.0</version>
+        </dependency>
         <dependency>
             <groupId>org.xerial</groupId>
             <artifactId>sqlite-jdbc</artifactId>

@@ -1,0 +1,91 @@
+{
+  "stage": "S4 sixth batch: explicit conversation preferences and frozen Run input",
+  "date": "2026-10-25",
+  "engineering": {
+    "backend": {
+      "tests": 1023,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3,
+      "runtime": "Temurin 21.0.12.1",
+      "release": 21,
+      "existingSurefireShutdownWarning": true
+    },
+    "targetedBackend": 111,
+    "frontendContracts": 134,
+    "nodeTools": 52,
+    "edgeBrowserRegression": 12,
+    "finalCompactButtonBrowserRecheck": 2,
+    "lintTypecheckBuildSecurity": "PASS"
+  },
+  "initialFailures": [
+    {
+      "file": "artifacts/s4-constraints-backend-full-2026-10-25.log",
+      "reason": "Restricted sandbox prevented loopback HTTP and dependent context tests; same Java sources passed full suite outside sandbox."
+    },
+    {
+      "file": "artifacts/s4-constraints-lint-initial-report.json",
+      "reason": "no-control-regex; replaced regex with matching per-codepoint validation."
+    },
+    {
+      "file": "artifacts/s4-constraints-browser-initial-2026-10-25.log",
+      "reason": "Sandbox fixture webserver never became ready; stopped without claiming a test result."
+    },
+    {
+      "file": "artifacts/s4-constraints-browser-ready-2026-10-25.log",
+      "reason": "Two new browser cases had incomplete auth-session fixtures; added expiry/login/logout and CSRF header/cookie fields. Existing 10 cases passed."
+    }
+  ],
+  "developmentRegression": {
+    "configuredProvider": "dashscope",
+    "configuredModelId": "qwen-plus",
+    "plannedRuns": 2,
+    "completed": 2,
+    "ownerIsolation": true,
+    "staleRevisionRejected": true,
+    "perRunSnapshot": true,
+    "deletedInvisible": true,
+    "modelCalls": 4,
+    "nativeSdkStreams": 2,
+    "providerTokenSubtotal": 12515,
+    "referenceCost": "UNKNOWN/PRICING_DISABLED",
+    "independentQualityAcceptance": "NOT_PERFORMED",
+    "heldout": "not run",
+    "scope": "New dedicated local accounts and SQLite files; no legacy data read."
+  },
+  "sourceFiles": 468,
+  "loadedClasses": 49,
+  "remaining": [
+    "Provider token estimator calibration",
+    "Independent model adherence/answer quality and heldout comparison",
+    "Actual invoice verification",
+    "Real PostgreSQL migration/multi-instance verification",
+    "Automatic extraction/summary of unsaved natural-language restrictions not implemented",
+    "S5 delivery materials",
+    "Existing Surefire shutdown wait and local Bean Validation provider warnings"
+  ],
+  "artifactsSha256": {
+    "artifacts/campus/s4-constraints/model-2026-10-25/scenario.json": "c25b497573496c05de389371cf7357059287e10244a19b2caa96385f7725cc61",
+    "artifacts/s4-constraints-backend-full-ready-2026-10-25.log": "737a976c46bd4871b790792dc026784dd6940d404b454c1bd8f3b6686afb24db",
+    "artifacts/s4-constraints-backend-full-2026-10-25.log": "998484edfbd5036eb675522bda3dd07590b310c910aeeb28f3d1ed5e8737e810",
+    "artifacts/s4-constraints-targeted-initial-2026-10-25.log": "74ad09d5bfe297afef1b52522fe816f68c0bd6837132c78224f6e7725889f8ae",
+    "artifacts/s4-constraints-targeted-ready-2026-10-25.log": "f1956d454561fde9ed136c0e06bd5e02b227db04703cd11ccac92579d699ef3e",
+    "artifacts/s4-constraints-frontend-ready-2026-10-25.log": "55b869cffde93a9c1fbdeb825d18efc0f9a61d1d9a95ac6e6fc9b217bf5a7413",
+    "artifacts/s4-constraints-tools-2026-10-25.log": "bfa232230b2d7ba747af849462ec416b283c9f17e4ad4670c538b07122ea69ad",
+    "artifacts/s4-constraints-lint-initial-report.json": "363f8257f33b6031e0d2a78ea5a0df09aa9c4df76d8b21bf48f4a7addd3106ea",
+    "artifacts/s4-constraints-browser-initial-2026-10-25.log": "431fee6680082dfdeee1ab3cd0c82497c7487360eae10824a6cc0b4d6c44a049",
+    "artifacts/s4-constraints-browser-ready-2026-10-25.log": "e886e2255db7078023563914157b37202d1014362b657f0c0d3e59c935c7bdd3",
+    "artifacts/s4-constraints-browser-final-2026-10-25.log": "9af8982de26208b3a1510fd4a4f927ffcfceb23dea2f9fa730b211402791a491",
+    "artifacts/s4-constraints-browser-ui-2026-10-25.log": "8b7d4fb69d726ee33088b802f24f2d541da0d71e8a01ba9d39df4ac2b1e0ec23",
+    "artifacts/s4-constraints-browser-final-results.json": "47d9f632d61f29a08af5f2b8593b71d3f94ad294abe15156e1aa480d9e521934",
+    "artifacts/s4-constraints-browser-ui-results.json": "ccd301647d7d92cafe0e097699cc9212b84bb68621f3d8448545b3550e92e2b9",
+    "artifacts/s4-constraints-build-final-2026-10-25.log": "27eb7d32f4689a49c167f43e650a851b05c4642644e6404db06c9e4ee22a37b1",
+    "artifacts/s4-constraints-real-2026-10-25.log": "e04bc22a156bd6b784da6b20b0d85af6ae5802c4f416a5e9352c14b2d8004838",
+    "artifacts/s4-constraints-runtime-2026-10-25.log": "252109b07d1a16b4bad1fd724ac1ec7d06501794aeea7b423a2c97d23439cc4d",
+    "artifacts/s4-constraints-1440.png": "f9719a58c92f5704df00499d486edfad91392311d2fc7e70c3081d9d85eec1cc",
+    "artifacts/s4-constraints-390.png": "709f36ffd7743549d8d166ea0e1c200689ffffa0a70b387b91d34dd8dcc5ba73",
+    "tools/campus/s4-constraints-scenario.mjs": "a2c5df084fb35a7340ff853338b8c74bc4d3678ce90043c0bb73eed5a3b10658",
+    "artifacts/campus/s4-constraints/model-2026-10-25/run-1-events.json": "8078862a9b7699c5ee0f1c4e441cdc961a2ebd043976265a2e06241ffe1599c6",
+    "artifacts/campus/s4-constraints/model-2026-10-25/run-2-events.json": "553e86f94f4301d15d8f1e5bf57db3a18b0edad77521a119f56c1d05ab16f307"
+  }
+}

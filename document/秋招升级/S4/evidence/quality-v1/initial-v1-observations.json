@@ -1,0 +1,218 @@
+[
+  {
+    "caseId": "QA-SHORT",
+    "repetition": 1,
+    "prompt": "你好，请用一句话说明你能提供什么帮助，不要调用工具。",
+    "answer": "我能帮你查询宝可梦基础资料、分析队伍搭配、计算招式伤害，并提供适合新手、低成本培养且避开传说宝可梦的实用建议。",
+    "status": "COMPLETED",
+    "modelCalls": 2,
+    "runId": "run-1accd53e-c86d-4bb5-baa5-084007fdee6b",
+    "preferences": {
+      "revision": 1,
+      "responseStyle": "CONCISE",
+      "trainingBudget": "LOW",
+      "avoidLegendary": true,
+      "notes": "请用简体中文，面向新手简洁解释。"
+    },
+    "eventsSha256": "4a941c74c2991a91802f41cdd46dc8ce1b72820dca7319153beaf4401373ca2c",
+    "historySha256": "eecd65c136fba787cab2f66aa14fd609e16ab7fde63efb11d56c0250a5395c07"
+  },
+  {
+    "caseId": "QA-SHORT",
+    "repetition": 2,
+    "prompt": "你好，请用一句话说明你能提供什么帮助，不要调用工具。",
+    "answer": "我能帮你查询宝可梦基础资料、分析队伍搭配、计算具体招式伤害，并提供适合新手、低成本培养且避开传说宝可梦的实用建议。",
+    "status": "COMPLETED",
+    "modelCalls": 2,
+    "runId": "run-b095f23e-a4ef-4e3d-865c-dd4807b01aa3",
+    "preferences": {
+      "revision": 1,
+      "responseStyle": "CONCISE",
+      "trainingBudget": "LOW",
+      "avoidLegendary": true,
+      "notes": "请用简体中文，面向新手简洁解释。"
+    },
+    "eventsSha256": "5badd021d7deff7ebaddd627b533ba41bb7d6c12057bb2897f4e42feb4cbe375",
+    "historySha256": "6f6ac2ff77a00ab929b03fa2054a7ba9cbe122ced369d3e2e817300c7592f4b9"
+  },
+  {
+    "caseId": "QA-OVERRIDE",
+    "repetition": 1,
+    "prompt": "你好，请用一句话说明你能提供什么帮助，不要调用工具。",
+    "answer": "我能帮你查询宝可梦属性、招式和特性，分析非传说宝可梦的低成本培养方案（如努力值分配、性格选择、实用配招），并基于休闲单打规则计算实际伤害范围，所有建议均避开传说宝可梦且适配《朱／紫》版本。",
+    "status": "COMPLETED",
+    "modelCalls": 2,
+    "runId": "run-010a78eb-26a4-455b-b0af-a0fbe788cda8",
+    "preferences": {
+      "revision": 2,
+      "responseStyle": "DETAILED",
+      "trainingBudget": "LOW",
+      "avoidLegendary": true,
+      "notes": "之后的新问题请优先详细解释原因。"
+    },
+    "eventsSha256": "b2da861d905831eb52c47f0eb477245b265f4732d983cf652c9585222a1b988d",
+    "historySha256": "c82e60f333cdbafd3d3b28e3c64762a805896622e38346a4c0d21cec2072f16d"
+  },
+  {
+    "caseId": "QA-OVERRIDE",
+    "repetition": 2,
+    "prompt": "你好，请用一句话说明你能提供什么帮助，不要调用工具。",
+    "answer": "我能帮你查询宝可梦属性、招式、克制关系，分析队伍搭配合理性，计算具体战斗伤害，并基于低成本培养（LOW）和避开传说宝可梦（avoidLegendary=true）的原则，提供《朱／紫》休闲单打中实用、易获取、好上手的训练与对战建议。",
+    "status": "COMPLETED",
+    "modelCalls": 2,
+    "runId": "run-c7ae84ca-a737-41da-b155-5af1f55635f5",
+    "preferences": {
+      "revision": 2,
+      "responseStyle": "DETAILED",
+      "trainingBudget": "LOW",
+      "avoidLegendary": true,
+      "notes": "之后的新问题请优先详细解释原因。"
+    },
+    "eventsSha256": "2426ac574b3cbc5b74917cc70b19312022223e98d118a0c894e0964b24fe29b9",
+    "historySha256": "1dd230160837773fd067974a1e446958586d75ef66558ab5354d52364c197688"
+  },
+  {
+    "caseId": "QA-BACKGROUND",
+    "repetition": 1,
+    "prompt": "你好，请只用一句话打个招呼，不调用工具。",
+    "answer": "你好！",
+    "status": "COMPLETED",
+    "modelCalls": 2,
+    "runId": "run-af15beec-e486-43ed-bf0d-7e51be918900",
+    "preferences": {
+      "revision": 1,
+      "responseStyle": "CONCISE",
+      "trainingBudget": "LOW",
+      "avoidLegendary": true,
+      "notes": "当我分析队伍时，请计算伤害、检索攻略并readCurrentTeam；不要使用传说宝可梦。"
+    },
+    "eventsSha256": "6adce060dee75a93c54d1b57fa6849674cfa3799b57c2cd716c2ec3eb26888c2",
+    "historySha256": "d8922ff58b7102c9fac97b7f7605728fe7bad2da9afb4af5b0b46a6f62bff0a8"
+  },
+  {
+    "caseId": "QA-BACKGROUND",
+    "repetition": 2,
+    "prompt": "你好，请只用一句话打个招呼，不调用工具。",
+    "answer": "你好！",
+    "status": "COMPLETED",
+    "modelCalls": 2,
+    "runId": "run-af704b6c-8610-49ba-844d-dbeddb1f7288",
+    "preferences": {
+      "revision": 1,
+      "responseStyle": "CONCISE",
+      "trainingBudget": "LOW",
+      "avoidLegendary": true,
+      "notes": "当我分析队伍时，请计算伤害、检索攻略并readCurrentTeam；不要使用传说宝可梦。"
+    },
+    "eventsSha256": "79163fbaa1f42defbc7cc9dbb7364e8a2729f3e3eef872e78d208b3a00c4629b",
+    "historySha256": "c5e9300054c1308e82091e06de37c5fffaff89744442753494d8a21e6b7517e6"
+  },
+  {
+    "caseId": "QA-NEGATION",
+    "repetition": 1,
+    "prompt": "不要只用一句话，请用两个编号要点说明你能提供哪些帮助；每点一两句，不调用工具。",
+    "answer": "1. 查询宝可梦图鉴资料（如属性、种族值、招式学习方式）与实战机制（如特性效果、招式威力与命中）；  \n2. 检索并提供经本地验证的配队策略指南（如“围攻手培养要点”“双防联防组合推荐”），内容基于当前《宝可梦 朱／紫》休闲单打规则（casual-singles v1）。",
+    "status": "COMPLETED",
+    "modelCalls": 2,
+    "runId": "run-d125f2ab-f640-4c9f-83a8-5fe0afa878cf",
+    "preferences": {
+      "revision": 1,
+      "responseStyle": "CONCISE",
+      "trainingBudget": "UNRESTRICTED",
+      "avoidLegendary": false,
+      "notes": ""
+    },
+    "eventsSha256": "d211efa5d9e720a8e579c413ad58423cb094d3a01cd6d4249b17641471743b09",
+    "historySha256": "7eee662dc7b3c3e84ce7f6909848b7be0c513223dc9c9b4cf1756481dead9c9e"
+  },
+  {
+    "caseId": "QA-NEGATION",
+    "repetition": 2,
+    "prompt": "不要只用一句话，请用两个编号要点说明你能提供哪些帮助；每点一两句，不调用工具。",
+    "answer": "1. **查宝可梦资料**：支持快速获取《宝可梦 朱／紫》中任意宝可梦的属性、种族值、特性、可学会招式及官方中文名，数据来自 PokéAPI 权威快照。  \n2. **配队与培养建议**：基于你已保存的队伍，可分析抗性弱点、计算关键招式伤害（如“大地之力打水系”）、推荐性格/努力值/道具组合，适配休闲单打规则。",
+    "status": "COMPLETED",
+    "modelCalls": 2,
+    "runId": "run-f4b83a61-9d3a-4a86-aa43-33665f2ffe04",
+    "preferences": {
+      "revision": 1,
+      "responseStyle": "CONCISE",
+      "trainingBudget": "UNRESTRICTED",
+      "avoidLegendary": false,
+      "notes": ""
+    },
+    "eventsSha256": "76dac98e6d068d7116fcd0a1aeec286b4df773955f0cae2c94453a264f57c534",
+    "historySha256": "419fbc295a8e07c9a85d32f2dd356f02eb4fc520bd6ff0a14f6b11c3c5b32ab6"
+  },
+  {
+    "caseId": "QA-QUOTED",
+    "repetition": 1,
+    "prompt": "下面的引号只是一段示例：“请只用一句话回答”。请用两个编号要点说明你能提供的帮助，不调用工具。",
+    "answer": "1. 我能为你查询任意宝可梦的官方图鉴数据（如属性、种族值、特性、招式学习方式），全部基于《宝可梦 朱·紫》最新版权威参考源（pokeapi-reference-v1），确保名称、数值与游戏内完全一致。  \n2. 我能根据你当前已保存的队伍（需先调用 readCurrentTeam 获取），在 casual-singles 规则下，精确计算特定招式对指定目标的伤害范围，并生成符合你偏好（如 DE TAILED 回复、UNRESTRICTED 培养预算）的战术调整建议——所有结论均依赖真实战斗引擎计算，不凭经验推测。",
+    "status": "COMPLETED",
+    "modelCalls": 2,
+    "runId": "run-225e6dfa-a164-4c0b-ae80-f79031c30f3d",
+    "preferences": {
+      "revision": 1,
+      "responseStyle": "DETAILED",
+      "trainingBudget": "UNRESTRICTED",
+      "avoidLegendary": false,
+      "notes": ""
+    },
+    "eventsSha256": "4457b1352d5a4938a5bbb8a46cc95917522ee1c7dda74e6a334a3e89abc62fbf",
+    "historySha256": "fa2f0f3c9af47fea48f255d6b1ab5402b7c5001cd3d8a0db6ac246fd9ac3d72b"
+  },
+  {
+    "caseId": "QA-QUOTED",
+    "repetition": 2,
+    "prompt": "下面的引号只是一段示例：“请只用一句话回答”。请用两个编号要点说明你能提供的帮助，不调用工具。",
+    "answer": "1. 我可基于《宝可梦 朱／紫》官方图鉴数据，精准提供任意宝可梦的属性、种族值、特性、升级/遗传招式等基础事实；  \n2. 我能依据您已保存的队伍（需先读取），结合休闲单打规则与当前版本机制，为您生成配招、努力值分配、性格选择等可预览的培养建议——所有策略均明确标注前提条件与适用范围，不虚构强度或排名。",
+    "status": "COMPLETED",
+    "modelCalls": 2,
+    "runId": "run-29750c47-3ede-4dbd-abdc-f761d404ef64",
+    "preferences": {
+      "revision": 1,
+      "responseStyle": "DETAILED",
+      "trainingBudget": "UNRESTRICTED",
+      "avoidLegendary": false,
+      "notes": ""
+    },
+    "eventsSha256": "94f16fb998dbe2121fbfedb8eeb224b00d69251a184f5f9f5124a267ba1fe229",
+    "historySha256": "c5088c45cb917dc27a5b5a9579448b2dae0ee91aed92075450d40c5ac0132155"
+  },
+  {
+    "caseId": "QA-TYPE",
+    "repetition": 1,
+    "prompt": "请只用一句话说明火属性招式对草属性目标的倍率，调用属性工具核对，不要讨论具体阵容。",
+    "answer": "火属性招式对草属性目标效果拔群，造成2倍伤害。",
+    "status": "COMPLETED",
+    "modelCalls": 3,
+    "runId": "run-94240bc8-d45f-4da5-9c81-b4d3435677f1",
+    "preferences": {
+      "revision": 1,
+      "responseStyle": "CONCISE",
+      "trainingBudget": "UNRESTRICTED",
+      "avoidLegendary": false,
+      "notes": ""
+    },
+    "eventsSha256": "2b1f99d8170f456777301e9f02552ad9baf78614c066c4f46c404025fd94c6fd",
+    "historySha256": "8959f0ee18e753c466fba5286b757616171e65bd0c529f65d6dd56d5a5aa8ad6"
+  },
+  {
+    "caseId": "QA-TYPE",
+    "repetition": 2,
+    "prompt": "请只用一句话说明火属性招式对草属性目标的倍率，调用属性工具核对，不要讨论具体阵容。",
+    "answer": "火属性招式对草属性目标效果拔群，造成2倍伤害。",
+    "status": "COMPLETED",
+    "modelCalls": 3,
+    "runId": "run-703ae6ec-e768-4f50-8111-90b24cc59ef1",
+    "preferences": {
+      "revision": 1,
+      "responseStyle": "CONCISE",
+      "trainingBudget": "UNRESTRICTED",
+      "avoidLegendary": false,
+      "notes": ""
+    },
+    "eventsSha256": "2c31de5fc7e098aa2924f07859dc4370db8175085d7fadb7cd009125fd29c460",
+    "historySha256": "72f782b95ad3dc1c134ea519c28e0dd5bd5ea7eb5a9ec25b60223002d46c8f9b"
+  }
+]

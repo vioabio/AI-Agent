@@ -1,0 +1,165 @@
+{
+  "schemaVersion": "team-multi-verification-v1",
+  "verifiedAt": "2026-10-26T06:31:39.696Z",
+  "backend": {
+    "tests": 1071,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3,
+    "result": "BUILD SUCCESS"
+  },
+  "subsets": {
+    "httpControlled": 11,
+    "workflow": 13,
+    "httpErrors": 5,
+    "presentation": 3,
+    "overlapWithFull": true
+  },
+  "frontend": {
+    "contract": 139,
+    "lint": "passed",
+    "typecheck": "passed",
+    "build": "passed",
+    "fixtureBrowser": {
+      "startTime": "2026-10-26T06:27:26.377Z",
+      "duration": 31945.393,
+      "expected": 11,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "liveBrowser": {
+      "startTime": "2026-10-26T06:27:26.412Z",
+      "duration": 35527.312,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  },
+  "tools": {
+    "tests": 81,
+    "passed": 81
+  },
+  "realModel": {
+    "planned": 2,
+    "passed": 2,
+    "modelCalls": 4,
+    "newModelCallsOnApprovalResume": 0,
+    "scope": "Two fixed real-browser development cases, automated dedicated account approvals; not semantic accuracy"
+  },
+  "preservedFailures": {
+    "invalidFixture": "2 new HTTP cases initially400 because duplicate forms; retained rule and changed fixtures",
+    "sourceAudit": "2 Node tests failed due modified cited workflow; restored original and used separate adapter",
+    "firstLiveBrowser": {
+      "startTime": "2026-10-26T06:24:29.675Z",
+      "duration": 63387.465,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 2,
+      "flaky": 0
+    },
+    "firstLiveReportSha256": "9279025f979f9d386602752100e37301ec589045e3b2d9f22b21c30898dd56dc",
+    "cause": "column flex-wrap inherited from global card moved actions outside clipped area; fixed nowrap without weakening viewport checks"
+  },
+  "frozenSources": {
+    "s2DatasetAndHeldoutUnchanged": true,
+    "s3CorpusAndFiveCodeReferencesUnchanged": true,
+    "privateModelConfigurationInspectedOrCopied": false
+  },
+  "provenance": {
+    "pass": true,
+    "sourceCount": 519,
+    "runtimeClassCount": 62,
+    "sha256": "bd8d9d415faf3434a035c0064a3453155c190b65d6e991241b366ee0b7833ffe"
+  },
+  "cleanup": {
+    "portsClosed": [
+      18150,
+      3191,
+      3192
+    ],
+    "dailyPortsUntouched": [
+      3000,
+      8123
+    ],
+    "committed": false,
+    "pushed": false,
+    "deployed": false
+  },
+  "limits": [
+    "Two fixed browser tasks do not establish general strategy accuracy or heldout success",
+    "Cached public reference snapshots, not fresh upstream retrieval",
+    "No cross-restart approval recovery or PostgreSQL/multi-instance acceptance",
+    "Surefire exit waiting, Bean Validation and multiple SLF4J providers warnings remain"
+  ],
+  "logs": [
+    {
+      "file": "artifacts/team-multi-targeted-2026-10-26.log",
+      "sha256": "0f8a26009453fcbe4cc2ec6de0180ecfdacdd5108e498a799df0899fe053d9e7"
+    },
+    {
+      "file": "artifacts/team-multi-targeted-final-2026-10-26.log",
+      "sha256": "021b319a03793af98839b4c99d88b0793873c683e1d720ffbbdc1635807f443e"
+    },
+    {
+      "file": "artifacts/team-multi-backend-full-2026-10-26.log",
+      "sha256": "82213f6d5c811f00e9c009625de96f577e3bcea7666e6e5e0ea605901a825858"
+    },
+    {
+      "file": "artifacts/team-multi-backend-full-final-2026-10-26.log",
+      "sha256": "daf46f7be22fc3460e7086215ab6ca80f15dd0a4f4dcf7928131a5084f155d98"
+    },
+    {
+      "file": "artifacts/team-multi-tools-2026-10-26.log",
+      "sha256": "0060709b21e8bf7bc2f62e4ca8cb413adce8ec1989708c949ef6e160d5d124aa"
+    },
+    {
+      "file": "artifacts/team-multi-tools-final-2026-10-26.log",
+      "sha256": "78f7c380927ee648860f617f8f7e185d7cc3410200759b579c141659e0d9fb67"
+    },
+    {
+      "file": "artifacts/team-multi-frontend-contract-final-2026-10-26.log",
+      "sha256": "43f81be2541a4069742b4e19e42bfe5d95cf84d0b437573da047f168a3b0aa68"
+    },
+    {
+      "file": "artifacts/team-multi-frontend-lint-final-2026-10-26.log",
+      "sha256": "28841550c6c0b7ca0d87126822260d7da738fbb2a01fbbe9d341a8910ef40c6b"
+    },
+    {
+      "file": "artifacts/team-multi-frontend-types-final-2026-10-26.log",
+      "sha256": "06e059649a47ae58eee167e54d3234ee80acdf04878c0c9adadac41cd5d65f17"
+    },
+    {
+      "file": "artifacts/team-multi-frontend-build-final-2026-10-26.log",
+      "sha256": "1f36ef5a8e14823e5a2b8ed2c571001b253592d2a0f0dd0d8539877f1e13ad22"
+    },
+    {
+      "file": "artifacts/team-multi-browser-fixture-final-2026-10-26.log",
+      "sha256": "de181542911dec8647050c453867d0bb89529ce7a0d9dd7ce497414de45ace65"
+    },
+    {
+      "file": "artifacts/team-multi-browser-live-2026-10-26.log",
+      "sha256": "67fc6a643189c6a91722666b6832346931f3b6ec3f5a67fb8ef1c34e87e1207a"
+    },
+    {
+      "file": "artifacts/team-multi-browser-live-verified-2026-10-26.log",
+      "sha256": "7e044c4cdfd557f563f7e0fc7bf5edbfb09ea112564f742e1f8a4d3a86869ed3"
+    }
+  ],
+  "sourceSha256": {
+    "src/main/java/com/vio/vioaiagent/pokemon/team/TeamChangePresentation.java": "09f0ddfb18194c53ab1490a1ff589669a005e2bdefc21e1e6aff45158e0c5823",
+    "src/main/java/com/vio/vioaiagent/pokemon/team/TeamWorkflowController.java": "6ed60205e2845ae43291979a2f4dbda5bafe0373f9bdc901c60f09d726af8277",
+    "src/main/java/com/vio/vioaiagent/run/DefaultRunExecutor.java": "00d2c0a7a3907192b26077f5105b449cbf8b92cfcd81dd86660b045a4c6422c4",
+    "src/main/java/com/vio/vioaiagent/controller/LocalRuntimeController.java": "7f7a6721b4f6a2717185df070f9bc2b620a7b15027f7370174dfd9b3d2639ef8",
+    "src/test/java/com/vio/vioaiagent/pokemon/TeamChangePresentationTest.java": "c7dff03725479bae5fa5dd1fcc3648350c8709f30a13e12610bf2f5092759b0a",
+    "src/test/java/com/vio/vioaiagent/config/TeamWorkflowHttpIntegrationTest.java": "96bd7c5ba680ca21a20524d53c3d5b730969c8b9698e78ba12fc426791b0a8a4",
+    "vio-ai-agent-frontend/src/components/RunTimeline.vue": "919f60710c22ec25b3f46a07a4c2df24c5b04f3257bff30181e4209090bec49a",
+    "vio-ai-agent-frontend/e2e/team-change.spec.js": "95bd62104f251ca29e819b837b05b1ce1d779becf7b4b718af1ce2fdb6ae9fe0",
+    "vio-ai-agent-frontend/e2e-live/team-workflow.spec.js": "ff5030cbdfc8adb504dda37173c1d73a798864c18181f35c5eec04c8936fb270",
+    "vio-ai-agent-frontend/scripts/live-workflow-target.mjs": "1f3482fc1dc8df478c0854b06a6c62ceee7466b582d13b06a7d6cae6b9fa7fdc",
+    "vio-ai-agent-frontend/scripts/live-workflow-target.test.mjs": "db4437dfa43901f58725d8bf66c7cfd3efe89c8d52e521763a46d3302a4f5e00",
+    "vio-ai-agent-frontend/vite.workflow-live.config.js": "b645bbbc1516c051a937bd2761ddc3db5da452df561f160f07f06c99efd24952",
+    "vio-ai-agent-frontend/playwright.workflow-live.config.js": "b4bc7a9b16634c363f20e8adff24f96cfeaea6db6b676c88d947f30a8639fc1d"
+  }
+}

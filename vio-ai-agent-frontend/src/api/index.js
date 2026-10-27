@@ -619,6 +619,42 @@ export async function calculateEngineDamage(payload, { signal } = {}) {
   }), '本地伤害计算失败')
 }
 
+export async function checkPokemonBuild(payload, { signal } = {}) {
+  return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/reference/build-check`, {
+    method:'POST',credentials:'include',signal,headers:requestHeaders({'Content-Type':'application/json'}),body:JSON.stringify(payload)
+  }), '配招核对失败')
+}
+
+export async function checkPokemonTeamBuild(payload, {signal} = {}) {
+  return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/reference/team-build-check`, {
+    method:'POST',credentials:'include',signal,headers:requestHeaders({'Content-Type':'application/json'}),body:JSON.stringify(payload)
+  }), '整队配置核对失败')
+}
+
+export async function fetchPokemonMachine(learning, {signal} = {}) {
+  return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/reference/machines/${encodeURIComponent(learning.pokemonId)}/${encodeURIComponent(learning.moveSlug)}${queryString({dataReleaseId:learning.dataReleaseId,gameReleaseId:learning.gameReleaseId})}`, {
+    credentials:'include',signal,headers:requestHeaders()
+  }), '学习器编号读取失败')
+}
+
+export async function fetchMachineCraftingGuide(gameReleaseId, {signal} = {}) {
+  return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/reference/machines/crafting-guide${queryString({gameReleaseId})}`, {
+    credentials:'include',signal,headers:requestHeaders()
+  }), '学习器制作说明读取失败')
+}
+
+export async function fetchMachineRecipe(moveSlug, gameReleaseId, {signal} = {}) {
+  return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/reference/machines/recipes/${encodeURIComponent(moveSlug)}${queryString({gameReleaseId})}`, {
+    credentials:'include',signal,headers:requestHeaders()
+  }), '学习器配方参考读取失败')
+}
+
+export async function fetchMachineAcquisition(moveSlug, gameReleaseId, {signal} = {}) {
+  return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/reference/machines/acquisition/${encodeURIComponent(moveSlug)}${queryString({gameReleaseId})}`, {
+    credentials:'include',signal,headers:requestHeaders()
+  }), '学习器获取区域参考读取失败')
+}
+
 export async function searchPokemonGuides(query, gameReleaseId, { signal } = {}) {
   return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/guides${queryString({query,gameReleaseId})}`, {
     credentials:'include',signal,headers:requestHeaders()
@@ -739,6 +775,24 @@ export async function fetchConversations({ limit = 50, cursor, signal } = {}) {
     headers: requestHeaders()
   })
   return readJson(response, '读取会话历史失败')
+}
+
+/** 读取当前账号显式保存的会话偏好。 */
+export async function fetchConversationConstraints(conversationId, { signal } = {}) {
+  const id = requiredIdentifier(conversationId, 'conversationId')
+  const response = await authenticatedFetch(`${API_BASE_URL}/chat/conversations/${encodeURIComponent(id)}/constraints`, {
+    credentials: 'include', signal, headers: requestHeaders()
+  })
+  return readJson(response, '读取对话偏好失败')
+}
+
+export async function saveConversationConstraints(conversationId, payload, { signal } = {}) {
+  const id = requiredIdentifier(conversationId, 'conversationId')
+  const response = await authenticatedFetch(`${API_BASE_URL}/chat/conversations/${encodeURIComponent(id)}/constraints`, {
+    method: 'PUT', credentials: 'include', signal, headers: requestHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(payload)
+  })
+  return readJson(response, '保存对话偏好失败')
 }
 
 /** 查询会话完整消息；该接口返回 raw ChatMessage[]，不伪造历史内容。 */

@@ -1,0 +1,127 @@
+{
+  "suiteId": "campus-s4-answer-intent-v1",
+  "scope": "Development regression of explicit format and preference/task boundaries; not S2 heldout or a general semantic judge.",
+  "repetitions": 2,
+  "cases": [
+    {
+      "id": "QA-SHORT",
+      "conversation": "greeting",
+      "prompt": "你好，请用一句话说明你能提供什么帮助，不要调用工具。",
+      "preferences": {
+        "responseStyle": "CONCISE",
+        "trainingBudget": "LOW",
+        "avoidLegendary": true,
+        "notes": "请用简体中文，面向新手简洁解释。"
+      },
+      "expected": {
+        "format": "one_sentence",
+        "maxCharacters": 180,
+        "noTools": true
+      },
+      "semanticCriteria": [
+        "回答实际帮助范围，未扩写无依据的物种、数值或机制例子。",
+        "未把本地资料能力扩大为实时排名或合法性保证。"
+      ]
+    },
+    {
+      "id": "QA-OVERRIDE",
+      "conversation": "greeting",
+      "prompt": "你好，请用一句话说明你能提供什么帮助，不要调用工具。",
+      "preferences": {
+        "responseStyle": "DETAILED",
+        "trainingBudget": "LOW",
+        "avoidLegendary": true,
+        "notes": "之后的新问题请优先详细解释原因。"
+      },
+      "expected": {
+        "format": "one_sentence",
+        "maxCharacters": 180,
+        "noTools": true
+      },
+      "semanticCriteria": [
+        "当前一句话请求优先于已保存的详细偏好。",
+        "没有从上轮回答复制无依据的数字、例子或规则。"
+      ]
+    },
+    {
+      "id": "QA-BACKGROUND",
+      "prompt": "你好，请只用一句话打个招呼，不调用工具。",
+      "preferences": {
+        "responseStyle": "CONCISE",
+        "trainingBudget": "LOW",
+        "avoidLegendary": true,
+        "notes": "当我分析队伍时，请计算伤害、检索攻略并readCurrentTeam；不要使用传说宝可梦。"
+      },
+      "expected": {
+        "format": "one_sentence",
+        "maxCharacters": 180,
+        "noTools": true
+      },
+      "semanticCriteria": [
+        "只回应当前问候，未把偏好中的条件句当成新的队伍分析任务。",
+        "不声称已经读取、计算或保存队伍。"
+      ]
+    },
+    {
+      "id": "QA-NEGATION",
+      "prompt": "不要只用一句话，请用两个编号要点说明你能提供哪些帮助；每点一两句，不调用工具。",
+      "preferences": {
+        "responseStyle": "CONCISE",
+        "trainingBudget": "UNRESTRICTED",
+        "avoidLegendary": false,
+        "notes": ""
+      },
+      "expected": {
+        "format": "two_items",
+        "maxCharacters": 340,
+        "noTools": true
+      },
+      "semanticCriteria": [
+        "理解不要只用一句话的否定要求，并给出两项有用帮助。",
+        "不把能力介绍写成已经执行成功的任务。"
+      ]
+    },
+    {
+      "id": "QA-QUOTED",
+      "prompt": "下面的引号只是一段示例：“请只用一句话回答”。请用两个编号要点说明你能提供的帮助，不调用工具。",
+      "preferences": {
+        "responseStyle": "DETAILED",
+        "trainingBudget": "UNRESTRICTED",
+        "avoidLegendary": false,
+        "notes": ""
+      },
+      "expected": {
+        "format": "two_items",
+        "maxCharacters": 340,
+        "noTools": true
+      },
+      "semanticCriteria": [
+        "引号内的示例不是本轮一句话指令。",
+        "按实际请求介绍两项帮助，不扩写无关队伍或机制。"
+      ]
+    },
+    {
+      "id": "QA-TYPE",
+      "prompt": "请只用一句话说明火属性招式对草属性目标的倍率，调用属性工具核对，不要讨论具体阵容。",
+      "preferences": {
+        "responseStyle": "CONCISE",
+        "trainingBudget": "UNRESTRICTED",
+        "avoidLegendary": false,
+        "notes": ""
+      },
+      "expected": {
+        "format": "one_sentence",
+        "maxCharacters": 180,
+        "requiredToolAny": [
+          "checkTypeEffectiveness",
+          "getTypeChart"
+        ],
+        "requiredPattern": "(?<![\\d.])2(?:\\.0+)?(?![\\d.])|两倍|二倍"
+      },
+      "semanticCriteria": [
+        "火攻击草的基础倍率正确，工具实际输入与该问题一致。",
+        "没有扩大为具体伤害、胜率、队伍强度或合法性结论。"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+# 开发回答审核状态
+
+固定6条；工程通过6条，原文不匹配1条。
+人工提交0条，AI辅助0条；已验证任务0条，失败1条，待审核5条。
+
+| 案例 | 工程 | 原文未匹配 | 审核 | 任务结果 |
+| --- | --- | --- | --- | --- |
+| MODEL_ONLY:ABLATION-DEFAULTS | true | Q1 | PENDING_REVIEW | FAIL |
+| MODEL_ONLY:ABLATION-CONFIRMATION | true | 无 | PENDING_REVIEW | PENDING_REVIEW |
+| GUIDES_ONLY:ABLATION-DEFAULTS | true | 无 | PENDING_REVIEW | PENDING_REVIEW |
+| GUIDES_ONLY:ABLATION-CONFIRMATION | true | 无 | PENDING_REVIEW | PENDING_REVIEW |
+| READ_ONLY_TOOLS:ABLATION-DEFAULTS | true | 无 | PENDING_REVIEW | PENDING_REVIEW |
+| READ_ONLY_TOOLS:ABLATION-CONFIRMATION | true | 无 | PENDING_REVIEW | PENDING_REVIEW |
+
+人工身份为自述，工具不提供身份认证。未审核不计为通过；逐字匹配不证明引用相关性或机制正确。

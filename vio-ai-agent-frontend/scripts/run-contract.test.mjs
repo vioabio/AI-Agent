@@ -14,6 +14,31 @@ function replay(events, seed = {}) {
   return events.reduce((model, event) => reduceRunEvent(model, event), createRunViewModel(seed))
 }
 
+test('上下文或输出预算不足保留部分正文并显示可读提示', () => {
+  const model = replay([{ id: '1', type: 'answer.delta', data: '已有部分内容' },
+    { id: '2', type: 'run.failed', data: { errorType: 'RUN_CONTEXT_BUDGET_EXCEEDED' } }])
+  assert.equal(model.status, RUN_STATUS.FAILED)
+  assert.equal(model.answer, '已有部分内容')
+  assert.match(model.error, /上下文或回答长度预算/)
+  assert.match(model.error, /重申关键限制/)
+})
+
+test('缓存命中无started也有一条完成记录，按调用ID去重并保留真实拒绝', () => {
+  const model = replay([
+    { id: '1', type: 'tool.finished', data: { toolName: 'searchPokemonGuides', governanceEventId: 'cached', status: 'SUCCEEDED', cached: true, durationMs: 2 } },
+    { id: '2', type: 'tool.finished', data: { toolName: 'searchPokemonGuides', governanceEventId: 'cached', status: 'SUCCEEDED', cached: true, durationMs: 2 } },
+    { id: '3', type: 'tool.finished', data: { toolName: 'searchPokemonGuides', governanceEventId: 'denied', status: 'REJECTED' } },
+    { id: '4', type: 'tool.finished', data: { toolName: 'writeFile', governanceEventId: 'effect', status: 'DEDUPLICATED', cached: false } }
+  ])
+  assert.equal(model.toolTimeline.length, 3)
+  assert.equal(model.toolTimeline[0].status, 'completed')
+  assert.equal(model.toolTimeline[0].cached, true)
+  assert.equal(model.toolTimeline[0].durationMs, 2)
+  assert.equal(model.toolTimeline[1].status, 'failed')
+  assert.equal(model.toolTimeline[2].status, 'completed')
+  assert.equal(model.toolTimeline[2].cached, false)
+})
+
 test('同名工具按治理调用ID关联，失败后结算保留原因和耗时', () => {
   const model = replay([
     { id: '1', type: 'tool.started', data: { toolName: 'searchWeb', governanceEventId: 'call-a' } },
@@ -313,4 +338,15 @@ test('结构化领域事件进入对应卡片集合，不依赖自由文本猜�
   assert.equal(model.cards.activities[0].freshness, 'FRESH')
   assert.equal(model.cards.citations[0].sourceUrl, 'https://example.com/source')
   assert.equal(model.cards.errors[0].code, 'NO_EVIDENCE')
+})
+test('task credit failures keep partial text and show stable messages without provider bodies', () => {
+  for (const code of ['RUN_TASK_BUDGET_EXCEEDED', 'RUN_TASK_BUDGET_UNAVAILABLE']) {
+    let view = createRunViewModel()
+    view = reduceRunEvent(view, { id: '1', type: 'answer.delta', data: { text: '部分回答' } })
+    view = reduceRunEvent(view, { id: '2', type: 'run.failed', data: { errorType: code, message: 'private provider body' } })
+    assert.equal(view.status, RUN_STATUS.FAILED)
+    assert.equal(view.answer, '部分回答')
+    assert.match(view.error, /额度/)
+    assert.doesNotMatch(view.error, /private/)
+  }
 })

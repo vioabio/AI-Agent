@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "campus-question-intake-v1",
+  "targetSize": 100,
+  "base": {
+    "manifest": "evaluation/campus/s2/manifest.json",
+    "manifestSha256": "e86629f7538651098a19964993759514c87b3df77f3c04ad31260a75f9dc10c0",
+    "datasetId": "campus-s2-seed-v1",
+    "caseCount": 36
+  },
+  "candidates": [
+    {
+      "id": "CQ-SQUIRTLE-STRATEGY-001",
+      "promptOriginal": "我想要了解杰尼龟和当前版本的对战策略以及强势阵容",
+      "origin": {
+        "kind": "USER_TYPED",
+        "locator": "当前开发对话中用户反馈：杰尼龟查询出现搜索超时且只返回工具日志",
+        "excerpt": "我想要了解杰尼龟和当前版本的对战策略以及强势阵容",
+        "reportedAt": null,
+        "recordedAt": "2026-10-26"
+      },
+      "context": {
+        "species": "杰尼龟",
+        "gameReleaseId": "pokemon-scarlet-violet",
+        "battleFormat": "casual-singles",
+        "language": "zh-CN",
+        "rulesetVersionId": "casual-v1",
+        "source": "USER_REPORTED_UI_CONTEXT_NOT_VERIFIED_GOLD"
+      },
+      "categoryProposal": "guides",
+      "groupProposal": "squirtle-strategy-source-and-fallback",
+      "reviewFocus": [
+        "回答应包含可阅读正文，不能只有工具日志或任务结束提示",
+        "搜索超时时应说明缺失；本地图鉴不能证明当前热门阵容",
+        "区分物种事实、条件性培养建议与缺少证据的环境判断"
+      ],
+      "sourcesToCollect": ["适用版本的成员参考资料", "适用范围内的培养与组队资料", "若回答当前强势阵容，需另有带日期和赛制的可信来源"],
+      "status": "candidate",
+      "split": "unassigned",
+      "humanReview": "pending"
+    },
+    {
+      "id": "CQ-FROSLASS-ANSWER-001",
+      "promptOriginal": "请介绍这只宝可梦，并结合所选赛制给出培养与搭配建议。区分资料事实和策略建议；资料不足时说明缺失，不编造当前热门阵容。",
+      "origin": {
+        "kind": "USER_REPORTED_APP_PROMPT",
+        "locator": "当前开发对话中用户粘贴：雪妖女问答输出英文规划、工具猜测和长版本标识",
+        "excerpt": "请介绍这只宝可梦，并结合所选赛制给出培养与搭配建议。区分资料事实和策略建议；资料不足时说明缺失，不编造当前热门阵容。",
+        "reportedAt": null,
+        "recordedAt": "2026-10-26"
+      },
+      "context": {
+        "species": "雪妖女",
+        "gameReleaseId": "pokemon-scarlet-violet",
+        "battleFormat": "casual-singles",
+        "language": "zh-CN",
+        "rulesetVersionId": "casual-v1",
+        "source": "USER_REPORTED_UI_CONTEXT_NOT_VERIFIED_GOLD"
+      },
+      "categoryProposal": "guides",
+      "groupProposal": "froslass-final-answer-and-evidence-boundary",
+      "reviewFocus": [
+        "使用用户语言回答实际问题，不能输出准备作答的内部计划",
+        "工具是否传错属性需检查实际入参，不能把模型猜测当成工具缺陷",
+        "公开回答保留有意义数值和简短来源，避免原始JSON及内部长标识",
+        "已有事实、未读取的特性招式与策略推测需分开核验"
+      ],
+      "sourcesToCollect": ["雪妖女实际返回的成员资料及其范围", "实际工具调用参数和结果", "适用赛制的培养资料与机制来源"],
+      "status": "candidate",
+      "split": "unassigned",
+      "humanReview": "pending"
+    }
+  ]
+}

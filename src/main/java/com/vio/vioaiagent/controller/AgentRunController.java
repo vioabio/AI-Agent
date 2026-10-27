@@ -169,6 +169,29 @@ public class AgentRunController {
         return runService.messages(conversationId, scopedUser(userHeader));
     }
 
+    @GetMapping("/conversations/{conversationId}/constraints")
+    public com.vio.vioaiagent.run.ConversationConstraints constraints(@PathVariable String conversationId,
+            @RequestHeader(value = "X-User-Id", required = false) String userHeader) {
+        return runService.conversationConstraints(conversationId, scopedUser(userHeader));
+    }
+
+    @org.springframework.web.bind.annotation.PutMapping("/conversations/{conversationId}/constraints")
+    public com.vio.vioaiagent.run.ConversationConstraints saveConstraints(@PathVariable String conversationId,
+            @RequestBody ConstraintsRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) String userHeader) {
+        if (request == null || request.revision == null || request.avoidLegendary == null) throw new IllegalArgumentException("缺少偏好字段");
+        var value = new com.vio.vioaiagent.run.ConversationConstraints(request.revision, request.responseStyle,
+                request.trainingBudget, request.avoidLegendary, request.notes);
+        return runService.saveConversationConstraints(conversationId, scopedUser(userHeader), value);
+    }
+    public static class ConstraintsRequest {
+        public Long revision;
+        public com.vio.vioaiagent.run.ConversationConstraints.ResponseStyle responseStyle;
+        public com.vio.vioaiagent.run.ConversationConstraints.TrainingBudget trainingBudget;
+        public Boolean avoidLegendary;
+        public String notes;
+    }
+
     @Operation(summary = "删除会话")
     @DeleteMapping("/conversations/{conversationId}")
     public ResponseEntity<Void> deleteConversation(@PathVariable String conversationId,

@@ -14,6 +14,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
+import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import java.net.http.HttpClient;
 import java.time.Duration;
@@ -43,8 +44,11 @@ public class DeepSeekModelConfiguration {
             converters.removeIf(c -> c instanceof MappingJackson2HttpMessageConverter);
             converters.add(new MappingJackson2HttpMessageConverter(mapper));
         });
-        var web = WebClient.builder().codecs(codecs ->
-                codecs.defaultCodecs().jackson2JsonEncoder(new Jackson2JsonEncoder(mapper)));
+        var web = WebClient.builder().codecs(codecs -> {
+            codecs.customCodecs().register(new DeepSeekBillingSseReader(mapper));
+            codecs.defaultCodecs().jackson2JsonEncoder(new Jackson2JsonEncoder(mapper));
+            codecs.defaultCodecs().jackson2JsonDecoder(new Jackson2JsonDecoder(mapper));
+        });
         return OpenAiChatModel.builder()
                 .openAiApi(OpenAiApi.builder().baseUrl(baseUrl)
                         .restClientBuilder(rest).webClientBuilder(web)

@@ -28,6 +28,14 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
     private final GameApp gameApp;
     private final VersionedKnowledgeRunFacade knowledgeFacade;
     private final boolean groundingEnabled;
+    private com.vio.vioaiagent.config.EvaluationToolPolicy evaluationPolicy=com.vio.vioaiagent.config.EvaluationToolPolicy.off();
+    @Autowired(required=false)
+    public void setEvaluationToolPolicy(com.vio.vioaiagent.config.EvaluationToolPolicy policy) {
+        policy.select(allTools);this.evaluationPolicy=policy;
+    }
+    private com.vio.vioaiagent.config.ContextBudgetProperties contextBudgetProperties=com.vio.vioaiagent.config.ContextBudgetProperties.defaults();
+    @Autowired(required=false)
+    public void setContextBudgetProperties(com.vio.vioaiagent.config.ContextBudgetProperties properties){this.contextBudgetProperties=java.util.Objects.requireNonNull(properties);}
     @Autowired(required=false)
     private com.vio.vioaiagent.pokemon.team.TeamWorkflowService teamWorkflow;
 
@@ -120,25 +128,40 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
 
     private String executeLegacy(AgentRunContext context) {
         AgentRun run = context.run();
-        if(teamWorkflow!=null) {
-            String confirmed=teamWorkflow.finishIfPending(context);
+        if(teamWorkflow!=null && !evaluationPolicy.active()) {
+            String confirmed=com.vio.vioaiagent.pokemon.team.TeamChangePresentation.finishIfPending(teamWorkflow,context);
             if(confirmed!=null){context.modelUsage().noModelCalls();return confirmed;}
         }
+        if(chatModel!=null && !evaluationPolicy.active()) {
+            var capability=com.vio.vioaiagent.agent.CapabilityCatalog.reply(run.prompt(),run.language(),context.constraints().responseStyle(),allTools);
+            if(capability.isPresent()) {
+                context.modelUsage().noModelCalls();
+                if(context.answerDeltaSink()!=null) context.answerDeltaSink().accept(capability.get());
+                return capability.get();
+            }
+        }
         var answerDeltaSink = context.answerDeltaSink();
-        String prompt = scopedPrompt(run);
+        String prompt = context.constraints().applyTo(scopedPrompt(run));
         if (chatModel != null) {
-            VioManus agent = new VioManus(allTools, mcpToolProvider,
-                    new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage()));
+            var budget=new com.vio.vioaiagent.observability.ModelContextBudget(contextBudgetProperties,context.history(),context.modelUsage());
+            VioManus agent = new VioManus(evaluationPolicy.select(allTools), evaluationPolicy.active()?null:mcpToolProvider,
+                    new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage(),budget));
             agent.setToolExecutionGateway(toolExecutionGateway);
-            agent.setTeamWorkflow(teamWorkflow);
+            agent.setCurrentUserRequest(run.prompt());
+            agent.setGuideGameReleaseId(run.gameReleaseId());
+            agent.setResponseStyle(context.constraints().responseStyle());
+            agent.setTeamWorkflow(evaluationPolicy.active()?null:teamWorkflow);
             agent.setAnswerDeltaSink(answerDeltaSink);
             agent.setMessageList(new java.util.ArrayList<>(context.history()));
             String transcript = agent.run(prompt);
+            budget.throwIfBlocked();
+            context.modelUsage().checkTaskBudget();
             if (answerDeltaSink != null && agent.getFinalAnswer() == null && run.status() != AgentRunStatus.WAITING_APPROVAL) {
                 throw new IllegalStateException("模型回答生成失败，请检查 DeepSeek Key、模型权限和网络连接");
             }
             return agent.getFinalAnswer() == null ? transcript : agent.getFinalAnswer();
         }
+        if(evaluationPolicy.active())throw new IllegalStateException("评测模式需要已配置的ChatModel，不使用旧问答回退");
         if (gameApp != null) {
             return gameApp.doChat(prompt, run.conversationId());
         }
@@ -147,12 +170,19 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
 
     private String generateAnswer(String groundedPrompt, AgentRunContext context) {
         AgentRun run = context.run();
+        groundedPrompt = context.constraints().applyTo(groundedPrompt);
         if (chatModel != null && allTools.length > 0) {
+            var budget=new com.vio.vioaiagent.observability.ModelContextBudget(contextBudgetProperties,context.history(),context.modelUsage());
             VioManus agent = new VioManus(allTools, mcpToolProvider,
-                    new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage()));
+                    new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage(),budget));
             agent.setToolExecutionGateway(toolExecutionGateway);
+            agent.setCurrentUserRequest(run.prompt());
+            agent.setGuideGameReleaseId(run.gameReleaseId());
+            agent.setResponseStyle(context.constraints().responseStyle());
             agent.setMessageList(new java.util.ArrayList<>(context.history()));
             String transcript = agent.run(groundedPrompt);
+            budget.throwIfBlocked();
+            context.modelUsage().checkTaskBudget();
             return agent.getFinalAnswer() == null ? transcript : agent.getFinalAnswer();
         }
         if (gameApp != null) {

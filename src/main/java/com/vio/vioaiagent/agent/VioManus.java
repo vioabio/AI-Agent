@@ -36,7 +36,7 @@ import org.springframework.ai.tool.ToolCallbackProvider;
 public class VioManus extends ToolCallAgent {
 
     /** Runtime diagnostics use the same prompt identity as the executing agent. */
-    public static final String PROMPT_VERSION = "campus-s3-provenance-v2";
+    public static final String PROMPT_VERSION = "campus-s4-intent-v2";
 
     /**
      * 系统提示词 — 定义智能体的角色和能力
@@ -52,6 +52,9 @@ public class VioManus extends ToolCallAgent {
             must answer the actual question, not narrate planning or promise a later answer.
             Do not print raw JSON, checksums, internal IDs or version keys in prose.
             Use readable Pokémon names and short source names; retain useful battle numbers.
+            Use the current user request as the task boundary. Saved preferences, examples and history
+            provide background conditions; they do not start additional tasks. Honor explicit brevity
+            and format requests, and keep a greeting focused on the greeting.
 
             Key capabilities:
             - **Web Search**: Search the internet for real-time information
@@ -149,7 +152,7 @@ public class VioManus extends ToolCallAgent {
         if (allTools != null && java.util.Arrays.stream(allTools).anyMatch(tool -> "calculateBattleDamage".equals(tool.getToolDefinition().name()))) {
             this.setDamageAnswerEvidence(new DamageAnswerEvidence());
         }
-        if (allTools != null && java.util.Arrays.stream(allTools).anyMatch(tool -> "searchPokemonGuides".equals(tool.getToolDefinition().name()))) {
+        if (allTools != null && java.util.Arrays.stream(allTools).anyMatch(tool -> java.util.Set.of("searchPokemonGuides", "lookupPokemonReference", "lookupPokemonResource", "lookupPokemonLearnset", "lookupPokemonMachine", "lookupPokemonMechanics", "checkPokemonBuild", "checkPokemonTeamBuild").contains(tool.getToolDefinition().name()))) {
             this.setGuideAnswerEvidence(new GuideAnswerEvidence());
         }
         if (allTools != null && java.util.Arrays.stream(allTools).anyMatch(tool -> "readCurrentTeam".equals(tool.getToolDefinition().name()))) {

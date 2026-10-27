@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.HexFormat;
@@ -94,7 +95,7 @@ public class ToolExecutionGateway {
     private final BoundedToolExecutor executor;
 
     private final Map<String, RegisteredTool> registry = new ConcurrentHashMap<>();
-    private final Map<String, ToolGovernanceResult> idempotentResults = new ConcurrentHashMap<>();
+    private final Map<String, CachedToolResult> idempotentResults = new ConcurrentHashMap<>();
     /** An uncertain write cannot become safe merely because its caller or worker has returned. */
     private final Set<String> unknownEffects = ConcurrentHashMap.newKeySet();
     /**
@@ -343,7 +344,11 @@ public class ToolExecutionGateway {
 
         String parameterDigest = parameterDigest(arguments);
         String idemKey = safeContext.idempotencyKey();
-        String resultKey = idempotencyKey(toolName, safeContext, idemKey);
+        String resultKey = idempotencyKey(card, safeContext, idemKey, parameterDigest);
+        CachedToolResult cached = resultKey == null ? null : idempotentResults.get(resultKey);
+        if (cached != null && !cached.parameterDigest().equals(parameterDigest)) {
+            return rejected(toolName, "副作用幂等键已绑定其他参数", safeContext, eventId, started);
+        }
         // Resolve uncertainty before HITL can expire and create another approval request.
         // The monitor below repeats this check for callers already waiting on the same key.
         if (card.isWriteLike() && resultKey != null && unknownEffects.contains(resultKey)) {
@@ -387,13 +392,20 @@ public class ToolExecutionGateway {
                         return rejected(toolName, "副作用状态为 UNKNOWN，需人工核对后才能继续",
                                 safeContext, eventId, started);
                     }
-                    ToolGovernanceResult previous = idempotentResults.get(resultKey);
+                    CachedToolResult previous = idempotentResults.get(resultKey);
                     if (previous != null) {
+                        if (!previous.parameterDigest().equals(parameterDigest)) {
+                            return rejected(toolName, "副作用幂等键已绑定其他参数", safeContext, eventId, started);
+                        }
                         if (metrics != null) metrics.recordToolCall(true);
-                        emit(safeContext, "tool.deduplicated", toolName, eventId, Map.of());
+                        emit(safeContext, "tool.deduplicated", toolName, eventId,
+                                withResultEvidence(Map.of("status", "SUCCEEDED", "cached", true, "durationMs", elapsed(started),
+                                        "retryCount", 0, "toolVersion", card.version(), "parameterDigest", parameterDigest,
+                                        "timing",ToolAttemptTiming.bypass("CACHED_RESULT"),
+                                        "inputEvidence",ToolInputEvidence.capture(card,arguments,parameterDigest)),card,arguments,parameterDigest,previous.result().output()));
                         return new ToolGovernanceResult(ToolGovernanceResult.Status.DEDUPLICATED,
-                                toolName, previous.output(), previous.approvalId(), eventId,
-                                previous.retryCount(), elapsed(started));
+                                toolName, previous.result().output(), previous.result().approvalId(), eventId,
+                                0, elapsed(started));
                     }
                     String rateRejection = consumeTokenRate(safeContext);
                     if (rateRejection != null) {
@@ -448,7 +460,10 @@ public class ToolExecutionGateway {
                 // 跨进程重放已有终态时不再次调用外部工具；结果摘要本身不等于
                 // 原始结果，因此调用方会收到可审计的 deduplicated 标记。
                 emit(safeContext, "tool.deduplicated", toolName, eventId,
-                        Map.of("effectStatus", ledgerEntry.status().name()));
+                        Map.of("effectStatus", ledgerEntry.status().name(), "status",
+                                ledgerEntry.status() == ToolEffectStatus.FAILED ? "FAILED" : "DEDUPLICATED",
+                                "cached", false, "durationMs", elapsed(started), "toolVersion", card.version(),
+                                "parameterDigest", parameterDigest,"timing",ToolAttemptTiming.bypass("IDEMPOTENT_REPLAY")));
                 return new ToolGovernanceResult(ToolGovernanceResult.Status.DEDUPLICATED, toolName,
                         "副作用已由先前执行结算", ledgerEntry.approvalId(), eventId, 0, elapsed(started));
             }
@@ -460,24 +475,26 @@ public class ToolExecutionGateway {
         int retries = 0;
         String output = null;
         RuntimeException failure = null;
+        List<ToolAttemptTiming> timings=new ArrayList<>();
         int attempts = card.idempotent() && card.riskLevel() == ToolCapabilityCard.RiskLevel.LOW
                 ? MAX_RETRIES + 1 : 1;
         for (int attempt = 0; attempt < attempts; attempt++) {
+            var attemptTiming=new ToolAttemptTiming();timings.add(attemptTiming);
             try {
                 emit(safeContext, "tool.started", toolName, eventId,
-                        Map.of("attempt", attempt + 1));
+                        Map.of("attempt", attempt + 1,"inputEvidence",ToolInputEvidence.capture(card,arguments,parameterDigest)));
                 output = callWithTimeout(registered.callback(), toolInput, card.timeoutMs(),
-                        card, toolName, safeContext);
+                        card, toolName, safeContext,attemptTiming);
                 failure = null;
                 break;
             } catch (ToolAuthorizationException ex) {
                 // Expiry/revocation is final for this attempt. A write reserved
                 // in the effect ledger has not started its callback yet.
                 completeEffect(ledgerEntry, ToolEffectStatus.FAILED, ex.getMessage(), approvalId);
-                return rejected(toolName, ex.getMessage(), safeContext, eventId, started);
+                return rejected(toolName, ex.getMessage(), safeContext, eventId, started,observedTiming(timings));
             } catch (BoundedToolExecutor.Unavailable ex) {
                 completeEffect(ledgerEntry, ToolEffectStatus.FAILED, ex.getMessage(), approvalId);
-                return rejected(toolName, ex.getMessage(), safeContext, eventId, started);
+                return rejected(toolName, ex.getMessage(), safeContext, eventId, started,observedTiming(timings));
             } catch (BoundedToolExecutor.Stopped ex) {
                 // Cancellation is cooperative: a callback may ignore interrupt.
                 // Do not start a retry concurrently with that unconfirmed work.
@@ -502,7 +519,8 @@ public class ToolExecutionGateway {
                     "parameterDigest", parameterDigest, "status", "FAILED"));
             emit(safeContext, "tool.finished", toolName, eventId, Map.of("status", "FAILED",
                     "durationMs", duration, "retryCount", retries, "toolVersion", card.version(),
-                    "parameterDigest", parameterDigest, "approvalId", approvalId == null ? "" : approvalId));
+                    "parameterDigest", parameterDigest, "approvalId", approvalId == null ? "" : approvalId,
+                    "timing",observedTiming(timings)));
             completeEffect(ledgerEntry, effectStatus, message, approvalId);
             audit(safeContext, toolName, arguments, "error", duration);
             if (metrics != null) metrics.recordToolCall(false);
@@ -523,7 +541,7 @@ public class ToolExecutionGateway {
             emit(safeContext, "tool.finished", toolName, eventId,
                     Map.of("status", "AUDIT_FAILED", "durationMs", elapsed(started),
                             "toolVersion", card.version(), "parameterDigest", parameterDigest,
-                            "approvalId", approvalId == null ? "" : approvalId));
+                            "approvalId", approvalId == null ? "" : approvalId,"timing",observedTiming(timings)));
             completeEffect(ledgerEntry, ToolEffectStatus.UNKNOWN, safeOutput, approvalId);
             if (metrics != null) metrics.recordToolCall(false);
             return new ToolGovernanceResult(ToolGovernanceResult.Status.FAILED, toolName,
@@ -533,19 +551,46 @@ public class ToolExecutionGateway {
                 ToolGovernanceResult.Status.EXECUTED, toolName, safeOutput, null,
                 eventId, retries, duration);
         if (resultKey != null) {
-            idempotentResults.putIfAbsent(resultKey, result);
+            idempotentResults.putIfAbsent(resultKey, new CachedToolResult(result, parameterDigest));
         }
         emit(safeContext, "tool.completed", toolName, eventId,
-                Map.of("durationMs", duration, "retryCount", retries, "traceId", safeContext.traceId(),
+                withResultEvidence(Map.of("durationMs", duration, "retryCount", retries, "traceId", safeContext.traceId(),
                         "toolVersion", card.version(), "parameterDigest", parameterDigest,
-                        "approvalId", approvalId == null ? "" : approvalId, "status", "SUCCEEDED"));
+                        "approvalId", approvalId == null ? "" : approvalId, "status", "SUCCEEDED"),card,arguments,parameterDigest,safeOutput));
         emit(safeContext, "tool.finished", toolName, eventId,
-                Map.of("durationMs", duration, "retryCount", retries, "toolVersion", card.version(),
+                withResultEvidence(Map.of("durationMs", duration, "retryCount", retries, "toolVersion", card.version(),
                         "parameterDigest", parameterDigest, "approvalId", approvalId == null ? "" : approvalId,
-                        "status", "SUCCEEDED"));
+                        "status", "SUCCEEDED","timing",observedTiming(timings)),card,arguments,parameterDigest,safeOutput));
         completeEffect(ledgerEntry, ToolEffectStatus.SUCCEEDED, safeOutput, approvalId);
         if (metrics != null) metrics.recordToolCall(true);
         return result;
+    }
+
+    private Map<String,Object> withResultEvidence(Map<String,Object> attributes,ToolCapabilityCard card,Map<String,Object> arguments,String digest,String output) {
+        if("lookupPokemonMachine".equals(card.name())) {
+            var enriched=new java.util.LinkedHashMap<>(attributes);enriched.put("outputEvidence",MachineResultEvidence.capture(card,arguments,digest,output));return enriched;
+        }
+        if("checkPokemonBuild".equals(card.name())) {
+            var enriched=new java.util.LinkedHashMap<>(attributes);enriched.put("outputEvidence",BuildCheckResultEvidence.capture(card,arguments,digest,output));return enriched;
+        }
+        if("checkPokemonTeamBuild".equals(card.name())) {
+            var enriched=new java.util.LinkedHashMap<>(attributes);enriched.put("outputEvidence",TeamBuildResultEvidence.capture(card,arguments,digest,output));return enriched;
+        }
+        if("lookupPokemonMechanics".equals(card.name())) {
+            var enriched=new java.util.LinkedHashMap<>(attributes);enriched.put("outputEvidence",MechanicResultEvidence.capture(card,arguments,digest,output));return enriched;
+        }
+        if("lookupPokemonLearnset".equals(card.name())) {
+            var enriched=new java.util.LinkedHashMap<>(attributes);enriched.put("outputEvidence",LearnsetResultEvidence.capture(card,arguments,digest,output));return enriched;
+        }
+        if(!"calculateBattleDamage".equals(card.name()))return attributes;
+        var enriched=new java.util.LinkedHashMap<>(attributes);enriched.put("outputEvidence",DamageResultEvidence.capture(card,arguments,digest,output));return enriched;
+    }
+    private Map<String,Object> observedTiming(List<ToolAttemptTiming> attempts) {
+        var snapshot=ToolAttemptTiming.summarize(attempts);
+        if(metrics!=null)for(var attempt:attempts) {
+            try {metrics.recordToolAttemptTiming(attempt.freeze());}catch(RuntimeException ignored){ /* Optional meters do not affect tool decisions. */ }
+        }
+        return snapshot;
     }
 
     private void rememberUnknownEffect(ToolCapabilityCard card, String resultKey) {
@@ -1021,7 +1066,7 @@ public class ToolExecutionGateway {
 
     private String callWithTimeout(ToolCallback callback, String input, long timeoutMs,
                                    ToolCapabilityCard card, String toolName,
-                                   ToolExecutionContext context) {
+                                   ToolExecutionContext context,ToolAttemptTiming timing) {
         return executor.call(() -> {
             // This runs in the executor immediately before every real callback,
             // including retries. Caller-side authorization can expire while a
@@ -1041,7 +1086,7 @@ public class ToolExecutionGateway {
                 if (previous == null) ToolExecutionContextHolder.clear();
                 else ToolExecutionContextHolder.set(previous);
             }
-        }, timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT_MS);
+        }, timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT_MS,timing);
     }
 
     private static final class ToolAuthorizationException extends SecurityException {
@@ -1058,8 +1103,14 @@ public class ToolExecutionGateway {
     private ToolGovernanceResult rejected(String toolName, String reason,
                                           ToolExecutionContext context, String eventId,
                                           Instant started) {
+        return rejected(toolName,reason,context,eventId,started,null);
+    }
+    private ToolGovernanceResult rejected(String toolName,String reason,ToolExecutionContext context,String eventId,
+                                          Instant started,Map<String,Object> timing) {
         String message = reason == null || reason.isBlank() ? "安全策略拒绝" : reason;
-        emit(context, "tool.rejected", toolName, eventId, Map.of("reason", message));
+        var payload=new java.util.LinkedHashMap<String,Object>();payload.put("reason",message);
+        if(timing!=null)payload.put("timing",timing);
+        emit(context, "tool.rejected", toolName, eventId,payload);
         audit(context, toolName, Map.of(), "deny", elapsed(started));
         if (metrics != null) metrics.recordToolCall(false);
         return new ToolGovernanceResult(ToolGovernanceResult.Status.REJECTED,
@@ -1114,11 +1165,15 @@ public class ToolExecutionGateway {
                 "$1$2" + ParameterMasker.REDACTED);
     }
 
-    private String idempotencyKey(String toolName, ToolExecutionContext context, String key) {
+    private String idempotencyKey(ToolCapabilityCard card, ToolExecutionContext context, String key, String parameters) {
         if (key == null || key.isBlank()) {
             return null;
         }
-        return context.userId() + ":" + context.runId() + ":" + toolName + ":" + key;
+        // Reads with different arguments are different queries. Writes keep one logical
+        // key and reject a parameter change rather than allowing a second side effect.
+        return parameterDigest(Map.of("user", context.userId(), "tenant", Objects.toString(context.tenantId(), ""),
+                "run", context.runId(), "tool", card.name(), "version", card.version(), "key", key,
+                "parameters", card.isWriteLike() ? "WRITE_PARAMETER_BINDING" : parameters));
     }
 
     private long elapsed(Instant started) {
@@ -1131,6 +1186,9 @@ public class ToolExecutionGateway {
     }
 
     private record RegisteredTool(ToolCallback callback, ToolCapabilityCard card) {
+    }
+
+    private record CachedToolResult(ToolGovernanceResult result, String parameterDigest) {
     }
 
     /** Mutable only inside the per-key CHM compute callback. */

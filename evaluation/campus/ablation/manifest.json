@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "campus-tool-ablation-plan-v1",
+  "datasetId": "campus-tool-ablation-dev-v1",
+  "split": "development-only",
+  "labelOrigin": "AI-assisted project-source questions; independent human semantic acceptance pending",
+  "corpusFile": "src/main/resources/pokemon-guides/expanded-v1.json",
+  "corpusSha256": "b0a1204403f6aaf610543399afdb11c4b37bc9614ce376c47befa843319b8b8f",
+  "modes": ["MODEL_ONLY", "GUIDES_ONLY", "READ_ONLY_TOOLS"],
+  "versions": {"gameReleaseId":"pokemon-scarlet-violet","battleFormat":"casual-singles","rulesetVersionId":"casual-v1","language":"zh-CN","dataReleaseId":"pokeapi-reference-v1"},
+  "cases": [
+    {
+      "id": "ABLATION-DEFAULTS",
+      "prompt": "请说明本项目图鉴种族值与50级实际能力的区别，以及没有填写等级、性格、努力值和个体值时采用的默认值；找不到本地来源时说明，不要编造。",
+      "relevantDocumentIds": ["build-values-and-defaults-v1"],
+      "semanticCriteria": ["种族值不能冒充50级实际能力", "引用项目默认值需有实际来源，缺来源时承认未知", "默认值不代表用户主动选择或最优培养"]
+    },
+    {
+      "id": "ABLATION-CONFIRMATION",
+      "prompt": "请说明本项目队伍修改预览、用户确认与实际保存的关系，用户取消或同时编辑时应如何处理；找不到本地来源时说明，不要编造。这里只解释流程，不要读取或修改任何队伍。",
+      "relevantDocumentIds": ["team-change-confirmation-v1"],
+      "semanticCriteria": ["预览和口头同意不能冒充实际落库", "取消或并发变化不能覆盖新配置", "成功后需要回读核对，不能声称跨重启自动续跑"]
+    }
+  ]
+}

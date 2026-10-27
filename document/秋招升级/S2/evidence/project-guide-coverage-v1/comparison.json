@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "tool-ablation-comparison-v1",
+  "denominator": 6,
+  "rows": [
+    {
+      "mode": "MODEL_ONLY",
+      "caseId": "ABLATION-DEFAULTS",
+      "completed": true,
+      "toolBoundary": true,
+      "modelCalls": 2,
+      "elapsedMs": 14255,
+      "tokens": {
+        "inputTokens": 2428,
+        "outputTokens": 561,
+        "totalTokens": 2989
+      },
+      "cost": "UNKNOWN_NOT_BILL_RECONCILED",
+      "quotedBlocks": 0,
+      "corpusMatchedBlocks": 0,
+      "relevantDocumentExcerptPresent": false,
+      "usageMatchesHistory": true,
+      "observationHash": "07e2b2e8ed874d4bacf490bbbc416d4f8a54d4096f6f9907f637387d1620ff7b",
+      "semanticAcceptance": "PENDING_HUMAN_REVIEW"
+    },
+    {
+      "mode": "MODEL_ONLY",
+      "caseId": "ABLATION-CONFIRMATION",
+      "completed": true,
+      "toolBoundary": true,
+      "modelCalls": 2,
+      "elapsedMs": 17920,
+      "tokens": {
+        "inputTokens": 2838,
+        "outputTokens": 753,
+        "totalTokens": 3591
+      },
+      "cost": "UNKNOWN_NOT_BILL_RECONCILED",
+      "quotedBlocks": 0,
+      "corpusMatchedBlocks": 0,
+      "relevantDocumentExcerptPresent": false,
+      "usageMatchesHistory": true,
+      "observationHash": "ab43629defc38e6163a17fcebef232009a718492faed3800972d2db2a50d5519",
+      "semanticAcceptance": "PENDING_HUMAN_REVIEW"
+    },
+    {
+      "mode": "GUIDES_ONLY",
+      "caseId": "ABLATION-DEFAULTS",
+      "completed": true,
+      "toolBoundary": true,
+      "modelCalls": 1,
+      "elapsedMs": 15587,
+      "tokens": {
+        "inputTokens": 4905,
+        "outputTokens": 570,
+        "totalTokens": 5475
+      },
+      "cost": "UNKNOWN_NOT_BILL_RECONCILED",
+      "quotedBlocks": 1,
+      "corpusMatchedBlocks": 1,
+      "relevantDocumentExcerptPresent": true,
+      "usageMatchesHistory": true,
+      "observationHash": "9afa59b7d4d33e97380fe046496fce1a79b6e5deb15ef1a1cec622f3bcce3334",
+      "semanticAcceptance": "PENDING_HUMAN_REVIEW"
+    },
+    {
+      "mode": "GUIDES_ONLY",
+      "caseId": "ABLATION-CONFIRMATION",
+      "completed": true,
+      "toolBoundary": true,
+      "modelCalls": 1,
+      "elapsedMs": 10574,
+      "tokens": {
+        "inputTokens": 5068,
+        "outputTokens": 353,
+        "totalTokens": 5421
+      },
+      "cost": "UNKNOWN_NOT_BILL_RECONCILED",
+      "quotedBlocks": 1,
+      "corpusMatchedBlocks": 1,
+      "relevantDocumentExcerptPresent": true,
+      "usageMatchesHistory": true,
+      "observationHash": "64120e141b3512cf3f3c9bae633ff281fd37e2b7b83fdc3ead1e6076d699108a",
+      "semanticAcceptance": "PENDING_HUMAN_REVIEW"
+    },
+    {
+      "mode": "READ_ONLY_TOOLS",
+      "caseId": "ABLATION-DEFAULTS",
+      "completed": true,
+      "toolBoundary": true,
+      "modelCalls": 1,
+      "elapsedMs": 13544,
+      "tokens": {
+        "inputTokens": 6867,
+        "outputTokens": 519,
+        "totalTokens": 7386
+      },
+      "cost": "UNKNOWN_NOT_BILL_RECONCILED",
+      "quotedBlocks": 1,
+      "corpusMatchedBlocks": 1,
+      "relevantDocumentExcerptPresent": true,
+      "usageMatchesHistory": true,
+      "observationHash": "5341638a47758952d22d1b53473495ea00875eaab8a47d81dcc499469041d1ac",
+      "semanticAcceptance": "PENDING_HUMAN_REVIEW"
+    },
+    {
+      "mode": "READ_ONLY_TOOLS",
+      "caseId": "ABLATION-CONFIRMATION",
+      "completed": true,
+      "toolBoundary": true,
+      "modelCalls": 1,
+      "elapsedMs": 11645,
+      "tokens": {
+        "inputTokens": 7030,
+        "outputTokens": 453,
+        "totalTokens": 7483
+      },
+      "cost": "UNKNOWN_NOT_BILL_RECONCILED",
+      "quotedBlocks": 1,
+      "corpusMatchedBlocks": 1,
+      "relevantDocumentExcerptPresent": true,
+      "usageMatchesHistory": true,
+      "observationHash": "ea063ab84350a24e2e9d545768fedffc3fab44a289611d1b65f99bf3fc841318",
+      "semanticAcceptance": "PENDING_HUMAN_REVIEW"
+    }
+  ],
+  "engineeringPass": 6,
+  "scope": "Same configured model and prompts, differing tool availability and program evidence guards; literal corpus matching is not citation relevance, semantic quality, causal RAG gain or heldout acceptance",
+  "inputSha256": [
+    "8aab3011331443a556db9a6c6ab5cd579205ddb187d3950efcc8ec02a235c268",
+    "c9eeb6beec5f87b20d30d478c6c79cae2a393144be368e9676a7209f4c65739a",
+    "69cd2bae452b1384b8b7936fd2f923dc48ca3818db019bd0475e4b9dd800532c"
+  ]
+}

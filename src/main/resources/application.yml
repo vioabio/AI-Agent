@@ -203,6 +203,22 @@ vio:
   # ==================== 编排配置 ====================
   # v1.1 Run 耐久化（默认安全关闭，完成 N2 现场验收后再开启）
   run:
+    # Explicit local quote catalog only. Missing prices or partitions remain unknown; never an invoice.
+    pricing:
+      enabled: ${VIO_PRICING_ENABLED:false}
+      catalog-path: ${VIO_PRICING_CATALOG_PATH:}
+      scope: ${VIO_PRICING_SCOPE:}
+    # Per-Run admission across approval attempts; conservative token accounting, not billing.
+    task-budget:
+      max-model-calls: ${VIO_TASK_MAX_MODEL_CALLS:16}
+      token-limit: ${VIO_TASK_TOKEN_LIMIT:131072}
+    # Application budget in local proxy tokens; not a provider context-window or billing claim.
+    context-budget:
+      context-tokens: ${VIO_CONTEXT_TOKENS:32768}
+      output-tokens: ${VIO_OUTPUT_TOKENS:2048}
+      history-tokens: ${VIO_HISTORY_TOKENS:4096}
+      history-turns: ${VIO_HISTORY_TURNS:8}
+      safety-percent: ${VIO_TOKEN_SAFETY_PERCENT:125}
     admission:
       # 单实例准入：排队、运行、WAITING_APPROVAL 共用配额；集群限额需另行实现。
       thread-count: ${VIO_RUN_THREAD_COUNT:8}
@@ -284,7 +300,7 @@ vio:
     node: ${VIO_DAMAGE_NODE:node}
   local-guides:
     enabled: ${VIO_LOCAL_GUIDES_ENABLED:true}
-    location: ${VIO_LOCAL_GUIDES_LOCATION:classpath:pokemon-guides/expanded-v1.json}
+    location: ${VIO_LOCAL_GUIDES_LOCATION:classpath:pokemon-strategy/overview-v1.json}
     path: ${VIO_LOCAL_GUIDES_PATH:${user.dir}/.local-data/guides.sqlite}
   local-accounts:
     enabled: ${VIO_LOCAL_ACCOUNTS_ENABLED:true}

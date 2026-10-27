@@ -40,6 +40,9 @@ export function useRunStream() {
   function clearRunResume(conversationId, runId) { deleteRunResume(conversationId, runId, { epoch: persistenceEpoch }) }
   const runs = reactive(new Map())
   const controllers = new Map()
+  // Page-local monotonic clocks; never restore these from server data or localStorage.
+  const clientStarts = new Map()
+  const monotonicNow = () => typeof globalThis.performance?.now === 'function' ? globalThis.performance.now() : null
   const conversationRuns = new Map()
   // createRun 的网络请求返回前还没有 runId，单靠 conversationRuns 无法
   // 阻止同一会话的第二个 POST 穿过检查。预占集合覆盖这个窗口，并在
@@ -97,6 +100,7 @@ export function useRunStream() {
     }
 
     pendingConversations.add(conversationId)
+    const clientStarted = monotonicNow()
     try {
       const created = await createRun(payload, {
         ...options,
@@ -118,6 +122,7 @@ export function useRunStream() {
         throw abortError()
       }
       runs.set(runId, model)
+      if (clientStarted !== null) clientStarts.set(runId, clientStarted)
       conversationRuns.set(conversationId, runId)
       saveRunResume(model)
       // 流式消费异步运行；调用方立即拿到可响应的 RunViewModel。
@@ -302,8 +307,14 @@ export function useRunStream() {
   function applyEvent(model, event) {
     if (!isCurrentModel(model)) return
     const next = reduceRunEvent(model, event)
+    if (!model.clientTiming && clientStarts.has(model.runId) && next.answer !== model.answer && next.answer?.trim()) {
+      const now = monotonicNow()
+      if (now !== null) next.clientTiming = { schemaVersion: 'client-response-timing-v1', source: 'BROWSER_OBSERVED',
+        firstAnswerReceivedMs: Math.max(0, Math.floor(now - clientStarts.get(model.runId))) }
+    }
     Object.assign(model, next)
     if (TERMINAL_STATUSES.has(model.status)) {
+      clientStarts.delete(model.runId)
       if (conversationRuns.get(model.conversationId) === model.runId) {
         conversationRuns.delete(model.conversationId)
         clearRunResume(model.conversationId, model.runId)
@@ -495,6 +506,7 @@ export function useRunStream() {
   }
 
   function dispose(runId) {
+    clientStarts.delete(runId)
     controllers.get(runId)?.abort()
     const model = runs.get(runId)
     if (model && conversationRuns.get(model.conversationId) === model.runId) {
@@ -521,6 +533,7 @@ export function useRunStream() {
     lifecycleController?.abort()
     for (const controller of controllers.values()) controller.abort()
     controllers.clear()
+    clientStarts.clear()
     pendingConversations.clear()
   }
 

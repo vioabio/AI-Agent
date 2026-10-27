@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "independent-mechanics-development-plan-v1",
+  "createdAt": "2026-10-27",
+  "repetitions": 2,
+  "scope": "Four newly authored development scenarios, not formal S2 admissions, official game correctness or human review",
+  "catalogSha256": "a5939e1b1886a54146226293551c9b32ce8e9a984873e9532cf78f32748961a9",
+  "sourceCommit": "8f9ab4949d0bf64d5a5ac985a298d1313f2b9a29",
+  "cases": [
+    {
+      "id": "MECHANIC-01",
+      "kind": "ability",
+      "slug": "torrent",
+      "prompt": "请查询激流（torrent）在朱／紫中的详细机制：触发门槛和增强的是哪项数值？不要把它说成所有伤害固定翻倍。",
+      "expectedProjectionSha256": "sha256:9010bff762ca5058962706709567b9b188e2baa52975daa3c9799657d28ed519"
+    },
+    {
+      "id": "MECHANIC-02",
+      "kind": "ability",
+      "slug": "snow-cloak",
+      "prompt": "朱／紫雪隐（snow-cloak）的详细机制是什么？请核对天气条件和命中修正。",
+      "expectedProjectionSha256": "sha256:584dc56c66bcf2a02a4727f3906e270017903dd04b41bf85c13aba90e2209923"
+    },
+    {
+      "id": "MECHANIC-03",
+      "kind": "ability",
+      "slug": "cursed-body",
+      "prompt": "诅咒之躯（cursed-body）的触发概率与已有招式被定身时的限制是什么？未提供的持续回合数请明确缺失。",
+      "expectedProjectionSha256": "sha256:4ae49c1547c1d314f3caf5b05e09bd4ba4d29db3941882b9e73a52bbbcbde3f7"
+    },
+    {
+      "id": "MECHANIC-04",
+      "kind": "move",
+      "slug": "ice-beam",
+      "prompt": "请查询冰冻光束（ice-beam）追加冰冻的触发概率，区分概率描述和对所有目标都适用的保证。",
+      "expectedProjectionSha256": "sha256:4b81befe67ade493799095e84db38c33cfc16706698ebddfb8d1f10b943b527e"
+    }
+  ],
+  "formalAdmissions": 0,
+  "humanAcceptance": "PENDING"
+}

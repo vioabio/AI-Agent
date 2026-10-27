@@ -9,6 +9,8 @@ import java.util.Map;
 @ConditionalOnProperty(name="vio.pokemon.reference.enabled", havingValue="true")
 public class PokemonReferenceController {
     private final LocalPokeApiRepository repository;
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private LocalResourceReferences resources;
     public PokemonReferenceController(LocalPokeApiRepository repository) { this.repository=repository; }
     @ExceptionHandler(IllegalArgumentException.class)
     public org.springframework.http.ResponseEntity<com.vio.vioaiagent.common.Result<Void>> invalidInput(IllegalArgumentException error) {
@@ -23,6 +25,7 @@ public class PokemonReferenceController {
         return repository.detail(query, dataReleaseId);
     }
     @GetMapping("/resources/{kind}/{slug}") public Map<String,Object> resource(@PathVariable String kind, @PathVariable String slug, @RequestParam String dataReleaseId) {
+        if(resources!=null&&java.util.Set.of("ability","move","nature").contains(kind))return resources.read(kind,slug,dataReleaseId);
         return repository.resource(kind,slug,dataReleaseId);
     }
 }

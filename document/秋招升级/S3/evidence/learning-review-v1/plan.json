@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "learning-review-development-plan-v1",
+  "date": "2026-10-27",
+  "repetitions": 2,
+  "scope": "Same recorded learning rows rendered in model answer and form; no learning-operation or joint legality verdict",
+  "cases": [
+    {
+      "id": "LEARNING-01",
+      "request": {
+        "pokemonId": 7,
+        "dataReleaseId": "pokeapi-reference-v1",
+        "gameReleaseId": "pokemon-scarlet-violet",
+        "build": {
+          "moves": [
+            "water-gun",
+            "hydro-pump",
+            "aqua-jet",
+            "ice-beam"
+          ],
+          "ability": "torrent",
+          "item": "",
+          "nature": "modest",
+          "level": 5,
+          "evs": {
+            "hp": 0,
+            "atk": 0,
+            "def": 0,
+            "spa": 252,
+            "spd": 4,
+            "spe": 252
+          },
+          "ivs": {
+            "hp": 31,
+            "atk": 31,
+            "def": 31,
+            "spa": 31,
+            "spd": 31,
+            "spe": 31
+          }
+        }
+      },
+      "expected": [
+        "记录等级 3；不高于配置等级 5",
+        "记录等级 33；高于配置等级 5",
+        "招式学习器：快照记录此途径",
+        "蛋招式：快照记录此类别"
+      ],
+      "prompt": "请检查下列杰尼龟配招并展示逐招朱紫学习记录和配置等级提示。只使用原配置，不自动补填、修改或保存队伍；学习记录不证明四招共同可得，非升级记录的0不能解释为0级学习。\n{\"pokemonId\":7,\"dataReleaseId\":\"pokeapi-reference-v1\",\"gameReleaseId\":\"pokemon-scarlet-violet\",\"build\":{\"moves\":[\"water-gun\",\"hydro-pump\",\"aqua-jet\",\"ice-beam\"],\"ability\":\"torrent\",\"item\":\"\",\"nature\":\"modest\",\"level\":5,\"evs\":{\"hp\":0,\"atk\":0,\"def\":0,\"spa\":252,\"spd\":4,\"spe\":252},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}}",
+      "expectedStatus": "REFERENCE_MATCHED",
+      "expectedAbility": "MATCHED",
+      "expectedRows": [
+        "RECORDED",
+        "RECORDED",
+        "RECORDED",
+        "RECORDED"
+      ]
+    },
+    {
+      "id": "LEARNING-02",
+      "request": {
+        "pokemonId": 7,
+        "dataReleaseId": "pokeapi-reference-v1",
+        "gameReleaseId": "pokemon-scarlet-violet",
+        "build": {
+          "moves": [
+            "water-gun",
+            "hydro-pump",
+            "aqua-jet",
+            "ice-beam"
+          ],
+          "ability": "torrent",
+          "item": "",
+          "nature": "modest",
+          "level": null,
+          "evs": {
+            "hp": 0,
+            "atk": 0,
+            "def": 0,
+            "spa": 252,
+            "spd": 4,
+            "spe": 252
+          },
+          "ivs": {
+            "hp": 31,
+            "atk": 31,
+            "def": 31,
+            "spa": 31,
+            "spd": 31,
+            "spe": 31
+          }
+        }
+      },
+      "expected": [
+        "未提供有效配置等级，暂不比较",
+        "招式学习器：快照记录此途径",
+        "蛋招式：快照记录此类别"
+      ],
+      "prompt": "请检查下列杰尼龟配招并展示逐招朱紫学习记录和配置等级提示。只使用原配置，不自动补填、修改或保存队伍；学习记录不证明四招共同可得，非升级记录的0不能解释为0级学习。\n{\"pokemonId\":7,\"dataReleaseId\":\"pokeapi-reference-v1\",\"gameReleaseId\":\"pokemon-scarlet-violet\",\"build\":{\"moves\":[\"water-gun\",\"hydro-pump\",\"aqua-jet\",\"ice-beam\"],\"ability\":\"torrent\",\"item\":\"\",\"nature\":\"modest\",\"level\":null,\"evs\":{\"hp\":0,\"atk\":0,\"def\":0,\"spa\":252,\"spd\":4,\"spe\":252},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}}",
+      "expectedStatus": "INCOMPLETE",
+      "expectedAbility": "MATCHED",
+      "expectedRows": [
+        "RECORDED",
+        "RECORDED",
+        "RECORDED",
+        "RECORDED"
+      ]
+    }
+  ],
+  "humanAcceptance": "PENDING",
+  "formalAdmissions": 0,
+  "sourceBundleManifestSha256": "46e8d9080f671d371b5ae31584b8cca5e548542bfc9bf7f5ae18fe8e3caf5a72",
+  "sourceFileSha256": "d50d5c06cad4b935e80ac7aaabaab11976a4467c1dadc85477ed3af979c8da7d"
+}

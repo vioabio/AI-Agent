@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "project-guide-before-after-v1",
+  "scope": "Individual development observations across changed implementations; not causal gain, accuracy or heldout acceptance",
+  "oldComparisonSha256": "7bd7ebf61587b777e0469689a1b0e8ce4e7d18c4bd62297739decdf6df77ba2c",
+  "newComparisonSha256": "4e09b4a02fafd962755c870bc8d684368a2ce9988e4adb423a4d84a09bcb1c1c",
+  "rows": [
+    {
+      "mode": "MODEL_ONLY",
+      "caseId": "ABLATION-DEFAULTS",
+      "beforeTargetSourcePresent": false,
+      "afterTargetSourcePresent": false,
+      "beforeModelCalls": 2,
+      "afterModelCalls": 2,
+      "afterProgramSelections": 0
+    },
+    {
+      "mode": "MODEL_ONLY",
+      "caseId": "ABLATION-CONFIRMATION",
+      "beforeTargetSourcePresent": false,
+      "afterTargetSourcePresent": false,
+      "beforeModelCalls": 2,
+      "afterModelCalls": 2,
+      "afterProgramSelections": 0
+    },
+    {
+      "mode": "GUIDES_ONLY",
+      "caseId": "ABLATION-DEFAULTS",
+      "beforeTargetSourcePresent": true,
+      "afterTargetSourcePresent": true,
+      "beforeModelCalls": 2,
+      "afterModelCalls": 1,
+      "afterProgramSelections": 1
+    },
+    {
+      "mode": "GUIDES_ONLY",
+      "caseId": "ABLATION-CONFIRMATION",
+      "beforeTargetSourcePresent": false,
+      "afterTargetSourcePresent": true,
+      "beforeModelCalls": 2,
+      "afterModelCalls": 1,
+      "afterProgramSelections": 1
+    },
+    {
+      "mode": "READ_ONLY_TOOLS",
+      "caseId": "ABLATION-DEFAULTS",
+      "beforeTargetSourcePresent": true,
+      "afterTargetSourcePresent": true,
+      "beforeModelCalls": 2,
+      "afterModelCalls": 1,
+      "afterProgramSelections": 1
+    },
+    {
+      "mode": "READ_ONLY_TOOLS",
+      "caseId": "ABLATION-CONFIRMATION",
+      "beforeTargetSourcePresent": false,
+      "afterTargetSourcePresent": true,
+      "beforeModelCalls": 2,
+      "afterModelCalls": 1,
+      "afterProgramSelections": 1
+    }
+  ]
+}

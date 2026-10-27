@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -102,6 +103,16 @@ public class PokemonAgentRunService {
     /** 当前进程正在执行的聚合快照；避免超时/取消从 JDBC 重新加载出另一份对象。 */
     private final ConcurrentMap<String, AgentRun> activeRuns = new ConcurrentHashMap<>();
     private final ConcurrentMap<String,com.vio.vioaiagent.observability.ModelUsageLedger> modelUsageByRun=new ConcurrentHashMap<>();
+    private final ConcurrentMap<String,com.vio.vioaiagent.observability.TaskModelBudget> taskBudgets=new ConcurrentHashMap<>();
+    private com.vio.vioaiagent.observability.ModelPriceCatalog modelPrices=com.vio.vioaiagent.observability.ModelPriceCatalog.disabled();
+    @Autowired(required=false)
+    public void setModelPriceCatalog(com.vio.vioaiagent.observability.ModelPriceCatalog prices){this.modelPrices=Objects.requireNonNull(prices);}
+    private com.vio.vioaiagent.config.TaskBudgetProperties taskBudgetProperties=com.vio.vioaiagent.config.TaskBudgetProperties.defaults();
+    @Autowired(required=false)
+    public void setTaskBudgetProperties(com.vio.vioaiagent.config.TaskBudgetProperties properties){this.taskBudgetProperties=Objects.requireNonNull(properties);}
+    private com.vio.vioaiagent.config.ContextBudgetProperties contextBudgetProperties=com.vio.vioaiagent.config.ContextBudgetProperties.defaults();
+    @Autowired(required=false)
+    public void setContextBudgetProperties(com.vio.vioaiagent.config.ContextBudgetProperties properties){this.contextBudgetProperties=Objects.requireNonNull(properties);}
     /** 仅保存当前进程活跃 Run 的令牌绑定引用；密钥不会写入 Run/事件数据库。 */
     private final ConcurrentMap<String, TokenBinding> tokenBindings = new ConcurrentHashMap<>();
     /** OIDC 主体/租户/角色/工具的短期不可变快照；不保存 JWT 或 Secret。 */
@@ -391,6 +402,8 @@ public class PokemonAgentRunService {
                     }
                 }
                 String conversationId = ensureConversation(command);
+                var constraints = conversationRepository.constraintsForUser(conversationId, command.userId())
+                        .orElseGet(ConversationConstraints::defaults);
                 String runId = "run-" + UUID.randomUUID();
                 String sessionId = valueOrUuid(command.sessionId());
                 String traceId = valueOrUuid(command.traceId());
@@ -412,6 +425,7 @@ public class PokemonAgentRunService {
                     throw conflict;
                 }
                 admitted = run;
+                taskBudgets.put(run.id(),new com.vio.vioaiagent.observability.TaskModelBudget(taskBudgetProperties));
                 reservations.put(run.id(), permit);
                 PrincipalPolicy policy = RequestContext.getPrincipalPolicy();
                 if (policy != null) principalPolicies.put(run.id(), policy);
@@ -428,11 +442,13 @@ public class PokemonAgentRunService {
                 // 先冻结授权快照再生成 checkpoint/event。只持久化 tenant、角色、
                 // 版本、过期时间和 SHA-256 fingerprint；JWT/Secret/原始 binding token
                 // 不进入 Run、事件或 checkpoint。
+                Map<String,Object> userMetadata = new LinkedHashMap<>(lineagePayload(run));
+                userMetadata.put("conversationConstraints", constraints.snapshot());
+                messageRepository.save(new ChatMessage("message-" + UUID.randomUUID(), conversationId, runId,
+                        command.userId(), "user", command.prompt(), Instant.now(), userMetadata));
                 saveCheckpoint(run, 0, "dispatch", null);
                 activeRuns.put(run.id(), run);
                 emit(run, AgentEventType.RUN_CREATED, runCreatedPayload(run, policy));
-                messageRepository.save(new ChatMessage("message-" + UUID.randomUUID(), conversationId, runId,
-                        command.userId(), "user", command.prompt(), Instant.now(), lineagePayload(run)));
                 RunView view = RunView.from(run);
                 // Submit before finalizing the idempotency response.  If the
                 // idempotency store is temporarily unavailable, a persisted Run
@@ -632,6 +648,33 @@ public class PokemonAgentRunService {
         return messageRepository.findByConversationForUser(conversationId, userId);
     }
 
+    public ConversationConstraints conversationConstraints(String id, String userId) {
+        requireConversation(id, userId);
+        return conversationRepository.constraintsForUser(id, userId).orElseGet(ConversationConstraints::defaults);
+    }
+
+    public ConversationConstraints saveConversationConstraints(String id, String userId, ConversationConstraints expected) {
+        if (id == null || !id.matches("[A-Za-z0-9._:-]{1,64}") || expected == null) throw new IllegalArgumentException("对话偏好请求无效");
+        synchronized (idempotencyLock) {
+            if (conversationRepository.findByIdForUser(id, userId).isEmpty()) {
+                if (conversationRepository.findById(id).isPresent()) throw new RunNotFoundException(id);
+                if (expected.revision() != 0) throw new RunConflictException(id, expected.revision());
+                conversationRepository.save(new Conversation(id, userId, "宝可梦训练家会话", Instant.now(), Instant.now()));
+                requireConversation(id, userId);
+            }
+            if (!conversationRepository.replaceConstraintsForUser(id, userId, expected)) throw new RunConflictException(id, expected.revision());
+            return expected.next();
+        }
+    }
+
+    private ConversationConstraints constraintsForRun(AgentRun run) {
+        var messages = messageRepository.findByConversationForUser(run.conversationId(), run.userId()).stream()
+                .filter(m -> run.id().equals(m.runId()) && "user".equals(m.role())).toList();
+        if (messages.size() > 1) throw new IllegalStateException("任务存在冲突的用户偏好快照");
+        if (messages.isEmpty() || !messages.getFirst().metadata().containsKey("conversationConstraints")) return ConversationConstraints.defaults();
+        return ConversationConstraints.fromSnapshot(messages.getFirst().metadata().get("conversationConstraints"));
+    }
+
     public void deleteConversation(String conversationId, String userId) {
         // 与 createRun 共用同一把进程内锁，避免删除和新建 Run 交错，导致
         // 新 Run 在会话删除后又残留在 activeRuns 中。
@@ -731,6 +774,7 @@ public class PokemonAgentRunService {
     private final class ManagedRunTask extends FutureTask<Void> {
         private final AgentRun run;
         private final long queuedAtNanos = System.nanoTime();
+        private volatile long workerEnteredAtNanos;
         private boolean queueExpiredAtStart;
         private volatile boolean ownershipLost;
         /** Bound by execute() to the physical lease owned by this task. */
@@ -755,6 +799,7 @@ public class PokemonAgentRunService {
             }
         }
         @Override public void run() {
+            workerEnteredAtNanos=System.nanoTime();
             synchronized (run) {
                 synchronized (this) { entered = true; }
                 queueExpiredAtStart = System.nanoTime() - queuedAtNanos
@@ -789,6 +834,8 @@ public class PokemonAgentRunService {
         synchronized (run) {
             if (tasks.containsKey(run.id())) return; // A canceled running callback may still be physically executing.
             activeRuns.remove(run.id());
+            var taskBudget=taskBudgets.remove(run.id());
+            if(taskBudget!=null)taskBudget.close();
             tokenBindings.remove(run.id());
             principalPolicies.remove(run.id());
             cancelTimer(deadlineTasks, run.id());
@@ -925,7 +972,9 @@ public class PokemonAgentRunService {
 
     private void execute(AgentRun run, FutureTask<Void> ownerTask) {
         Instant startedAt = Instant.now();
-        var modelUsage=new com.vio.vioaiagent.observability.ModelUsageLedger();
+        var modelUsage=new com.vio.vioaiagent.observability.ModelUsageLedger(taskBudgets.computeIfAbsent(run.id(),
+                ignored->com.vio.vioaiagent.observability.TaskModelBudget.unavailable(taskBudgetProperties)),modelPrices);
+        if(ownerTask instanceof ManagedRunTask managed)modelUsage.responseTiming(new com.vio.vioaiagent.observability.RunAttemptTiming(managed.queuedAtNanos,managed.workerEnteredAtNanos));
         boolean metricsActive = false;
         ExecutionLease lease = new ExecutionLease(run.id(), ownerTask);
         if (ownerTask instanceof ManagedRunTask task) task.bindExecutionLease(lease);
@@ -982,11 +1031,8 @@ public class PokemonAgentRunService {
             });
             AnswerExecution execution = executeAnswer(run,modelUsage);
             saveCheckpoint(run, 1, "commit-answer", lease.owner);
-            // 当前 RunExecutor 以完整答案字符串返回；将答案首次可用时间记录为
-            // TTFT 近似值，待真正 token streaming executor 接入后再替换为首 token 时间。
-            if (metrics != null && !execution.streamed()) {
-                metrics.recordTimeToFirstToken(Duration.between(startedAt, Instant.now()).toMillis());
-            }
+            if(!execution.streamed() && run.status()!=AgentRunStatus.WAITING_APPROVAL
+                    && execution.answer()!=null && !execution.answer().isBlank())recordAnswerReady(modelUsage,"BUFFERED");
             if (run.status().isTerminal() || run.status() == AgentRunStatus.WAITING_APPROVAL) return;
             // Lineage may call an executor extension; compute it before opening a DB transaction.
             AnswerLineage lineage = execution.contract() == null
@@ -1031,6 +1077,7 @@ public class PokemonAgentRunService {
                     if (!execution.streamed()) emitLocked(run, AgentEventType.ANSWER_DELTA, answerDelta);
                     Map<String,Object> historyMetadata=new LinkedHashMap<>(lineagePayload(run));
                     historyMetadata.put("modelUsageAttempts",usageHistory(run,modelUsage));
+                    historyMetadata.put("conversationConstraints", constraintsForRun(run).snapshot());
                     messageRepository.save(new ChatMessage("message-" + UUID.randomUUID(), run.conversationId(),
                             run.id(), run.userId(), "assistant", answer, Instant.now(), historyMetadata));
                 }
@@ -1117,7 +1164,6 @@ public class PokemonAgentRunService {
         StringBuilder streamed = new StringBuilder();
         boolean allowStreaming = answerStreamingEnabled && !durableRunProperties.durableResume()
                 && executor instanceof ContractAwareRunExecutor aware && !aware.usesKnowledgeGrounding();
-        Instant generationStarted = Instant.now();
         AgentRunContext context = new AgentRunContext(run, allowStreaming ? delta -> {
             if (delta == null || delta.isEmpty()) return;
             workerWrite(run, () -> {
@@ -1127,15 +1173,12 @@ public class PokemonAgentRunService {
                 if (streamed.length() + delta.length() > 131072) {
                     throw new IllegalStateException("模型回答超过本地长度上限");
                 }
-                if (streamed.isEmpty() && metrics != null) {
-                    metrics.recordTimeToFirstToken(Duration.between(generationStarted, Instant.now()).toMillis());
-                }
+                if(!delta.isBlank())recordAnswerReady(modelUsage,"DELTA");
                 emitLocked(run, AgentEventType.ANSWER_DELTA, Map.of("text", delta));
                 streamed.append(delta);
                 return null;
             });
-        } : null, ConversationHistory.window(run,
-                messageRepository.findByConversationForUser(run.conversationId(), run.userId())), new RunMutationBoundary() {
+        } : null, historyWindow(run,modelUsage), new RunMutationBoundary() {
             public void check() {
                 ExecutionLease lease = executionLease.get();
                 if (lease == null) throw new RunLeaseLostException();
@@ -1145,7 +1188,7 @@ public class PokemonAgentRunService {
                     throw new java.util.concurrent.CancellationException("Run 已停止或超过写入期限");
             }
             public <T> T write(Supplier<T> action) { return workerWrite(run, () -> { check(); return action.get(); }); }
-        },modelUsage);
+        },modelUsage,constraintsForRun(run));
         if (!(executor instanceof ContractAwareRunExecutor contractExecutor)) {
             return new AnswerExecution(executor.execute(context), null);
         }
@@ -1577,9 +1620,27 @@ public class PokemonAgentRunService {
             payload.put("toolName", event.toolName());
             payload.put("governanceEventId", event.eventId());
             payload.putAll(event.attributes());
+            // A cache hit need not emit tool.started. Keep its terminal outcome explicit.
+            if (!payload.containsKey("status")) {
+                switch (event.eventType()) {
+                    case "tool.deduplicated" -> payload.put("status", "FAILED".equals(payload.get("effectStatus")) ? "FAILED" : "DEDUPLICATED");
+                    case "tool.rejected" -> payload.put("status", "REJECTED");
+                    case "tool.failed" -> payload.put("status", "FAILED");
+                    default -> { }
+                }
+            }
             emitLocked(run, type, payload);
+            if(type==AgentEventType.TOOL_FINISHED) {
+                var usage=modelUsageByRun.get(run.id());
+                if(usage!=null)usage.toolTiming(event.eventId(),event.toolName(),payload.get("timing"));
+            }
             return null;
         });
+    }
+
+    private void recordAnswerReady(com.vio.vioaiagent.observability.ModelUsageLedger usage,String path) {
+        Long millis=usage.answerReady(path);
+        if(millis!=null && metrics!=null)metrics.recordPublicAnswerReady(millis,path);
     }
 
     private void timeout(String runId) {
@@ -1627,7 +1688,9 @@ public class PokemonAgentRunService {
         workerWrite(run, () -> {
             if (run.status().isTerminal() || !run.fail()) return null;
             if (!saveLifecycle(run)) return null;
-            String errorType = ex instanceof RunQueueTimeoutException ? "RUN_QUEUE_TIMEOUT"
+            String errorType = ex instanceof com.vio.vioaiagent.observability.TaskBudgetExceededException taskFailure ? taskFailure.errorType()
+                    : ex instanceof com.vio.vioaiagent.observability.ContextBudgetExceededException ? "RUN_CONTEXT_BUDGET_EXCEEDED"
+                    : ex instanceof RunQueueTimeoutException ? "RUN_QUEUE_TIMEOUT"
                     : ex instanceof RunDispatchException ? "RUN_EXECUTION_UNAVAILABLE"
                     : ex instanceof RunAuthorizationExpiredException ? "RUN_AUTHORIZATION_EXPIRED"
                     : ex.getClass().getSimpleName();
@@ -1664,6 +1727,11 @@ public class PokemonAgentRunService {
     }
 
     /** Persist completed attempt snapshots with the owner-scoped answer, including pre-approval model work. */
+    private List<org.springframework.ai.chat.messages.Message> historyWindow(AgentRun run,com.vio.vioaiagent.observability.ModelUsageLedger usage) {
+        var window=ConversationHistory.select(run,messageRepository.findByConversationForUser(run.conversationId(),run.userId()),contextBudgetProperties);
+        usage.historySource(window.summary());return window.messages();
+    }
+
     private List<Map<String,Object>> usageHistory(AgentRun run,com.vio.vioaiagent.observability.ModelUsageLedger current) {
         Map<String,Map<String,Object>> attempts=new LinkedHashMap<>();
         for(var event:eventRepository.findAfter(run.id(),0)) {
@@ -1687,6 +1755,8 @@ public class PokemonAgentRunService {
         Map<String, Object> enrichedPayload = new LinkedHashMap<>(lineagePayload(run));
         if (payload != null) enrichedPayload.putAll(payload);
         if(type.isTerminal()) {
+            var taskBudget=taskBudgets.get(run.id());
+            if(taskBudget!=null)taskBudget.close();
             var usage=modelUsageByRun.get(run.id());
             if(usage!=null)enrichedPayload.put("modelUsage",usage.freeze());
         }
@@ -1877,6 +1947,10 @@ public class PokemonAgentRunService {
                 safe(run.rulesetVersionId()), safe(run.language()), safe(run.dlcId()),
                 safe(run.dataReleaseId()), safe(run.knowledgeReleaseId()), safe(run.indexReleaseId()),
                 safe(run.contractVersion()), run.prompt(), policy == null ? "" : policy.fingerprint());
+        var constraints = constraintsForRun(run);
+        if (constraints.revision() > 0) value += "|constraints:" + hashValue(String.join("\u001f",
+                "conversation-constraints-v1", Long.toString(constraints.revision()), constraints.responseStyle().name(),
+                constraints.trainingBudget().name(), Boolean.toString(constraints.avoidLegendary()), constraints.notes()));
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")
                     .digest(value.getBytes(StandardCharsets.UTF_8));
@@ -2018,6 +2092,8 @@ public class PokemonAgentRunService {
                     AgentCheckpoint saved = checkpoint.get();
                     RunRecoveryPolicy.Decision decision = recoveryDecision(run, saved);
                     if (decision.canResume()) {
+                        // dispatch is the only checkpoint that proves no model/tool work started.
+                        taskBudgets.putIfAbsent(run.id(),new com.vio.vioaiagent.observability.TaskModelBudget(taskBudgetProperties));
                         activeRuns.putIfAbsent(run.id(), run);
                         try {
                             submit(run, remainingTimeout(run));
@@ -2122,6 +2198,7 @@ public class PokemonAgentRunService {
             if (run.status() != AgentRunStatus.WAITING_APPROVAL) return false;
             try {
                 reserveRecoveredRun(run);
+                taskBudgets.putIfAbsent(run.id(),restoreWaitingTaskBudget(run));
                 activeRuns.putIfAbsent(run.id(), run);
                 hitlManager.rearmExpiry(pending);
                 armDeadline(run);
@@ -2136,6 +2213,36 @@ public class PokemonAgentRunService {
         log.info("Run 已恢复为等待审批: runId={}, approvalId={}, expiresAt={}",
                 run.id(), approvalId.get(), pending.expiresAt());
         return true;
+    }
+
+    /** A frozen usage event must follow the latest approval, otherwise remaining credit is unknown. */
+    private com.vio.vioaiagent.observability.TaskModelBudget restoreWaitingTaskBudget(AgentRun run) {
+        try {
+            long approvalEvent=0;
+            AgentEvent latestUsage=null;
+            for(var event:eventRepository.findAfter(run.id(),0)) {
+                if(event.type()==AgentEventType.APPROVAL_REQUIRED)approvalEvent=event.eventId();
+                if(event.type()==AgentEventType.USAGE)latestUsage=event;
+            }
+            if(approvalEvent>0 && latestUsage!=null && latestUsage.eventId()>approvalEvent
+                    && "model-usage-v1".equals(latestUsage.payload().get("schemaVersion"))
+                    && "INSTRUMENTED".equals(latestUsage.payload().get("coverage"))
+                    && "EXECUTION_ATTEMPT".equals(latestUsage.payload().get("scope"))
+                    && !Boolean.TRUE.equals(latestUsage.payload().get("recordsTruncated"))
+                    && latestUsage.payload().get("calls") instanceof List<?> calls
+                    && latestUsage.payload().get("modelCallCount") instanceof Number count
+                    && count.longValue()==calls.size()
+                    && calls.stream().allMatch(row->row instanceof Map<?,?> call
+                        && Set.of("RETURNED","FAILED","CANCELLED").contains(call.get("outcome")))
+                    && latestUsage.payload().get("taskBudget") instanceof Map<?,?> state
+                    && state.get("modelCalls") instanceof Number cumulative
+                    && cumulative.longValue()>=count.longValue()) {
+                return com.vio.vioaiagent.observability.TaskModelBudget.restore(state,taskBudgetProperties);
+            }
+        } catch(RuntimeException invalidSnapshot) {
+            log.warn("任务额度恢复不可核实: runId={}, errorType={}",run.id(),invalidSnapshot.getClass().getSimpleName());
+        }
+        return com.vio.vioaiagent.observability.TaskModelBudget.unavailable(taskBudgetProperties);
     }
 
     /**

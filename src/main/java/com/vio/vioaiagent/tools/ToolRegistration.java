@@ -33,6 +33,16 @@ public class ToolRegistration {
     @Autowired(required = false)
     private com.vio.vioaiagent.pokemon.reference.LocalPokeApiRepository referenceRepository;
     @Autowired(required = false)
+    private com.vio.vioaiagent.pokemon.reference.LocalResourceReferences resourceReferences;
+    @Autowired(required = false)
+    private com.vio.vioaiagent.pokemon.reference.LocalLearnsetReferences learnsetReferences;
+    @Autowired(required = false)
+    private com.vio.vioaiagent.pokemon.reference.IndependentMechanicCatalog independentMechanics;
+    @Autowired(required = false)
+    private com.vio.vioaiagent.pokemon.reference.LocalBuildCheckService buildChecks;
+    @Autowired(required = false)
+    private com.vio.vioaiagent.pokemon.reference.LocalMachineReferences machineReferences;
+    @Autowired(required = false)
     private com.vio.vioaiagent.pokemon.engine.LocalDamageEngine damageEngine;
     @Autowired(required = false)
     private com.vio.vioaiagent.pokemon.guides.LocalGuideSearch guideSearch;
@@ -77,7 +87,12 @@ public class ToolRegistration {
                 : ToolCallbacks.from(pokeTypeTool, new TerminateTool());
         java.util.List<ToolCallback> tools = new java.util.ArrayList<>(java.util.Arrays.asList(base));
         if (teamWorkflow != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(teamWorkflow)));
-        if (referenceRepository != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.PokemonReferenceTools(referenceRepository,toolScope))));
+        if (referenceRepository != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.PokemonReferenceTools(referenceRepository,toolScope,resourceReferences))));
+        if (learnsetReferences != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.PokemonLearnsetController.Tools(learnsetReferences,toolScope))));
+        if (independentMechanics != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.PokemonMechanicsController.Tools(independentMechanics,toolScope))));
+        if (buildChecks != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.PokemonBuildCheckController.Tools(buildChecks,toolScope))));
+        if (buildChecks != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.PokemonTeamBuildCheckController.Tools(buildChecks,toolScope))));
+        if (machineReferences != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.PokemonMachineController.Tools(machineReferences,toolScope))));
         if (referenceRepository != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.TeamReferenceTools(referenceRepository,toolScope))));
         if (damageEngine != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.engine.DamageEngineController.Tools(damageEngine,toolScope))));
         if (guideSearch != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.guides.LocalGuideController.Tools(guideSearch,toolScope))));
@@ -97,6 +112,7 @@ public class ToolRegistration {
     }
 
     private ToolCallback[] govern(ToolCallback[] callbacks) {
-        return governanceGateway == null ? callbacks : governanceGateway.wrap(callbacks);
+        var adapted=java.util.Arrays.stream(callbacks).map(com.vio.vioaiagent.tools.governance.DamageToolSchema::adapt).toArray(ToolCallback[]::new);
+        return governanceGateway == null ? adapted : governanceGateway.wrap(adapted);
     }
 }

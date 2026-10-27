@@ -291,14 +291,17 @@ export function reduceRunEvent(model, rawEvent) {
       // A call emits both failed/completed and finished. Correlate by the
       // governance call ID so its final duration is retained, without updating
       // another concurrent or later invocation of the same tool.
-      const timeline = next.toolTimeline.map(item => item.toolName === name
+      const matches = item => item.toolName === name
         && (data.governanceEventId
           ? item.governanceEventId === data.governanceEventId
           : item.status === 'running')
-        ? { ...item, ...data, status: ['FAILED', 'AUDIT_FAILED', 'UNKNOWN', 'REJECTED', 'CANCELLED', 'TIMED_OUT']
+      const status = ['FAILED', 'AUDIT_FAILED', 'UNKNOWN', 'REJECTED', 'CANCELLED', 'TIMED_OUT']
           .includes(String(data.status || '').toUpperCase()) ? 'failed'
-          : (event.type === 'tool.completed' || event.type === 'tool.finished') ? 'completed' : 'failed' }
-        : item)
+          : (event.type === 'tool.completed' || event.type === 'tool.finished') ? 'completed' : 'failed'
+      const timeline = next.toolTimeline.map(item => matches(item) ? { ...item, ...data, status } : item)
+      // Cached/rejected calls can finish without entering a callback. Keep those
+      // attempts visible and correlate repeated completion events by their call ID.
+      if (data.governanceEventId && !next.toolTimeline.some(matches)) timeline.push({ ...data, toolName: name, status, eventId: event.id })
       return { ...next, toolTimeline: timeline }
     }
     case 'answer.delta':
@@ -328,7 +331,13 @@ export function reduceRunEvent(model, rawEvent) {
       return { ...next, status: RUN_STATUS.TIMED_OUT, error: timeoutMessage, finishedAt: data.finishedAt || new Date().toISOString() }
     case 'run.failed':
     case 'error':
-      return { ...next, status: RUN_STATUS.FAILED, error: eventErrorMessage || '任务执行失败', finishedAt: data.finishedAt || new Date().toISOString() }
+      return { ...next, status: RUN_STATUS.FAILED, error: data.errorType === 'RUN_CONTEXT_BUDGET_EXCEEDED'
+        ? '本次请求超过上下文或回答长度预算。请缩小问题范围，或开启新对话并重申关键限制；已显示的回答可能不完整。'
+        : data.errorType === 'RUN_TASK_BUDGET_EXCEEDED'
+          ? '本次任务已达到模型调用或 Token 额度上限。请缩小任务范围后重新发起；已显示的回答可能不完整。'
+          : data.errorType === 'RUN_TASK_BUDGET_UNAVAILABLE'
+            ? '无法核实本次任务的剩余模型额度，请重新发起任务。'
+        : eventErrorMessage || '任务执行失败', finishedAt: data.finishedAt || new Date().toISOString() }
     default:
       return next
   }

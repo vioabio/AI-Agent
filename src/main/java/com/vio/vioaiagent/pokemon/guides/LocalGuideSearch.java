@@ -19,21 +19,22 @@ public class LocalGuideSearch {
     private final KnowledgeRetriever retriever;
     private final Catalog catalog;
     public LocalGuideSearch(ObjectMapper mapper,ResourceLoader loader,
-            @Value("${vio.local-guides.location:classpath:pokemon-guides/expanded-v1.json}") String location,
+            @Value("${vio.local-guides.location:classpath:pokemon-strategy/overview-v1.json}") String location,
             @Value("${vio.local-guides.path:${user.dir}/.local-data/guides.sqlite}") String path) {
         try(var stream=loader.getResource(location).getInputStream()) {
             byte[] bytes=stream.readNBytes(2_000_001);
             if(bytes.length>2_000_000)throw new IllegalArgumentException("攻略索引超过大小限制");
             JsonNode root=mapper.readTree(bytes);
             int schema=root.path("schemaVersion").asInt();
-            if(!root.path("schemaVersion").isIntegralNumber() || (schema!=1 && schema!=2) || !root.path("documents").isArray() || root.path("documents").size()>200)
+            if(!root.path("schemaVersion").isIntegralNumber() || (schema!=1 && schema!=2 && schema!=3) || !root.path("documents").isArray() || root.path("documents").size()>200)
                 throw new IllegalArgumentException("攻略索引格式错误");
             String catalogId=schema==1?"local-guides-legacy-v1":root.path("catalogId").asText();
             if(!catalogId.matches("[a-z0-9][a-z0-9-]{0,99}"))throw new IllegalArgumentException("攻略资料集身份无效");
             List<Document> values=new ArrayList<>(); Set<String> ids=new HashSet<>();
             for(JsonNode row:root.path("documents")) {
                 Document doc=mapper.treeToValue(row,Document.class); validate(doc);
-                if(schema==2 && doc.provenance()==null)throw new IllegalArgumentException("扩充资料必须登记来源依据");
+                if(schema>=2 && doc.provenance()==null)throw new IllegalArgumentException("扩充资料必须登记来源依据");
+                if(schema==3 && doc.applicability()==null)throw new IllegalArgumentException("主题资料必须登记检索范围");
                 if (!ids.add(doc.id())) throw new IllegalArgumentException("攻略身份重复");
                 values.add(doc);
             }
@@ -71,6 +72,7 @@ public class LocalGuideSearch {
             if(!"VIO project".equals(doc.author()))throw new IllegalArgumentException("本批来源登记仅支持项目原创说明");
             doc.provenance().validate(doc.updatedAt());
         }
+        if(doc.applicability()!=null)doc.applicability().validate();
         LocalDate updated=LocalDate.parse(doc.updatedAt());
         if(updated.isAfter(LocalDate.now()))throw new IllegalArgumentException("攻略日期不能晚于当前日期");
         if(doc.validUntil()!=null && LocalDate.parse(doc.validUntil()).isBefore(updated))
@@ -84,18 +86,23 @@ public class LocalGuideSearch {
     private static boolean blank(String text,int max) {return text==null||text.isBlank()||text.length()>max;}
     public record Document(String id,String title,String gameReleaseId,String keywords,String author,String updatedAt,String sourceUrl,String content,
                            String language,String battleFormatId,String rulesetVersionId,String validUntil,
-                           @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) GuideProvenance provenance) {
+                           @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) GuideProvenance provenance,
+                           @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) GuideApplicability applicability) {
         public Document {
             language=language==null?"zh-CN":language;
             battleFormatId=battleFormatId==null?"casual-singles":battleFormatId;
             rulesetVersionId=rulesetVersionId==null?"casual-v1":rulesetVersionId;
         }
         public Document(String id,String title,String game,String keywords,String author,String date,String url,String content) {
-            this(id,title,game,keywords,author,date,url,content,null,null,null,null,null);
+            this(id,title,game,keywords,author,date,url,content,null,null,null,null,null,null);
         }
         public Document(String id,String title,String game,String keywords,String author,String date,String url,String content,
                         String language,String format,String rules,String validUntil) {
-            this(id,title,game,keywords,author,date,url,content,language,format,rules,validUntil,null);
+            this(id,title,game,keywords,author,date,url,content,language,format,rules,validUntil,null,null);
+        }
+        public Document(String id,String title,String game,String keywords,String author,String date,String url,String content,
+                        String language,String format,String rules,String validUntil,GuideProvenance provenance) {
+            this(id,title,game,keywords,author,date,url,content,language,format,rules,validUntil,provenance,null);
         }
     }
     public record Catalog(String catalogId,int schemaVersion,String corpusSha256,int documentCount) { }

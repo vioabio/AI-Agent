@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "team-route-verification-v1",
+  "date": "2026-10-27",
+  "scope": "Fixed explicit draft program execution and separate saved-team model planning; not model accuracy or formal admission",
+  "tests": {
+    "backend": {
+      "tests": 1267,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3
+    },
+    "newRouteTests": 5,
+    "frontendContract": 181,
+    "node": 168,
+    "browser": "Not repeated this batch; previous two controlled cases are historical only"
+  },
+  "live": {
+    "pass": true,
+    "programDraft": {
+      "pass": true,
+      "modelCalls": 0
+    },
+    "modelSaved": {
+      "pass": true,
+      "modelCalls": 3
+    },
+    "savedTeamUnchanged": true,
+    "sourcesUnchanged": true,
+    "runtimeUnchanged": true,
+    "sourceCount": 515,
+    "configuredProvider": "dashscope",
+    "configuredModelId": "qwen-plus"
+  },
+  "humanReviewed": 0,
+  "formalAdmissions": 0,
+  "formalSuiteCases": 36,
+  "corpusSha256": "b0a1204403f6aaf610543399afdb11c4b37bc9614ce376c47befa843319b8b8f",
+  "knownLimitations": [
+    "General natural-language draft planning not proven stable",
+    "Joint legality not verified",
+    "Existing Surefire fork exit warning retained"
+  ],
+  "logSha256": {
+    "artifacts/team-route-backend-full-2026-10-27.log": "eed0d190227eebf317b41b95d6a19c63406edae0cb8c9363dfdb676e89a6cb88",
+    "artifacts/team-route-frontend-contract-2026-10-27.log": "4a646cdfec979f17678585385c601bd48c9dbf737d3108e5b9634f0e952c9e66",
+    "artifacts/team-route-node-2026-10-27.log": "06bc58b9602bfadc8901ad5ecc2547c444ee20a49ceaf097f417eb5cd35ee8cb",
+    "artifacts/team-route-live-scenario-2026-10-27.log": "b024c7eae69f1b74ac733dde88aa0b772d1bb85e000c4360461e862c626f5a34"
+  },
+  "evidenceSha256": {
+    "collector.mjs": "6a35ccf8b6a71bdb1a63d71bc54e1aec01b19488eb811f6ec37826c8ac809271",
+    "draft-with-missing-member-build-events.json": "3becbfd6c5a4c18c78c3e4b3972396055f8312c7f37aece1d3a77ac6b0f2c69a",
+    "implementation-manifest.json": "12b7dcc7ed2ec9036d82761df1b31899f042ad698566efe663ba795c19d8f642",
+    "observations.json": "554b6aff0947b8890353dc4e252e5302fe787dea79a693d140bfc044f7499b72",
+    "plan.json": "cceda70dd156e6f06472bfa6a4fa8c619820896e6b9d4ee6d850e281dfdded24",
+    "read-saved-team-then-check-events.json": "bc5fbcdd8ffe155a117d5e87c5190b2af3534e0eee1681fdf9eff486f979e65d"
+  }
+}

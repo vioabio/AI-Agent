@@ -92,16 +92,17 @@ export function assess(item, record, review) {
   let reviewState = 'PENDING'
   if (review) {
     if (review.caseId !== item.id || review.repetition !== record.repetition || review.observationSha256 !== observationHash(record)
-        || review.reviewerType !== 'human' || !review.reviewer?.trim() || !review.reviewedAt || !review.note?.trim()) throw Error(`Unbound/incomplete human review: ${item.id}`)
+        || !['human', 'ai-assisted'].includes(review.reviewerType) || !review.reviewer?.trim() || !review.reviewedAt || !review.note?.trim()) throw Error(`Unbound/incomplete human review or assisted review: ${item.id}`)
     const decisions = review.decisions || []
     const expectedIds = item.expected.criteria.map(c => c.id)
     if (decisions.length !== expectedIds.length || new Set(decisions.map(d => d.criterionId)).size !== decisions.length
         || decisions.some(d => !expectedIds.includes(d.criterionId) || !['pass', 'fail', 'unknown'].includes(d.verdict) || !d.reason?.trim()
           || !d.sourceIds?.length || d.sourceIds.some(id => !item.expected.criteria.find(c => c.id === d.criterionId).sourceIds.includes(id)))) throw Error(`Invalid criterion review: ${item.id}`)
-    reviewState = decisions.some(d => d.verdict === 'fail') ? 'FAIL' : decisions.some(d => d.verdict === 'unknown') ? 'PENDING' : 'PASS'
+    reviewState = review.reviewerType === 'ai-assisted' ? 'ASSISTED_REVIEW_ONLY'
+      : decisions.some(d => d.verdict === 'fail') ? 'FAIL' : decisions.some(d => d.verdict === 'unknown') ? 'PENDING' : 'PASS'
   }
   return { structuralPass: failures.length === 0, failures: [...new Set(failures)], requiredToolCount: required.length,
-    successfulRequiredTools: succeeded.length, reviewState,
+    successfulRequiredTools: succeeded.length, reviewState, assistedFlagged: review?.reviewerType === 'ai-assisted' && review.decisions.some(d => d.verdict === 'fail'),
     taskOutcome: failures.length || reviewState === 'FAIL' ? 'FAIL' : reviewState === 'PASS' ? 'PASS' : 'PENDING_REVIEW' }
 }
 function percentile(values, q) {
@@ -130,6 +131,8 @@ export function summarize(suite, records, reviews = []) {
     // Pending review stays in the denominator; this is NOT a final quality score.
     verifiedSuccessRate: selected.length ? selected.filter(r => r.taskOutcome === 'PASS').length / selected.length : null })
   return { scope: 'Only selected, preallocated case repetitions; not a 100-case benchmark', denominator, ...metrics(rows),
+    assistedReviewed: reviews.filter(r => r.reviewerType === 'ai-assisted').length,
+    humanReviewed: reviews.filter(r => r.reviewerType === 'human').length,
     byCategory: Object.fromEntries(categories.map(c => [c, metrics(rows.filter(r => r.category === c))])),
     tools: { required: rows.reduce((n, r) => n + r.requiredToolCount, 0), successful: rows.reduce((n, r) => n + r.successfulRequiredTools, 0),
       caseDenominator: rows.filter(r => r.requiredToolCount > 0).length,

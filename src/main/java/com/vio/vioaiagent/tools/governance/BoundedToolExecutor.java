@@ -53,6 +53,13 @@ public final class BoundedToolExecutor implements AutoCloseable {
 
     /** The timeout covers pending time and execution; beforeStart runs in the worker. */
     public String call(Runnable beforeStart, Callable<String> callback, long timeoutMs) {
+        return call(beforeStart,callback,timeoutMs,new ToolAttemptTiming());
+    }
+    public String call(Runnable beforeStart,Callable<String> callback,long timeoutMs,ToolAttemptTiming timing) {
+        try { return measuredCall(beforeStart,callback,timeoutMs,timing); }
+        finally { timing.freeze(); }
+    }
+    private String measuredCall(Runnable beforeStart, Callable<String> callback, long timeoutMs,ToolAttemptTiming timing) {
         long admittedAt = System.nanoTime();
         if (timeoutMs < 1) throw new IllegalArgumentException("Tool timeout must be positive");
         if (Thread.currentThread().isInterrupted()) {
@@ -63,6 +70,7 @@ public final class BoundedToolExecutor implements AutoCloseable {
         AtomicInteger state = new AtomicInteger(); // 0=pending, 1=callback started, 2=cancelled before start
         AtomicLong callbackFinishedAt = new AtomicLong();
         ToolTask task = new ToolTask(() -> {
+            timing.worker();
             verifyDeadline(admittedAt, budgetNanos, timeoutMs, false);
             beforeStart.run();
             // Authorization and caller scheduling can consume the remaining budget.
@@ -71,15 +79,19 @@ public final class BoundedToolExecutor implements AutoCloseable {
             if (closing.get() || !state.compareAndSet(0, 1)) {
                 throw new CancellationException("Cancelled before callback");
             }
+            timing.callback();
             try {
                 return callback.call();
             } finally {
                 callbackFinishedAt.set(System.nanoTime());
+                timing.finished(callbackFinishedAt.get());
             }
         }, state);
         tasks.add(task);
         try {
+            timing.submitted();
             executor.execute(task);
+            timing.accepted();
         } catch (RejectedExecutionException ex) {
             task.cancel(false);
             if (closing.get() || executor.isShutdown()) throw new Unavailable(SHUTDOWN, "工具执行器已关闭");

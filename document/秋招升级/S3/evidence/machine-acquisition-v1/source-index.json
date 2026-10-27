@@ -1,0 +1,301 @@
+{
+  "schemaVersion": "machine-acquisition-source-index-v1",
+  "checkedAt": "2026-10-27",
+  "sourceLanguage": "en",
+  "snapshotEncoding": "UTF8_TEXT_NOT_WIRE_BYTES",
+  "sourceKind": "COMMUNITY_MAINTAINED_REFERENCE_TABLES",
+  "sources": [
+    {
+      "id": "pokemondb",
+      "publisher": "Pokémon Database",
+      "url": "https://pokemondb.net/scarlet-violet/tms",
+      "pageSha256": "sha256:c1e57b5bc5538377ac73d818efe1776f0152cdf7df105130021d7aacceba9c30",
+      "localSnapshot": "artifacts/campus/machine-recipes/source-2026-10-27/pokemondb.html"
+    },
+    {
+      "id": "serebii",
+      "publisher": "Serebii",
+      "url": "https://www.serebii.net/scarletviolet/tm.shtml",
+      "pageSha256": "sha256:9728facc8345aa97c084aaaf66a0c32629eda343aca16ebfc0dbcb4f2723d05a",
+      "localSnapshot": "artifacts/campus/machine-recipes/source-2026-10-27/serebii.html"
+    }
+  ],
+  "regionMappings": [
+    {
+      "id": "south-province-area-one",
+      "nameEn": "South Province (Area One)",
+      "paths": {
+        "pokemondb": "/location/paldea-south-province-area-one",
+        "serebii": "/pokearth/paldea/southprovinceareaone.shtml"
+      }
+    },
+    {
+      "id": "south-province-area-four",
+      "nameEn": "South Province (Area Four)",
+      "paths": {
+        "pokemondb": "/location/paldea-south-province-area-four",
+        "serebii": "/pokearth/paldea/southprovinceareafour.shtml"
+      }
+    },
+    {
+      "id": "socarrat-trail",
+      "nameEn": "Socarrat Trail",
+      "paths": {
+        "pokemondb": "/location/paldea-socarrat-trail",
+        "serebii": "/pokearth/paldea/socarrattrail.shtml"
+      }
+    },
+    {
+      "id": "casseroya-lake",
+      "nameEn": "Casseroya Lake",
+      "paths": {
+        "pokemondb": "/location/paldea-casseroya-lake",
+        "serebii": "/pokearth/paldea/casseroyalake.shtml"
+      }
+    }
+  ],
+  "observations": [
+    {
+      "moveSlug": "protect",
+      "label": "TM007",
+      "nameZh": "守住",
+      "observations": [
+        {
+          "sourceId": "pokemondb",
+          "locations": [
+            {
+              "path": "/location/paldea-south-province-area-four",
+              "label": "South Province (Area Four)"
+            },
+            {
+              "path": "/location/paldea-south-province-area-one",
+              "label": "South Province (Area One)"
+            }
+          ],
+          "unlockNote": null,
+          "excerpt": {
+            "offset": 19988,
+            "length": 939,
+            "sha256": "sha256:9bdf042851a735560ca8b7dd52770efba92d869b59d6162c643d077438e0b3a7"
+          }
+        },
+        {
+          "sourceId": "serebii",
+          "locations": [
+            {
+              "path": "/pokearth/paldea/alfornadacavern.shtml",
+              "label": "Alfornada Cavern"
+            },
+            {
+              "path": "/pokearth/paldea/southprovinceareaone.shtml",
+              "label": "South Province Area One"
+            },
+            {
+              "path": "/pokearth/paldea/southprovinceareatwo.shtml",
+              "label": "South Province Area Two"
+            },
+            {
+              "path": "/pokearth/paldea/southprovinceareafour.shtml",
+              "label": "South Province Area Four"
+            },
+            {
+              "path": "/pokearth/kitakami/wistfulfields.shtml",
+              "label": "Wistful Fields"
+            },
+            {
+              "path": "/pokearth/terarium/savannabiome.shtml",
+              "label": "Savanna Biome"
+            }
+          ],
+          "unlockNote": null,
+          "excerpt": {
+            "offset": 41300,
+            "length": 1372,
+            "sha256": "sha256:223b89391bebffa893e82ad667f5960f432660d26d672d24e68a77435fdb73be"
+          }
+        }
+      ]
+    },
+    {
+      "moveSlug": "water-pulse",
+      "label": "TM011",
+      "nameZh": "水之波动",
+      "observations": [
+        {
+          "sourceId": "pokemondb",
+          "locations": [
+            {
+              "path": "/location/paldea-socarrat-trail",
+              "label": "Socarrat Trail"
+            }
+          ],
+          "unlockNote": null,
+          "excerpt": {
+            "offset": 23445,
+            "length": 820,
+            "sha256": "sha256:bc2a8fc1df3bf1f0fe27ff008888ac77089679127aba149803de6f64cdd6ac93"
+          }
+        },
+        {
+          "sourceId": "serebii",
+          "locations": [
+            {
+              "path": "/pokearth/paldea/cascarrafa.shtml",
+              "label": "Cascarrafa"
+            },
+            {
+              "path": "/pokearth/paldea/socarrattrail.shtml",
+              "label": "Socarrat Trail"
+            },
+            {
+              "path": "/pokearth/paldea/southprovinceareathree.shtml",
+              "label": "South Province Area Three"
+            },
+            {
+              "path": "/pokearth/paldea/southprovinceareafive.shtml",
+              "label": "South Province Area Five"
+            },
+            {
+              "path": "/pokearth/paldea/westprovinceareathree.shtml",
+              "label": "West Province Area Three"
+            },
+            {
+              "path": "/pokearth/kitakami/fellhorngorge.shtml",
+              "label": "Fellhorn Gorge"
+            }
+          ],
+          "unlockNote": "Defeat Team Star Boss Mela",
+          "excerpt": {
+            "offset": 45937,
+            "length": 1390,
+            "sha256": "sha256:7341d769b24b04c4ea8810c87836feb6b8c549b9b69af4e66c1e92c3111ed08e"
+          }
+        }
+      ]
+    },
+    {
+      "moveSlug": "ice-beam",
+      "label": "TM135",
+      "nameZh": "冰冻光束",
+      "observations": [
+        {
+          "sourceId": "pokemondb",
+          "locations": [],
+          "unlockNote": null,
+          "excerpt": {
+            "offset": 140113,
+            "length": 742,
+            "sha256": "sha256:980363e273e6b248a216996357d6c1823299c00ef2f1605ef683d4c1fa0eb2a9"
+          }
+        },
+        {
+          "sourceId": "serebii",
+          "locations": [
+            {
+              "path": "/pokearth/paldea/eastprovinceareaone.shtml",
+              "label": "East Province Area One"
+            },
+            {
+              "path": "/pokearth/paldea/glaseadomountain.shtml",
+              "label": "Glaseado Mountain"
+            },
+            {
+              "path": "/pokearth/paldea/northprovinceareaone.shtml",
+              "label": "North Province Area One"
+            },
+            {
+              "path": "/pokearth/paldea/socarrattrail.shtml",
+              "label": "Socarrat Trail"
+            },
+            {
+              "path": "/pokearth/paldea/westprovinceareaone.shtml",
+              "label": "West Province Area One"
+            },
+            {
+              "path": "/pokearth/paldea/westprovinceareathree.shtml",
+              "label": "West Province Area Three"
+            },
+            {
+              "path": "/pokearth/kitakami/timelesswoods.shtml",
+              "label": "Timeless Woods"
+            },
+            {
+              "path": "/pokearth/terarium/polarbiome.shtml",
+              "label": "Polar Biome"
+            }
+          ],
+          "unlockNote": "Defeat Team Star Boss Eri",
+          "excerpt": {
+            "offset": 202258,
+            "length": 1617,
+            "sha256": "sha256:73f8d9e087eea2a4ef94b9d71a745d8eb7c7484ad9beb5bab6670a9b1f3c2cc1"
+          }
+        }
+      ]
+    },
+    {
+      "moveSlug": "hydro-pump",
+      "label": "TM142",
+      "nameZh": "水炮",
+      "observations": [
+        {
+          "sourceId": "pokemondb",
+          "locations": [
+            {
+              "path": "/location/paldea-casseroya-lake",
+              "label": "Casseroya Lake"
+            },
+            {
+              "path": "/location/paldea-the-great-crater-of-paldea",
+              "label": "The Great Crater of Paldea"
+            }
+          ],
+          "unlockNote": null,
+          "excerpt": {
+            "offset": 146830,
+            "length": 1014,
+            "sha256": "sha256:6215d4d597f3caaefa8860c80b6dce67bc17409038bad24820fc2d02a7596871"
+          }
+        },
+        {
+          "sourceId": "serebii",
+          "locations": [
+            {
+              "path": "/pokearth/paldea/areazero.shtml",
+              "label": "Area Zero"
+            },
+            {
+              "path": "/pokearth/paldea/casseroyalake.shtml",
+              "label": "Casseroya Lake"
+            },
+            {
+              "path": "/pokearth/kitakami/fellhorngorge.shtml",
+              "label": "Fellhorn Gorge"
+            },
+            {
+              "path": "/pokearth/kitakami/onimountain.shtml",
+              "label": "Oni Mountain"
+            },
+            {
+              "path": "/pokearth/terarium/coastalbiome.shtml",
+              "label": "Coastal Biome"
+            }
+          ],
+          "unlockNote": null,
+          "excerpt": {
+            "offset": 212421,
+            "length": 1281,
+            "sha256": "sha256:d5e28582a496fe384a0c3ec89c1d5077ee8918b7433916531fde1c19ca1cfe8f"
+          }
+        }
+      ]
+    }
+  ],
+  "sourceIndependence": "not established",
+  "independentHumanReviews": 0,
+  "inGameVerifications": 0,
+  "fullPagesRedistributed": false,
+  "unlockPresentation": "Single-source notes retained as observations but not exposed as conditions in HTTP or Agent answers",
+  "scope": "COMMON_COMMUNITY_REGIONS_NOT_EXACT_LOCATION_UNLOCK_OR_LEGALITY",
+  "reviewStatus": "PENDING_HUMAN_AND_IN_GAME_VERIFICATION"
+}

@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "mode": "calls",
+  "startedAt": "2026-10-24T12:47:55.287Z",
+  "plannedRuns": 1,
+  "status": "run.failed",
+  "collectorSha256": "37fcbf5c8202952270ce9451ece29a788ee7c4b8e765ab3f0c59404635cd38ff",
+  "cost": "UNKNOWN",
+  "qualityAcceptance": "NOT_PERFORMED",
+  "httpRequestCount": "UNKNOWN",
+  "runtime": {
+    "profiles": [
+      "local"
+    ],
+    "configuredModelId": "qwen-plus",
+    "contextBudgetPolicy": {
+      "historyTokens": 4096,
+      "outputReserve": 2048,
+      "historyTurns": 8,
+      "contextTokens": 32768,
+      "estimator": "cl100k-base-proxy-v1",
+      "safetyPercent": 125
+    },
+    "configuredProvider": "dashscope",
+    "tools": [
+      "calculateBattleDamage",
+      "checkTypeEffectiveness",
+      "doTerminate",
+      "getTypeChart",
+      "listCurrentTeams",
+      "lookupPokemonReference",
+      "lookupPokemonResource",
+      "lookupPokemonTeamReference",
+      "previewTeamChanges",
+      "readCurrentTeam",
+      "searchPokemonGuides",
+      "searchWeb"
+    ],
+    "features": {
+      "answerStreaming": true,
+      "contextBudget": true,
+      "taskBudget": true,
+      "versionedGrounding": false,
+      "mcpClient": false,
+      "highRiskTools": false,
+      "modelUsage": true
+    },
+    "providerReturnedModelId": "not-attested-by-this-endpoint",
+    "promptVersion": "campus-s3-provenance-v2",
+    "implementationSha256": {
+      "VioManus": "f71ae9b9236e36309aec343d1a47b4166f281abff576cdf7c4b7a2f48d413541",
+      "ToolCallAgent": "22fdfdefe0b3124025ead8a21e720dea32f00ba26e160293af319acfea665bd8",
+      "TeamAnswerEvidence": "bd4f6d2228a5b963620a69d352897d8f79896e5d2c127b59117849ce4e371688",
+      "DamageAnswerEvidence": "381161ab8f1e34506e9eae5b3102b3d8b507c853951f27d84fdfab2c24056e2a",
+      "GuideAnswerEvidence": "17e1db08cf653a24391d1981028a3fd3dd0062aa0c9fef606251de487812ab06",
+      "SavedTeamAnswerEvidence": "51d69d378cf7e95c2a0e33592faf3ce289862d62d5d1c797ce8102d1e10e6022",
+      "EvidenceText": "5a5df23e488f0cd60330d3b4170e0cbc602375620950329fb9cb5ea093eb8742",
+      "TeamReferenceTools": "7ab3609debdee4f7dae89c9b911279b24c11959ffa41dd4d4ea3e0cb95fa42ff",
+      "TeamWorkflowService": "528c20dbe0ee274e4d2d7a2025cf5325f84b60a61ed18f354eede219ee7142c0",
+      "RunMutationBoundary": "dc9dd79d80426b94edcee94eb86fd20c4f47d798d9e5d8b2dd3cce0ca5faeb92",
+      "DefaultRunExecutor": "fb09c59322d0aa561e90c3e82b3fb8e1f487f0f444d3cbdecccbc5fcc6ebde6d",
+      "AgentRunContext": "00b096e6f499aa512d3105521c4c470b4a17fbf57e79930f8e2bf709ae1be229",
+      "PokemonAgentRunService": "5667c8523ec82360874954e3bd840dcd57bc98912fd69905aa45fb22daf4b186",
+      "ObservedChatModel": "480b61a84f961bffcc840f4868bf416514b1c5351078d0902a29988ec13cfc7b",
+      "ModelUsageLedger": "55cece4722e55cffcaf8f42457dc99726bbcf565790488216f9e422b563f1f11",
+      "ProviderTokenUsage": "0713016c78c2ab8c25f6dcb0ece32519ce32b92e960eee5d269b8ef096b815bf",
+      "ModelContextBudget": "c99fa351e53769dc98d32dac649a196af51898264abbf835d3ff93a06bef62f9",
+      "ContextTokenEstimator": "81a80af4a4baeeced94a95f80a775756c7c74e12c11855db6d6a13e7abf1b5a7",
+      "DashScopeBudgetChatModel": "bc0a1dedf9083ae8a0159bfec318525a6c9ef3f4555b1545ff4603dd424af27b",
+      "ContextBudgetExceededException": "6ea21a5edc3f924a3edebb52444f89a5c2779a3bbc7b7aa08c5acd4fd0d04834",
+      "ContextBudgetProperties": "51a583b19a11cf9829cbdc9fbe08fd0a72a0755bc5c270d136f7a6429e543180",
+      "TaskModelBudget": "2ed1acad0ff522c8bb55ea75d7d10f067adfbf0025dc61c1a8c937ed204fd110",
+      "TaskBudgetExceededException": "487d3fc543d3fd5a5e08516a8969cf48bf5a5604ededad8dcf913235f33a51a2",
+      "TaskBudgetProperties": "64534d963aeb3a22c1d9edf657b40b858eba1b5f267a8a8d950b637d95a421a1",
+      "ConversationHistory": "d79242099e9824b76653a4ec94e8e055b48cb9e0d9a37d90803d0be8823a203b",
+      "ToolExecutionGateway": "a5d9b94f23dc82f63682f67d876d4645d5d0da9be8cc17fe5b349a91b7d2b23e",
+      "LocalGuideSearch": "058c6b5947dae7ce8a72d555e4339557888e6295fad5b768f87f0e062b6592c7",
+      "GuideChunks": "9b3a0032cf9eae38b96031ea71705503dc00d8d084ac51684e01763c9b8409d5",
+      "SqliteGuideKnowledgeRetriever": "537e305711b57f1e4bd5a2ce7f6b1728f5c2184de38a378015d1fc364439d0a7",
+      "GuideProvenance": "8ba0bb41cf3fc37b0d83e13e3aece4a512f080c5c5d3a35d756040fc06765a22",
+      "RunToolScope": "1f143ef344d352ff7df64cb051614655ad589ca4a139dc8903ebe5bf075e381d"
+    },
+    "taskBudgetPolicy": {
+      "maxModelCalls": 1,
+      "tokenLimit": 131072,
+      "accounting": "MAX_RESERVATION_OR_PROVIDER_V1"
+    }
+  },
+  "runId": "run-f841879e-a942-459f-a696-0657a4a99b25",
+  "taskAudit": {
+    "pass": true,
+    "rows": [
+      {
+        "pass": true,
+        "attemptCalls": 1,
+        "taskBudget": {
+          "schemaVersion": "task-budget-v1",
+          "scope": "RUN",
+          "accounting": "MAX_RESERVATION_OR_PROVIDER_V1",
+          "budgetId": "6a06f971-732f-4373-8d8f-e82c20aea1c1",
+          "maxModelCalls": 1,
+          "tokenLimit": 131072,
+          "stateKnown": true,
+          "status": "BLOCKED",
+          "closed": true,
+          "blockReason": "CALL_LIMIT",
+          "modelCalls": 1,
+          "reservedTokens": 7973,
+          "chargedTokens": 7973,
+          "remainingModelCalls": 0,
+          "remainingTokens": 123099
+        }
+      }
+    ],
+    "cost": "UNKNOWN",
+    "scope": "Run admission integrity. Reserved or charged tokens are not provider usage or a billing cap."
+  },
+  "contextAudit": {
+    "pass": true,
+    "rows": [
+      {
+        "pass": true,
+        "status": "CHECKED",
+        "requestsChecked": 2,
+        "modelCalls": 1,
+        "omittedHistoryTurns": 0,
+        "availableHistoryTurns": 0,
+        "blockReason": null,
+        "calls": [
+          {
+            "estimatedInputTokens": 5925,
+            "inputLimit": 30720,
+            "outputReserve": 2048,
+            "providerInputTokens": 3818,
+            "estimator": "cl100k-base-proxy-v1",
+            "calibration": "PROXY_UNCALIBRATED"
+          }
+        ]
+      }
+    ],
+    "cost": "UNKNOWN",
+    "scope": "Request preflight estimates, separate from provider usage and billing"
+  },
+  "checks": {
+    "task": true,
+    "context": true,
+    "typedFailure": true,
+    "noAssistantSaved": true,
+    "admission": true,
+    "attemptCount": true,
+    "foreignOwnerDenied": true
+  },
+  "pass": true,
+  "finishedAt": "2026-10-24T12:48:04.205Z"
+}

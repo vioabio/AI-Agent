@@ -15,11 +15,23 @@ import java.util.concurrent.ConcurrentMap;
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "vio.local-history.enabled", havingValue = "false", matchIfMissing = true)
 public class InMemoryConversationRepository implements ConversationRepository {
     private final ConcurrentMap<String, Conversation> conversations = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, ConversationConstraints> constraints = new ConcurrentHashMap<>();
 
     @Override
-    public Conversation save(Conversation conversation) {
+    public synchronized Conversation save(Conversation conversation) {
+        var existing = conversations.get(conversation.id());
+        if (existing != null && !existing.userId().equals(conversation.userId())) throw new IllegalStateException("会话归属冲突");
         conversations.put(conversation.id(), conversation);
         return conversation;
+    }
+    @Override
+    public synchronized Optional<ConversationConstraints> constraintsForUser(String id, String userId) {
+        return findByIdForUser(id, userId).isPresent() ? Optional.ofNullable(constraints.get(id)) : Optional.empty();
+    }
+    @Override
+    public synchronized boolean replaceConstraintsForUser(String id, String userId, ConversationConstraints expected) {
+        if (findByIdForUser(id, userId).isEmpty() || constraints.getOrDefault(id, ConversationConstraints.defaults()).revision() != expected.revision()) return false;
+        constraints.put(id, expected.next()); return true;
     }
 
     @Override
@@ -62,7 +74,7 @@ public class InMemoryConversationRepository implements ConversationRepository {
     }
 
     @Override
-    public void deleteForUser(String conversationId, String userId) {
-        findByIdForUser(conversationId, userId).ifPresent(c -> conversations.remove(c.id(), c));
+    public synchronized void deleteForUser(String conversationId, String userId) {
+        findByIdForUser(conversationId, userId).ifPresent(c -> { conversations.remove(c.id(), c); constraints.remove(c.id()); });
     }
 }

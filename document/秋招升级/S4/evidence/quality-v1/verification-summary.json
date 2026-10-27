@@ -1,0 +1,102 @@
+{
+  "stage": "S4 eighth batch: current request boundary and presentation regression",
+  "date": "2026-10-25",
+  "engineering": {
+    "backend": {
+      "tests": 1035,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3,
+      "result": "BUILD SUCCESS"
+    },
+    "targetedBackend": 13,
+    "nodeTools": 60,
+    "frontend": "No changes or rerun in this batch; previous-phase results are not fresh verification",
+    "existingWarnings": [
+      "Surefire fork exit delay",
+      "Local Bean Validation provider missing"
+    ]
+  },
+  "initialCapture": {
+    "runs": 12,
+    "completed": 12,
+    "modelRuns": 12,
+    "modelCalls": 26,
+    "finiteChecksPassed": 11,
+    "finiteFailure": "QA-QUOTED repetition 1 leaked pokeapi-reference-v1",
+    "additionalDevelopmentFindings": [
+      "Preference codes LOW/avoidLegendary leaked",
+      "Unsupported official/authoritative/all-Pokemon assertions and invented capability examples"
+    ],
+    "humanTaskPass": 0
+  },
+  "finalCapture": {
+    "runs": 12,
+    "completed": 12,
+    "finiteChecksPassed": 12,
+    "generationBreakdown": {
+      "MODEL": {
+        "runs": 4,
+        "mechanicalPass": 4,
+        "modelCalls": 10
+      },
+      "LOCAL": {
+        "runs": 8,
+        "mechanicalPass": 8,
+        "modelCalls": 0
+      },
+      "UNKNOWN": {
+        "runs": 0,
+        "mechanicalPass": 0,
+        "modelCalls": 0
+      }
+    },
+    "humanTaskPass": 0,
+    "pendingHumanReview": 12,
+    "configuredProvider": "dashscope",
+    "configuredModel": "qwen-plus",
+    "scope": "8 local catalog replies and 4 model replies; not 12 model successes or a general accuracy claim"
+  },
+  "provenance": {
+    "initialSourceFiles": 470,
+    "initialLoadedClasses": 51,
+    "finalSourceFiles": 471,
+    "finalLoadedClasses": 52,
+    "sourceAndLoadedClassesMatched": true,
+    "frozenS2S3AndPrivateConfigUnchanged": true,
+    "planChangedAfterInitialCapture": false,
+    "isolatedServicesStopped": true,
+    "commitPushDeploy": "NOT_PERFORMED"
+  },
+  "initialTestFailure": {
+    "file": "artifacts/s4-quality-backend-full-2026-10-25.log",
+    "tests": 1031,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 3,
+    "reason": "Old context trimming assertion matched fixed presentation text containing 旧问题; changed assertion to inspect actual historical UserMessage, then 1031 and final 1035 tests passed"
+  },
+  "remaining": [
+    "Independent bound human semantic review of all 12 observations",
+    "S2/S3 source/semantic and heldout comparison",
+    "Wider input/model coverage and independent token calibration acceptance",
+    "Actual invoice and PostgreSQL environment validation",
+    "S5 delivery materials"
+  ],
+  "artifactsSha256": {
+    "artifacts/s4-quality-backend-full-2026-10-25.log": "44bc496412c5eb0b655af675dfa877459ccd8276916bc12c2abff03207da8a8f",
+    "artifacts/s4-quality-backend-full-ready-2026-10-25.log": "468548869566b7bbfb3286abd5e138301e5d4a46ba60bf58b904c44618b14427",
+    "artifacts/s4-quality-v2-backend-full-2026-10-25.log": "3a4526ae74104f9ae981f57563432d8ca2a1e0f1a4c37a23849f609491000dcb",
+    "artifacts/s4-quality-v2-targeted-2026-10-25.log": "27dc749705144b99ada350c81caa0945cfa8de8a2c4a6291012dea0acaf3805c",
+    "artifacts/s4-quality-v2-tools-final-2026-10-25.log": "37b84906cb9298b22d2a6f048cab4d2273f962a453fbd7e4dc9761caf5c9f698",
+    "artifacts/s4-quality-v2-real-2026-10-25.log": "7d96d76319a59bc4d187e8085b2c65af2f5c416e0b18b347980c458471cddb18",
+    "artifacts/campus/s4-quality/model-2026-10-25/capture.json": "994ed11d0c7f6444292621f967674726c5205f50787ea9432f8bd7014a606d54",
+    "artifacts/campus/s4-quality/model-v2-2026-10-25/capture.json": "126380f41bbcee50e5da829f652b5ec9471a960301f56f243a71b1d43366d3f6",
+    "artifacts/campus/s4-quality/v1-provenance.json": "c1eaf8c6e0946c60fae09af8dd02e28232b368270e5ce1bbfde5bab3df3d5ec7",
+    "artifacts/campus/s4-quality/v2-provenance.json": "9d7ee7d46ff25bf1491c0e86e31acc63ed2624378f5681d39d1fe0f8dfd88e1e",
+    "evaluation/campus/s4-quality/manifest.json": "eaf7d8f6e34c3a2bd89ddbb18e79fc8d6b8926787d59defe150be9a5568a2b19",
+    "tools/campus/answer-quality.mjs": "fd044636b409860e29df7e9f40f97917e783060b7e3bf1dbeaed8a84a7d26644",
+    "tools/campus/answer-quality.test.mjs": "0d7686df21bb5c17e82ff524f41b1e8d4c5e0a8040e310e7b3ddbc42a5227fcd",
+    "tools/campus/s4-quality-scenario.mjs": "a580d8ac8059f4c061af75c4dc85d4b47491f52b556515535024c8c33e2ce917"
+  }
+}

@@ -15,6 +15,7 @@ export function assessRetrieval(item, chunks, verified) {
   const positive = expected.size > 0
   const evidence = item.relevantEvidence || []
   return { caseId: item.id, expected: [...expected], retrieved: docs,
+    excludedDocumentsRetrieved:docs.filter(id=>(item.excludedDocumentIds||[]).includes(id)),
     chunkIds: chunks.map(c => c.view.chunk.id), positive,
     recallAt5: positive ? (verified === true ? retrieved / expected.size : 0) : null,
     reciprocalRankAt5: positive ? (verified === true && rank > 0 ? 1 / rank : 0) : null,
@@ -31,6 +32,7 @@ export function summarizeRetrieval(cases, rows) {
     documentRecallWithinTop5Chunks: mean(positive, 'recallAt5'), mrrAt5: mean(positive, 'reciprocalRankAt5'),
     negativeEmptyAccuracy: mean(negative.map(row => ({ correct: row.emptyCorrect ? 1 : 0 })), 'correct'),
     sourcesVerified: rows.filter(r => r.sourcesVerified === true).length,
+    exclusionViolations:rows.filter(r=>r.excludedDocumentsRetrieved?.length).length,
     seedEvidenceCoverageAt5: mean(positive.filter(row => typeof row.seedEvidenceCoverageAt5 === 'number'), 'seedEvidenceCoverageAt5'),
     scope: 'Source-linked development seeds, not exhaustive relevance judgments, human acceptance, heldout quality, or an S2 ablation result.' }
 }
@@ -40,9 +42,9 @@ async function main() {
   const base = localBase(baseArg), output = resolve(outputArg)
   if (existsSync(output)) throw Error('Use a new output directory')
   const datasetFile = datasetArg ? resolve(root, datasetArg) : defaultDatasetFile
-  if (!datasetFile.startsWith(resolve(root, 'evaluation/campus/s3') + (process.platform === 'win32' ? '\\' : '/'))) throw Error('Dataset must be inside evaluation/campus/s3')
+  if (!['evaluation/campus/s3','evaluation/campus/s3-species'].some(folder=>datasetFile.startsWith(resolve(root,folder)+(process.platform==='win32'?'\\':'/')))) throw Error('Dataset must be inside a registered retrieval directory')
   const suite = JSON.parse(readFileSync(datasetFile, 'utf8'))
-  if (!suite.corpusFile?.startsWith('src/main/resources/pokemon-guides/') || suite.corpusFile.includes('..')) throw Error('Unsafe corpus path')
+  if (!suite.corpusFile || !['src/main/resources/pokemon-guides/','src/main/resources/pokemon-strategy/'].some(folder=>suite.corpusFile.startsWith(folder)) || suite.corpusFile.includes('..')) throw Error('Unsafe corpus path')
   if (suite.corpusSha256 !== frozenFileDigest(resolve(root, suite.corpusFile))) throw Error('Frozen source identity mismatch')
   const sources = JSON.parse(readFileSync(resolve(root, suite.corpusFile), 'utf8')).documents
   const cookies = new Map()
@@ -69,7 +71,7 @@ async function main() {
     report.runtime = await api('/chat/runtime'); report.index = await api('/pokemon/guides/index')
     report.catalog = await api('/pokemon/guides/catalog')
     if (report.catalog.corpusSha256 !== suite.corpusSha256) throw Error('Runtime corpus differs from the frozen evaluation corpus')
-    for (const [name, folder] of Object.entries({ LocalGuideSearch: 'guides', GuideChunks: 'guides', SqliteGuideKnowledgeRetriever: 'guides', RunToolScope: 'reference' })) {
+    for (const [name, folder] of Object.entries({ LocalGuideSearch: 'guides', GuideChunks: 'guides', GuideApplicability:'guides', SqliteGuideKnowledgeRetriever: 'guides', RunToolScope: 'reference' })) {
       if (report.runtime.implementationSha256?.[name] !== digest(readFileSync(resolve(root, `target/classes/com/vio/vioaiagent/pokemon/${folder}/${name}.class`)))) throw Error(`Stale runtime: ${name}`)
     }
     for (const item of suite.cases) {
@@ -86,6 +88,7 @@ async function main() {
               || citation.chunkId !== chunk.view.chunk.id || citation.text !== chunk.view.chunk.content
               || citation.contentHash !== `sha256:${digest(citation.text)}`) throw Error('Source locator does not match the frozen original')
           if (JSON.stringify(hit.document.provenance || null) !== JSON.stringify(original.provenance || null)) throw Error('Source attribution differs from frozen original')
+          if (JSON.stringify(hit.document.applicability || null) !== JSON.stringify(original.applicability || null)) throw Error('Source retrieval scope differs from frozen original')
           locators.push(hit)
         }
         report.rows.push({ ...assessRetrieval(item, chunks, true), chunks, locators })

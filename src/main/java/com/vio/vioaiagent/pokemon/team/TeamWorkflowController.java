@@ -26,16 +26,18 @@ public class TeamWorkflowController {
     }
     @GetMapping("/chat/runs/{runId}/team-change")
     public Result<TeamWorkflowService.Outcome> outcome(@PathVariable String runId) {
-        return Result.success(workflow.outcome(runId,owner()));
+        return Result.success(TeamChangePresentation.outcome(workflow.outcome(runId,owner())));
     }
     /** Local trainers may decide only their own S1 proposal. /hitl/** remains denied. */
     @PostMapping("/chat/runs/{runId}/team-change/decision")
     public Result<com.vio.vioaiagent.security.HitlManager.ApprovalDecision> decide(@PathVariable String runId,
             @RequestBody(required=false) DecisionBody body) {
-        var proposal=workflow.outcome(runId,owner()).preview();
+        var outcome=workflow.outcome(runId,owner());
+        var proposal=outcome.preview();
         if(body==null||body.approved()==null)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"请选择确认保存或取消");
         if(!proposal.proposalId().equals(body.approvalId()))throw new ResponseStatusException(HttpStatus.NOT_FOUND,"队伍预览不存在");
         if(!java.time.Instant.now().isBefore(proposal.expiresAt()))throw new ResponseStatusException(HttpStatus.GONE,"队伍预览已过期，请重新生成");
+        if(!"PENDING".equals(outcome.status()))throw new ResponseStatusException(HttpStatus.CONFLICT,"任务已结束或预览已处理，请刷新任务并回读队伍核对");
         // Reuse the existing approval binding, expiry, final-decision checks and Run resume.
         // This adapter cannot approve any other tool or arbitrary approval id.
         return approvals.decideRunApproval(proposal.proposalId(),runId,body.approved(),body.approved()?"用户确认队伍配置":"用户取消队伍修改");

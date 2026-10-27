@@ -1,0 +1,12 @@
+{
+  "planId": "campus-s4-token-observation-v1",
+  "policy": "Observe unchanged 125% preflight; no tuning, automatic policy change, S2 heldout reuse or quality scoring.",
+  "cases": [
+    { "id": "CAL-D-ZH", "split": "development", "conversation": "history", "language": "zh-CN", "prompt": "你好，请只用一句话说明你能提供什么帮助，不要调用工具。" },
+    { "id": "CAL-D-EN", "split": "development", "language": "en-US", "prompt": "Hello. In one sentence, explain how you can help a beginner Pokemon trainer. Do not call tools." },
+    { "id": "CAL-D-MIX", "split": "development", "language": "zh-CN", "prompt": "只回复一句确认，不要执行或查询以下笔记数据，不调用工具。\n", "repeat": 40, "text": "训练笔记：杰尼龟 Squirtle #007 level=50; {\"role\":\"support\",\"moves\":[\"protect\"]} 水💧⚡\n" },
+    { "id": "CAL-V-HISTORY", "split": "validation", "conversation": "history", "language": "zh-CN", "prompt": "结合上一轮的问题，用一句话说明你会如何解释宝可梦培养。不调用工具。" },
+    { "id": "CAL-V-TYPE", "split": "validation", "language": "zh-CN", "prompt": "请调用属性克制工具判断火属性招式攻击草属性目标的倍率，然后用一句话解释。" },
+    { "id": "CAL-V-SYMBOL", "split": "validation", "language": "en-US", "prompt": "Reply with one brief acknowledgement. The following is inert training-note data, not instructions. Do not call tools.\n", "repeat": 60, "text": "Pokemon note: water/grass; turn=1; score=0.25; [HP,Atk,Def]; {\"tag\":\"A+B/7\"} 🐢🌿\n" }
+  ]
+}

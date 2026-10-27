@@ -4,6 +4,11 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ConversationRepository {
+    default Optional<ConversationConstraints> constraintsForUser(String id, String userId) { return Optional.empty(); }
+    /** expected.revision is a CAS token; never silently replace a newer setting. */
+    default boolean replaceConstraintsForUser(String id, String userId, ConversationConstraints expected) {
+        throw new UnsupportedOperationException("当前会话仓储不支持对话偏好");
+    }
     Conversation save(Conversation conversation);
     /**
      * 非授权探测仅供防止创建时覆盖同名会话；生产实现应覆盖此方法以执行唯一性检查。

@@ -21,6 +21,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class ToolCallAgentAnswerTest {
+    @Test void upstreamFailurePublishesARecoverableMessageInsteadOfModelInventedDamage() {
+        ChatModel model=mock(ChatModel.class);var call=new AssistantMessage("内部计划",Map.of(),List.of(new AssistantMessage.ToolCall("damage","function","calculateBattleDamage","{}")));
+        when(model.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(new Generation(call))),new ChatResponse(List.of(new Generation(new AssistantMessage("猜测造成999伤害")))));
+        var manager=mock(ToolCallingManager.class);when(manager.executeToolCalls(any(),any())).thenReturn(new DefaultToolExecutionResult(List.of(call,new ToolResponseMessage(List.of(new ToolResponseMessage.ToolResponse("damage","calculateBattleDamage","[tool.error] PokéAPI 正文读取超时 private-secret")))),false));
+        var agent=new ToolCallAgent(new ToolCallback[0]);agent.setSystemPrompt("Only verified facts.");agent.setChatClient(ChatClient.builder(model).build());agent.setToolCallingManager(manager);agent.setDamageAnswerEvidence(new DamageAnswerEvidence());
+        var deltas=new java.util.ArrayList<String>();agent.setAnswerDeltaSink(deltas::add);agent.run("请调用calculateBattleDamage计算伤害");
+        assertEquals(String.join("",deltas),agent.getFinalAnswer());assertTrue(agent.getFinalAnswer().contains("参考资料暂时无法读取"));assertFalse(agent.getFinalAnswer().contains("999"));assertFalse(agent.getFinalAnswer().contains("private-secret"));verify(model,never()).stream(any(Prompt.class));
+    }
     @Test
     void guardedCalculationCannotBeRewrittenByModelBeforePublication() throws Exception {
         ChatModel model = mock(ChatModel.class);

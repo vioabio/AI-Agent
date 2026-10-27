@@ -60,7 +60,7 @@ public final class SqliteGuideKnowledgeRetriever implements KnowledgeRetriever {
             chunkRows.sort(Comparator.comparing(row->(String)row.get(0)));
             termRows.sort(Comparator.<List<Object>,String>comparing(row->(String)row.get(0)).thenComparing(row->(String)row.get(1)));
             documents=Map.copyOf(docs); parts=Map.copyOf(chunks);
-            String fingerprint=PokeApiClient.digest(GuideChunks.ALGORITHM+mapper.writeValueAsString(List.of(docRows,chunkRows,termRows)));
+            String fingerprint=PokeApiClient.digest(GuideChunks.ALGORITHM+GuideApplicability.POLICY+mapper.writeValueAsString(List.of(docRows,chunkRows,termRows)));
             // SQLite can fail to open a brand-new Windows file before its normal busy
             // handler applies. Serialize initial opening as well as the import transaction.
             synchronized(INITIALIZATION_LOCK) {
@@ -85,7 +85,7 @@ public final class SqliteGuideKnowledgeRetriever implements KnowledgeRetriever {
                     jdbc.batchUpdate("INSERT INTO guide_term VALUES(?,?,?)",termRows.stream().map(List::toArray).toList());
                     jdbc.update("INSERT INTO guide_meta VALUES(1,?,?) ON CONFLICT(id) DO UPDATE SET fingerprint=excluded.fingerprint,built_at=excluded.built_at",fingerprint,builtAt);
                 }
-                return new Status(GuideChunks.ALGORITHM,fingerprint,builtAt,reuse,docs.size(),chunks.size(),source.size()-docs.size(),"none");
+                return new Status(GuideChunks.ALGORITHM+"+"+GuideApplicability.POLICY,fingerprint,builtAt,reuse,docs.size(),chunks.size(),source.size()-docs.size(),"none");
             });
             }
             }
@@ -113,7 +113,7 @@ public final class SqliteGuideKnowledgeRetriever implements KnowledgeRetriever {
                 var doc=documents.get(part.documentId());
                 if(doc.language().equals(query.language()) && doc.gameReleaseId().equals(query.gameReleaseId())
                         && doc.battleFormatId().equals(query.battleFormatId()) && doc.rulesetVersionId().equals(query.rulesetVersionId())
-                        && fresh(doc))eligible.add(part.id());
+                        && fresh(doc) && (doc.applicability()==null||doc.applicability().allows(query.text())))eligible.add(part.id());
             }
             if(eligible.isEmpty())return List.of();
             Map<String,Integer> lengths=new HashMap<>();
@@ -133,7 +133,10 @@ public final class SqliteGuideKnowledgeRetriever implements KnowledgeRetriever {
                 scores.merge(posting.chunkId(),idf*posting.tf()*2.2/norm,Double::sum);
             }
             List<Map.Entry<String,Double>> sorted=scores.entrySet().stream()
-                    .sorted(Map.Entry.<String,Double>comparingByValue().reversed().thenComparing(Map.Entry.comparingByKey()))
+                    .sorted(Comparator.<Map.Entry<String,Double>>comparingInt(entry->{
+                        var scope=documents.get(parts.get(entry.getKey()).documentId()).applicability();
+                        return scope!=null&&!scope.subjects().isEmpty()?0:1;
+                    }).thenComparing(Map.Entry.<String,Double>comparingByValue().reversed()).thenComparing(Map.Entry.comparingByKey()))
                     .limit(query.topK()).toList();
             List<RetrievedKnowledgeChunk> result=new ArrayList<>();
             for(int i=0;i<sorted.size();i++)result.add(view(parts.get(sorted.get(i).getKey()),i+1,sorted.get(i).getValue()));

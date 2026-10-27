@@ -11,6 +11,29 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DeepSeekUsageProtocolTest {
+    @Test void contextOutputReserveReachesTheRealHttpRequestOptionsWithoutInventingUsage() throws Exception {
+        var received=new java.util.concurrent.atomic.AtomicReference<com.fasterxml.jackson.databind.JsonNode>();
+        var requests=new java.util.concurrent.atomic.AtomicInteger();
+        var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
+        var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
+        server.createContext("/chat/completions",exchange->{
+            requests.incrementAndGet();
+            received.set(mapper.readTree(exchange.getRequestBody()));
+            byte[] bytes="{\"id\":\"fixture\",\"model\":\"fixture\",\"choices\":[{\"index\":0,\"finish_reason\":\"stop\",\"message\":{\"role\":\"assistant\",\"content\":\"你好\"}}],\"usage\":{\"prompt_tokens\":11,\"completion_tokens\":3,\"total_tokens\":14}}".getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type","application/json");exchange.sendResponseHeaders(200,bytes.length);
+            try(var out=exchange.getResponseBody()){out.write(bytes);}
+        });server.start();
+        try {
+            var ledger=new ModelUsageLedger(new TaskModelBudget(new TaskBudgetProperties(1,10000)));var limits=new ContextBudgetProperties(1024,128,256,2,125);
+            var delegate=DeepSeekModelConfiguration.build("offline-test-only","fixture","http://127.0.0.1:"+server.getAddress().getPort());
+            var model=new ObservedChatModel(delegate,ledger,new ModelContextBudget(limits,List.of(),ledger));
+            assertEquals("你好",model.call(new Prompt("fixture")).getResult().getOutput().getText());
+            assertThrows(TaskBudgetExceededException.class,()->model.call(new Prompt("blocked before HTTP")));
+            assertEquals(1,requests.get());
+            assertEquals(128,received.get().path("max_tokens").asInt());assertEquals(14L,tokens(ledger).get("totalTokens"));
+            assertTrue(ledger.snapshot().containsKey("contextBudget"));
+        }finally{server.stop(0);}
+    }
     @SuppressWarnings("unchecked") static Map<String,Object> tokens(ModelUsageLedger ledger){return (Map<String,Object>)ledger.freeze().get("totals");}
     @Test void actualHttpDecoderPreservesUsageAndMissingFieldsRemainUnknown() throws Exception {
         for(boolean missing:List.of(false,true)) {

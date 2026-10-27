@@ -1,0 +1,312 @@
+{
+  "schemaVersion": "learning-review-verification-v1",
+  "verifiedAt": "2026-10-27T02:19:18.946Z",
+  "backend": {
+    "tests": 1212,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3,
+    "newTests": 24
+  },
+  "node": {
+    "tests": 151,
+    "passed": 151,
+    "newTests": 4
+  },
+  "frontendContract": {
+    "tests": 156,
+    "passed": 156,
+    "newTests": 11
+  },
+  "frontend": {
+    "build": "PASS",
+    "lint": "PASS",
+    "typecheck": "PASS",
+    "browser": {
+      "tests": 2,
+      "passed": 2,
+      "widths": [
+        1440,
+        390
+      ],
+      "mode": "REAL_CHROME_WITH_INTERCEPTED_API_FIXTURES",
+      "initialBrowserAlsoPassed": 2,
+      "distinctTestsRemain": 2
+    }
+  },
+  "phases": [
+    {
+      "phase": "model-initial",
+      "mode": "MODEL_TOOL_PLANNING",
+      "planned": 4,
+      "completed": 2,
+      "engineeringPass": 1,
+      "httpBefore": 2,
+      "httpAfter": 2,
+      "uniqueBuildChecks": 1,
+      "finishedNotifications": 2,
+      "actualModelCalls": 23,
+      "humanReviewed": 0,
+      "formalAdmissions": 0,
+      "savedTeamUnchanged": true,
+      "sourcesUnchanged": true,
+      "runtimeUnchanged": true,
+      "pass": false
+    },
+    {
+      "phase": "model-history-fix",
+      "mode": "MODEL_TOOL_PLANNING",
+      "planned": 4,
+      "completed": 3,
+      "engineeringPass": 3,
+      "httpBefore": 2,
+      "httpAfter": 2,
+      "uniqueBuildChecks": 3,
+      "finishedNotifications": 6,
+      "actualModelCalls": 17,
+      "humanReviewed": 0,
+      "formalAdmissions": 0,
+      "savedTeamUnchanged": true,
+      "sourcesUnchanged": true,
+      "runtimeUnchanged": true,
+      "pass": false
+    },
+    {
+      "phase": "program-route",
+      "mode": "PROGRAM_ROUTE_NOT_MODEL_PLANNING",
+      "planned": 4,
+      "completed": 4,
+      "engineeringPass": 4,
+      "httpBefore": 2,
+      "httpAfter": 2,
+      "uniqueBuildChecks": 4,
+      "finishedNotifications": 8,
+      "actualModelCalls": 0,
+      "humanReviewed": 0,
+      "formalAdmissions": 0,
+      "savedTeamUnchanged": true,
+      "sourcesUnchanged": true,
+      "runtimeUnchanged": true,
+      "pass": true
+    }
+  ],
+  "allAttempts": {
+    "planned": 12,
+    "completed": 9,
+    "engineeringPass": 8,
+    "observedModelCalls": 40,
+    "independentQuestions": 2,
+    "humanReviewed": 0,
+    "formalAdmissions": 0
+  },
+  "runtime": {
+    "configuredProvider": "dashscope",
+    "configuredModelId": "qwen-plus",
+    "sourceFiles": 519,
+    "implementationClasses": 90
+  },
+  "integrity": {
+    "sourceClassAndEventHashesRechecked": true,
+    "samePlanAcrossAllPhases": true,
+    "frozenFilesMatchHead": [
+      "evaluation/campus/s2",
+      "evaluation/campus/s3",
+      "src/main/resources/pokemon-guides",
+      "src/main/java/com/vio/vioaiagent/pokemon/domain/TeamBuild.java",
+      "src/main/java/com/vio/vioaiagent/pokemon/team/TeamWorkflowService.java",
+      "src/main/java/com/vio/vioaiagent/pokemon/reference/PokeApiClient.java",
+      "src/main/java/com/vio/vioaiagent/pokemon/reference/LocalPokeApiRepository.java",
+      "src/main/java/com/vio/vioaiagent/pokemon/engine/LocalDamageEngine.java",
+      "tools/pokemon-engine/calculate.cjs"
+    ],
+    "oldMechanicAndStrategyFilesUnchanged": 11,
+    "formalSuite": {
+      "cases": 36,
+      "groups": 20,
+      "dev": 14,
+      "heldout": 22,
+      "categories": {
+        "facts": 6,
+        "guides": 8,
+        "team": 6,
+        "damage": 4,
+        "clarification": 8,
+        "safety": 4
+      }
+    },
+    "originalCorpus": {
+      "catalogId": "local-guides-expanded-v1",
+      "documentCount": 12,
+      "uniqueCodeFiles": 5,
+      "upstreamReferenceUrls": [
+        "https://github.com/smogon/damage-calc",
+        "https://pokeapi.co/docs/v2"
+      ],
+      "humanReview": "pending",
+      "scope": "Metadata and source-code identity audit; not semantic fact checking or external article permission.",
+      "corpusSha256": "b0a1204403f6aaf610543399afdb11c4b37bc9614ce376c47befa843319b8b8f"
+    }
+  },
+  "intermediateChecks": {
+    "backend1199Passed": true,
+    "backend1206Passed": true,
+    "backend1207Passed": true,
+    "routeTargeted26Had3AssertionFailures": "Metadata lookup miscounted as inference; JSON integer/long node equality compared by Java subtype. Corrected tests compare call/stream and typed original request; final complete suite passed.",
+    "readinessWaitExpiredBeforeCollectorStarted": {
+      "modelRuns": 0
+    }
+  },
+  "cleanup": {
+    "ports": [
+      18168,
+      31968
+    ],
+    "verifiedProcessOwnership": true,
+    "servicesStopped": true,
+    "daily8123Untouched": true,
+    "daily3000Untouched": true,
+    "privateModelConfigInspected": false,
+    "committed": false,
+    "pushed": false,
+    "deployed": false
+  },
+  "logs": [
+    {
+      "file": "artifacts/learning-review-backend-final-2026-10-27.log",
+      "sha256": "d36aee6a48d4c7f1ba57eb960587f3470f570528eb30bf8931de8c4dfcdd9afc"
+    },
+    {
+      "file": "artifacts/learning-review-backend-full-2026-10-27.log",
+      "sha256": "74fc03c0111f1ef507aef7f1e29d5c32c7c50133b59af8f6f5d7b23f8bc294ee"
+    },
+    {
+      "file": "artifacts/learning-review-backend-route-final-2026-10-27.log",
+      "sha256": "ee080999c77a92ca037cda854a5e4a8058142d0c854f6efe0966854b23e07b26"
+    },
+    {
+      "file": "artifacts/learning-review-backend-verified-2026-10-27.log",
+      "sha256": "f0686d6dfdf7abd702530ae4711ef4e19bf11dea8601faa258e4e80f75d448e0"
+    },
+    {
+      "file": "artifacts/learning-review-browser-2026-10-27.log",
+      "sha256": "da3cf8e8bc92438c08578e14752c97494413515a2947db5859dbe2e3e312172a"
+    },
+    {
+      "file": "artifacts/learning-review-browser-final-2026-10-27.log",
+      "sha256": "c46657f8236c73f675c2fa74a4bd4c061b7d79af050c7a7b7f0ea1a56eab86a2"
+    },
+    {
+      "file": "artifacts/learning-review-corpus-audit-2026-10-27.log",
+      "sha256": "7b9650f6f47966fa7ec6991c0a11c52271da88cb54d85a17579a22669db557c1"
+    },
+    {
+      "file": "artifacts/learning-review-frontend-build-2026-10-27.log",
+      "sha256": "606e964a1a24be1fc02487d844cb5b07139292b8d3df0648278784bb11990360"
+    },
+    {
+      "file": "artifacts/learning-review-frontend-build-final-2026-10-27.log",
+      "sha256": "03de730809925634af9cad63ed1941c576b11bf8890ae82a7c3bdcc6e1747539"
+    },
+    {
+      "file": "artifacts/learning-review-frontend-contract-2026-10-27.log",
+      "sha256": "c8dbf412e8616fe3b7f41075bbba4552546eb5dca91e15b854abdf9478915b80"
+    },
+    {
+      "file": "artifacts/learning-review-frontend-contract-final-2026-10-27.log",
+      "sha256": "f7a088b2a9c34a6eef186525bd8329f12f216d578f4a20ae4f79862aa40a55dd"
+    },
+    {
+      "file": "artifacts/learning-review-frontend-lint-2026-10-27.log",
+      "sha256": "28841550c6c0b7ca0d87126822260d7da738fbb2a01fbbe9d341a8910ef40c6b"
+    },
+    {
+      "file": "artifacts/learning-review-frontend-lint-final-2026-10-27.log",
+      "sha256": "28841550c6c0b7ca0d87126822260d7da738fbb2a01fbbe9d341a8910ef40c6b"
+    },
+    {
+      "file": "artifacts/learning-review-frontend-typecheck-2026-10-27.log",
+      "sha256": "06e059649a47ae58eee167e54d3234ee80acdf04878c0c9adadac41cd5d65f17"
+    },
+    {
+      "file": "artifacts/learning-review-frontend-typecheck-final-2026-10-27.log",
+      "sha256": "06e059649a47ae58eee167e54d3234ee80acdf04878c0c9adadac41cd5d65f17"
+    },
+    {
+      "file": "artifacts/learning-review-node-final-2026-10-27.log",
+      "sha256": "b915dac00232617d3aa07ad7583730e2570098ca7fee75d0c9a9edccd3e0888d"
+    },
+    {
+      "file": "artifacts/learning-review-node-full-2026-10-27.log",
+      "sha256": "dc1e2a03db56b616034ed53e519c0b8ebd0ebe0be91186d85e8899699cd71c7f"
+    },
+    {
+      "file": "artifacts/learning-review-node-route-final-2026-10-27.log",
+      "sha256": "3435dfd155981cf8a26112221cbbdc5d920cd9d38f0dbc02e187e181826939cd"
+    },
+    {
+      "file": "artifacts/learning-review-program-route-2026-10-27.log",
+      "sha256": "65d95f7698441638ef58f2746bfa0ee93282b3ad4e5c01c4abb8733180863091"
+    },
+    {
+      "file": "artifacts/learning-review-real-replay-2026-10-27.log",
+      "sha256": "cdaea9fa466d86ff2d94d65a019f7899d276fb07249acacf8bbdcb691c17ecd9"
+    },
+    {
+      "file": "artifacts/learning-review-real-replay-fixed-2026-10-27.log",
+      "sha256": "fee7e64d0625d5486df8dee679614a00a6794202f8c24df3f51dc09a273daee6"
+    },
+    {
+      "file": "artifacts/learning-review-route-targeted-2026-10-27.log",
+      "sha256": "6b19fc58a4f84100817c2965848bcd189ac694e8dfaf71d4b4fee23617b37f75"
+    },
+    {
+      "file": "artifacts/learning-review-runtime-2026-10-27.log",
+      "sha256": "ca070e31932093849c1ab86f91142679946e5a59b1a814d2e975aa88001234a8"
+    },
+    {
+      "file": "artifacts/learning-review-runtime-fixed-2026-10-27.log",
+      "sha256": "c2b8de21f07634430a151d01593b7916aad9ded687fcfc5d94842d5a75c884f8"
+    },
+    {
+      "file": "artifacts/learning-review-runtime-route-2026-10-27.log",
+      "sha256": "223ca47a8e62d52fbde06161a6e0d2404fa012f812a447539e08ff3548c9184b"
+    },
+    {
+      "file": "artifacts/learning-review-suite-validate-2026-10-27.log",
+      "sha256": "ea88d3d15d7da08ced5fa622f8e222269a6b4368de91f7f8e82dc99a30c1e77f"
+    },
+    {
+      "file": "artifacts/learning-review-targeted-2026-10-27.log",
+      "sha256": "730ccd75148e3b462affed0d020b76541f034add379bfe330bb020e83d5349e1"
+    },
+    {
+      "file": "artifacts/learning-review-targeted-fixed-2026-10-27.log",
+      "sha256": "bfcfb4f356e509463e703ee8c128bc218fef33927213f9c8e0d97085daac1708"
+    },
+    {
+      "file": "artifacts/learning-review-vite-2026-10-27.log",
+      "sha256": "117776750881ecb81c2dc6a55dfa738f1e92abf7c10a2d237bf246396db889ff"
+    },
+    {
+      "file": "artifacts/learning-review-vite-final-2026-10-27.log",
+      "sha256": "f4441f107534ffe5908090129377abff57a6ab8c2e5f8f7c60391157d006c3df"
+    }
+  ],
+  "assets": [
+    {
+      "file": "learning-review-result-1440-2026-10-27.png",
+      "sha256": "f3173d9e8fb6158a7acc778409d6e670c7251018c36b62fd461acbf2e05642d9"
+    },
+    {
+      "file": "learning-review-result-390-2026-10-27.png",
+      "sha256": "60ef44e726010f3f816979d6791b03f1e173b1201a39870553413f0387c7adbd"
+    }
+  ],
+  "limits": [
+    "No full learning-operation, four-move joint availability or competitive legality verification",
+    "Real model planning remained 1/4 then 3/4; program routing 4/4 with zero inference is not a model accuracy score",
+    "Malformed generation may persist in ordinary natural-language workflows; unchanged task budget still bounds failures",
+    "Two authored functional questions, eight presentation boundary vectors; formal set stays 36, human acceptance 0",
+    "Existing SLF4J, validation-provider and Surefire shutdown-wait warnings remain; intentional process termination is not a test failure"
+  ]
+}

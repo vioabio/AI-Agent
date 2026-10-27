@@ -260,8 +260,10 @@
               <details class="bulk-moves"><summary>批量填写招式</summary><label>招式（英文名或 slug，逗号分隔）<input v-model="memberBuilds[index].movesText" :aria-label="`第 ${index + 1} 位招式`" placeholder="surf, ice-beam" maxlength="320" /></label></details>
               <table class="training-table"><caption>努力值 / 个体值</caption><thead><tr><th scope="col">能力</th><th scope="col">努力值 EV</th><th scope="col">个体值 IV</th></tr></thead><tbody><tr v-for="stat in statOptions" :key="stat.key"><th scope="row">{{ stat.label }}</th><td><input v-model.number="memberBuilds[index].evs[stat.key]" :aria-label="`第 ${index + 1} 位 ${stat.label} EV`" type="number" min="0" max="252" /></td><td><input v-model.number="memberBuilds[index].ivs[stat.key]" :aria-label="`第 ${index + 1} 位 ${stat.label} IV`" type="number" min="0" max="31" /></td></tr></tbody></table>
               <small class="ev-total" :class="{ invalid: Object.values(memberBuilds[index].evs).reduce((sum,n) => sum + Number(n), 0) > 510 }">努力值 {{ Object.values(memberBuilds[index].evs).reduce((sum,n) => sum + Number(n), 0) }} / 510</small>
+              <BuildCheckPanel :request="buildCheckInput(index)" />
             </details>
             <div v-if="!teamForm.members.some(Boolean)" class="state-box idle">还没有成员。<button type="button" class="text-link" @click="showSection('facts')">去图鉴寻找伙伴 →</button></div>
+            <TeamBuildCheckPanel :request="teamBuildCheckInput" :busy="busy" @ask="askTeamBuildCheck" />
             <p v-if="teamFormError" class="form-error" role="alert">{{ teamFormError }}</p>
 
           </form>
@@ -456,6 +458,10 @@ import { BATTLE_FORMAT_OPTIONS, resolveBattleFormat, resolveGameRelease } from '
 import PokemonPortrait from '@/components/PokemonPortrait.vue'
 import UiIcon from '@/components/UiIcon.vue'
 import TeamRoster from '@/components/TeamRoster.vue'
+import BuildCheckPanel from '@/components/BuildCheckPanel.vue'
+import TeamBuildCheckPanel from '@/components/TeamBuildCheckPanel.vue'
+import {buildCheckDraft} from '@/api/build-check'
+import {teamBuildQuestion} from '@/api/team-build-check'
 
 const props = defineProps({
   embedded: { type: Boolean, default: false },
@@ -735,6 +741,14 @@ function serializeBuild(index) {
   if(Object.values(value.evs).reduce((sum,n)=>sum+n,0)>510) throw new Error('努力值总和不能超过 510')
   return {moves,ability:value.ability.trim(),item:value.item.trim(),nature:value.nature,level:value.level,evs:{...value.evs},ivs:{...value.ivs}}
 }
+function buildCheckInput(index) {
+  const value=memberBuilds[index]
+  return {pokemonId:Number(teamForm.members[index]),dataReleaseId:teamForm.dataReleaseId,gameReleaseId:context.gameReleaseId,
+    build:buildCheckDraft({moves:value.movesText.split(/[,，]/).map(move=>move.trim()).filter(Boolean),ability:value.ability,item:value.item,nature:value.nature,level:value.level,evs:{...value.evs},ivs:{...value.ivs}})}
+}
+const teamBuildCheckInput=computed(()=>({dataReleaseId:teamForm.dataReleaseId,gameReleaseId:context.gameReleaseId,
+  members:teamForm.members.flatMap((id,index)=>id?[{slot:index+1,pokemonId:Number(id),build:buildCheckInput(index).build}]:[])}))
+function askTeamBuildCheck(request){if(!props.busy)emit('ask',{prompt:teamBuildQuestion(request),context:{gameReleaseId:request.gameReleaseId,dataReleaseId:request.dataReleaseId}})}
 
 function addFactToTeam(fact) {
   resourceNotice.value = ''

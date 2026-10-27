@@ -28,6 +28,7 @@
           <label><span class="sr-only">赛制</span><select v-model="scenario.battleFormat" aria-label="赛制" :disabled="workspaceBusy"><option v-for="option in battleFormatOptions" :key="option.alias" :value="option.alias">{{ option.label }}</option></select></label>
           <label><span class="sr-only">语言</span><select v-model="scenario.language" aria-label="语言" :disabled="workspaceBusy"><option value="zh-CN">简体中文</option><option value="en-US">English</option><option value="ja-JP">日本語</option></select></label>
         </section>
+        <ConversationPreferences :conversation-id="chatId" :disabled="workspaceBusy || historyLoading || !!historyError" @busy="preferencesBusy = $event" />
         <button class="source-toggle" type="button" :aria-expanded="settingsOpen" @click="settingsOpen = !settingsOpen"><UiIcon name="book" />资料来源<UiIcon name="chevron" /></button>
       </header>
       <section v-if="settingsOpen" class="workspace-settings" aria-label="版本与资料设置">
@@ -61,6 +62,7 @@
 <script setup>
 import { ref, onBeforeUnmount, onMounted, watch, reactive, computed } from 'vue'
 import ChatRoom from '@/components/ChatRoom.vue'
+import ConversationPreferences from '@/components/ConversationPreferences.vue'
 import LocalAccountMenu from '@/components/LocalAccountMenu.vue'
 import PokemonWorkbench from '@/views/PokemonWorkbench.vue'
 import VioMark from '@/components/VioMark.vue'
@@ -129,7 +131,8 @@ const workspaceWarning = computed(() => /未启用|无法连接|失败/.test(wor
 const historyLoading = ref(true)
 const historyError = ref('')
 const referenceRelease = ref('')
-const workspaceBusy = computed(() => ['creating', 'connecting', 'connected', 'reconnecting', 'waiting_approval'].includes(connectionStatus.value))
+const preferencesBusy = ref(false)
+const workspaceBusy = computed(() => preferencesBusy.value || ['creating', 'connecting', 'connected', 'reconnecting', 'waiting_approval'].includes(connectionStatus.value))
 const messages = ref([])
 const connectionStatus = ref('idle') // 'idle' | 'connecting' | 'done'
 let currentEventSource = null
@@ -303,6 +306,7 @@ async function handleReconnectRun(runId) {
 
 async function handleApproveRun(approval) {
   if (!approval?.approvalId || !activeRun.value?.runId || activeRun.value.approvalSubmitting) return
+  if (approval.teamChange && activeRun.value.teamDecisionState?.approvalId === approval.approvalId) return
   const runId = activeRun.value.runId
   activeRun.value.approvalSubmitting = true
   try {
@@ -319,14 +323,29 @@ async function handleApproveRun(approval) {
     if (Boolean(decision.allowed) !== expectedAllowed) {
       throw new Error(decision.reason || '审批结果未被服务端确认')
     }
+    if (approval.teamChange && activeRun.value?.runId === runId) {
+      activeRun.value.teamDecisionState = { approvalId: approval.approvalId,
+        message: '决定已提交，正在核对任务结果；尚未确认保存。' }
+      activeRun.value.approvalSubmitting = false
+    }
     // 不在 HTTP 决策成功后提前清空审批卡：只有重放到
     // approval.resolved/run.failed 事件，才能确认 Run 已收敛。若随后网络
-    // 断开，保留卡片让用户可以继续重试，而不是丢失唯一操作入口。
+    // 断开，保留卡片；已提交的队伍决定禁止重复发送，改为刷新状态。
     // 拒绝也会产生 approval.resolved/run.failed 终态事件；恢复消费才能
     // 让时间线从 waiting_approval 正确收敛到最终状态。
     await runStream.reconnect(runId)
   } catch (error) {
-    if (activeRun.value?.runId === runId) activeRun.value.error = error.message
+    if (activeRun.value?.runId === runId) {
+      activeRun.value.error = error.message
+      if (approval.teamChange && [404, 409, 410].includes(Number(error.status))) {
+        activeRun.value.teamDecisionState = { approvalId: approval.approvalId,
+          message: Number(error.status) === 410 ? '预览已过期，请重新发起修改任务。'
+            : '此预览已失效或决定已处理，请刷新任务状态并回读队伍核对。' }
+        activeRun.value.approvalSubmitting = false
+        // A failed decision request is not a Run terminal event or proof of a saved team.
+        try { await runStream.reconnect(runId) } catch { /* Keep the card and manual refresh. */ }
+      }
+    }
   } finally {
     if (activeRun.value?.runId === runId) activeRun.value.approvalSubmitting = false
   }

@@ -9,6 +9,8 @@ public final class DamageAnswerEvidence {
     private boolean initialized;
     private boolean requested;
     private JsonNode evidence;
+    private String failureMessage;
+    private static final String REFERENCE_FAILURE="宝可梦参考资料暂时无法读取，本次未能生成伤害范围。请检查资料连接，或导入所需本地资料后重试。";
     public void begin(String prompt) {
         initialized = true;
         requested = prompt.contains("calculateBattleDamage") || prompt.contains("请解释以下真实伤害")
@@ -18,9 +20,21 @@ public final class DamageAnswerEvidence {
     public boolean active() { return requested || evidence != null; }
     public boolean complete() { return evidence != null; }
     public void observe(String tool, String output) {
-        if (!"calculateBattleDamage".equals(tool)) return;
+        if (!"calculateBattleDamage".equals(tool)) {
+            if(requested&&evidence==null&&Set.of("lookupPokemonReference","lookupPokemonResource","lookupPokemonTeamReference").contains(tool)&&referenceFailure(output))failureMessage=REFERENCE_FAILURE;
+            return;
+        }
         requested = true; evidence = null;
+        failureMessage=null;
         if (output == null || output.length() > 1_048_576) return;
+        if(output!=null&&(output.startsWith("[tool.error]")||output.startsWith("[tool.denied]"))) {
+            if(referenceFailure(output))failureMessage=REFERENCE_FAILURE;
+            else if(output.contains("本地资料缓存校验失败"))failureMessage="本地资料未通过校验，本次未发布伤害范围。请检查对应缓存文件，或将已校验的资料包导入新目录后重试。";
+            else if(output.contains("TOOL_EXECUTION_TIMEOUT"))failureMessage="本次计算工具执行超时，暂未取得有效伤害结果。请稍后重试，必要时检查本地计算依赖。";
+            else if(output.startsWith("[tool.denied]"))failureMessage="本次计算请求被参数校验或工具策略拒绝，暂未生成伤害范围。请查看执行记录并修正请求。";
+            else failureMessage="本次计算工具执行失败，暂未取得有效伤害结果。请查看执行记录后重试。";
+            return;
+        }
         try {
             JsonNode value = mapper.readTree(output);
             if (!"@smogon/calc".equals(value.path("engine").asText())
@@ -53,7 +67,11 @@ public final class DamageAnswerEvidence {
             evidence = value;
         } catch (Exception ignored) { /* failure strings are not calculations */ }
     }
-    public String missingAnswer() { return "尚未获得有效的伤害计算结果，暂不提供伤害范围。请补齐双方物种、等级、招式、特性、道具、性格、努力值、个体值和场地条件后重试。"; }
+    private static boolean referenceFailure(String output) {
+        return output!=null&&output.length()<=1_048_576&&output.startsWith("[tool.error]")
+                &&(output.contains("PokéAPI 正文读取超时")||output.contains("PokéAPI 暂不可达")||output.contains("PokéAPI 暂时无法提供资料"));
+    }
+    public String missingAnswer() { return failureMessage!=null?failureMessage:"尚未获得有效的伤害计算结果，暂不提供伤害范围。请补齐双方物种、等级、招式、特性、道具、性格、努力值、个体值和场地条件后重试。"; }
     public String verifiedSummary() {
         if (!complete()) return missingAnswer();
         JsonNode assumptions = evidence.path("assumptions");
@@ -67,9 +85,11 @@ public final class DamageAnswerEvidence {
             JsonNode member = assumptions.path(side);
             text.append(side.equals("attacker") ? "攻击方：" : "防御方：").append(safe(member.path("species").asText()))
                     .append("，Lv.").append(member.path("level").asInt()).append("，性格 ").append(safe(member.path("nature").asText("未填")))
-                    .append("，特性 ").append(safe(member.path("ability").asText("未填"))).append("，道具 ").append(safe(member.path("item").asText("未填")))
+                    .append("，特性 ").append(safe(member.path("ability").asText("未填"))).append("，道具 ").append(member.path("item").isTextual()&&member.path("item").asText().isEmpty()?"无":safe(member.path("item").asText("未填")))
                     .append("；EV ").append(stats(member.path("evs"))).append("；IV ").append(stats(member.path("ivs"))).append("。\n");
         }
+        var defaults=evidence.path("conditionValidation").path("engineDefaultAbilitySides");
+        if(defaults.isArray()&&!defaults.isEmpty())text.append("注意：未指定的特性采用了引擎默认特性（见上方实际条件），请确认该假设；这不表示用户已经选择了该特性。\n");
         text.append("招式：").append(safe(assumptions.path("move").asText())).append("；场地：")
                 .append(safe(assumptions.path("field").path("gameType").asText("未填"))).append("；天气：")
                 .append(safe(assumptions.path("field").path("weather").asText("无"))).append("；地形：")

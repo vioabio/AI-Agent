@@ -108,7 +108,7 @@ public class AgentMetrics {
         runDurationMeter = Timer.builder("vio_agent_run_duration")
                 .description("Agent run duration").register(meterRegistry);
         ttftMeter = Timer.builder("vio_agent_ttft")
-                .description("Time to first token").register(meterRegistry);
+                .description("Legacy mixed timing; RunService now records explicit answer readiness separately").register(meterRegistry);
         io.micrometer.core.instrument.Gauge.builder("vio_agent_active", activeAgentCount,
                         AtomicInteger::get)
                 .description("Active Agent count").register(meterRegistry);
@@ -158,11 +158,27 @@ public class AgentMetrics {
         }
     }
 
-    /** 记录首 Token 延迟。 */
+    /** Legacy API retained for callers; RunService no longer mixes buffered readiness into this metric. */
+    @Deprecated
     public void recordTimeToFirstToken(long durationMs) {
         if (ttftMeter != null && durationMs >= 0) {
             ttftMeter.record(durationMs, java.util.concurrent.TimeUnit.MILLISECONDS);
         }
+    }
+    /** Public text ready at this server; excludes transport, polling and browser rendering. */
+    public void recordPublicAnswerReady(long durationMs,String path) {
+        if(meterRegistry!=null && durationMs>=0)Timer.builder("vio_run_answer_ready")
+                .description("Server public answer readiness from task registration; not supplier TTFT or delivery")
+                .tag("path","DELTA".equals(path)?"delta":"buffered").register(meterRegistry)
+                .record(durationMs,java.util.concurrent.TimeUnit.MILLISECONDS);
+    }
+    public void recordToolAttemptTiming(Map<String,Object> timing) {
+        if(meterRegistry==null)return;
+        String complete=Boolean.TRUE.equals(timing.get("callbackCompleted"))?"true":"false";
+        for(var entry:Map.of("queueWaitMs","vio_tool_queue_wait","authorizationMs","vio_tool_authorization",
+                "executionMs","vio_tool_execution_observed").entrySet())if(timing.get(entry.getKey()) instanceof Number millis && millis.longValue()>=0)
+            Timer.builder(entry.getValue()).description("Monotonic callback attempt observation; incomplete samples stop at caller boundary")
+                    .tag("callback_completed",complete).register(meterRegistry).record(millis.longValue(),java.util.concurrent.TimeUnit.MILLISECONDS);
     }
 
     /** 记录检索是否返回证据。 */

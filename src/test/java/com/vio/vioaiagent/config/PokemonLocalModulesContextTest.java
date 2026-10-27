@@ -40,7 +40,7 @@ class PokemonLocalModulesContextTest {
     @Test void localModulesWireWithoutStartingNetworkOrNodeProcesses() {
         assertInstanceOf(LocalPokeApiRepository.class,context.getBean(PokemonFactRepository.class));
         assertInstanceOf(SqliteSavedTeamRepository.class,context.getBean(SavedTeamRepository.class));
-        assertNotNull(context.getBean(LocalDamageEngine.class));assertNotNull(context.getBean(LocalGuideSearch.class));
+        assertInstanceOf(com.vio.vioaiagent.pokemon.engine.VerifiedLocalDamageEngine.class,context.getBean(LocalDamageEngine.class));assertNotNull(context.getBean(LocalGuideSearch.class));
         assertFalse(context.containsBean("dataSource"));
         var tools=context.getBean("allTools",org.springframework.ai.tool.ToolCallback[].class);
         var names=java.util.Arrays.stream(tools).map(t->t.getToolDefinition().name()).toList();

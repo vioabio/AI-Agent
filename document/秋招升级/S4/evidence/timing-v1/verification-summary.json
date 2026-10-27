@@ -1,0 +1,110 @@
+{
+  "stage": "S4 fifth batch: tool phases and public answer readiness",
+  "date": "2026-10-25",
+  "engineering": {
+    "backend": {
+      "tests": 1014,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3,
+      "runtime": "Temurin 21.0.12.1",
+      "release": 21,
+      "existingSurefireShutdownWarning": true
+    },
+    "targetedBackend": 43,
+    "frontendContracts": 131,
+    "nodeTools": 52,
+    "edgeBrowserTests": 10,
+    "lintTypecheckBuild": "PASS (observed command exit 0)"
+  },
+  "initialFailures": [
+    {
+      "file": "artifacts/s4-timing-targeted-initial-2026-10-25.log",
+      "reason": "Test compile: SimpleMeterRegistry is not AutoCloseable; explicit finally close fixed fixture."
+    },
+    {
+      "file": "artifacts/campus/s4-timing/model-2026-10-25/observations.json",
+      "reason": "Collector started before isolated server became ready; all 3 planned cases NOT_RUN. No model call; original evidence retained."
+    }
+  ],
+  "developmentRegression": {
+    "configuredProvider": "dashscope",
+    "configuredModelId": "qwen-plus",
+    "promptVersion": "campus-s3-provenance-v2",
+    "plannedRuns": 3,
+    "repetitions": 1,
+    "cases": [
+      "S2-GUIDES-01",
+      "S2-CLARIFICATION-01",
+      "S2-TEAM-01"
+    ],
+    "sourceSnapshotPass": 3,
+    "usageSnapshotPass": 3,
+    "budgetSnapshotPass": 3,
+    "costConsistencyPass": 3,
+    "timingSnapshotPass": 3,
+    "timedTools": 4,
+    "modelCalls": 6,
+    "providerTokenSubtotal": 30930,
+    "sdkStreamCalls": 0,
+    "pricingEnabled": false,
+    "referenceCost": "UNKNOWN",
+    "qualityAcceptance": "3 pending human review",
+    "heldout": "not run",
+    "mutation": "Only new isolated accounts/teams. Approval preview checked then cancelled, no approval submitted; team snapshots unchanged."
+  },
+  "nativeStreamScenario": {
+    "pass": true,
+    "plannedRuns": 1,
+    "sdkStreamCalls": 1,
+    "timingAuditPass": true,
+    "ownerIsolation": true,
+    "historyMatches": true
+  },
+  "browser": {
+    "source": "Controlled API fixtures, not live provider performance",
+    "viewports": [
+      1440,
+      390
+    ],
+    "newRequestReceipt": true,
+    "historicalReceiptNotFabricated": true,
+    "detailsCollapsed": true
+  },
+  "sourceFiles": 469,
+  "loadedClasses": 43,
+  "remaining": [
+    "Structured long-term user restrictions and token estimator calibration",
+    "Explicit pricing scope and real invoice reconciliation",
+    "Known answer intent/conciseness issues, independent S2/S3 review and heldout comparison",
+    "S5 delivery materials",
+    "Existing Surefire shutdown wait and local Bean Validation provider warnings"
+  ],
+  "artifactsSha256": {
+    "artifacts/s4-timing-backend-full-2026-10-25.log": "05a813afa9c18a30fe6695337c3d8d27c5c92888a915e2158a921ad7aa2df3f9",
+    "artifacts/s4-timing-targeted-initial-2026-10-25.log": "6b3eaa10a2ffaacc32068df4fac87f24251b5a1f4c6cbf68d087a6a94336f32e",
+    "artifacts/s4-timing-targeted-ready-2026-10-25.log": "2e2cfb6a4a7a11d5ef09364b07db5685b982f85f1005453e79eef000cbaf8902",
+    "artifacts/s4-timing-frontend-initial-2026-10-25.log": "99abbf19552bc1a30fd57cab8fa3df68adcadd1897d6b6137e2ee62e0ca1522d",
+    "artifacts/s4-timing-tools-final-2026-10-25.log": "81edd8ba402e3ffb19cdf925028dc98158b41901c4252bf42389cf61f0ae1b6e",
+    "artifacts/s4-timing-browser-initial-2026-10-25.log": "904aadeff7738d9202fb0ffdcc2198286f009c801bcf12c9fbc48ee1babdb53d",
+    "artifacts/s4-timing-browser-final-2026-10-25.log": "1eae104b00149b848136022fd93ed5344ad1fdebe37dc665d2da1715f6a2facc",
+    "artifacts/s4-timing-browser-final-results.json": "18d1d5b7315407bcceb4b2745eb85ef71cde1db97fdd641cb35ba3aeaa4da3a5",
+    "artifacts/s4-timing-runtime-2026-10-25.log": "5981f919bdaaa67fdeefe74073a91489d1d4c33670c05e7da2d962ecb6616451",
+    "artifacts/s4-timing-real-2026-10-25.log": "d58a34565998547126e6f0b91f2a58efe7e9f35001786668ea23cb85eaa2ddff",
+    "artifacts/s4-timing-real-ready-2026-10-25.log": "8280b5b1a934cc1e19896aae06c558fe92e24a0fc8c011e6c4b6a2898547801c",
+    "artifacts/s4-timing-real-stream-2026-10-25.log": "25bdc737d4d2ca222393b904c379092675516d1d4554cd57c7ce8f82ed57b8a9",
+    "artifacts/campus/s4-timing/model-ready-2026-10-25/observations.json": "686c12f5d67bb05e3897719dbea2ecc5000e6236886d201d85bef542047251d9",
+    "artifacts/campus/s4-timing/stream-2026-10-25/events.json": "7acf0d40b36b1320d44dca95ad432e046bf2267f9774f865f627d5f8c97c2f8c",
+    "artifacts/campus/s4-timing/stream-2026-10-25/scenario.json": "e58413c798978c79a96a27c3c90f575bad20f34e55bdf281aaeb60552d640602",
+    "artifacts/campus/s4-timing/model-2026-10-25/observations.json": "076b76989b310f55047c8304ad5849c7c133d86c7d9a0d84f8bbe6bed06c6d9a",
+    "artifacts/s4-timing-1440.png": "9f4cc60e6c4c6889543791619b7a2941bb6cbf341ab1811f79956825fcf5d45f",
+    "artifacts/s4-timing-390.png": "4dc5dd1013412a591e2680d872bc1b30b41fbd0723b296b01490346ebe89b80c",
+    "tools/campus/response-timing.mjs": "69f4eececaf6bcd48ec3c4d723543796f658edea61c2898edd69c253ded4f662",
+    "tools/campus/response-timing.test.mjs": "c9108b07b6523fc2d0562c86f0950137cfde6a4ead978e23afb6398d6bfb2723",
+    "artifacts/campus/s4-timing/timing-final-2026-10-25/timing-audit.json": "cd3c4c241ddfc096ca065240b9302d3cedb19dd619113182d3ef545adb6b7c6a",
+    "artifacts/campus/s4-timing/sources-2026-10-25/source-regression.json": "fc461220363ffd0cc91a9e2579b40f3f9a572adb16f8c3a7504fbeefa6e1d34d",
+    "artifacts/campus/s4-timing/usage-2026-10-25/usage-verification.json": "791b830afedc1cc16ae55da629a20c66f9bc1fe14711d5272ef6df48b86a403c",
+    "artifacts/campus/s4-timing/budget-2026-10-25/budget-audit.json": "1b6bc2d135269e151b1a09f6e78a4bfa53759154255a02d4cb30362a43fd6464",
+    "artifacts/campus/s4-timing/cost-2026-10-25/cost-audit.json": "6a58e4f6035ff4817279a5b264e6e3dfbd2283a14a4a13a444946d317c26d9de"
+  }
+}

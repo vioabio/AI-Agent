@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "reference-cache-verification-v1",
+  "verifiedAt": "2026-10-26T05:34:05.240Z",
+  "scope": "Engineering regression, imported public cache and expected failure recovery; not semantic quality, heldout evaluation or fresh upstream availability",
+  "tests": {
+    "backend": {
+      "tests": 1057,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3,
+      "result": "BUILD SUCCESS"
+    },
+    "tools": {
+      "tests": 75,
+      "passed": 75,
+      "bundle": 5,
+      "campus": 70
+    },
+    "frontendContract": {
+      "tests": 137,
+      "passed": 137
+    },
+    "targeted": {
+      "tests": 18,
+      "overlappingWithFull": true
+    }
+  },
+  "runtime": {
+    "checks": {
+      "cachedNamesIdsAndChinese": true,
+      "importedCacheCalculation": true,
+      "uncachedReferenceFailsSafely": true,
+      "historyAndUsageMatch": true,
+      "referenceFailureRecovery": true
+    },
+    "finalModelCalls": 3,
+    "firstModelCalls": 2,
+    "firstReportSha256": "da6eb296e87f95a3770f817773569c12b1bff8dca4fd4422743781187ab88af9",
+    "finalReportSha256": "5ec016c0f0f5e15121bf644d7e521d757079eea15a59a329c209228e7998a1ba",
+    "model": "dashscope/qwen-plus",
+    "port": 18148,
+    "isolatedServiceStopped": true,
+    "userService8123Untouched": true
+  },
+  "provenance": {
+    "pass": true,
+    "sourceCount": 480,
+    "runtimeClassCount": 60,
+    "manifestSha256": "fc7f7d0ca8d0775720e2faddee578a6b425b6d6119111078adb01bc5503713fc",
+    "fullProvenanceSha256": "32f82bfc5d3c6526b1398767166c2104d06bfff457997948499eec487e5a5791"
+  },
+  "sources": {
+    "publicDataDatesPreserved": true,
+    "privateModelConfigurationInspectedOrCopied": false,
+    "frozenDatasetAndCorpusModified": false
+  },
+  "limits": [
+    "Fresh upstream network not verified; configured local proxy was not listening",
+    "Bundle contains selected Pokemon/species only; no all-resource/image/model bundle",
+    "Digests are integrity checks, not source signatures or legality proof",
+    "No independent strategy or answer semantic acceptance",
+    "No new browser, standalone engine or PostgreSQL integration run",
+    "Surefire fork exit waiting and local Bean Validation provider warnings remain",
+    "No commit, push or deployment"
+  ],
+  "logs": [
+    {
+      "file": "artifacts/reference-cache-backend-full-2026-10-26.log",
+      "sha256": "1b90ae36884db45fdb82654e36be561906f9fdd6957b0940c2bfda7de35a9cf4",
+      "resultLines": [
+        "[INFO] Tests run: 18, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.121 s -- in com.vio.vioaiagent.tools.governance.ToolExecutionGatewayTest",
+        "[INFO] Tests run: 1057, Failures: 0, Errors: 0, Skipped: 3",
+        "[INFO] BUILD SUCCESS"
+      ]
+    },
+    {
+      "file": "artifacts/reference-cache-tools-final-2026-10-26.log",
+      "sha256": "f36a477cacb82cfa19faf27091c29f6be62dfca4a9c4e472c61c0d802287d564",
+      "resultLines": [
+        "ℹ tests 75",
+        "ℹ pass 75",
+        "ℹ fail 0",
+        "ℹ skipped 0"
+      ]
+    },
+    {
+      "file": "artifacts/reference-cache-frontend-contract-2026-10-26.log",
+      "sha256": "4f1bf3a0b2f8126afeb5561f2206c734da856b54d8059f79b7881f9033cc42fc",
+      "resultLines": [
+        "ℹ tests 137",
+        "ℹ pass 137",
+        "ℹ fail 0",
+        "ℹ skipped 0"
+      ]
+    },
+    {
+      "file": "artifacts/reference-cache-targeted-2026-10-26.log",
+      "sha256": "154b7a80acb695c35a00d82d906e0fbcbd417069aa4dbac488e23b20343623a6",
+      "resultLines": [
+        "[INFO] Tests run: 18, Failures: 0, Errors: 0, Skipped: 0",
+        "[INFO] BUILD SUCCESS"
+      ]
+    },
+    {
+      "file": "artifacts/reference-cache-real-final-2026-10-26.log",
+      "sha256": "532b50b9ffb1f890ae8a8231ad381a287237782f408396e1b5d7f99fccb8d1c5",
+      "resultLines": [
+        "{\"pass\":true,\"checks\":{\"cachedNamesIdsAndChinese\":true,\"importedCacheCalculation\":true,\"uncachedReferenceFailsSafely\":true,\"historyAndUsageMatch\":true,\"referenceFailureRecovery\":true},\"modelCalls\":3,\"error\":null}"
+      ]
+    }
+  ],
+  "scripts": {
+    "tools/reference-cache.mjs": "a7e4f45bb284d3223bfda09e541cca98e4cf7b08e9ee9836ed9886a023959040",
+    "tools/reference-cache.test.mjs": "12a76f9ec08fad238c3a8e94d15568060dd94bb7f1a66fd0c4de3e39efa2cf9a",
+    "tools/warm-pokemon-reference.ps1": "d43398238415610fd504f1012d4d8489b0919b1d1db6aae9ecea7741e5a32c03",
+    "tools/campus/s2-reference-cache-scenario.mjs": "227333b4271aec94faf3918660a2824746b21ac7b150877f5e80c4bb47a1fbb8"
+  }
+}

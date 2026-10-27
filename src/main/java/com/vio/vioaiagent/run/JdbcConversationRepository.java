@@ -29,6 +29,14 @@ public class JdbcConversationRepository implements ConversationRepository {
     public JdbcConversationRepository(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
+    @Override
+    public Optional<ConversationConstraints> constraintsForUser(String id, String userId) {
+        return new JdbcConversationConstraints(jdbc, false).read(id, userId);
+    }
+    @Override
+    public boolean replaceConstraintsForUser(String id, String userId, ConversationConstraints expected) {
+        return new JdbcConversationConstraints(jdbc, false).replace(id, userId, expected);
+    }
 
     @Override
     public Conversation save(Conversation conversation) {

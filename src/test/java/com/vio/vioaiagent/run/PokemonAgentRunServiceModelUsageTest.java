@@ -21,7 +21,8 @@ class PokemonAgentRunServiceModelUsageTest {
     @TempDir Path directory;
     static ChatResponse response(){return new ChatResponse(List.of(new Generation(new AssistantMessage("你好"))),
             ChatResponseMetadata.builder().usage(new DefaultUsage(11,3,14,new OpenAiApi.Usage(3,11,14))).build());}
-    static void record(AgentRunContext context){context.modelUsage().attach();var call=context.modelUsage().begin("CALL","fixture-model");context.modelUsage().response(call,response());context.modelUsage().finish(call,"RETURNED");}
+    static void preflight(AgentRunContext context){new ModelContextBudget(com.vio.vioaiagent.config.ContextBudgetProperties.defaults(),List.of(),context.modelUsage()).prepare(new Prompt("fixture"),null);}
+    static void record(AgentRunContext context){preflight(context);context.modelUsage().attach();var call=context.modelUsage().begin("CALL","fixture-model");context.modelUsage().response(call,response());context.modelUsage().finish(call,"RETURNED");}
     @SuppressWarnings("unchecked") static Map<String,Object> usage(AgentEvent event){return (Map<String,Object>)event.payload().get("modelUsage");}
     @SuppressWarnings("unchecked") static List<Map<String,Object>> attempts(ChatMessage message){return (List<Map<String,Object>>)message.metadata().get("modelUsageAttempts");}
     @Test void defaultExecutorCapturesDecisionsAndAnswerAndSqliteKeepsOwnerScopedHistoryAcrossReopen() {
@@ -40,7 +41,7 @@ class PokemonAgentRunServiceModelUsageTest {
         }
     }
     @Test void failureRetainsAttemptCountAndUnknownUsageWithoutCopyingProviderErrorText() {
-        try(var f=new Fixture(context->{context.modelUsage().attach();var call=context.modelUsage().begin("CALL","fixture-model");context.modelUsage().finish(call,"FAILED");throw new IllegalStateException("secret provider body");})) {
+        try(var f=new Fixture(context->{preflight(context);context.modelUsage().attach();var call=context.modelUsage().begin("CALL","fixture-model");context.modelUsage().finish(call,"FAILED");throw new IllegalStateException("secret provider body");})) {
             var run=f.create(Duration.ofSeconds(15));var terminal=RunTestAwait.awaitTerminalEvent(f.events,run.runId());
             assertEquals(AgentEventType.RUN_FAILED,terminal.type());assertEquals(1,usage(terminal).get("modelCallCount"));
             assertEquals("UNKNOWN",usage(terminal).get("usageStatus"));assertFalse(terminal.payload().toString().contains("secret"));
@@ -50,7 +51,7 @@ class PokemonAgentRunServiceModelUsageTest {
         for(boolean timeout:List.of(false,true)) {
             CountDownLatch entered=new CountDownLatch(1),release=new CountDownLatch(1),late=new CountDownLatch(1);
             try(var f=new Fixture(context->{
-                context.modelUsage().attach();var call=context.modelUsage().begin("CALL","fixture-model");entered.countDown();
+                preflight(context);context.modelUsage().attach();var call=context.modelUsage().begin("CALL","fixture-model");entered.countDown();
                 while(release.getCount()>0){try{release.await(50,TimeUnit.MILLISECONDS);}catch(InterruptedException ignored){}}
                 context.modelUsage().response(call,response());context.modelUsage().finish(call,"RETURNED");late.countDown();return "late";
             })) {
@@ -83,6 +84,8 @@ class PokemonAgentRunServiceModelUsageTest {
             assertEquals(AgentEventType.RUN_COMPLETED,RunTestAwait.awaitTerminalEvent(f.events,run.runId()).type());
             var message=f.history.findByConversationForUser(run.conversationId(),"owner").stream().filter(m->m.role().equals("assistant")).findFirst().orElseThrow();
             assertEquals(2,attempts(message).size());assertEquals(1,attempts(message).stream().mapToInt(m->((Number)m.get("modelCallCount")).intValue()).sum());
+            var task=(Map<?,?>)attempts(message).getLast().get("taskBudget");
+            assertEquals(1,task.get("modelCalls"));assertEquals("ACTIVE",task.get("status"));
         }
     }
     class Fixture implements AutoCloseable {

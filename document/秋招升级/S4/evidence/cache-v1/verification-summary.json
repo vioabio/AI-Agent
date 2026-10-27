@@ -1,0 +1,60 @@
+{
+  "stage": "S4 prerequisite fix; token context budget still pending",
+  "date": "2026-10-24",
+  "engineering": {
+    "backend": {
+      "tests": 961,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3,
+      "runtime": "Temurin 21.0.12.1",
+      "release": 21,
+      "existingSurefireShutdownWarning": true
+    },
+    "frontendContracts": 116,
+    "nodeTools": 43,
+    "edgeBrowserTests": 5,
+    "lintTypecheckBuild": "PASS"
+  },
+  "developmentRegression": {
+    "configuredProvider": "dashscope",
+    "configuredModelId": "qwen-plus",
+    "promptVersion": "campus-s3-provenance-v2",
+    "cases": [
+      "S2-GUIDES-01",
+      "S2-CLARIFICATION-01",
+      "S2-TEAM-01"
+    ],
+    "repetitions": 2,
+    "plannedRuns": 6,
+    "sourceSnapshotPass": 6,
+    "usageSnapshotPass": 6,
+    "modelCalls": 12,
+    "tokenSubtotal": 61393,
+    "cost": "UNKNOWN",
+    "mutation": "No approvals submitted; new test accounts only; snapshots unchanged",
+    "humanAcceptance": "6 pending",
+    "heldout": "not run"
+  },
+  "sourceFilesVerified": 453,
+  "sourceFileSha256": "e4e1e65926d0c16bf3fbe256de9c3693ccdac9e9b442fd970de77d74a24f7dec",
+  "loadedGatewayClassSha256": "a5d9b94f23dc82f63682f67d876d4645d5d0da9be8cc17fe5b349a91b7d2b23e",
+  "remaining": [
+    "Token-aware context allocation and paired history trimming",
+    "Model call/token budget enforcement",
+    "Price-versioned billing",
+    "Independent source/relevance review and heldout evaluation"
+  ],
+  "artifactsSha256": {
+    "artifacts/s4-cache-targeted-2026-10-24.log": "71f78b30e35ace11dcd297b91772c83bbfba70d33e924316b36175aaabd1871f",
+    "artifacts/s4-cache-targeted-jbr-2026-10-24.log": "f11ec88a85571a8be6b8b90dbf0a2cde3fb6a1959969e907f231443675177634",
+    "artifacts/s4-cache-backend-full-2026-10-24.log": "8b28b4faad789c797a5fced2f1bc3eddf5253b749ac5e8755e3a518bde6bcbc7",
+    "artifacts/s4-cache-contract-2026-10-24.log": "6119df5f71cc927226a2c083601af7e6eb5c708464f5ad00400677ef3b518758",
+    "artifacts/s4-cache-node-2026-10-24.log": "f8ea97e0afc30370222d18075f0a3933d97ae8eb6f0b808079a19884779226c7",
+    "artifacts/s4-cache-frontend-quality-2026-10-24.log": "4681c028038770b30ef8dc55488f29590830369ef44acfaa2671e813c017cc63",
+    "artifacts/s4-cache-browser-2026-10-24.log": "cd74a8232f7a1750c72de24af658cb97ff8a11ec09a9c0b68d3d33e15317353d",
+    "artifacts/campus/s4-cache/model-2026-10-24/observations.json": "59560869cc1f2e10c37a6dab094f9e8885260846df6043976822af866bd84098",
+    "artifacts/campus/s4-cache/sources-2026-10-24/source-regression.json": "f2311a2319c9b03be929767c13e17926b58c735971ca658c0299e46f45259bbf",
+    "artifacts/campus/s4-cache/usage-2026-10-24/usage-verification.json": "4ec2d8f0c33a2d05fe12baeccdf0fec3958923c6a7c6b604b6965f65db427637"
+  }
+}

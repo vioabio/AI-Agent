@@ -128,26 +128,30 @@
         <p>队伍：{{ run.approval.teamChange.teamName }} · 确认前不会保存</p>
         <p class="proposal-reason">策略理由（待核实）：{{ run.approval.teamChange.rationale }}</p>
         <div class="proposal-table"><table><thead><tr><th>成员</th><th>配置</th><th>修改前</th><th>修改后</th></tr></thead><tbody>
-          <tr v-for="(line,index) in run.approval.teamChange.changes" :key="index"><td>{{ line.member }}</td><td>{{ line.field }}</td><td>{{ line.before || '未配置' }}</td><td>{{ line.after || '未配置' }}</td></tr>
+          <tr v-for="(line,index) in run.approval.teamChange.changes" :key="index"><td><span v-if="line.slot">第{{ line.slot }}位 · </span>{{ line.member }}</td><td>{{ line.field }}</td><td>{{ line.before || '未配置' }}</td><td>{{ line.after || '未配置' }}</td></tr>
         </tbody></table></div>
         <details><summary>计算证据与适用边界</summary><p class="proposal-evidence">{{ run.approval.teamChange.calculationEvidence }}</p><p v-for="line in run.approval.teamChange.limitations" :key="line">{{ line }}</p></details>
         <small>有效期至 {{ formatDate(run.approval.teamChange.expiresAt) }}；队伍被修改后需重新生成预览。</small>
         </div>
       </template>
       <span v-else>审批号：{{ run.approval.approvalId || '待生成' }}</span>
+      <p v-if="teamDecisionMessage" class="proposal-decision-state" role="status">{{ teamDecisionMessage }}</p>
       <div class="proposal-actions">
-      <button type="button" :disabled="run.approvalSubmitting" @click="$emit('approve', { ...run.approval, approved: true })">{{ run.approvalSubmitting ? '处理中…' : run.approval.teamChange ? '确认保存' : '批准执行' }}</button>
-      <button type="button" class="deny-btn" :disabled="run.approvalSubmitting" @click="$emit('approve', { ...run.approval, approved: false })">{{ run.approval.teamChange ? '取消修改' : '拒绝' }}</button>
+      <button type="button" :disabled="run.approvalSubmitting || !!teamDecisionMessage" @click="$emit('approve', { ...run.approval, approved: true })">{{ run.approvalSubmitting ? '处理中…' : run.approval.teamChange ? '确认保存' : '批准执行' }}</button>
+      <button type="button" class="deny-btn" :disabled="run.approvalSubmitting || !!teamDecisionMessage" @click="$emit('approve', { ...run.approval, approved: false })">{{ run.approval.teamChange ? '取消修改' : '拒绝' }}</button>
+      <button v-if="teamDecisionMessage" type="button" :disabled="run.approvalSubmitting" @click="$emit('reconnect', run.runId)">刷新任务状态</button>
       </div>
     </div>
 
-    <ModelUsageDetails :attempts="run.modelUsageAttempts || []" />
+    <ModelUsageDetails :attempts="run.modelUsageAttempts || []" :client-timing="run.clientTiming" />
     <details v-if="run.toolTimeline?.length" class="process-details"><summary>查看执行过程 · {{ run.toolTimeline.length }} 次工具调用</summary>
     <ol class="tool-timeline">
       <li v-for="(item, index) in run.toolTimeline" :key="item.eventId || index">
         <span class="tool-name">{{ item.toolName || 'tool' }}</span>
         <span :class="['tool-state', item.status]">{{ toolStatus(item.status) }}</span>
-        <small v-if="item.durationMs != null">{{ item.durationMs }} ms</small>
+        <small v-if="item.cached === true">复用本次任务结果</small>
+        <small v-if="formatToolTiming(item.timing)">{{ formatToolTiming(item.timing) }}</small>
+        <small v-else-if="item.durationMs != null">处理 {{ item.durationMs }} ms（未拆分）</small>
         <small v-if="item.status === 'failed'" class="tool-failure-reason">{{ toolFailureLabel(item) }}</small>
       </li>
     </ol>
@@ -167,12 +171,15 @@
 </template>
 
 <style scoped>
+.has-team-preview .approval-card{flex-wrap:nowrap}
+.proposal-decision-state{font-size:12px;color:#52695f;margin:6px 0}.proposal-actions{flex-wrap:wrap}
 .proposal-table{width:100%;overflow-x:auto}.proposal-table table{border-collapse:collapse;width:100%;font-size:12px}.proposal-table th,.proposal-table td{padding:7px;border:1px solid #dce7e1;text-align:left;overflow-wrap:anywhere;min-width:56px}.proposal-reason,.proposal-evidence{white-space:pre-wrap;overflow-wrap:anywhere}.run-panel.has-team-preview{max-height:54%;min-height:200px;display:flex;flex-direction:column;overflow:hidden}.has-team-preview .approval-card{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden}.proposal-content{min-height:0;overflow:auto;width:100%;flex:1 1 auto}.proposal-content p{margin:5px 0}.proposal-actions{display:flex;gap:8px;flex-shrink:0;padding-top:6px}.approval-card button:disabled{opacity:.55;cursor:wait}
 </style>
 
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import ModelUsageDetails from '@/components/ModelUsageDetails.vue'
+import { formatToolTiming } from '@/api/response-timing'
 import { fetchAnswerFeedback } from '@/api'
 import { statusLabel, toolFailureLabel } from '@/api/run-contract'
 import { useAuthSession } from '@/composables/useAuthSession'
@@ -187,6 +194,9 @@ const props = defineProps({
 defineEmits(['cancel', 'reconnect', 'approve', 'feedback'])
 
 const canCancel = computed(() => ['creating', 'running', 'waiting_approval', 'reconnecting'].includes(props.run?.status))
+const teamDecisionMessage = computed(() => props.run?.approval?.teamChange
+  && props.run.teamDecisionState?.approvalId === props.run.approval.approvalId
+  ? props.run.teamDecisionState.message : '')
 const canGiveFeedback = computed(() => props.run?.status === 'completed' && Boolean(props.run?.answerId) && props.run?.lineageStatus === 'COMPLETE' && !props.run?.feedbackSubmitted)
 const feedbackHistory = ref([])
 const feedbackHistoryState = ref('idle')
