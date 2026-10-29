@@ -1,0 +1,137 @@
+{
+  "schemaVersion": "team-draft-contract-verification-v3",
+  "date": "2026-10-29",
+  "implementationVersion": "bound-team-build-answer-v3",
+  "provider": "dashscope",
+  "configuredModel": "qwen-plus",
+  "modelCalls": 10,
+  "v1Passed": 1,
+  "v2Passed": 3,
+  "planned": 3,
+  "rows": [
+    {
+      "caseId": "two-members-missing-build",
+      "status": "COMPLETED",
+      "modelCalls": 4,
+      "v1Pass": false,
+      "v2Pass": true,
+      "checks": {
+        "completed": true,
+        "fullInputs": true,
+        "allCallsSucceeded": true,
+        "boundOutputs": true,
+        "executionMode": true,
+        "savedRead": true,
+        "readBeforeCheck": true,
+        "readOnly": true,
+        "referenceReads": true
+      },
+      "tools": [
+        "lookupPokemonReference",
+        "checkPokemonTeamBuild"
+      ]
+    },
+    {
+      "caseId": "sparse-original-order",
+      "status": "COMPLETED",
+      "modelCalls": 4,
+      "v1Pass": false,
+      "v2Pass": true,
+      "checks": {
+        "completed": true,
+        "fullInputs": true,
+        "allCallsSucceeded": true,
+        "boundOutputs": true,
+        "executionMode": true,
+        "savedRead": true,
+        "readBeforeCheck": true,
+        "readOnly": true,
+        "referenceReads": true
+      },
+      "tools": [
+        "lookupPokemonReference",
+        "checkPokemonTeamBuild"
+      ]
+    },
+    {
+      "caseId": "six-members-no-build",
+      "status": "COMPLETED",
+      "modelCalls": 2,
+      "v1Pass": true,
+      "v2Pass": true,
+      "checks": {
+        "completed": true,
+        "fullInputs": true,
+        "allCallsSucceeded": true,
+        "boundOutputs": true,
+        "executionMode": true,
+        "savedRead": true,
+        "readBeforeCheck": true,
+        "readOnly": true,
+        "referenceReads": true
+      },
+      "tools": [
+        "checkPokemonTeamBuild"
+      ]
+    }
+  ],
+  "readiness": {
+    "status": "READY",
+    "probeAttempts": 1
+  },
+  "savedTeamUnchanged": true,
+  "sourcesUnchanged": true,
+  "runtimeUnchanged": true,
+  "isolatedForegroundStopped": true,
+  "humanReviewed": 0,
+  "formalAdmissions": 0,
+  "tests": {
+    "backend": 1286,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3,
+    "node": 196,
+    "newJava": 3,
+    "newNode": 1
+  },
+  "knownWarning": "Existing Surefire fork JVM exit timeout; BUILD SUCCESS",
+  "limits": [
+    "Single round, fixed three development cases; no general model or semantic quality acceptance",
+    "Model exposure restricted for bounded unfilled drafts; not a pure model capability improvement",
+    "Original v1 corridor still fails two lookup-assisted cases; no gate changed",
+    "No joint legality verification"
+  ],
+  "sourceSha256": {
+    "src/main/java/com/vio/vioaiagent/agent/TeamBuildAnswerEvidence.java": "1549f2059ff7bb8d3893365f40c861e29b53ec5b9bfddc0fea363dd827a776cc",
+    "src/main/java/com/vio/vioaiagent/agent/ToolCallAgent.java": "f41eb74fa8c67b4c5e7eb566394bfbbf27fb7db5cc299aab3050d0adc66b4d49",
+    "src/test/java/com/vio/vioaiagent/agent/TeamUnfilledDraftTest.java": "326350bda019d6a06d95f6ee68e7ffb21492232a59ccca91b8956c9d07fff94d",
+    "tools/campus/team-natural-preflight.mjs": "224e46af3efef54cbd629563d4640419dabd7a6bffc7bdd7bfc6944fb619b656",
+    "tools/campus/team-natural-preflight.test.mjs": "b0156bc78424a33a952c68b3924be632a6d1be0e0d3376a32779dd06af0b5366",
+    "tools/campus/team-natural-draft-scenario.mjs": "50d9496987f400408f1d43dd789ff6fd65f8f969ac0b1e57d657078a3bb8779f",
+    "tools/campus/team-planning.mjs": "c91571799e7e8116191175b1232b11290cf3236aefe7b17c5e02d0ecfae87dc3",
+    "tools/campus/team-planning-reference.mjs": "6f88b3f1f67c09331ecf83ca5323f36a4e3cdb51777c8d3b7ea1ef3e7e3771db",
+    "evaluation/campus/team-natural-v1/cases.json": "73c7005a5684298ff372470091c59ddc3615237df8c56d9775a139a4ccb10b5c",
+    "evaluation/campus/team-planning-reference-v2/protocol.json": "9a3fe5f74ff31784eda25826e45990d9330621f7b06c994cb822f8c55b99a74f"
+  },
+  "logSha256": {
+    "artifacts/team-draft-contract-backend-2026-10-29.log": "dcf35d1ee10f51bc0c3802d7ab3787db61d5a70fc26780ad19b6fa6fba531a49",
+    "artifacts/team-draft-contract-node-2026-10-29.log": "c5489f2455b9d109d8dd32416f0b969cc1f2e48aebf005ccceab8c0a610255e1",
+    "artifacts/team-draft-contract-live-2026-10-29.log": "fa22a8a7441343b56c48b7925739ecb8e28fb3eab4b1d8929fe5f7ce903635a2"
+  },
+  "evidenceSha256": {
+    "cases.json": "73c7005a5684298ff372470091c59ddc3615237df8c56d9775a139a4ccb10b5c",
+    "observations.json": "cef8e0f5774893c3be54028f665ae4af4f941fc9777ee8834e8c5be49e9c9d40",
+    "protocol.json": "9a3fe5f74ff31784eda25826e45990d9330621f7b06c994cb822f8c55b99a74f",
+    "six-members-no-build-events.json": "07096f7af4c06dd0fd02eaa9c65a48eac7dddaaa49704f6a4b1084db57ca1f0c",
+    "sparse-original-order-events.json": "73fc08805b6101397b2d705643a127c9c5bab4d771b12755105d2280c6703ce8",
+    "team-natural-draft-scenario.mjs": "50d9496987f400408f1d43dd789ff6fd65f8f969ac0b1e57d657078a3bb8779f",
+    "team-natural-preflight.mjs": "224e46af3efef54cbd629563d4640419dabd7a6bffc7bdd7bfc6944fb619b656",
+    "team-natural-preflight.test.mjs": "b0156bc78424a33a952c68b3924be632a6d1be0e0d3376a32779dd06af0b5366",
+    "team-planning-reference.mjs": "6f88b3f1f67c09331ecf83ca5323f36a4e3cdb51777c8d3b7ea1ef3e7e3771db",
+    "team-planning.mjs": "c91571799e7e8116191175b1232b11290cf3236aefe7b17c5e02d0ecfae87dc3",
+    "TeamBuildAnswerEvidence.java": "1549f2059ff7bb8d3893365f40c861e29b53ec5b9bfddc0fea363dd827a776cc",
+    "TeamUnfilledDraftTest.java": "326350bda019d6a06d95f6ee68e7ffb21492232a59ccca91b8956c9d07fff94d",
+    "ToolCallAgent.java": "f41eb74fa8c67b4c5e7eb566394bfbbf27fb7db5cc299aab3050d0adc66b4d49",
+    "two-members-missing-build-events.json": "17ea7f2a3228c6f3e4919e2c099bf5873f2ce0b6bf86c468db680dc2b384a071"
+  }
+}

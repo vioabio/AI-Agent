@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "demo-recording-development-findings-v1",
+  "origin": "AUTOMATED_LIVE_DEVELOPMENT_REPLAY_NOT_NEW_USER_QUESTION",
+  "formalAdmissions": 0,
+  "findings": [
+    {
+      "id": "DEMO-ENTITY-001",
+      "status": "OPEN",
+      "priority": "Before final S5 recording",
+      "issue": "First aggregate call guessed a member ID before reference resolution; later correction does not satisfy all-call input preservation",
+      "expectedPokemonId": 478,
+      "observedPokemonId": 872,
+      "runId": "run-f66a3c85-db2c-456b-9cee-33ff5c677afb",
+      "callId": "8cc66d76-401e-4772-8045-202522e0cce5",
+      "sourceSha256": "bcc18519fc60940fdb5ff550334ee4ac090f7caf52d0685c6f28227d86e034c0",
+      "nextStep": "Bind natural-language member identities to actual reference lookup results before aggregation; retain original failure and replay the same question"
+    }
+  ]
+}

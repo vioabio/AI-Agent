@@ -1,0 +1,13 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import {compareDemoSources,summarizeDemoEvidence} from './demo-evidence.mjs'
+import {digest} from './evaluation.mjs'
+const file='src/main/java/example/Agent.java',sha='a'.repeat(64)
+function inputs(){return {live:{sourceSha256:{[file]:sha},records:[{caseId:'one',answer:'Actual answer',actualModelCalls:2}],protocolComparison:{v1Passed:0,v2Passed:1,planned:1}},confirmation:{rows:[{id:'one',answerSha256:digest('Actual answer'),overallHumanAccepted:true}]},tests:{tests:{backend:100,failures:0,errors:0,skipped:3}}}}
+test('source equality alone never certifies runtime or completes S5',()=>{const r=summarizeDemoEvidence(inputs(),()=>sha);assert.equal(r.sourceIdentity.currentSourceMatchesHistoricalRun,true);assert.equal(r.currentLiveAcceptance,'NOT_ESTABLISHED_BY_SOURCE_MATCH_ALONE');assert.equal(r.s5Complete,false);assert.equal(r.videoRecorded,false)})
+test('new code separates historical model results from current validation',()=>{const r=summarizeDemoEvidence(inputs(),()=> 'b'.repeat(64));assert.equal(r.currentLiveAcceptance,'NOT_COVERED_BY_HISTORICAL_MODEL_RUN');assert.deepEqual(r.sourceIdentity.changed,[file]);assert.equal(r.humanOverallConfirmed,1)})
+test('missing files are not treated as identity matches',()=>assert.deepEqual(compareDemoSources({[file]:sha},()=>{throw Error('missing')}).missing,[file]))
+test('private config traversal and absolute paths are rejected before any read',()=>{for(const file of ['src/main/resources/application-local.yml','src/main/java/../private.java','C:/secret.java','../secret.java']){let reads=0;assert.throws(()=>compareDemoSources({[file]:sha},()=>{reads++}));assert.equal(reads,0)}})
+test('confirmation of another or changed answer cannot be attributed to the current evidence',()=>{for(const mutate of [x=>x.confirmation.rows[0].answerSha256='wrong',x=>x.confirmation.rows.push(x.confirmation.rows[0]),x=>x.confirmation.rows[0].id='unknown']){const x=inputs();mutate(x);assert.throws(()=>summarizeDemoEvidence(x,()=>sha))}})
+test('incomplete or failing historical test records cannot be presented as successful',()=>{for(const mutate of [x=>x.tests.tests.failures=1,x=>delete x.tests.tests,x=>x.live.records.push(x.live.records[0])]){const x=inputs();mutate(x);assert.throws(()=>summarizeDemoEvidence(x,()=>sha))}})
+test('missing usage and changed denominators are not reported as zero or successful coverage',()=>{for(const mutate of [x=>delete x.live.records[0].actualModelCalls,x=>x.live.records[0].actualModelCalls=-1,x=>x.live.protocolComparison.planned=2,x=>x.live.protocolComparison.v2Passed=2]){const x=inputs();mutate(x);assert.throws(()=>summarizeDemoEvidence(x,()=>sha))}})

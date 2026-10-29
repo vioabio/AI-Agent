@@ -152,7 +152,7 @@ public class ToolCallAgent extends ReActAgent {
             var request = getChatClient().prompt(prompt)
                     .system(getSystemPrompt() + (teamAnswerEvidence == null ? "" : teamAnswerEvidence.planningInstruction())
                             + (guideAnswerEvidence == null ? "" : guideAnswerEvidence.planningInstruction()))
-                    .toolCallbacks(getMergedTools());
+                    .toolCallbacks(TeamBuildAnswerEvidence.planningTools(currentQuestion,getMergedTools()));
             // Tool selection is private. A model can put planning text in content,
             // not only reasoning_content, so it must never share the answer stream.
             ChatResponse chatResponse = request.call().chatResponse();

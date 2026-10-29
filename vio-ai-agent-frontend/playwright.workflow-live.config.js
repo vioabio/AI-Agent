@@ -5,7 +5,7 @@ import { liveWorkflowTargets } from './scripts/live-workflow-target.mjs'
 const target = liveWorkflowTargets(), output = process.env.VIO_WORKFLOW_LIVE_OUTPUT
 if (!output || fs.existsSync(path.join(output, 'playwright.json'))) throw new Error('Choose a new VIO_WORKFLOW_LIVE_OUTPUT directory')
 export default defineConfig({
-  testDir: './e2e-live', timeout: 180000, expect: { timeout: 15000 }, workers: 1, retries: 0, fullyParallel: false,
+  testDir: './e2e-live', testMatch: 'team-workflow.spec.js', timeout: 180000, expect: { timeout: 15000 }, workers: 1, retries: 0, fullyParallel: false,
   outputDir: path.join(output, 'browser'),
   reporter: [['list'], ['json', { outputFile: path.join(output, 'playwright.json') }]],
   use: { ...devices['Desktop Chrome'], baseURL: target.frontendOrigin,

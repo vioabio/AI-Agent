@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "team-planning-reaudit-v1",
+  "sourceSha256": "554b6aff0947b8890353dc4e252e5302fe787dea79a693d140bfc044f7499b72",
+  "auditorSha256": "c91571799e7e8116191175b1232b11290cf3236aefe7b17c5e02d0ecfae87dc3",
+  "rows": [
+    {
+      "caseId": "draft-with-missing-member-build",
+      "schemaVersion": "team-planning-audit-v1",
+      "mode": "PROGRAM_SUPPLIED_TEAM_REQUEST",
+      "checks": {
+        "completed": true,
+        "fullInputs": true,
+        "allCallsSucceeded": true,
+        "boundOutputs": true,
+        "executionMode": true,
+        "savedRead": true,
+        "readBeforeCheck": true,
+        "readOnly": true
+      },
+      "pass": true,
+      "inputAudit": {
+        "tool": "checkPokemonTeamBuild",
+        "pass": true,
+        "observed": 1,
+        "successful": 1,
+        "checks": [
+          {
+            "callId": "e65a1f6a-381e-471a-83fd-6bcd9fc9e510",
+            "pass": true,
+            "cached": false,
+            "failures": []
+          }
+        ],
+        "failure": "",
+        "scope": "Supplied arguments only; no claim about resolved defaults, tool outputs or general answer correctness"
+      },
+      "readAudit": null,
+      "humanReviewed": 0,
+      "scope": "Engineering evidence only; PARTIAL input evidence cannot pass; no semantic correctness claim"
+    },
+    {
+      "caseId": "read-saved-team-then-check",
+      "schemaVersion": "team-planning-audit-v1",
+      "mode": "MODEL_TOOL_SELECTION",
+      "checks": {
+        "completed": true,
+        "fullInputs": true,
+        "allCallsSucceeded": true,
+        "boundOutputs": true,
+        "executionMode": true,
+        "savedRead": true,
+        "readBeforeCheck": true,
+        "readOnly": true
+      },
+      "pass": true,
+      "inputAudit": {
+        "tool": "checkPokemonTeamBuild",
+        "pass": true,
+        "observed": 1,
+        "successful": 1,
+        "checks": [
+          {
+            "callId": "6a114f1e-3025-4b82-8429-2534ec837575",
+            "pass": true,
+            "cached": false,
+            "failures": []
+          }
+        ],
+        "failure": "",
+        "scope": "Supplied arguments only; no claim about resolved defaults, tool outputs or general answer correctness"
+      },
+      "readAudit": {
+        "tool": "readCurrentTeam",
+        "pass": true,
+        "observed": 1,
+        "successful": 1,
+        "checks": [
+          {
+            "callId": "ddee2efb-b43d-4c44-99da-191751b45fc6",
+            "pass": true,
+            "cached": false,
+            "failures": []
+          }
+        ],
+        "failure": "",
+        "scope": "Supplied arguments only; no claim about resolved defaults, tool outputs or general answer correctness"
+      },
+      "humanReviewed": 0,
+      "scope": "Engineering evidence only; PARTIAL input evidence cannot pass; no semantic correctness claim"
+    }
+  ],
+  "byExecutionMode": {
+    "MODEL_TOOL_SELECTION": {
+      "passed": 1,
+      "total": 1
+    },
+    "PROGRAM_SUPPLIED_TEAM_REQUEST": {
+      "passed": 1,
+      "total": 1
+    }
+  },
+  "humanReviewed": 0,
+  "formalAdmissions": 0,
+  "scope": "Historical structured requests only; not a new natural-language experiment or model quality score"
+}
