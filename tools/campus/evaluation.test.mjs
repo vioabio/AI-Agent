@@ -121,6 +121,23 @@ test('duplicate case repetition cannot inflate scores', () => {
   assert.throws(() => summarize(suite, [observation(), observation()]), /duplicate result/)
   assert.throws(() => summarize(suite, [observation()], [review(observation()), review(observation())]), /Duplicate review/)
 })
+test('unobserved human or assisted reviews cannot inflate review counts', () => {
+  const record = observation()
+  for (const reviewerType of ['human', 'ai-assisted']) {
+    const extra = review(record); extra.reviewerType = reviewerType; extra.repetition = 2
+    assert.throws(() => summarize(suite, [record], [extra]), /without matching observation/)
+    assert.throws(() => summarize(suite, [], [review(record)]), /without matching observation/)
+  }
+})
+test('review timestamps require an actual calendar date time and timezone', () => {
+  const record = observation()
+  for (const reviewedAt of ['invalid', '2026-02-30T00:00:00Z', '2025-02-29T00:00:00Z', '2026-10-23', '2026-10-23T00:00:00', '2026-10-23T24:00:00Z', 123]) {
+    assert.throws(() => assess(item, record, {...review(record), reviewedAt}), /Unbound\/incomplete/)
+  }
+  for (const reviewedAt of ['2024-02-29T00:00:00Z', '2026-10-23T08:00:00+08:00', '2026-10-23T00:00:00.123456789Z']) {
+    assert.equal(assess(item, record, {...review(record), reviewedAt}).reviewState, 'PASS')
+  }
+})
 test('unknown usage/cost/recall stay unknown; polling TTFT label is explicit', () => {
   const result = summarize(suite, [observation()])
   assert.equal(result.cost, 'unknown'); assert.equal(result.usage, 'unknown')

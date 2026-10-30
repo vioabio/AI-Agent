@@ -80,7 +80,7 @@ public class AgentRunController {
         CreateRunRequest body = request == null ? new CreateRunRequest() : request;
         // 已认证请求以 RequestContext 为唯一身份来源；X-User-Id/body.userId 只用于本地安全关闭时的测试。
         String userId = authenticatedUserOrFallback(userHeader, body.userId);
-        String idempotencyKey = firstNonBlank(idempotencyHeader, body.idempotencyKey, null);
+        String idempotencyKey = firstNonBlankOrNull(idempotencyHeader, body.idempotencyKey);
         String traceId = firstNonBlank(traceHeader, body.traceId, RequestContext.getTraceId());
         Duration timeout = Duration.ofSeconds(Math.max(1, Math.min(body.timeoutSeconds, 3600)));
         // 入口允许已登记的旧 UI 别名，但 Run 只冻结 canonical 版本键；缺失
@@ -299,6 +299,11 @@ public class AgentRunController {
             if (value != null && !value.isBlank()) return value.trim();
         }
         return "anonymous";
+    }
+
+    private String firstNonBlankOrNull(String... values) {
+        for (String value : values) if (value != null && !value.isBlank()) return value.trim();
+        return null;
     }
 
     /** HTTP 输入 DTO，字段公开便于 Jackson 在没有额外参数名配置时反序列化。 */

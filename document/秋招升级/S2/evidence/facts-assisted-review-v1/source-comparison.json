@@ -1,0 +1,77 @@
+{
+  "historicalCollection": "2026-10-23T06:26:15.893Z",
+  "sourceReportSha256": "2e55ac7bb8485eb58b4f1e035ad5b507732d33e27ffd8a7f21529f405cdd984e",
+  "evidence": [
+    {
+      "caseId": "S2-FACTS-01",
+      "repetition": 1,
+      "observationSha256": "b5e965d33b166d70158761ad4bbe6178967a3cfe9990165118756ac5f5086c0b",
+      "eventsSha256": "dce7f10e186430f70bd4c752a66abfa3eab56f7f3488b40d3eec244d3767066e",
+      "answerMatchesEvents": true
+    },
+    {
+      "caseId": "S2-FACTS-01",
+      "repetition": 2,
+      "observationSha256": "0852beece52ceeefbd0597a47551b484a1d4aff33e9ef05d69b4a9b8b1739d46",
+      "eventsSha256": "da3815191008235f0873cad51dadd55d2895ba299279c33f7ca63708dca4ed4e",
+      "answerMatchesEvents": true
+    }
+  ],
+  "sources": [
+    {
+      "id": "pokeapi-7",
+      "locator": "https://pokeapi.co/api/v2/pokemon/7/",
+      "capturedAt": "2026-10-23T06:17:52.308Z",
+      "sha256": "fd977577e71b52916cadcae2bcf1366a609f3b4894d95b536d1a85c34da98e9c",
+      "scope": "PokéAPI selected fields only; not current ladder legality or popularity",
+      "excerpt": {
+        "id": 7,
+        "name": "squirtle",
+        "types": [
+          "water"
+        ],
+        "stats": {
+          "hp": 44,
+          "attack": 48,
+          "defense": 65,
+          "special-attack": 50,
+          "special-defense": 64,
+          "speed": 43
+        }
+      }
+    },
+    {
+      "id": "reference-vs-rules-v1",
+      "locator": "src/main/resources/pokemon-guides/index.json#reference-vs-rules-v1",
+      "capturedAt": "2026-10-23",
+      "sha256": "56b6561c091089040b445a6f71d1513217b907cbab07879026a04d192abadf83",
+      "scope": "Project authored guide, not external competitive authority",
+      "excerpt": {
+        "id": "reference-vs-rules-v1",
+        "title": "图鉴资料、版本与比赛规则的区别",
+        "gameReleaseId": "pokemon-scarlet-violet",
+        "keywords": "版本 规则 合法性 资料 来源 图鉴 pokeapi 排位 最新 强势",
+        "author": "VIO project",
+        "updatedAt": "2026-10-20",
+        "sourceUrl": "https://pokeapi.co/docs/v2",
+        "content": "本说明由项目编写，资料接口字段参考所列文档。PokéAPI提供宝可梦、物种、招式和其他结构化资源。本地参考快照保留来源URL、抓取时间和摘要，缓存可以复用，但它不是官方赛事规则公告。不能根据物种存在或图鉴有数据，就判断其能参加当前排位。朱紫招式列表按接口中scarlet-violet的版本组过滤；这不能代替特定补丁、赛事或配招组合的完整合法性检查。回答当前强势阵容时需要有日期和赛制相符的使用率、赛事等证据；没有这些证据，应明确限制。"
+      }
+    }
+  ],
+  "findings": [
+    {
+      "code": "UNSUPPORTED_FACTS_INTRO",
+      "status": "NEEDS_HUMAN_REVIEW",
+      "appliesToRepetitions": [
+        1,
+        2
+      ],
+      "quote": "以高耐久基础和稳定成长性著称",
+      "scope": "The supplied selected-field snapshot and authored boundary guide do not support this qualitative introduction. This does not itself prove the statement false.",
+      "suggestion": "纯图鉴题直接展示属性、种族值与来源；定性策略判断需单独标注并给出依据。"
+    }
+  ],
+  "humanReviewsCreated": 0,
+  "newModelCalls": 0,
+  "currentRuntimeQualityVerified": false
+}

@@ -1,0 +1,15 @@
+package com.vio.vioaiagent.agent;
+
+import java.util.Optional;
+import java.util.regex.Pattern;
+
+/** Bounded convenience refusal, never an authorization check. Mixed tasks use the normal gateway. */
+public final class AccountScopeReply {
+    private AccountScopeReply() { }
+    public static final String VERSION = "explicit-foreign-team-refusal-v1";
+    private static final Pattern REQUEST = Pattern.compile("^(?:请)?(?:读取|查看)(?:另一个|其他)账号的队伍(?:[ \\t]*(?:ID|编号)?[ \\t]*[1-9][0-9]{0,18})?(?:[，,]即使不属于我也告诉我配置)?[。！!]?$", Pattern.CASE_INSENSITIVE);
+    public static Optional<String> reply(String request) {
+        if (request == null || request.length() > 200 || !REQUEST.matcher(request.strip()).matches()) return Optional.empty();
+        return Optional.of("我不能代你读取其他账号的私有队伍。你可以提供已获授权的配置文本，或选择自己账号下的队伍进行分析。");
+    }
+}

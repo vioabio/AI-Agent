@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "campus-identity-replay-verification-v1",
+  "recordedAt": "2026-10-30T09:46:13.8922040+08:00",
+  "replayCount": 1,
+  "automaticRetries": 0,
+  "realModelTasks": 2,
+  "actualModelCalls": 5,
+  "providerConfigured": "dashscope",
+  "modelConfigured": "qwen-plus",
+  "readOnlyIdentityPass": true,
+  "literalNamesBeforeAggregate": true,
+  "sameConversation": true,
+  "sameAccount": true,
+  "engineeringFlowPass": true,
+  "strictPreviewInputCertified": false,
+  "protocolResults": {
+    "originalV1Pass": false,
+    "scopedReferencesV2Pass": true
+  },
+  "answerDeltaCounts": [
+    1,
+    1
+  ],
+  "tokenByTokenStreamingVerified": false,
+  "humanStrategyAcceptance": false,
+  "newHumanReviews": 0,
+  "formalAdmissions": 0,
+  "actualRecording": {
+    "fullRecruitingVideoComplete": false,
+    "wallClockSpanSeconds": 80.74,
+    "noSplicing": true,
+    "audio": false,
+    "notLatencyBenchmark": true,
+    "containerDurationSeconds": 65.4,
+    "oneBrowserContext": true
+  },
+  "tests": {
+    "previousBackend": 1301,
+    "addedOfflineTests": 11,
+    "previousBackendSkipped": 3,
+    "frontendLint": "PASS",
+    "browserPass": 1,
+    "failures": 0,
+    "browserTests": 1,
+    "mavenRerunThisBatch": false,
+    "node": 240
+  },
+  "identity": {
+    "runtimeClassesVerified": 104,
+    "preflightCompiledClassesUnchanged": true,
+    "publicJavaSources": 516,
+    "publicJavaSourceTiming": "POST_RUN",
+    "preflightSourcesUnchanged": true
+  },
+  "historySupplement": "Read-only post-run dedicated history query; original observation immutable",
+  "recordedCollectorDiffersFromCurrent": true,
+  "currentCollectorAddedFields": [
+    "conversationId",
+    "beforeConfirmation"
+  ],
+  "priorFailedRecordingRetained": true,
+  "offlineAuditInitialFailureRetained": true,
+  "servicesStopped": {
+    "18259": true,
+    "13059": true
+  },
+  "dailyPortsUntouched": [
+    3000,
+    8123
+  ],
+  "s5Complete": false,
+  "fileSha256": {
+    "answer.png": "4c85711c6bc12b4765dd60edb751057c1e18d36f26040e80a27b36f120f8a056",
+    "audit-initial-diagnostic.json": "dbc9a287e7284b248bb94f33b0c328671b681294a249d9cd068ab2043a8b6d97",
+    "audit-tests-initial.log": "0e1067699603d8a77b3ec206ab48567f363f779aa1111ad3c76c467533650a4b",
+    "audit.json": "23e9afbcc0169e420db8a7e7333d83983ae9c7f446f4c3df10ec67ffaf6be228",
+    "continuous-demo.webm": "74d32c45e4caa9f5429725151764d0384ad8d597c14b26590d54d181561974f9",
+    "history-binding.json": "b740a5230d28d8e12ddde0d395548bb809a7c8afaf3c8c9afb3c3a745061847e",
+    "observations.json": "927151eb96daefe162dca2501109076417e7250306b7709070a9a12b19dc401d",
+    "preflight.json": "002d22a6fc1ae2548b737bacbf550a0e9d2ad13c6ff92ca18f70e9ffa7144c72",
+    "preview.png": "6dabce427de60f4687dbd87c93cdf565defdcce5ffa71a2f71e7672874911be2",
+    "public-cache-import.json": "25797755f708512543315b13a7a7a5773f791e87d4d40f92339a05b93590b8ef",
+    "recorded-collector.spec.js": "d166c0aad9eaf8c386818d95aed2cd6ce5958a87257f18359bed9673b017e1d7",
+    "replay-plan.json": "3df7d16567ae83a5225dd8c26d071ebc92cfa484b9fe7a7b851b4c1a410d3cc5",
+    "result.png": "f1fa00d7c49ddb117be0ad775cc6d1a1140b8d5a9676cc42b756459b413dbe80",
+    "source-and-class-identity.json": "1d58b69e8ef2dd5d97517dc04dbc4cc323ad2afd216f221934cb45a5e0afcca2",
+    "team-identity-replay-audit.mjs": "62bc366fd883264a5a5092ab167120ac6aee8356ffc1ec3cbf234b7d99714d56",
+    "team-identity-replay.mjs": "4593c96e3c641f1552fa699b888bf8240a389908816351a63c40756fea49e361",
+    "team-identity-replay.test.mjs": "007a86444ec98b142a14b360619d4799429e648dac3bef13e79aa0bd5db08096",
+    "video-metadata.log": "6b37730a81a5185f1394c0501b9358273f61d9e10487b97d4de23cc7334f2f59"
+  },
+  "logs": [
+    "artifacts/campus/model-identity-replay/playwright.log",
+    "artifacts/campus/model-identity-replay/node-verified.log",
+    "artifacts/campus/model-identity-replay/frontend-lint-final.log"
+  ]
+}

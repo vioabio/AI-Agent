@@ -39,7 +39,7 @@ public class LocalRuntimeController {
         String configuredModel = model == null || model.getDefaultOptions() == null
                 || model.getDefaultOptions().getModel() == null ? "unconfigured" : model.getDefaultOptions().getModel();
         Map<String, String> hashes = new LinkedHashMap<>();
-        for (Class<?> implementation : List.of(VioManus.class, ToolCallAgent.class, AnswerPresentation.class, CapabilityCatalog.class, TeamAnswerEvidence.class, DamageAnswerEvidence.class,
+        for (Class<?> implementation : List.of(VioManus.class, ToolCallAgent.class, AnswerPresentation.class, CapabilityCatalog.class, AccountScopeReply.class, TeamAnswerEvidence.class, DamageAnswerEvidence.class,
                 GuideAnswerEvidence.class, SavedTeamAnswerEvidence.class, EvidenceText.class, TeamReferenceTools.class,
                 com.vio.vioaiagent.pokemon.team.TeamWorkflowService.class, com.vio.vioaiagent.run.RunMutationBoundary.class,
                 com.vio.vioaiagent.pokemon.team.TeamChangePresentation.class, com.vio.vioaiagent.pokemon.team.TeamWorkflowController.class,
@@ -115,7 +115,9 @@ public class LocalRuntimeController {
                 "tools", Arrays.stream(tools).map(tool -> tool.getToolDefinition().name()).sorted().toList()));
         runtime.put("tokenEstimateObservation",Map.of("schemaVersion","token-estimate-comparison-v1","automaticPolicyChange",false));
         runtime.put("toolInputEvidence",Map.of("schemaVersion",com.vio.vioaiagent.tools.governance.ToolInputEvidence.SCHEMA,
-                "scope","SUPPLIED_ARGUMENTS_ONLY","tools",com.vio.vioaiagent.tools.governance.ToolInputEvidence.supportedTools().stream().sorted().toList()));
+                "scope","SUPPLIED_ARGUMENTS_ONLY","tools",com.vio.vioaiagent.tools.governance.ToolInputEvidence.supportedTools().stream().sorted().toList(),
+                "previewPolicy",Map.of("projectionVersion",com.vio.vioaiagent.tools.governance.ToolInputEvidence.PREVIEW_POLICY_VERSION,
+                        "fieldLimit",com.vio.vioaiagent.tools.governance.ToolInputEvidence.PREVIEW_MAX_FIELDS,"requiresConfirmation",true)));
         runtime.put("damageResultEvidence",Map.of("schemaVersion",com.vio.vioaiagent.tools.governance.DamageResultEvidence.SCHEMA,
                 "conditionSchema",com.vio.vioaiagent.pokemon.engine.DamageResultContract.SCHEMA,"bridgeSha256",damageEngine==null?"unconfigured":damageEngine.bridgeDigest(),
                 "implementation",damageEngine==null?"unconfigured":damageEngine.getClass().getSimpleName()));

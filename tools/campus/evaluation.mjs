@@ -4,6 +4,14 @@ import { readFileSync } from 'node:fs'
 import { resolve, relative, isAbsolute } from 'node:path'
 
 export const digest = value => createHash('sha256').update(typeof value === 'string' || Buffer.isBuffer(value) ? value : JSON.stringify(value)).digest('hex')
+const hasText = value => typeof value === 'string' && value.trim().length > 0
+function validReviewTime(value) {
+  const match = typeof value === 'string' && /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.exec(value)
+  if (!match || !Number.isFinite(Date.parse(value))) return false
+  const [year, month, day, hour, minute, second] = match.slice(1).map(Number)
+  const days = [31, year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  return month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1] && hour < 24 && minute < 60 && second < 60
+}
 // Git on Windows can convert repository text to CRLF. Frozen JSON identity uses
 // UTF-8 with LF, without trimming or altering JSON values. Runtime class hashes stay binary.
 export const frozenFileDigest = file => digest(readFileSync(file, 'utf8').replaceAll('\r\n', '\n'))
@@ -92,10 +100,10 @@ export function assess(item, record, review) {
   let reviewState = 'PENDING'
   if (review) {
     if (review.caseId !== item.id || review.repetition !== record.repetition || review.observationSha256 !== observationHash(record)
-        || !['human', 'ai-assisted'].includes(review.reviewerType) || !review.reviewer?.trim() || !review.reviewedAt || !review.note?.trim()) throw Error(`Unbound/incomplete human review or assisted review: ${item.id}`)
+        || !['human', 'ai-assisted'].includes(review.reviewerType) || !hasText(review.reviewer) || !validReviewTime(review.reviewedAt) || !hasText(review.note)) throw Error(`Unbound/incomplete human review or assisted review: ${item.id}`)
     const decisions = review.decisions || []
     const expectedIds = item.expected.criteria.map(c => c.id)
-    if (decisions.length !== expectedIds.length || new Set(decisions.map(d => d.criterionId)).size !== decisions.length
+    if (!Array.isArray(decisions) || decisions.length !== expectedIds.length || new Set(decisions.map(d => d.criterionId)).size !== decisions.length
         || decisions.some(d => !expectedIds.includes(d.criterionId) || !['pass', 'fail', 'unknown'].includes(d.verdict) || !d.reason?.trim()
           || !d.sourceIds?.length || d.sourceIds.some(id => !item.expected.criteria.find(c => c.id === d.criterionId).sourceIds.includes(id)))) throw Error(`Invalid criterion review: ${item.id}`)
     reviewState = review.reviewerType === 'ai-assisted' ? 'ASSISTED_REVIEW_ONLY'
@@ -121,8 +129,11 @@ export function summarize(suite, records, reviews = []) {
     const item = lookup.get(record.caseId), key = `${record.caseId}:${record.repetition}`
     if (!item || keys.has(key) || !Number.isInteger(record.repetition) || record.repetition < 1) throw Error('Unknown/duplicate result')
     keys.add(key)
-    return { caseId: record.caseId, repetition: record.repetition, category: item.category, split: item.split, ...assess(item, record, reviewLookup.get(key)) }
+    const assessed = assess(item, record, reviewLookup.get(key))
+    reviewLookup.delete(key)
+    return { caseId: record.caseId, repetition: record.repetition, category: item.category, split: item.split, ...assessed }
   })
+  if (reviewLookup.size) throw Error('Review without matching observation')
   if ([...reviewLookup.keys()].some(key => !keys.has(key))) throw Error('Review has no matching observation')
   const denominator = rows.length
   const metrics = selected => ({ denominator: selected.length, pass: selected.filter(r => r.taskOutcome === 'PASS').length,

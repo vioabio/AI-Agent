@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "node-readiness-verification-v1",
+  "recordedAt": "2026-10-30T05:14:01.579Z",
+  "reportSchema": "demo-readiness-v2",
+  "targetedTests": 21,
+  "newTests": 6,
+  "nodeTests": 380,
+  "nodePass": 380,
+  "nodeFailures": 0,
+  "actualNode": "24.19.0",
+  "actualJdkMajor": 21,
+  "actualJavacMajor": 21,
+  "sourceFilesVerified": 674,
+  "emptyDependencyWorkspaceCorrectlyRejected": true,
+  "expectedEmptyWorkspaceExitCode": 2,
+  "emptyWorkspaceIssues": [
+    {
+      "check": "frontend",
+      "code": "FRONTEND_INSTALL_REQUIRED",
+      "action": "在所选工作区执行npm --prefix vio-ai-agent-frontend ci，再检查版本与锁文件。"
+    },
+    {
+      "check": "engine",
+      "code": "ENGINE_INSTALL_REQUIRED",
+      "action": "在所选工作区执行npm --prefix tools/pokemon-engine ci。"
+    }
+  ],
+  "installedPublicWorkspace": "artifacts/campus/cold-reproduction/workspace-v1",
+  "installedPublicWorkspacePreflightPass": true,
+  "expectedInstalledExitCode": 0,
+  "node20Or22InstallOrRuntimeExecutionVerified": false,
+  "versionBoundaryEvidence": "Deterministic tests and explicitly labeled policy simulations only",
+  "installersExecuted": false,
+  "mavenRun": false,
+  "applicationStarted": false,
+  "browserRun": false,
+  "modelConfigurationRead": false,
+  "modelCalls": 0,
+  "newHumanReviews": 0,
+  "formalAdmissions": 0,
+  "javaOrFrontendChanged": false,
+  "referenceBundleReused": true,
+  "existingNodeAndJdkReused": true,
+  "cleanMachineAcceptance": false,
+  "s5Complete": false,
+  "scope": "Engine metadata and actionable first-install preflight only; no build, service, model, clean-machine or full film acceptance.",
+  "fileSha256": {
+    "demo-delivery.test.mjs": "387e83dd42b33fb2327918592f0e42441dabfa6b126ac4198d2811798868604d",
+    "demo-node-requirements.test.mjs": "1cf3c364136e320acafe2374e2ba19d119a78e2525813485356effb0c8ca4be5",
+    "demo-readiness.mjs": "80d8669e4d2bb3904b46e1673a3f31f828fab88be5acbbe56a890d9b154d1f98",
+    "empty-install-v1.json": "5abb83f6b7090c1e1578058046a93728d96ab015e50252332e7b9c10154a920e",
+    "empty-install-v1.log": "19c02e9904b0748c1b86dcd9ca7126d4202dcd0d3d3a93d1a2b6eb530946c821",
+    "empty-public-source-manifest.json": "c6aaca6403f87aac85329fed3e45ff520a896edbaabf5b34764fe29dfafad68e",
+    "installed-v1.json": "46417f424b1ad051330374702ed2e53bd896c467d35677945035630c7f8907c3",
+    "installed-v1.log": "4ae63a8995aef9bf5ce9c3aa08b43561c5bb90ffb4fab7ed8d929d4f9c56f5f9",
+    "node-all-final.log": "0b5cf2d44bd6fd1c5950e65f2df1820220bf6b2c9be2978009cac5930f0dbf80",
+    "node-policy-matrix.json": "2e2361bfe385c96a8bf107371c55f9682beeaf880be5d08cda583a3e84928440",
+    "package-lock.json": "f87b01427532fe1928d8f577b238582a7aa46b07488aed1ebb0d9f2ccf309ecc",
+    "package.json": "9e13e6fe118290f94d5ec2abff606eb38d58ac8bf96190bd628a37d1ed2583b7",
+    "targeted-v1.log": "f82463bf291e9342c88bab7c47c58eb8fd5e66c5e1b114912c8f8f01fe037a22"
+  }
+}

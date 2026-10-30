@@ -60,6 +60,17 @@ class LocalAccountHttpTest {
         mvc.perform(post("/auth/local/login").contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isForbidden());
         String token=csrf();mvc.perform(write("/auth/local/login","{}",token).with(request->{request.removeHeader("Origin");request.addHeader("Origin","https://evil.example");return request;})).andExpect(status().isForbidden());
     }
+    @Test void invalidRegistrationCannotReserveUsernameOrCreateSession() throws Exception {
+        String token=csrf();
+        for (String json : List.of("{}", "{\"username\":\"trainer\",\"password\":\"short\"}",
+                "{\"username\":\"trainer\",\"password\":\""+"密".repeat(25)+"\"}")) {
+            var result=mvc.perform(write("/auth/local/register",json,token)).andExpect(status().isBadRequest()).andReturn();
+            assertNull(result.getRequest().getSession(false));
+            assertFalse(result.getResponse().getContentAsString().contains("short"));
+        }
+        // The same username is still available after rejected registrations.
+        login(token);
+    }
     @Test void sessionBindsTrainerIdentityAndRejectsSpoofedOwner() throws Exception {
         String token=csrf();var session=login(token);
         mvc.perform(get("/auth/session").session(session)).andExpect(jsonPath("$.authenticated").value(true)).andExpect(jsonPath("$.tenantId").value("local"));

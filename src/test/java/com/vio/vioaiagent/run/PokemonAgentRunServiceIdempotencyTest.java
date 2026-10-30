@@ -22,6 +22,51 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** M3 幂等回归：重复提交同一 Idempotency-Key 只能产生一个 Run/一次执行。 */
 class PokemonAgentRunServiceIdempotencyTest {
 
+    @Test void changedTraceReplaysOwnedRunWithoutRewritingLegacyHashOrExecutingAgain() throws Exception {
+        for (boolean hideFind : new boolean[]{false,true}) for (String originalTrace : new String[]{null,"original-trace"}) {
+            var runs=new InMemoryRunRepository();var executions=new AtomicInteger();
+            var store=new InMemoryIdempotencyStore() {
+                @Override public java.util.Optional<IdempotencyRecord> find(String scope,String key) {
+                    return hideFind?java.util.Optional.empty():super.find(scope,key);
+                }
+            };
+            var service=new PokemonAgentRunService(runs,new InMemoryEventRepository(),new InMemoryConversationRepository(),new InMemoryChatMessageRepository(),
+                    context->{executions.incrementAndGet();return "one result";},Executors.newSingleThreadExecutor(),Executors.newSingleThreadScheduledExecutor());
+            service.setIdempotencyStore(store);
+            try {
+                var original=traceCommand(originalTrace,"same question","data-v1",10);
+                var first=service.createRun(original);assertTrue(awaitTerminal(service,first.runId()));
+                var second=service.createRun(traceCommand("new-http-trace","same question","data-v1",10));
+                assertEquals(first.runId(),second.runId());assertEquals(first.traceId(),second.traceId());assertEquals(1,executions.get());
+                var record=store.claim("run:create:user-idem","trace-key",legacyCreateHash(original),Duration.ofHours(1),Instant.now()).record().orElseThrow();
+                assertEquals(legacyCreateHash(original),record.requestHash());
+                assertThrows(IdempotencyConflictException.class,()->service.createRun(traceCommand("third-trace","changed question","data-v1",10)));
+                assertThrows(IdempotencyConflictException.class,()->service.createRun(traceCommand("third-trace","same question","data-v2",10)));
+                assertThrows(IdempotencyConflictException.class,()->service.createRun(traceCommand("third-trace","same question","data-v1",11)));
+            } finally { service.shutdown(); }
+        }
+    }
+
+    @Test void changedTraceCannotReplayAnUnboundLegacyClaimOrCreateAnotherRun() throws Exception {
+        var runs=new InMemoryRunRepository();var store=new InMemoryIdempotencyStore();var executions=new AtomicInteger();
+        var service=new PokemonAgentRunService(runs,new InMemoryEventRepository(),new InMemoryConversationRepository(),new InMemoryChatMessageRepository(),
+                context->{executions.incrementAndGet();return "unexpected";},Executors.newSingleThreadExecutor(),Executors.newSingleThreadScheduledExecutor());
+        service.setIdempotencyStore(store);
+        try {
+            store.claim("run:create:user-idem","trace-key",legacyCreateHash(traceCommand("old-trace","same question","data-v1",10)),Duration.ofHours(1),Instant.now());
+            assertThrows(IdempotencyConflictException.class,()->service.createRun(traceCommand("new-trace","same question","data-v1",10)));
+            assertTrue(runs.findByIdempotencyKey("user-idem","trace-key").isEmpty());assertEquals(0,executions.get());
+        } finally {service.shutdown();}
+    }
+
+    private static CreateRunCommand traceCommand(String trace,String prompt,String data,long timeout) {
+        return new CreateRunCommand("user-idem","session-idem",null,prompt,"sv-1","singles","rules-1","zh-CN",null,data,null,null,"v1",trace,"trace-key",Duration.ofSeconds(timeout));
+    }
+    private static String legacyCreateHash(CreateRunCommand c) throws Exception {
+        java.util.function.Function<String,String> safe=v->v==null?"":v;
+        return sha256(String.join("\u001f",safe.apply(c.userId()),safe.apply(c.sessionId()),safe.apply(c.conversationId()),safe.apply(c.prompt()),safe.apply(c.gameReleaseId()),safe.apply(c.battleFormat()),safe.apply(c.rulesetVersionId()),safe.apply(c.language()),safe.apply(c.dlcId()),safe.apply(c.dataReleaseId()),safe.apply(c.knowledgeReleaseId()),safe.apply(c.indexReleaseId()),safe.apply(c.contractVersion()),safe.apply(c.traceId()),String.valueOf(c.timeout().toMillis())));
+    }
+
     @Test
     void repeatedCreateWithSameKeyReusesRunAndExecutesOnce() throws Exception {
         InMemoryRunRepository runs = new InMemoryRunRepository();

@@ -5,7 +5,7 @@
   "findings": [
     {
       "id": "DEMO-ENTITY-001",
-      "status": "OPEN",
+      "status": "VERIFIED_IN_SINGLE_DEVELOPMENT_REPLAY",
       "priority": "Before final S5 recording",
       "issue": "First aggregate call guessed a member ID before reference resolution; later correction does not satisfy all-call input preservation",
       "expectedPokemonId": 478,
@@ -13,7 +13,18 @@
       "runId": "run-f66a3c85-db2c-456b-9cee-33ff5c677afb",
       "callId": "8cc66d76-401e-4772-8045-202522e0cce5",
       "sourceSha256": "bcc18519fc60940fdb5ff550334ee4ac090f7caf52d0685c6f28227d86e034c0",
-      "nextStep": "Bind natural-language member identities to actual reference lookup results before aggregation; retain original failure and replay the same question"
+      "nextStep": "Retain the original failed call and this bounded successful replay; continue held-out quality evaluation and full narrated demonstration without claiming general planning acceptance",
+      "remediation": {
+        "date": "2026-10-30",
+        "version": "resolved-draft-member-identity-v1",
+        "implementation": "src/main/java/com/vio/vioaiagent/agent/TeamDraftIdentityEvidence.java",
+        "scope": "Bounded explicitly unfilled natural-language drafts only; verified reference results required before aggregation",
+        "liveAcceptance": true,
+        "liveAcceptanceScope": "One exact original read-only question with literal reference resolution before aggregate; not general model quality or raw preview input certification",
+        "liveEvidence": "document/秋招升级/S5/evidence/model-identity-replay-v1/audit.json",
+        "readOnlyModelCalls": 3,
+        "formalAdmissions": 0
+      }
     }
   ]
 }

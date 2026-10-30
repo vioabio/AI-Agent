@@ -9,7 +9,7 @@ export function smokeSourceAllowed(file){
  if(/(^|\/)application[^/]*\.(?:yml|yaml|properties)$/i.test(file)&&!['src/main/resources/application.yml','src/main/resources/application-local.example.yml'].includes(file))return false
  if(['pom.xml','mvnw','mvnw.cmd'].includes(file))return true
  return ['src/main/','.mvn/wrapper/','evaluation/v1.1/','tools/pokemon-engine/','vio-ai-agent-frontend/src/','vio-ai-agent-frontend/public/'].some(p=>file.startsWith(p))
-  ||/^vio-ai-agent-frontend\/(?:package(?:-lock)?\.json|index\.html|vite\.config\.js|tsconfig[^/]*\.json)$/.test(file)
+  ||/^vio-ai-agent-frontend\/(?:package(?:-lock)?\.json|index\.html|vite(?:\.demo)?\.config\.js|tsconfig[^/]*\.json)$/.test(file)
 }
 export function createSmokeWorkspace(root,destination,candidates){
  root=fs.realpathSync(root);destination=path.resolve(destination)

@@ -82,6 +82,33 @@ class TeamWorkflowTest {
             assertEquals("APPLIED",f.workflow.outcome(f.run.id(),OWNER).status());
         }
     }
+    @Test void gatewayPreviewCapturesInputsButStillWaitsForExplicitConfirmation() throws Exception {
+        try(var f=fixture()) {
+            var masker=new com.vio.vioaiagent.security.ParameterMasker();
+            var gateway=new ToolExecutionGateway(f.hitl,new com.vio.vioaiagent.security.PathGuard(List.of(directory.toString())),new com.vio.vioaiagent.security.CommandGuard(List.of()),masker,new com.vio.vioaiagent.security.AuditLogger(masker));
+            var captured=new ArrayList<ToolGovernanceEvent>();var parent=ToolExecutionContextHolder.peek();
+            var context=parent.withEventSink(event->{captured.add(event);parent.eventSink().accept(event);});
+            gateway.wrap(org.springframework.ai.support.ToolCallbacks.from(f.workflow));
+            try {
+                var json=new ObjectMapper();String read=json.writeValueAsString(Map.of("teamId",f.team.id()));
+                assertEquals(ToolGovernanceResult.Status.EXECUTED,gateway.execute("readCurrentTeam",read,context).status());
+                String input=json.writeValueAsString(Map.of("teamId",f.team.id(),"changes",List.of(Map.of("slot",1,"level",51)),"rationale","private-preview-reason"));
+                assertEquals(ToolGovernanceResult.Status.EXECUTED,gateway.execute("previewTeamChanges",input,context).status());
+                var started=captured.stream().filter(e->e.eventType().equals("tool.started")&&e.toolName().equals("previewTeamChanges")).findFirst().orElseThrow();
+                var proof=(Map<?,?>)started.attributes().get("inputEvidence");
+                assertEquals("COMPLETE",proof.get("coverage"));assertFalse(proof.toString().contains("private-preview-reason"));
+                var finished=captured.stream().filter(e->e.eventType().equals("tool.finished")&&e.toolName().equals("previewTeamChanges")).findFirst().orElseThrow();
+                assertEquals(finished.attributes().get("parameterDigest"),proof.get("parameterDigest"));
+                assertEquals(AgentRunStatus.WAITING_APPROVAL,f.run.status());
+                assertEquals(f.team,f.teams.findByIdForOwner(f.team.id(),OWNER).orElseThrow());
+                assertThrows(IllegalStateException.class,()->f.workflow.finishIfPending(f.context()));
+                var preview=f.workflow.outcome(f.run.id(),OWNER).preview();f.approve(preview);f.workflow.finishIfPending(f.context());
+                var saved=f.teams.findByIdForOwner(f.team.id(),OWNER).orElseThrow();
+                var old=f.team.members().getFirst().build();
+                assertEquals(new TeamBuild(old.moves(),old.ability(),old.item(),old.nature(),51,old.evs(),old.ivs()),saved.members().getFirst().build());
+            } finally {gateway.shutdown();}
+        }
+    }
     @Test void noReadNoPreviewAndOtherOwnerCannotReadOrConfirm() {
         try(var f=fixture()) {
             assertThrows(IllegalStateException.class,()->f.workflow.previewTeamChanges(f.team.id(),List.of(CHANGE),"修改"));

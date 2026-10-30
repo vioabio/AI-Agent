@@ -6,11 +6,13 @@ export function expectedInputFields(value,path='') {
  if(value&&typeof value==='object')return Object.assign({},...Object.entries(value).map(([key,v])=>expectedInputFields(v,path+'/'+key)))
  return {[path]:value}
 }
-function validEvidence(e) {
+function validEvidence(e,tool) {
+ const preview=tool==='previewTeamChanges'
+ if(preview&&(e?.projectionVersion!=='bounded-team-preview-input-v1'||e.fieldLimit!==144))return false
  if(e?.schemaVersion!=='tool-input-evidence-v1' || e.scope!=='SUPPLIED_ARGUMENTS_ONLY'
    || !['COMPLETE','PARTIAL'].includes(e.coverage) || typeof e.toolVersion!=='string'
    || !sha.test(e.parameterDigest) || !e.fields || Array.isArray(e.fields) || typeof e.fields!=='object'
-   || Object.keys(e.fields).length>96)return false
+   || Object.keys(e.fields).length>(preview?144:96))return false
  return Object.entries(e.fields).every(([path,p])=>/^\/(?:[A-Za-z][A-Za-z0-9]*|[0-5])(?:\/(?:[A-Za-z][A-Za-z0-9]*|[0-5])){0,7}$/.test(path)
    && p && (p.kind==='SHA256_JSON'?sha.test(p.sha256)&&Object.keys(p).length===2:
      p.kind==='LITERAL'&&Object.hasOwn(p,'value')&&(p.value===null||typeof p.value==='string'||Number.isSafeInteger(p.value))&&Object.keys(p).length===2))
@@ -38,7 +40,7 @@ export function collectToolInputs(events) {
  return [...calls.values()].map(call=>{
   const e=call.evidence,t=call.terminal
   if(!e)call.failures.push('MISSING_INPUT_EVIDENCE')
-  else if(!validEvidence(e))call.failures.push('INVALID_INPUT_EVIDENCE')
+  else if(!validEvidence(e,call.tool))call.failures.push('INVALID_INPUT_EVIDENCE')
   else {
    if(e.coverage!=='COMPLETE')call.failures.push('PARTIAL_INPUT_EVIDENCE')
    if(!t||t.toolVersion!==e.toolVersion||t.parameterDigest!==e.parameterDigest)call.failures.push('UNBOUND_TERMINAL')

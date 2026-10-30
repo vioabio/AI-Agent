@@ -84,6 +84,7 @@ public class ToolCallAgent extends ReActAgent {
     private boolean speciesGuideAttempted;
     private boolean suppliedBuildAttempted;
     private boolean suppliedTeamAttempted;
+    private TeamDraftIdentityEvidence draftIdentity;
     private final java.util.Set<String> overviewResourceAttempts=new java.util.HashSet<>();
     private com.vio.vioaiagent.pokemon.team.TeamWorkflowService teamWorkflow;
 
@@ -128,6 +129,13 @@ public class ToolCallAgent extends ReActAgent {
     @Override
     public boolean think() {
         String currentQuestion = currentQuestion();
+        var scopeReply = AccountScopeReply.reply(currentQuestion);
+        if (scopeReply.isPresent()) {
+            finalAnswer = publishVerified(scopeReply.get());
+            setState(AgentState.FINISHED);
+            return false;
+        }
+        if (draftIdentity == null) draftIdentity = new TeamDraftIdentityEvidence(currentQuestion);
         if (teamAnswerEvidence != null && !teamAnswerEvidence.initialized()) {
             teamAnswerEvidence.begin(currentQuestion);
         }
@@ -151,8 +159,9 @@ public class ToolCallAgent extends ReActAgent {
             prompt = new Prompt(getMessageList(), this.chatOptions);
             var request = getChatClient().prompt(prompt)
                     .system(getSystemPrompt() + (teamAnswerEvidence == null ? "" : teamAnswerEvidence.planningInstruction())
-                            + (guideAnswerEvidence == null ? "" : guideAnswerEvidence.planningInstruction()))
-                    .toolCallbacks(TeamBuildAnswerEvidence.planningTools(currentQuestion,getMergedTools()));
+                            + (guideAnswerEvidence == null ? "" : guideAnswerEvidence.planningInstruction())
+                            + draftIdentity.instruction())
+                    .toolCallbacks(draftIdentity.planningTools(TeamBuildAnswerEvidence.planningTools(currentQuestion,getMergedTools())));
             // Tool selection is private. A model can put planning text in content,
             // not only reasoning_content, so it must never share the answer stream.
             ChatResponse chatResponse = request.call().chatResponse();
@@ -358,6 +367,7 @@ public class ToolCallAgent extends ReActAgent {
             parentContext.eventSink().accept(event);
             log.debug("工具治理事件: {} {}", event.eventType(), event.toolName());
         });
+        if (draftIdentity != null) context = context.withInputConstraint(draftIdentity::verify);
         ToolExecutionContextHolder.set(context);
         ToolExecutionResult toolExecutionResult;
         try {
@@ -379,6 +389,11 @@ public class ToolCallAgent extends ReActAgent {
         // 3. 检查是否调用了终止工具
         ToolResponseMessage toolResponseMessage =
                 (ToolResponseMessage) CollUtil.getLast(toolExecutionResult.conversationHistory());
+        if (draftIdentity != null) toolResponseMessage.getResponses().forEach(response ->
+                draftIdentity.observe(response.name(), response.responseData(),
+                        toolCallChatResponse.getResult().getOutput().getToolCalls().stream()
+                                .filter(call -> call.id().equals(response.id()) && call.name().equals(response.name()))
+                                .map(AssistantMessage.ToolCall::arguments).findFirst().orElse(null)));
         if (teamAnswerEvidence != null) toolResponseMessage.getResponses().forEach(response ->
                 teamAnswerEvidence.observe(response.name(), response.responseData()));
         if (damageAnswerEvidence != null) toolResponseMessage.getResponses().forEach(response ->
@@ -571,6 +586,7 @@ public class ToolCallAgent extends ReActAgent {
     @Override
     protected void cleanup() {
         this.consecutiveErrors = 0;
+        this.draftIdentity = null;
         super.cleanup();
     }
 }

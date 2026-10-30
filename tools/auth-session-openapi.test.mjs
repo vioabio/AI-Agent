@@ -33,7 +33,7 @@ test('session response preserves nullable identity and deadline fields in every 
     'serverTime', 'absoluteExpiresAt', 'loginUrl', 'logoutUrl', 'csrf'];
   assert.deepEqual(status.required, fields);
   assert.deepEqual(Object.keys(status.properties), fields);
-  assert.deepEqual(status.properties.mode.enum, ['oidc', 'api_key', 'disabled']);
+  assert.deepEqual(status.properties.mode.enum, ['oidc', 'local', 'api_key', 'disabled']);
   for (const field of ['authenticated', 'accessDenied']) {
     assert.equal(status.properties[field].type, 'boolean');
   }

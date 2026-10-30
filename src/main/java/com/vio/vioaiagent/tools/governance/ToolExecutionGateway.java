@@ -335,6 +335,7 @@ public class ToolExecutionGateway {
             arguments = parseAndValidate(toolInput, card.inputSchema());
             verifyRole(card, safeContext.roles());
             verifyPrincipalPolicy(card, toolName, safeContext);
+            if (safeContext.inputConstraint() != null) safeContext.inputConstraint().accept(toolName, toolInput);
             verifyPolicies(toolName, arguments);
             String bindingRejection = authorizeTokenScope(safeContext, toolName);
             if (bindingRejection != null) throw new SecurityException(bindingRejection);

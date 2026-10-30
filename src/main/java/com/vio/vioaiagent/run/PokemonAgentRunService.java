@@ -369,8 +369,8 @@ public class PokemonAgentRunService {
                     Optional<IdempotencyRecord> record = idempotencyStore.find(idemScope, command.idempotencyKey())
                             .filter(value -> value.validAt(Instant.now()));
                     if (record.isPresent()) {
-                        if (!record.get().requestHash().equals(requestHash)) throw new IdempotencyConflictException(idemScope, command.idempotencyKey());
                         Optional<AgentRun> replay = replayRun(record, command);
+                        if (!matchesCreateRequest(record.get(), command, requestHash, replay)) throw new IdempotencyConflictException(idemScope, command.idempotencyKey());
                         if (replay.isPresent()) return RunView.from(replay.get());
                         throw new IdempotencyInProgressException(idemScope, command.idempotencyKey());
                     }
@@ -385,7 +385,12 @@ public class PokemonAgentRunService {
             boolean submitted = false;
             try {
                 IdempotencyStore.Claim idemClaim = claimIdempotency(idemScope, command.idempotencyKey(), requestHash);
-                if (idemClaim.conflict()) throw new IdempotencyConflictException(idemScope, command.idempotencyKey());
+                if (idemClaim.conflict()) {
+                    Optional<AgentRun> replay = replayRun(idemClaim.record(), command);
+                    if (idemClaim.record().isPresent() && replay.isPresent()
+                            && matchesCreateRequest(idemClaim.record().get(), command, requestHash, replay)) return RunView.from(replay.get());
+                    throw new IdempotencyConflictException(idemScope, command.idempotencyKey());
+                }
                 if (idemClaim.replay()) {
                     Optional<AgentRun> replayRun = replayRun(idemClaim.record(), command);
                     if (replayRun.isPresent()) return RunView.from(replayRun.get());
@@ -2038,12 +2043,26 @@ public class PokemonAgentRunService {
     }
 
     private String requestHash(CreateRunCommand command) {
+        return requestHash(command, command.traceId());
+    }
+
+    /** Preserve the persisted hash format; trace-only retries may reuse a proven owned Run. */
+    private boolean matchesCreateRequest(IdempotencyRecord record, CreateRunCommand command,
+                                         String incomingHash, Optional<AgentRun> replay) {
+        if (record.requestHash().equals(incomingHash)) return true;
+        if (replay.isEmpty()) return false;
+        // Legacy commands may have omitted traceId before the Run generated its trace.
+        return record.requestHash().equals(requestHash(command, replay.get().traceId()))
+                || record.requestHash().equals(requestHash(command, null));
+    }
+
+    private String requestHash(CreateRunCommand command, String originalTraceId) {
         String canonical = String.join("\u001f", safe(command.userId()), safe(command.sessionId()),
                 safe(command.conversationId()), safe(command.prompt()), safe(command.gameReleaseId()),
                 safe(command.battleFormat()), safe(command.rulesetVersionId()), safe(command.language()),
                 safe(command.dlcId()), safe(command.dataReleaseId()), safe(command.knowledgeReleaseId()),
                 safe(command.indexReleaseId()), safe(command.contractVersion()),
-                safe(command.traceId()), String.valueOf(command.timeout().toMillis()));
+                safe(originalTraceId), String.valueOf(command.timeout().toMillis()));
         return hashValue(canonical);
     }
 

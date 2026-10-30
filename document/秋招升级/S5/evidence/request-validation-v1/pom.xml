@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.16</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    <groupId>com.vio</groupId>
+    <artifactId>vio-ai-agent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>vio-ai-agent</name>
+    <description>vio-ai-agent</description>
+    <url/>
+    <licenses>
+        <license/>
+    </licenses>
+    <developers>
+        <developer/>
+    </developers>
+    <scm>
+        <connection/>
+        <developerConnection/>
+        <tag/>
+        <url/>
+    </scm>
+    <properties>
+        <java.version>21</java.version>
+        <testcontainers.version>1.20.6</testcontainers.version>
+        <!-- Mockito 5 requires an explicit agent on JDK 21; self-attachment is flaky on Windows. -->
+        <mockito.version>5.17.0</mockito.version>
+        <skipITs>true</skipITs>
+    </properties>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-bom</artifactId>
+                <version>1.0.0.2</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>1.0.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+    <dependencies>
+        <!-- Explicit local budget proxy; it is not the DeepSeek/DashScope billing tokenizer. -->
+        <dependency>
+            <groupId>com.knuddels</groupId><artifactId>jtokkit</artifactId><version>1.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.49.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <!-- Supply the Jakarta Bean Validation provider, managed by Spring Boot. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <!-- OIDC Resource Server is opt-in at runtime (vio.security.oidc.enabled).
+             The fallback SecurityFilterChain permits requests when disabled so the
+             existing MVC API-Key interceptor remains the default authentication path. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+        <!--
+          OIDC 浏览器登录（Authorization Code + PKCE，F03/S1）。
+
+          只引入 spring-security-oauth2-client 这一层，而不是
+          spring-boot-starter-oauth2-client：后者会额外拖入
+          spring-boot-starter-web / tomcat-embed-core，而本项目已通过
+          spring-boot-starter-web 显式管理这些依赖，重复引入只增加版本面。
+
+          该库提供 OAuth2AuthorizationRequestRedirectFilter（授权码跳转）、
+          OAuth2LoginAuthenticationFilter（回调换取 token）与 PKCE 支持；
+          Resource Server 依赖（oauth2-jose/oauth2-core）已存在，用于 JWT 验签。
+        -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-client</artifactId>
+        </dependency>
+        <!-- Actuator + Prometheus：生产指标使用标准 exposition 格式。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+        <!-- Spring AI Alibaba DashScope（由 BOM 管理版本，兼容 Spring AI 1.0.0 GA） -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-openai</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud.ai</groupId>
+            <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
+        </dependency>
+        <!-- 修复 jsonschema 版本冲突：Alibaba BOM 将 jsonschema-module-jackson/swagger-2 升级到 4.37.0，
+             但 Spring AI BOM 管理的 jsonschema-generator 仍是 4.31.1，缺少 AnnotationHelper 类。
+             显式声明 4.37.0 覆盖 Spring AI BOM 的旧版本，使三者版本一致 -->
+        <dependency>
+            <groupId>com.github.victools</groupId>
+            <artifactId>jsonschema-generator</artifactId>
+            <version>4.37.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-markdown-document-reader</artifactId>
+        </dependency>
+        <!--SDK接入大模型-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>dashscope-sdk-java</artifactId>
+            <version>2.19.1</version>
+        </dependency>
+        <!-- PostgreSQL 驱动 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+        <!-- N3 生产跨实例全局配额：Redis/Lua（仅显式 backend=redis + prod 启用） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <!-- M1 版本化主数据迁移 -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <!-- Flyway 10+ 将 PostgreSQL 支持拆为数据库插件；生产迁移必须显式带上。 -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- PGVector 向量存储 -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-pgvector-store</artifactId>
+        </dependency>
+        <!-- Spring AI MCP Client -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-mcp-client</artifactId>
+        </dependency>
+        <!-- RAG 查询增强（QuestionAnswerAdvisor / RetrievalAugmentationAdvisor） -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-advisors-vector-store</artifactId>
+        </dependency>
+        <!-- Kryo 序列化库（用于对话记忆持久化） -->
+        <dependency>
+            <groupId>com.esotericsoftware</groupId>
+            <artifactId>kryo</artifactId>
+            <version>5.6.2</version>
+        </dependency>
+        <!-- LangChain4J DashScope -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-dashscope</artifactId>
+            <version>1.0.0-beta2</version>
+        </dependency>
+        <!-- jsoup 网页抓取 -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.19.1</version>
+        </dependency>
+        <!-- itext PDF 生成 -->
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>itext-core</artifactId>
+            <version>9.1.0</version>
+            <type>pom</type>
+        </dependency>
+        <!--hutool工具库-->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <version>5.8.37</version>
+        </dependency>
+        <!-- 接口文档：springdoc 2.7.0 + Swagger UI（Knife4j 4.5 与 Spring Boot 3.5 不兼容，暂时移除） -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.7.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- 真实 PostgreSQL/pgvector smoke 只在 integration-tests profile 启用。 -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <!-- The online report importer uses the same frozen rules as the offline runner. -->
+            <resource>
+                <directory>evaluation/v1.1</directory>
+                <targetPath>evaluation/v1.1</targetPath>
+                <includes>
+                    <include>manifest.json</include>
+                    <include>metric-dictionary.json</include>
+                </includes>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>org.projectlombok</groupId>
+                                    <artifactId>lombok</artifactId>
+                                </path>
+                            </annotationProcessorPaths>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>default-testCompile</id>
+                        <phase>test-compile</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <configuration>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>org.projectlombok</groupId>
+                                    <artifactId>lombok</artifactId>
+                                </path>
+                            </annotationProcessorPaths>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- 默认测试必须离线、可重复；真实模型/MCP 场景通过 -Dgroups=integration 显式运行。 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludedGroups>integration</excludedGroups>
+                    <argLine>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
+                </configuration>
+            </plugin>
+            <!--
+              Failsafe 装配说明（升级方案 F14）：
+              真实 IT 必须能被执行，且“0 用例”不能算通过。
+
+              * 默认 skipITs=true：常规 `mvnw test` 不跑真实依赖的集成测试。
+              * 启用方式（两种都支持）：
+                  mvnw -Pintegration-tests verify       # 显式激活 profile
+                  mvnw -DrunIntegration verify          # 属性激活（等价）
+                两种写法都会把 skipITs 置为 false。只写 -DskipITs=false 也可以，
+                但推荐用 profile，便于同时表达其他 IT 期配置。
+              * groups=integration：只跑 @Tag("integration") 的类，避免把离线单测跑两遍。
+              * 用例发现依赖命名：类名必须是 *IT / IT* / *ITCase。
+                历史类名 GameAppTest、VioManusTest 不符合该规则，
+                因此即使启用了 profile 也永远不会执行；已重命名为 GameAppIT、VioManusIT。
+              * 未设置 VIO_RUN_LIVE_TESTS=true 时，真实模型 IT 会主动跳过；
+                CI 另行断言 Failsafe 报告中的实际用例数，防止假绿。
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>3.5.3</version>
+                <configuration>
+                    <skipITs>${skipITs}</skipITs>
+                    <groups>integration</groups>
+                    <excludedGroups></excludedGroups>
+                    <systemPropertyVariables>
+                        <spring.profiles.active>test,integration</spring.profiles.active>
+                    </systemPropertyVariables>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>integration-tests</id>
+                        <goals><goal>integration-test</goal><goal>verify</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+    <profiles>
+        <profile>
+            <id>production</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <configuration>
+                            <excludes>
+                                <exclude>com/vio/vioaiagent/mcp/**</exclude>
+                            </excludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>integration-tests</id>
+            <!--
+              同时支持 -Pintegration-tests 与 -DrunIntegration 两种激活方式：
+              属性激活覆盖命令行，显式 -P 也能工作。
+              该 profile 的唯一职责是把 skipITs 置为 false。
+            -->
+            <activation>
+                <property><name>runIntegration</name></property>
+            </activation>
+            <properties><skipITs>false</skipITs></properties>
+        </profile>
+    </profiles>
+    <repositories>
+        <!-- Resolve release artifacts from Central before the optional milestone repository.
+             A warm ~/.m2 can otherwise hide first-install hangs on repo.spring.io. -->
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+</project>

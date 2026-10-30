@@ -16,7 +16,16 @@ public record ToolExecutionContext(
         String idempotencyKey,
         Consumer<ToolGovernanceEvent> eventSink,
         com.vio.vioaiagent.security.TokenBinding tokenBinding,
-        PrincipalPolicy principalPolicy) {
+        PrincipalPolicy principalPolicy,
+        java.util.function.BiConsumer<String, String> inputConstraint) {
+
+    public ToolExecutionContext(String userId, String runId, Set<String> roles,
+                                String traceId, String idempotencyKey,
+                                Consumer<ToolGovernanceEvent> eventSink,
+                                com.vio.vioaiagent.security.TokenBinding tokenBinding,
+                                PrincipalPolicy principalPolicy) {
+        this(userId, runId, roles, traceId, idempotencyKey, eventSink, tokenBinding, principalPolicy, null);
+    }
 
     /** 保持既有 6 参数调用方兼容；认证绑定默认为空。 */
     public ToolExecutionContext(String userId, String runId, Set<String> roles,
@@ -70,20 +79,27 @@ public record ToolExecutionContext(
     }
 
     public ToolExecutionContext withIdempotencyKey(String key) {
-        return new ToolExecutionContext(userId, runId, roles, traceId, key, eventSink, tokenBinding, principalPolicy);
+        return new ToolExecutionContext(userId, runId, roles, traceId, key, eventSink, tokenBinding, principalPolicy, inputConstraint);
     }
 
     public ToolExecutionContext withEventSink(Consumer<ToolGovernanceEvent> sink) {
-        return new ToolExecutionContext(userId, runId, roles, traceId, idempotencyKey, sink, tokenBinding, principalPolicy);
+        return new ToolExecutionContext(userId, runId, roles, traceId, idempotencyKey, sink, tokenBinding, principalPolicy, inputConstraint);
     }
 
     public ToolExecutionContext withTokenBinding(com.vio.vioaiagent.security.TokenBinding binding) {
-        return new ToolExecutionContext(userId, runId, roles, traceId, idempotencyKey, eventSink, binding, principalPolicy);
+        return new ToolExecutionContext(userId, runId, roles, traceId, idempotencyKey, eventSink, binding, principalPolicy, inputConstraint);
     }
 
     public ToolExecutionContext withPrincipalPolicy(PrincipalPolicy policy) {
         return new ToolExecutionContext(userId, runId, roles, traceId, idempotencyKey, eventSink,
-                policy == null ? tokenBinding : policy.tokenBinding(), policy);
+                policy == null ? tokenBinding : policy.tokenBinding(), policy, inputConstraint);
+    }
+
+    /** Additional trusted run-local constraint; never supplied in model tool arguments. */
+    public ToolExecutionContext withInputConstraint(java.util.function.BiConsumer<String, String> constraint) {
+        var combined = inputConstraint == null ? constraint : inputConstraint.andThen(constraint);
+        return new ToolExecutionContext(userId, runId, roles, traceId, idempotencyKey, eventSink,
+                tokenBinding, principalPolicy, combined);
     }
 
     public String tenantId() {

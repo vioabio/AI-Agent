@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -56,6 +57,7 @@ public class GlobalExceptionHandler {
      * @Validated 校验异常 (请求体)
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handleMethodArgumentNotValid(MethodArgumentNotValidException e, HttpServletRequest request) {
         String message = e.getBindingResult().getFieldErrors().stream()
                 .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
@@ -68,6 +70,7 @@ public class GlobalExceptionHandler {
      * @Validated 校验异常 (表单绑定)
      */
     @ExceptionHandler(BindException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handleBindException(BindException e, HttpServletRequest request) {
         String message = e.getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
@@ -80,6 +83,7 @@ public class GlobalExceptionHandler {
      * 单个参数校验异常
      */
     @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handleConstraintViolation(ConstraintViolationException e, HttpServletRequest request) {
         String message = e.getConstraintViolations().stream()
                 .map(ConstraintViolation::getMessage)
@@ -89,6 +93,17 @@ public class GlobalExceptionHandler {
     }
 
     // ==================== 请求异常 ====================
+
+    /** Native Spring MVC method validation; return-value failures are server errors. */
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public org.springframework.http.ResponseEntity<Result<Void>> handleMethodValidation(HandlerMethodValidationException e) {
+        if (e.isForReturnValue()) {
+            return org.springframework.http.ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Result.error(ResultCode.INTERNAL_ERROR));
+        }
+        return org.springframework.http.ResponseEntity.badRequest()
+                .body(Result.error(ResultCode.PARAM_ERROR, "请求参数校验失败"));
+    }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public Result<Void> handleMissingParam(MissingServletRequestParameterException e, HttpServletRequest request) {

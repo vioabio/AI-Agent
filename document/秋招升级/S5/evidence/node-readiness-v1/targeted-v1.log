@@ -1,0 +1,29 @@
+✔ fixed public download creates a six-file bundle accepted by the existing importer (206.5123ms)
+✔ wrong resource identity fails before creating the destination (11.2721ms)
+✔ redirects and non-JSON responses never create usable reference data (19.7473ms)
+✔ declared and streamed oversized bodies are bounded without writing partial bundles (41.0752ms)
+✔ network failures retain a sanitized error and have no automatic retries (9.1008ms)
+✔ existing and outside destinations are rejected before fetching (15.0524ms)
+✔ manifest traversal and changed snapshot bytes cannot pass readiness (37.0187ms)
+✔ symlinked output ancestors cannot escape the public workspace (19.9859ms)
+✔ readiness inspects public inputs without claiming build or model success (95.0569ms)
+✔ wrong Node or JDK versions and changed dependency versions fail readiness (135.2149ms)
+✔ missing packages, wrappers or reference bundles are reported without executing installers (5.2826ms)
+✔ private model configuration is never selected for readiness reads (90.9308ms)
+✔ CLI refuses an existing report before any environment inspection (227.2192ms)
+✔ public build source selection includes only the named public demo config (1.0546ms)
+✔ readiness CLI selects an explicit public workspace without probing a model (303.9815ms)
+✔ actual supported major/minor boundaries reject early Node22 and accept supported Node20 (3.2096ms)
+✔ unknown grammar malformed and prerelease versions remain unknown rather than being widened (0.6598ms)
+✔ project and locked Vite requirements are both enforced (22.0685ms)
+✔ mismatched absent and unsupported metadata cannot pass first-install readiness (24.6594ms)
+✔ installed Vite engine mismatch is reported even when its version matches the lock (25.7769ms)
+✔ missing first-install inputs produce actionable issues without running an installer or model (15.9814ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1550.568

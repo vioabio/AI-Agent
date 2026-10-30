@@ -12,7 +12,12 @@ async function api(page,route,body,expected=200){return page.evaluate(async({rou
 },{route,body,expected})}
 for(const width of [1440,390])test(`公开构建真实浏览器登录、图鉴与保存回读 ${width}`,async({page},testInfo)=>{
  const record={schemaVersion:'public-workspace-browser-smoke-v1',width,mode:'REAL_BUILT_FRONTEND_HTTP_SQLITE_NO_MODEL',pass:false,modelRequests:0,pageErrors:[],apiTraffic:[],blockedExternal:0}
- const root=path.resolve('..'),workspace=path.join(root,'artifacts/campus/local-smoke/workspace-v1')
+ const root=path.resolve('..'),workspace=process.env.VIO_PUBLIC_WORKSPACE_ROOT?path.resolve(process.env.VIO_PUBLIC_WORKSPACE_ROOT):path.join(root,'artifacts/campus/local-smoke/workspace-v1')
+ const relative=path.relative(path.join(root,'artifacts'),fs.realpathSync(workspace))
+ if(!relative||relative.startsWith('..')||path.isAbsolute(relative))throw Error('Public build workspace inside artifacts required')
+ const manifest=JSON.parse(fs.readFileSync(path.join(workspace,'smoke-source-manifest.json')))
+ if(manifest.privateConfigCopied!==false||manifest.existingDatabasesCopied!==false)throw Error('Filtered public workspace required')
+ record.sourceManifestSha256=hash(path.join(workspace,'smoke-source-manifest.json'))
  record.jarSha256=hash(path.join(workspace,'target/vio-ai-agent-0.0.1-SNAPSHOT.jar'));record.frontendIndexSha256=hash(path.join(workspace,'vio-ai-agent-frontend/dist/index.html'))
  page.on('pageerror',()=>record.pageErrors.push('PAGE_SCRIPT_ERROR'))
  page.on('response',r=>{const u=new URL(r.url());if(u.pathname.startsWith('/api/'))record.apiTraffic.push({method:r.request().method(),path:u.pathname,status:r.status()})})

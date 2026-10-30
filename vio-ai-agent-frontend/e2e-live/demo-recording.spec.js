@@ -15,7 +15,7 @@ test('真实模型核对、单字段预览与确认保存录屏',async({browser}
  const plan=JSON.parse(fs.readFileSync('../evaluation/campus/demo-recording-v1/plan.json')),record={schemaVersion:'campus-model-demo-observation-v1',pass:false,approvalActor:'AUTOMATED_DEDICATED_TEST_ACCOUNT',humanStrategyAcceptance:false,startedAt:new Date().toISOString(),planSha256:sha('../evaluation/campus/demo-recording-v1/plan.json'),tasks:[]}
  const authContext=await browser.newContext({viewport:{width:1440,height:900}}),authPage=await authContext.newPage();let context,page,active,video
  async function submit(prompt){const created=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/chat/runs'&&r.request().method()==='POST');await page.getByRole('textbox',{name:'输入消息',exact:true}).fill(prompt);await page.getByRole('textbox',{name:'输入消息',exact:true}).press('Enter');const response=await created;expect(response.status()).toBe(202);const run=await response.json();active=run.runId;return run}
- async function finishTask(run){const state=await api(page,`/chat/runs/${run.runId}`);const events=(await api(page,`/chat/runs/${run.runId}/events`)).events;const answer=events.filter(e=>e.type==='answer.delta').map(e=>e.payload?.text||'').join('');const attempts=attemptsFrom(events);const history=await api(page,`/chat/conversations/${run.conversationId}/messages`);expect(history.find(m=>m.runId===run.runId&&m.role==='assistant')?.content).toBe(answer);const row={runId:run.runId,status:state.status,answer,answerDeltaCount:events.filter(e=>e.type==='answer.delta').length,modelCalls:attempts.reduce((n,a)=>n+a.modelCallCount,0),events};record.tasks.push(row);active=null;return row}
+ async function finishTask(run){const state=await api(page,`/chat/runs/${run.runId}`);const events=(await api(page,`/chat/runs/${run.runId}/events`)).events;const answer=events.filter(e=>e.type==='answer.delta').map(e=>e.payload?.text||'').join('');const attempts=attemptsFrom(events);const history=await api(page,`/chat/conversations/${run.conversationId}/messages`);expect(history.find(m=>m.runId===run.runId&&m.role==='assistant')?.content).toBe(answer);const row={runId:run.runId,conversationId:run.conversationId,status:state.status,answer,answerDeltaCount:events.filter(e=>e.type==='answer.delta').length,modelCalls:attempts.reduce((n,a)=>n+a.modelCallCount,0),events};record.tasks.push(row);active=null;return row}
  try{
   await authPage.goto('http://127.0.0.1:13059/game-master');await expect(authPage.getByTestId('local-auth-portal')).toBeVisible()
   const username='demo_'+randomBytes(6).toString('hex'),password=randomBytes(24).toString('base64url')
@@ -32,9 +32,10 @@ test('真实模型核对、单字段预览与确认保存录屏',async({browser}
   record.readOnlyRequest=request;record.readOnlyReferenceBefore=reference
   const first=await submit(plan.readOnlyPrompt);await expect.poll(async()=> (await api(page,`/chat/runs/${first.runId}`)).status,{timeout:140000}).toBe('COMPLETED')
   const firstResult=await finishTask(first);firstResult.audit=auditTeamPlanningWithReferences(firstResult.events,{request,reportSha256:reference.reportSha256,mode:'MODEL_TOOL_SELECTION'},{7:['7','squirtle','杰尼龟'],478:['478','froslass','雪妖女']});expect(firstResult.audit.pass).toBe(true);expect(firstResult.modelCalls).toBeGreaterThan(0);expect(firstResult.answerDeltaCount).toBeGreaterThan(0);await page.screenshot({path:testInfo.outputPath('answer.png')})
+  record.afterReadOnly=await api(page,`/teams/${created.id}`);expect(record.afterReadOnly).toEqual(record.before)
   const second=await submit(plan.changePromptTemplate.replace('{teamId}',String(created.id)));await expect(page.getByText('队伍修改预览',{exact:true})).toBeVisible({timeout:140000})
   record.preview=(await api(page,`/chat/runs/${second.runId}/team-change`)).preview;expect(record.preview.changes).toHaveLength(1);expect(record.preview.changes[0]).toMatchObject(plan.expectedChange)
-  expect(await api(page,`/teams/${created.id}`)).toEqual(record.before);record.noWriteBeforeConfirmation=true
+  record.beforeConfirmation=await api(page,`/teams/${created.id}`);expect(record.beforeConfirmation).toEqual(record.before);record.noWriteBeforeConfirmation=true
   const confirm=page.getByRole('button',{name:'确认保存',exact:true});await expect(confirm).toBeInViewport();await page.screenshot({path:testInfo.outputPath('preview.png')});await confirm.click()
   await expect.poll(async()=> (await api(page,`/chat/runs/${second.runId}`)).status,{timeout:140000}).toBe('COMPLETED')
   const secondResult=await finishTask(second);expect(secondResult.modelCalls).toBeGreaterThan(0)
@@ -42,7 +43,9 @@ test('真实模型核对、单字段预览与确认保存录屏',async({browser}
   record.after=await api(page,`/teams/${created.id}`);const expected=structuredClone(record.before);expected.members[0].build.level=51;expect(record.after).toEqual(expected)
   const tools=secondResult.events.filter(e=>e.type==='tool.finished').map(e=>e.payload?.toolName);for(const name of plan.requiredChangeTools)expect(tools).toContain(name)
   await page.reload();await expect(page.getByRole('heading',{name:'宝可梦助手',exact:true})).toBeVisible();expect(await api(page,`/teams/${created.id}`)).toEqual(expected);record.reloadReadBack=true
-  await page.screenshot({path:testInfo.outputPath('result.png')});record.pass=true
+  await page.screenshot({path:testInfo.outputPath('result.png')})
+  record.runtimeAfter=await api(page,'/chat/runtime');expect(record.runtimeAfter.implementationSha256).toEqual(record.runtime.implementationSha256)
+  record.pass=true
  }catch(error){record.error='MODEL_DEMO_FLOW_FAILED';throw error}
  finally{
   if(active&&page)try{await api(page,`/chat/runs/${active}/cancel`,{})}catch{record.cancelFailed=true}

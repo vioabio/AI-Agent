@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:demo": "vite --config vite.demo.config.js",
     "build": "vite build",
     "lint": "node scripts/run-quality-check.mjs lint",
     "typecheck": "node scripts/run-quality-check.mjs typecheck",
@@ -14,6 +15,7 @@
     "quality:frontend": "node scripts/run-frontend-quality.mjs",
     "version:check": "node scripts/version-registry-check.mjs",
     "preview": "vite preview",
+    "preview:demo": "vite preview --config vite.demo.config.js",
     "openapi:fetch": "curl --fail --silent --show-error http://localhost:8123/api/v3/api-docs/default -o src/api/openapi.json",
     "openapi:gen": "openapi --input src/api/openapi.json --output src/api/generated --client axios --useOptions --useUnionTypes",
     "openapi:postgen": "node scripts/fix-openapi-gen.js",

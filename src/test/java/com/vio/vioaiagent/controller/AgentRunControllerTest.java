@@ -25,6 +25,32 @@ import static org.mockito.Mockito.when;
 /** M5 断线恢复所需的 Run 快照接口契约测试。 */
 class AgentRunControllerTest {
 
+    @Test void optionalIdempotencyNeverUsesTheAnonymousIdentityFallback() {
+        var service=mock(PokemonAgentRunService.class);
+        var controller=new AgentRunController(service);
+        for(String key:new String[]{null,"","  "}) {
+            var request=new AgentRunController.CreateRunRequest();request.prompt="独立请求";request.idempotencyKey=key;
+            controller.createRun(request,null,key,null);
+        }
+        var capture=org.mockito.ArgumentCaptor.forClass(com.vio.vioaiagent.run.CreateRunCommand.class);
+        org.mockito.Mockito.verify(service,org.mockito.Mockito.times(3)).createRun(capture.capture());
+        for(var command:capture.getAllValues()) {
+            org.junit.jupiter.api.Assertions.assertNull(command.idempotencyKey());
+            assertEquals("anonymous",command.userId());
+        }
+    }
+
+    @Test void explicitHeaderKeyStillOverridesBodyAndBodyFallbackIsTrimmed() {
+        var service=mock(PokemonAgentRunService.class);var controller=new AgentRunController(service);
+        var request=new AgentRunController.CreateRunRequest();request.prompt="明确键";request.idempotencyKey=" body-key ";
+        controller.createRun(request,null," header-key ",null);
+        controller.createRun(request,null," ",null);
+        var capture=org.mockito.ArgumentCaptor.forClass(com.vio.vioaiagent.run.CreateRunCommand.class);
+        org.mockito.Mockito.verify(service,org.mockito.Mockito.times(2)).createRun(capture.capture());
+        assertEquals("header-key",capture.getAllValues().get(0).idempotencyKey());
+        assertEquals("body-key",capture.getAllValues().get(1).idempotencyKey());
+    }
+
     @Test
     void runSnapshotDelegatesWithLocalFallbackIdentity() {
         PokemonAgentRunService service = mock(PokemonAgentRunService.class);

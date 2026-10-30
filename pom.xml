@@ -65,6 +65,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <!-- Supply the Jakarta Bean Validation provider, managed by Spring Boot. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
         <!-- OIDC Resource Server is opt-in at runtime (vio.security.oidc.enabled).
              The fallback SecurityFilterChain permits requests when disabled so the
              existing MVC API-Key interceptor remains the default authentication path. -->
@@ -109,6 +114,9 @@
         <dependency>
             <groupId>com.alibaba.cloud.ai</groupId>
             <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
+            <exclusions>
+                <exclusion><groupId>org.slf4j</groupId><artifactId>slf4j-simple</artifactId></exclusion>
+            </exclusions>
         </dependency>
         <!-- 修复 jsonschema 版本冲突：Alibaba BOM 将 jsonschema-module-jackson/swagger-2 升级到 4.37.0，
              但 Spring AI BOM 管理的 jsonschema-generator 仍是 4.31.1，缺少 AnnotationHelper 类。
@@ -127,6 +135,9 @@
             <groupId>com.alibaba</groupId>
             <artifactId>dashscope-sdk-java</artifactId>
             <version>2.19.1</version>
+            <exclusions>
+                <exclusion><groupId>org.slf4j</groupId><artifactId>slf4j-simple</artifactId></exclusion>
+            </exclusions>
         </dependency>
         <!-- PostgreSQL 驱动 -->
         <dependency>

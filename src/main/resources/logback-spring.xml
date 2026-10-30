@@ -8,23 +8,29 @@
         </encoder>
     </appender>
 
+    <!-- Only instantiate the production appender when it is actually referenced. -->
+    <springProfile name="prod">
+    <springProperty scope="context" name="AGENT_LOG_DIR" source="vio.logging.path" defaultValue="logs" />
     <!-- 文件输出：生产用 JSON 格式 -->
     <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/vio-ai-agent.jsonl</file>
+        <file>${AGENT_LOG_DIR}/vio-ai-agent.jsonl</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/vio-ai-agent.%d{yyyy-MM-dd}.jsonl</fileNamePattern>
+            <fileNamePattern>${AGENT_LOG_DIR}/vio-ai-agent.%d{yyyy-MM-dd}.jsonl</fileNamePattern>
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder class="ch.qos.logback.classic.encoder.JsonEncoder">
             <!-- 自动输出所有 MDC 字段（traceId/spanId/sessionId/agentType 等） -->
         </encoder>
     </appender>
+    </springProfile>
 
     <!-- Spring Profile 控制 -->
-    <springProfile name="local,test">
+    <springProfile name="!prod">
         <root level="INFO">
             <appender-ref ref="CONSOLE" />
         </root>
+    </springProfile>
+    <springProfile name="local | test">
         <logger name="com.vio.vioaiagent" level="DEBUG" />
         <logger name="org.springframework.ai" level="DEBUG" />
     </springProfile>

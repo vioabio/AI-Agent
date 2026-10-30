@@ -1,0 +1,117 @@
+{
+  "schemaVersion": "cold-reproduction-verification-v1",
+  "recordedAt": "2026-10-30T03:05:13.686Z",
+  "publicFilesVerified": 674,
+  "privateConfigCopied": false,
+  "existingDatabasesCopied": false,
+  "coldNpm": [
+    {
+      "component": "frontend",
+      "pass": true,
+      "cacheInitiallyAbsent": true,
+      "nodeModulesInitiallyAbsent": true,
+      "lockedVersion": "8.3.5",
+      "installedVersion": "8.3.5",
+      "emptyUserAndGlobalConfig": true
+    },
+    {
+      "component": "engine",
+      "pass": true,
+      "cacheInitiallyAbsent": true,
+      "nodeModulesInitiallyAbsent": true,
+      "lockedVersion": "0.12.0",
+      "installedVersion": "0.12.0",
+      "emptyUserAndGlobalConfig": true
+    }
+  ],
+  "backendBuild": {
+    "pass": true,
+    "mavenOffline": true,
+    "mavenCacheReused": true,
+    "wrapperAndJdkReused": true,
+    "testsExplicitlySkipped": true,
+    "testsExecuted": 0,
+    "publicSettingsOnly": true,
+    "initialSettingsPathFailureRetained": true
+  },
+  "jarSha256": "dba8d7171b9a1fc3512b7fbf96994041e3d4d3b3cf7552a934c44c4644ceb119",
+  "frontendIndexSha256": "a30eb1e9d10b9da28c4579dedaf3885a920c502bb8d1b0d1027cea09ae16bf95",
+  "httpChecks": {
+    "localMode": true,
+    "registration": true,
+    "login": true,
+    "runtime": true,
+    "referenceFacts": true,
+    "teamSaveReadback": true,
+    "engineBridge": true,
+    "reloginTeamReadback": true,
+    "logout": true
+  },
+  "browserCases": [
+    {
+      "width": 1440,
+      "pass": true,
+      "pageErrors": [],
+      "modelRequests": 0
+    },
+    {
+      "width": 390,
+      "pass": true,
+      "pageErrors": [],
+      "modelRequests": 0
+    }
+  ],
+  "referenceMode": "EXPLICIT_OLDER_PUBLIC_SNAPSHOTS",
+  "modelKeyMode": "INVALID_PLACEHOLDER",
+  "modelCalls": 0,
+  "newHumanReviews": 0,
+  "formalAdmissions": 0,
+  "cleanMachineAcceptance": false,
+  "emptyMavenCacheVerified": false,
+  "fullRecruitingVideoComplete": false,
+  "s5Complete": false,
+  "nodeTests": 271,
+  "nodeFailures": 0,
+  "frontendLint": "PASS",
+  "dailyPortsUntouched": [
+    3000,
+    8123
+  ],
+  "fileSha256": {
+    "backend-build-final.log": "c662f3dbaded669d4abdb07af9df9932648b9386d87b3051249fb5dfdcc3254c",
+    "backend-build.log": "f69e3b8fbefe46a1bf8cb8357b5ba7d0dc42c44fd037cf7fd5bf44cb0f572b1e",
+    "browser.log": "884279f93c2943540415939ad3329bc72dfa30f6e8a79bc31cd50e1bb8262039",
+    "cold-npm-install.mjs": "e2f8dfb8801fb01523d1e7e10032fc5f77192f337afb34fce556043f21969545",
+    "cold-npm-install.test.mjs": "543c0f22bd2b49bd6e473fb4b0eb6632e0e1ff39573d6751db31b5ffbe5a787b",
+    "demo-readiness.mjs": "60a0f32e96f891aa7399c9259091a6efa52ce681a868d7393e1ce157a3ac1eb9",
+    "desktop.json": "d131c0cc1d6017216806e2f5b015af2f1f5ec96dd14ab95c18084b7b9067caa9",
+    "desktop.png": "e45e70b5e27c2039bc362fe68950654ec519378d784d8b07a18c10be1e56dcfa",
+    "engine-cold-plan.json": "8c94b8617afba95362ed4245eec96a6ea9358e56c0bad0e3707ad09d344e7f86",
+    "engine-cold-report.json": "2111cbc83f254456112c8e26557ff6f570615f4e1a8aaf7dab3712a07b8a51f0",
+    "frontend-build.log": "170a11d399bfb6336494eeb0bb66d76e2a8458f1f19669db962519f0f64a3414",
+    "frontend-cold-plan.json": "d8afeace5b8d26871dc826bdf15bb6bf0b8d4b669bc1b644b77499602ae3b8b1",
+    "frontend-cold-report.json": "992fbafa3cb8fbaadbc02f87a12e558f707af895e141283d34d7b1d44e1bdf12",
+    "http-probe-v1.json": "c2b23d0553113d2e211bd40d7e47354c9e538330b6547f2c78ef705477b4122a",
+    "jar-inspection.json": "df1083146b8ed5d8bd56cdec41d04ac3f94a2cbcc0d7712ca34e8223d732358f",
+    "mobile.json": "055a8ddae6df4e4a4082fac87a56e1ba36fa8518f33b7f73fab6fd61780009e7",
+    "mobile.png": "a32cd6b42fb68c2e450f2766bc128f094e6595325398ef11f6b221cd079536d0",
+    "node-final-verified.log": "62288f2e702aadd98fbf9823073c244e7e438b5993b5e2ae6675a84627e70bb9",
+    "public-global-settings.xml": "591234cddda79ba1a459288df6b7fddeb1b471e40bcd5945fb32d803732bc352",
+    "public-reproduction-probe.mjs": "79ada312645ad04706954a9cab99b4989cc868550054fe55342149e595c07d8e",
+    "public-source-manifest.json": "fbf9c7a2e5525b8df16a00555ca8ef8f0e019cde0a07b7d0baa27dc9f36e601b",
+    "public-startup-arguments.json": "0bcb1d71c6ce4f4995718993beb30ba8b1a6faf229de3dec3ebcf8310e441aff",
+    "public-user-settings.xml": "591234cddda79ba1a459288df6b7fddeb1b471e40bcd5945fb32d803732bc352",
+    "readiness-v1.json": "c1863192b831f292e94de275dd0729268a5ffec8bf6d7ba67ed73fa2cd97de30",
+    "recorded-browser.spec.js": "0ff875d2ddd55ae66d725860461ba89c42e214caa0589e4507189e49b6754805",
+    "reference-import.json": "e80d94e595af8b8453be1487d20b512958df7483e46168d49edca9fc356e79b9"
+  },
+  "jarInspection": {
+    "runtimeClassesMatched": 104,
+    "excludedNamedEntries": 0,
+    "publicProfiles": 2
+  },
+  "servicesStopped": {
+    "frontend13059": true,
+    "backend18259": true
+  }
+}

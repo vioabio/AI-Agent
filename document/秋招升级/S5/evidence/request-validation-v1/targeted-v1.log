@@ -1,0 +1,98 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------< com.vio:vio-ai-agent >------------------------
+[INFO] Building vio-ai-agent 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ vio-ai-agent ---
+[INFO] Copying 67 resources from src\main\resources to target\classes
+[INFO] Copying 2 resources from evaluation\v1.1 to target\classes\evaluation\v1.1
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ vio-ai-agent ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 516 source files with javac [debug parameters release 21] to target\classes
+[INFO] /D:/ai-intern-cjt/ai-intern-folder/my/AI-Agent/artifacts/campus/request-validation/workspace-v1/src/main/java/com/vio/vioaiagent/pokemon/reference/BuildCheckFacts.java: ĳЩ�����ļ�ʹ�û򸲸����ѹ�ʱ�� API��
+[INFO] /D:/ai-intern-cjt/ai-intern-folder/my/AI-Agent/artifacts/campus/request-validation/workspace-v1/src/main/java/com/vio/vioaiagent/pokemon/reference/BuildCheckFacts.java: �й���ϸ��Ϣ, ��ʹ�� -Xlint:deprecation ���±��롣
+[INFO] /D:/ai-intern-cjt/ai-intern-folder/my/AI-Agent/artifacts/campus/request-validation/workspace-v1/src/main/java/com/vio/vioaiagent/chatmemory/FileBasedChatMemory.java: ĳЩ�����ļ�ʹ����δ�����򲻰�ȫ�Ĳ�����
+[INFO] /D:/ai-intern-cjt/ai-intern-folder/my/AI-Agent/artifacts/campus/request-validation/workspace-v1/src/main/java/com/vio/vioaiagent/chatmemory/FileBasedChatMemory.java: �й���ϸ��Ϣ, ��ʹ�� -Xlint:unchecked ���±��롣
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ vio-ai-agent ---
+[INFO] skip non existing resourceDirectory D:\ai-intern-cjt\ai-intern-folder\my\AI-Agent\artifacts\campus\request-validation\workspace-v1\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.14.1:testCompile (default-testCompile) @ vio-ai-agent ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 3 source files with javac [debug parameters release 21] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ vio-ai-agent ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.vio.vioaiagent.config.LocalAccountHttpTest
+SLF4J(W): Class path contains multiple SLF4J providers.
+SLF4J(W): Found provider [ch.qos.logback.classic.spi.LogbackServiceProvider@1f9e9475]
+SLF4J(W): Found provider [org.slf4j.simple.SimpleServiceProvider@3aa078fd]
+SLF4J(W): See https://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J(I): Actual provider is of type [ch.qos.logback.classic.spi.LogbackServiceProvider@1f9e9475]
+11:26:56.106 [main] INFO com.vio.vioaiagent.security.TokenStore -- �Ѽ��� 0 �� API Key �����ƴ洢
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+11:26:59.989 [main] INFO org.hibernate.validator.internal.util.Version -- HV000001: Hibernate Validator 8.0.3.Final
+11:27:03.351 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+11:27:03.351 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+11:27:03.354 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 2 ms
+11:27:04.355 [main] INFO com.vio.vioaiagent.security.TokenStore -- �Ѽ��� 0 �� API Key �����ƴ洢
+11:27:05.322 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+11:27:05.324 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+11:27:05.326 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 1 ms
+11:27:09.268 [main] INFO com.vio.vioaiagent.security.TokenStore -- ��ע������: oidc:5***
+11:27:09.613 [main] INFO com.vio.vioaiagent.security.TokenStore -- �Ѽ��� 0 �� API Key �����ƴ洢
+11:27:10.413 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+11:27:10.414 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+11:27:10.415 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+11:27:12.981 [main] INFO com.vio.vioaiagent.security.TokenStore -- �Ѽ��� 0 �� API Key �����ƴ洢
+11:27:13.768 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+11:27:13.768 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+11:27:13.768 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 26.64 s -- in com.vio.vioaiagent.config.LocalAccountHttpTest
+[INFO] Running com.vio.vioaiagent.exception.RequestValidationHttpTest
+11:27:18.334 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+11:27:18.335 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+11:27:18.336 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 1 ms
+11:27:18.629 [main] WARN com.vio.vioaiagent.exception.GlobalExceptionHandler -- [����У��ʧ��] URI: /validation/body, member: must not be null
+11:27:18.653 [main] WARN com.vio.vioaiagent.exception.GlobalExceptionHandler -- [����У��ʧ��] URI: /validation/body, member.name: must not be blank
+11:27:18.747 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+11:27:18.750 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+11:27:18.750 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+11:27:18.911 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+11:27:18.911 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+11:27:18.912 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 1 ms
+11:27:19.020 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+11:27:19.021 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+11:27:19.023 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 2 ms
+11:27:19.045 [main] WARN com.vio.vioaiagent.exception.GlobalExceptionHandler -- [Լ��У��ʧ��] URI: /validation/constraint, must not be blank
+11:27:19.120 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+11:27:19.120 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+11:27:19.121 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 1 ms
+11:27:19.139 [main] WARN com.vio.vioaiagent.exception.GlobalExceptionHandler -- [����У��ʧ��] URI: /validation/form, name: must not be blank
+11:27:19.225 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+11:27:19.226 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+11:27:19.226 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+11:27:19.343 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+11:27:19.344 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+11:27:19.344 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.398 s -- in com.vio.vioaiagent.exception.RequestValidationHttpTest
+[INFO] Running com.vio.vioaiagent.security.LocalAccountServiceTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 25.81 s -- in com.vio.vioaiagent.security.LocalAccountServiceTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 15, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  03:31 min
+[INFO] Finished at: 2026-10-30T11:27:45+08:00
+[INFO] ------------------------------------------------------------------------
