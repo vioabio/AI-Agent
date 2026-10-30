@@ -25,7 +25,7 @@ public final class ObservedChatModel implements ChatModel {
         if(budget!=null)prompt=budget.prepare(prompt,delegate.getDefaultOptions());
         var call=ledger.begin("CALL",configuredModel(),prompt.getOptions()==null?null:prompt.getOptions().getMaxTokens(),requestedModel(prompt));
         try {var response=delegate.call(prompt);ledger.response(call,response);ledger.finish(call,"RETURNED");ledger.checkTaskBudget();if(budget!=null)budget.checkOutput(response);return response;}
-        catch(RuntimeException | Error error){ledger.finish(call,error instanceof java.util.concurrent.CancellationException?"CANCELLED":"FAILED");throw error;}
+        catch(RuntimeException | Error error){ledger.fail(call,error);throw error;}
     }
     @Override public Flux<ChatResponse> stream(Prompt prompt) {
         return Flux.defer(()->{
@@ -38,9 +38,9 @@ public final class ObservedChatModel implements ChatModel {
                             if(budget!=null)try {budget.checkOutput(response);}catch(ContextBudgetExceededException limit){ledger.finish(call,"RETURNED");throw limit;}
                         })
                         .doOnComplete(()->ledger.finish(call,"RETURNED"))
-                        .doOnError(error->ledger.finish(call,"FAILED"))
-                        .doOnCancel(()->ledger.finish(call,"CANCELLED"));
-            } catch(RuntimeException | Error error){ledger.finish(call,"FAILED");return Flux.error(error);}
+                        .doOnError(error->ledger.fail(call,error))
+                        .doOnCancel(()->ledger.cancel(call));
+            } catch(RuntimeException | Error error){ledger.fail(call,error);return Flux.error(error);}
         });
     }
 }

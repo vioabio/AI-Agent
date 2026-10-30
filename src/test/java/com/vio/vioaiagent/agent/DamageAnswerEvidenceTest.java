@@ -60,4 +60,27 @@ class DamageAnswerEvidenceTest {
         var policy=new DamageAnswerEvidence();policy.observe("calculateBattleDamage",value.toString());
         assertTrue(policy.complete());assertTrue(policy.verifiedSummary().contains("引擎默认特性"));assertTrue(policy.verifiedSummary().contains("不表示用户已经选择"));
     }
+    @Test void interpretationHandlesAllHpThresholdBoundariesWithoutInventingProbabilities() throws Exception {
+        int[][] ranges={{0,0},{1,114},{114,115},{115,115},{164,194}};
+        String[] expected={"零伤害","上界仍低于","包含低于和达到","下界已达到","下界已达到"};
+        for(int i=0;i<ranges.length;i++) {
+            var value=result(); int min=ranges[i][0],max=ranges[i][1];
+            ((ObjectNode)value.path("range")).put("minimum",min).put("maximum",max);
+            ((ObjectNode)value.path("percent")).put("minimum",100.0*min/115).put("maximum",100.0*max/115);
+            var policy=new DamageAnswerEvidence();policy.observe("calculateBattleDamage",value.toString());
+            assertTrue(policy.complete());String text=policy.verifiedInterpretation();
+            assertTrue(text.contains(expected[i]));assertTrue(text.contains("程序核对"));
+            assertTrue(text.contains("一次只改变一个配置项"));
+            assertFalse(text.contains("OHKO"));assertFalse(text.contains("100%"));
+        }
+    }
+    @Test void interpretationCannotUseMissingCorruptOrStaleCalculation() throws Exception {
+        var policy=new DamageAnswerEvidence();
+        assertFalse(policy.verifiedInterpretation().contains("程序核对"));
+        policy.observe("calculateBattleDamage",result().toString());assertTrue(policy.verifiedInterpretation().contains("程序核对"));
+        policy.observe("calculateBattleDamage","[tool.error] failed");
+        assertFalse(policy.verifiedInterpretation().contains("程序核对"));
+        var corrupt=result();((ObjectNode)corrupt.path("percent")).put("minimum",1);
+        policy.observe("calculateBattleDamage",corrupt.toString());assertFalse(policy.verifiedInterpretation().contains("程序核对"));
+    }
 }

@@ -26,6 +26,36 @@ export function resolveRuntimeClasses(sources, implementation) {
   })
 }
 
+// Check shared fixture dependencies before creating teams or spending model calls.
+export async function preflightTeamReferences(suite, selected, fetchReference) {
+  const required = new Map()
+  for (const item of selected) {
+    const teamNames = [item.preconditions.team, ...(item.preconditions.foreignTeam ? ['complete'] : [])]
+    for (const name of teamNames) {
+      const team = suite.fixtures.teams[name]
+      if (!team || !Array.isArray(team.members)) throw Error('Missing team fixture for reference preflight')
+      for (const member of team.members) {
+        if (!Number.isSafeInteger(member.formId) || member.formId < 1) throw Error('Invalid fixture formId for reference preflight')
+        const expected = { formId: member.formId, dataReleaseId: team.dataReleaseId, gameReleaseId: item.versions.gameReleaseId }
+        required.set(JSON.stringify(expected), expected)
+      }
+    }
+  }
+  const verified = []
+  for (const expected of required.values()) {
+    let detail
+    try { detail = await fetchReference(expected.formId, expected.dataReleaseId) }
+    catch { throw Error(`Team reference preflight unavailable: formId=${expected.formId}, dataReleaseId=${expected.dataReleaseId}`) }
+    const fact = factProjection(detail)
+    if (!fact || Object.entries(expected).some(([key, value]) => fact[key] !== value)
+        || !['hp','attack','defense','spAttack','spDefense','speed'].every(key => Number.isInteger(fact[key]) && fact[key] > 0)) {
+      throw Error(`Team reference preflight identity/version/stats mismatch: formId=${expected.formId}`)
+    }
+    verified.push({ ...expected, factSha256: digest(JSON.stringify(fact)) })
+  }
+  return { schemaVersion: 'team-reference-preflight-v1', verified, modelCalls: 0 }
+}
+
 export const factProjection = detail => detail?.fact && Object.fromEntries([
   'formId', 'speciesId', 'nationalNo', 'slug', 'speciesNameZh', 'dataReleaseId', 'gameReleaseId', 'sourceUrl', 'checksum', 'releaseStatus',
   'type1', 'type2', 'hp', 'attack', 'defense', 'spAttack', 'spDefense', 'speed'

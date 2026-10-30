@@ -132,6 +132,16 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
             String confirmed=com.vio.vioaiagent.pokemon.team.TeamChangePresentation.finishIfPending(teamWorkflow,context);
             if(confirmed!=null){context.modelUsage().noModelCalls();return confirmed;}
         }
+        if(chatModel!=null) {
+            // The same bounded refusal also protects standalone agents. At the Run boundary
+            // we can explicitly account for the known zero-call path before constructing a model client.
+            var scopeReply=com.vio.vioaiagent.agent.AccountScopeReply.reply(run.prompt());
+            if(scopeReply.isPresent()) {
+                context.modelUsage().noModelCalls();
+                if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(scopeReply.get());
+                return scopeReply.get();
+            }
+        }
         if(chatModel!=null && !evaluationPolicy.active()) {
             var capability=com.vio.vioaiagent.agent.CapabilityCatalog.reply(run.prompt(),run.language(),context.constraints().responseStyle(),allTools);
             if(capability.isPresent()) {

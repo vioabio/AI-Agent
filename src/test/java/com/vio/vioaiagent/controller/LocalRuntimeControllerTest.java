@@ -25,6 +25,8 @@ class LocalRuntimeControllerTest {
         assertTrue(((java.util.Map<?,?>)metadata.get("implementationSha256")).values().stream()
                 .allMatch(value -> value.toString().matches("[a-f0-9]{64}")));
         assertTrue(((java.util.Map<?,?>)metadata.get("implementationSha256")).containsKey("AccountScopeReply"));
+        assertTrue(((java.util.Map<?,?>)metadata.get("implementationSha256")).containsKey("DamageAdvicePolicy"));
+        assertTrue(((java.util.Map<?,?>)metadata.get("implementationSha256")).containsKey("ModelFailureDiagnostics"));
         assertEquals("not-attested-by-this-endpoint",metadata.get("providerReturnedModelId"));
         var input=(java.util.Map<?,?>)metadata.get("toolInputEvidence");
         var preview=(java.util.Map<?,?>)input.get("previewPolicy");

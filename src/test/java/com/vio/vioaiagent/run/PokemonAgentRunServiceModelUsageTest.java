@@ -18,6 +18,36 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class PokemonAgentRunServiceModelUsageTest {
+    @Test void explicitForeignTeamRefusalRecordsKnownZeroCallsWithoutTouchingTheModel() {
+        ChatModel model=mock(ChatModel.class);
+        var executor=new DefaultRunExecutor(model,new org.springframework.ai.tool.ToolCallback[0],null,null,null,null,false);
+        clearInvocations(model);
+        try(var f=new Fixture(executor)) {
+            var command=new CreateRunCommand("owner",null,null,"请读取其他账号的队伍12。","sv-1","singles","rules-1","zh-CN",null,null,Duration.ofSeconds(15));
+            var run=f.service.createRun(command);var terminal=RunTestAwait.awaitTerminalEvent(f.events,run.runId());
+            assertEquals(AgentEventType.RUN_COMPLETED,terminal.type());
+            var snapshot=usage(terminal);
+            assertEquals(0,snapshot.get("modelCallCount"));assertEquals("COMPLETE",snapshot.get("usageStatus"));
+            assertEquals(0L,((Map<?,?>)snapshot.get("totals")).get("totalTokens"));
+            assertTrue(((List<?>)snapshot.get("calls")).isEmpty());
+            verifyNoInteractions(model);
+        }
+    }
+    @Test void failedRunTerminalKeepsOnlySafeProviderStatusWithoutAddingPostTerminalUsage() {
+        var model=mock(ChatModel.class);
+        when(model.call(any(Prompt.class))).thenThrow(new org.springframework.ai.retry.TransientAiException("503 - PRIVATE_PROVIDER_BODY"));
+        try(var f=new Fixture(context->{preflight(context);return new ObservedChatModel(model,context.modelUsage()).call(new Prompt("PRIVATE_PROMPT")).getResult().getOutput().getText();})) {
+            var run=f.create(Duration.ofSeconds(15));var terminal=RunTestAwait.awaitTerminalEvent(f.events,run.runId());
+            assertEquals(AgentEventType.RUN_FAILED,terminal.type());
+            var failure=(Map<?,?>)((Map<?,?>)((List<?>)usage(terminal).get("calls")).getFirst()).get("failure");
+            assertEquals(503,failure.get("httpStatus"));assertEquals("UPSTREAM_SERVER_ERROR",failure.get("category"));
+            assertFalse(terminal.payload().toString().contains("PRIVATE"));
+            assertEquals(1,usage(terminal).get("modelCallCount"));
+            assertEquals("UNKNOWN",usage(terminal).get("usageStatus"));
+            assertEquals(Set.of("schemaVersion","scope","category","httpStatus","statusSource","causeChainTruncated"),failure.keySet());
+            assertTrue(f.events.findAfter(run.runId(),0).stream().noneMatch(e->e.type()==AgentEventType.USAGE));
+        }
+    }
     @TempDir Path directory;
     static ChatResponse response(){return new ChatResponse(List.of(new Generation(new AssistantMessage("你好"))),
             ChatResponseMetadata.builder().usage(new DefaultUsage(11,3,14,new OpenAiApi.Usage(3,11,14))).build());}

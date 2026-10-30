@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "same-build-development-inventory-v1",
+  "scope": "Three separately planned batches, not one uniform run or independent quality benchmark",
+  "sourceLabel": "Baseline before explicit zero-call accounting fix",
+  "sourceSnapshotOverrides": {
+    "src/main/java/com/vio/vioaiagent/run/DefaultRunExecutor.java": "document/秋招升级/S2/evidence/s2-remaining-dev-v1/baseline-DefaultRunExecutor.java"
+  },
+  "currentRootSourcesDifferent": [
+    "src/main/java/com/vio/vioaiagent/run/DefaultRunExecutor.java"
+  ],
+  "sourceEntries": 531,
+  "batchCount": 3,
+  "caseCount": 14,
+  "rowCount": 28,
+  "structuralPass": 28,
+  "fail": 0,
+  "humanReviewed": 0,
+  "pendingReview": 28,
+  "heldoutCasesExecuted": 0,
+  "states": {
+    "COMPLETED": 24,
+    "WAITING_APPROVAL": 4
+  },
+  "directSafetyTasks": 2,
+  "previewCancelledTasks": 4,
+  "groups": 7,
+  "modelCalls": 62,
+  "callsWithUsage": 62,
+  "knownTokens": {
+    "inputTokens": 401768,
+    "outputTokens": 19196,
+    "totalTokens": 420964
+  },
+  "invoiceReconciled": false
+}

@@ -158,6 +158,59 @@ class SourcedAnswerEvidenceTest {
         assertTrue(answer.contains("164～194 HP")); assertTrue(answer.contains("原文节选"));
         verify(model,never()).call(any(Prompt.class)); verify(model,never()).stream(any(Prompt.class));
     }
+    @Test void rejectedDamageAdviceUsesVerifiedInterpretationWithoutLeakingDraftInEitherDeliveryMode() throws Exception {
+        for(boolean streaming:new boolean[]{false,true}) {
+            var model=mock(ChatModel.class);
+            when(model.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(new Generation(
+                    new AssistantMessage("雨天提升伤害50%，必定击倒；请改成固执性格。")))));
+            var agent=new ToolCallAgent(new ToolCallback[0]);agent.setSystemPrompt("Be accurate");
+            agent.setChatClient(ChatClient.builder(model).build());
+            var damage=new DamageAnswerEvidence();damage.observe("calculateBattleDamage",DamageAnswerEvidenceTest.result().toString());
+            agent.setDamageAnswerEvidence(damage);var chunks=new ArrayList<String>();
+            if(streaming)agent.setAnswerDeltaSink(chunks::add);
+            String answer=agent.summarizeAnswer();
+            assertTrue(answer.contains("164～194 HP"));assertTrue(answer.contains("142.61%～168.70%"));
+            assertTrue(answer.contains("对局解读（程序核对）"));assertTrue(answer.contains("下界已达到"));
+            assertFalse(answer.contains("雨天提升"));assertFalse(answer.contains("50%"));assertFalse(answer.contains("固执性格"));
+            assertFalse(answer.contains("本次建议包含尚未核对"));
+            if(streaming)assertEquals(answer,String.join("",chunks));
+            verify(model,times(1)).call(any(Prompt.class));verify(model,never()).stream(any(Prompt.class));
+        }
+    }
+    @Test void publishableDamageCoachingRemainsModelTextAndMixedSavedTasksKeepTheirOwnGuard() throws Exception {
+        for(boolean savedTask:new boolean[]{false,true}) {
+            var model=mock(ChatModel.class);
+            String draft=savedTask?"雨天提升伤害50%，必定击倒。":"保留当前配置作为比较基线，再根据目标对局逐项验证改动。";
+            when(model.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(new Generation(new AssistantMessage(draft)))));
+            var agent=new ToolCallAgent(new ToolCallback[0]);agent.setSystemPrompt("Be accurate");
+            agent.setChatClient(ChatClient.builder(model).build());
+            var damage=new DamageAnswerEvidence();damage.observe("calculateBattleDamage",DamageAnswerEvidenceTest.result().toString());agent.setDamageAnswerEvidence(damage);
+            if(savedTask) {
+                var saved=new SavedTeamAnswerEvidence();saved.begin("分析已保存队伍并计算伤害");
+                saved.observe("readCurrentTeam",snapshot("modest",false));agent.setSavedTeamAnswerEvidence(saved);
+            }
+            String answer=agent.summarizeAnswer();assertFalse(answer.contains("程序核对"));
+            if(savedTask) { assertTrue(answer.contains("已保存配置"));assertTrue(answer.contains("本次建议包含尚未核对"));assertFalse(answer.contains("雨天提升")); }
+            else assertTrue(answer.endsWith(draft));
+        }
+    }
+    @Test void archivedConditionalClaimIsNotPublishedInEitherDeliveryMode() throws Exception {
+        for(boolean streaming:new boolean[]{false,true}) {
+            var model=mock(ChatModel.class);
+            when(model.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(new Generation(
+                    new AssistantMessage(DamageAdvicePolicyTest.archivedDraft())))));
+            var agent=new ToolCallAgent(new ToolCallback[0]);agent.setSystemPrompt("Be accurate");
+            agent.setChatClient(ChatClient.builder(model).build());
+            var damage=new DamageAnswerEvidence();damage.observe("calculateBattleDamage",DamageAnswerEvidenceTest.result().toString());
+            agent.setDamageAnswerEvidence(damage);var chunks=new ArrayList<String>();
+            if(streaming)agent.setAnswerDeltaSink(chunks::add);
+            String answer=agent.summarizeAnswer();
+            assertTrue(answer.contains("164～194 HP"));assertTrue(answer.contains("程序核对"));
+            assertFalse(answer.contains("加入后区间会变"));assertFalse(answer.contains("光墙、钉子"));
+            if(streaming)assertEquals(answer,String.join("",chunks));
+            verify(model,times(1)).call(any(Prompt.class));verify(model,never()).stream(any(Prompt.class));
+        }
+    }
     public static class ReadToolFixture {
         @org.springframework.ai.tool.annotation.Tool(description="Controlled serializer integration fixture")
         public TeamWorkflowService.ReadTeam readCurrentTeam() throws Exception {

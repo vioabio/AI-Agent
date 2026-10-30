@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { digest, loadSuite, frozenFileDigest } from './evaluation.mjs'
-import { resolveRuntimeClasses, factProjection, checkReferenceCase, validateReferenceSuite } from './reference-case.mjs'
+import { resolveRuntimeClasses, factProjection, checkReferenceCase, validateReferenceSuite, preflightTeamReferences } from './reference-case.mjs'
 import { referenceFromSnapshots } from './build-user-report-seed.mjs'
 const suite = loadSuite('evaluation/campus/user-reports-v1')
 const item = suite.cases[0], fixture = suite.fixtures.references.squirtle
@@ -15,6 +15,31 @@ const call = (query='squirtle',release='pokeapi-reference-v1') => {
     {type:'tool.finished',payload:{governanceEventId:'call-1',toolName:'lookupPokemonReference',status:'EXECUTED',toolVersion:'fixture-v1',parameterDigest:'a'.repeat(64)}}]
 }
 const record=()=>({referenceBefore:fixture.fact,referenceAfter:fixture.fact,answer:'杰尼龟是水属性；当前强势阵容缺少可核对证据。'})
+
+test('team reference preflight checks every shared and foreign fixture dependency once', async()=>{
+  const input={fixtures:{teams:{complete:{dataReleaseId:fixture.fact.dataReleaseId,members:[{formId:7},{formId:4}]},empty:{dataReleaseId:fixture.fact.dataReleaseId,members:[]}}}}
+  const selected=[{preconditions:{team:'complete'},versions:{gameReleaseId:fixture.fact.gameReleaseId}},
+    {preconditions:{team:'empty',foreignTeam:true},versions:{gameReleaseId:fixture.fact.gameReleaseId}}]
+  const calls=[]
+  const result=await preflightTeamReferences(input,selected,async(id,release)=>{
+    calls.push([id,release]);return {fact:{...fixture.fact,formId:id}}
+  })
+  assert.deepEqual(calls,[[7,fixture.fact.dataReleaseId],[4,fixture.fact.dataReleaseId]])
+  assert.equal(result.verified.length,2);assert.equal(result.modelCalls,0)
+  assert.ok(result.verified.every(entry=>/^[a-f0-9]{64}$/.test(entry.factSha256)))
+})
+
+test('missing or corrupt team references stop preflight before any later dependency',async()=>{
+  const input={fixtures:{teams:{complete:{dataReleaseId:fixture.fact.dataReleaseId,members:[{formId:7},{formId:4}]}}}}
+  const selected=[{preconditions:{team:'complete'},versions:{gameReleaseId:fixture.fact.gameReleaseId}}]
+  let calls=0
+  await assert.rejects(preflightTeamReferences(input,selected,async()=>{calls++;throw Error('HTTP 503')}),/preflight unavailable/)
+  assert.equal(calls,1)
+  for(const changed of [{formId:478},{dataReleaseId:'other'},{gameReleaseId:'other'},{hp:0}]) {
+    await assert.rejects(preflightTeamReferences(input,selected,async()=>({fact:{...fixture.fact,...changed}})),/mismatch/)
+  }
+  await assert.rejects(preflightTeamReferences(input,selected,async()=>({})),/mismatch/)
+})
 test('provisional two-report suite remains development only with original origins and no formal admission',()=>{
   validateReferenceSuite(suite)
   assert.equal(suite.manifest.caseCount,2);assert.equal(suite.manifest.newFormalAdmissions,0)

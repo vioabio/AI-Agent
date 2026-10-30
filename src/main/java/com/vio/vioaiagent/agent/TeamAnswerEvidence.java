@@ -91,10 +91,13 @@ public final class TeamAnswerEvidence {
                 + "不要把参考资料存在当作招式合法或热门阵容的证明。不要给出JSON。";
     }
     public String checkedAdvice(String draft) {
-        if (draft == null || draft.isBlank() || UNVERIFIED_MECHANICS.matcher(draft).find()) {
+        if (!canPublishAdvice(draft)) {
             return "### 训练家提醒\n本次建议包含尚未核对的机制或数值描述，暂未展示。可以先依据上面已核对的资料或计算结果，明确各成员的角色、配置和目标对局，随后用资料与计算工具逐项验证。当前不提供热门程度、胜率或招式合法性结论。";
         }
         return draft;
+    }
+    public boolean canPublishAdvice(String draft) {
+        return draft != null && !draft.isBlank() && !UNVERIFIED_MECHANICS.matcher(draft).find();
     }
     private static String[] types(String first, String second) { return second == null || second.isBlank() ? new String[]{first} : new String[]{first, second}; }
     private static String safe(String value) { return value.replaceAll("[|\\r\\n*`<>]", " "); }

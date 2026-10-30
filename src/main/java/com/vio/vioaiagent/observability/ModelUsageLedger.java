@@ -111,6 +111,15 @@ public final class ModelUsageLedger {
         if(frozen || call.finished)return;
         call.finished=true;call.outcome=outcome;call.elapsedMs=elapsed(call.startedAt);
     }
+    public synchronized void fail(Call call,Throwable error) {
+        if(frozen || call.finished)return;
+        call.failure=ModelFailureDiagnostics.describe(error);
+        finish(call,error instanceof java.util.concurrent.CancellationException?"CANCELLED":"FAILED");
+    }
+    public synchronized void cancel(Call call) {
+        if(frozen || call.finished)return;
+        call.failure=ModelFailureDiagnostics.cancelled();finish(call,"CANCELLED");
+    }
     public synchronized Map<String,Object> freeze() {if(frozenSnapshot==null){if(responseTiming!=null)responseTiming.freeze();frozen=true;frozenSnapshot=snapshot();}return frozenSnapshot;}
     public synchronized Map<String,Object> snapshot() {
         if(frozenSnapshot!=null)return frozenSnapshot;
@@ -118,6 +127,7 @@ public final class ModelUsageLedger {
         for(Call call:calls) {
             var row=new LinkedHashMap<String,Object>();
             row.put("callNo",call.number);row.put("mode",call.mode);row.put("outcome",call.outcome);
+            if(call.failure!=null)row.put("failure",call.failure);
             row.put("configuredModelId",call.configuredModel);row.put("responseModelId",call.responseModel);
             row.put("requestedModelId",call.requestedModel);
             row.put("pricing",call.price.snapshot());
@@ -176,6 +186,7 @@ public final class ModelUsageLedger {
         private String requestedModel;
         private ModelPriceCatalog.Selection price;
         private ProviderBillingUsage lastBilling;
+        private Map<String,Object> failure;
         private boolean billingInvalid;
         private Call(int number,String mode,String model){this.number=number;this.mode=mode;this.configuredModel=model;}
     }

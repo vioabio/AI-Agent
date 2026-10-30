@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { randomBytes } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { collectToolInputs, checkToolInput, expectedInputFields } from './tool-inputs.mjs'
-import { resolveRuntimeClasses, factProjection, checkReferenceCase, validateReferenceSuite } from './reference-case.mjs'
+import { resolveRuntimeClasses, factProjection, checkReferenceCase, validateReferenceSuite, preflightTeamReferences } from './reference-case.mjs'
 import { loadSuite, validateSuite, summarize, digest, frozenFileDigest, localBase, observationHash, matchesEngineReference, eventBoundaryReached, sameJson } from './evaluation.mjs'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const args = process.argv.slice(2), command = args.shift()
@@ -253,6 +253,8 @@ try {
     const file = resolve(root, loaded.file)
     if (!existsSync(file) || digest(readFileSync(file)) !== loaded.sha256) throw Error(`Stale/unattested runtime class: ${loaded.name}`)
   }
+  report.teamReferencePreflight = await preflightTeamReferences(suite, selected,
+    (formId, release) => a(`/pokemon/reference/pokemon/${formId}?dataReleaseId=${encodeURIComponent(release)}`))
   for (const item of selected) for (const record of report.records.filter(r => r.caseId === item.id)) await collect(item, record)
 } catch (error) { report.setupError = error instanceof Error ? error.message : 'unknown setup error'; process.exitCode = 1 }
 finally {

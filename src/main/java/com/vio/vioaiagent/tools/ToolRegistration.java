@@ -112,7 +112,8 @@ public class ToolRegistration {
     }
 
     private ToolCallback[] govern(ToolCallback[] callbacks) {
-        var adapted=java.util.Arrays.stream(callbacks).map(com.vio.vioaiagent.tools.governance.DamageToolSchema::adapt).toArray(ToolCallback[]::new);
+        var adapted=java.util.Arrays.stream(callbacks).map(com.vio.vioaiagent.tools.governance.DamageToolSchema::adapt)
+                .map(com.vio.vioaiagent.tools.governance.ToolSchemaReferences::adapt).toArray(ToolCallback[]::new);
         return governanceGateway == null ? adapted : governanceGateway.wrap(adapted);
     }
 }

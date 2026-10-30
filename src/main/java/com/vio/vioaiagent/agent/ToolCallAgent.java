@@ -502,7 +502,13 @@ public class ToolCallAgent extends ReActAgent {
             // release coaching only after the bounded mechanism checks have completed.
             String draft = request.call().content();
             if (StrUtil.isBlank(draft)) throw new IllegalStateException("模型未返回最终回答");
-            String advice = (teamAnswerEvidence == null ? new TeamAnswerEvidence() : teamAnswerEvidence).checkedAdvice(draft);
+            var advicePolicy = teamAnswerEvidence == null ? new TeamAnswerEvidence() : teamAnswerEvidence;
+            String advice = advicePolicy.checkedAdvice(draft);
+            if (guardedDamage && damageAnswerEvidence.complete() && !guardedTeam && !guardedSaved
+                    && (!advicePolicy.canPublishAdvice(draft) || !DamageAdvicePolicy.canPublish(draft))) {
+                // Reject the model's prose; derive a useful replacement from verified numbers only.
+                advice = damageAnswerEvidence.verifiedInterpretation();
+            }
             if (guardedSaved) advice = savedTeamAnswerEvidence.checkedAdvice(advice);
             if (answerDeltaSink != null) publishDelta(advice);
             answer = verifiedPrefix + advice;

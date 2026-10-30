@@ -93,4 +93,36 @@ class ModelUsageLedgerTest {
         var snapshot=ledger.freeze();assertEquals(65,snapshot.get("modelCallCount"));assertEquals(64,((List<?>)snapshot.get("calls")).size());
         assertEquals(true,snapshot.get("recordsTruncated"));assertNull(tokens(snapshot).get("totalTokens"));
     }
+    @SuppressWarnings("unchecked") static Map<String,Object> firstFailure(ModelUsageLedger ledger) {
+        return (Map<String,Object>)((Map<?,?>)((List<?>)ledger.snapshot().get("calls")).getFirst()).get("failure");
+    }
+    @Test void callAndBothStreamErrorPathsKeepOriginalErrorsWithSafeDiagnostics() {
+        for(String mode:List.of("CALL","STREAM_THROW","STREAM_ERROR")) {
+            var model=mock(ChatModel.class);var error=new org.springframework.ai.retry.TransientAiException("503 - PRIVATE_RESPONSE_BODY");
+            if(mode.equals("CALL"))when(model.call(any(Prompt.class))).thenThrow(error);
+            else if(mode.equals("STREAM_THROW"))when(model.stream(any(Prompt.class))).thenThrow(error);
+            else when(model.stream(any(Prompt.class))).thenReturn(Flux.error(error));
+            var ledger=ledger();var observed=new ObservedChatModel(model,ledger);
+            RuntimeException thrown=assertThrows(RuntimeException.class,()->{
+                if(mode.equals("CALL"))observed.call(new Prompt("PRIVATE_PROMPT"));
+                else observed.stream(new Prompt("PRIVATE_PROMPT")).collectList().block();
+            });
+            assertSame(error,thrown);assertEquals(503,firstFailure(ledger).get("httpStatus"));
+            assertEquals("UPSTREAM_SERVER_ERROR",firstFailure(ledger).get("category"));
+            assertFalse(ledger.freeze().toString().contains("PRIVATE"));assertEquals(1,ledger.snapshot().get("modelCallCount"));
+            assertNull(tokens(ledger.snapshot()).get("totalTokens"));
+        }
+    }
+    @Test void streamCancellationAndLateFailureCannotOverwriteAFrozenOrFinishedAttempt() {
+        var model=mock(ChatModel.class);when(model.stream(any(Prompt.class))).thenReturn(Flux.never());
+        var ledger=ledger();var subscription=new ObservedChatModel(model,ledger).stream(new Prompt("PRIVATE")).subscribe();
+        subscription.dispose();assertEquals("CANCELLED",firstFailure(ledger).get("category"));
+        var closed=ledger.freeze();assertSame(closed,ledger.snapshot());
+        var separate=ledger();var call=separate.begin("CALL","m");separate.finish(call,"RETURNED");
+        separate.fail(call,new org.springframework.ai.retry.TransientAiException("500 - PRIVATE"));
+        assertFalse(((Map<?,?>)((List<?>)separate.freeze().get("calls")).getFirst()).containsKey("failure"));
+        var inFlight=ledger();var pending=inFlight.begin("CALL","m");var snapshot=inFlight.freeze();
+        inFlight.fail(pending,new IllegalStateException("PRIVATE"));assertSame(snapshot,inFlight.snapshot());
+        assertFalse(snapshot.toString().contains("failure="));
+    }
 }

@@ -101,6 +101,28 @@ public final class DamageAnswerEvidence {
         return "\n计算事实已经由程序展示。只输出简短的条件性训练建议和需继续验证的问题，"
                 + "不要重述伤害数字、倍率、天气效果、特性机制或胜率，不保证必定击倒。不要输出JSON。";
     }
+    /** Arithmetic interpretation only; never infer mechanics, turn counts or a win probability. */
+    public String verifiedInterpretation() {
+        if (!complete()) return missingAnswer();
+        double min = evidence.path("range").path("minimum").asDouble();
+        double max = evidence.path("range").path("maximum").asDouble();
+        double hp = evidence.path("defenderHp").asDouble();
+        String comparison;
+        if (max == 0) {
+            comparison = "本次计算结果为零伤害；仅凭这个结果不能认定是属性、特性或其他机制导致。";
+        } else if (min >= hp) {
+            comparison = "本次伤害区间的下界已达到防御方满HP参考阈值；这只是所列条件下的数值比较，不保证实战击倒。";
+        } else if (max < hp) {
+            comparison = "本次伤害区间的上界仍低于防御方满HP参考阈值；不能据此推断连续攻击所需回合。";
+        } else {
+            comparison = "本次区间包含低于和达到防御方满HP参考阈值的结果；仅有上下界不足以给出击倒概率。";
+        }
+        return "### 对局解读（程序核对）\n" + comparison
+                + "\n百分比以防御方最大HP为分母，不是胜率；区间上下界也不代表每个伤害值等概率出现。\n"
+                + "\n### 下一步验证建议\n"
+                + "- 将上方双方配置与场地保留为比较基线。若要优化培养，先明确目标对局，一次只改变一个配置项并重新计算；新结果出来前不认定改动更优。\n"
+                + "- 如需讨论队伍搭配，还要提供其他成员和具体赛制，并分别核对资料与目标对局；单次伤害不能证明整队强度或配招合法性。\n";
+    }
     private static String stats(JsonNode value) {
         String[] keys = {"hp","atk","def","spa","spd","spe"};
         String[] names = {"HP","攻","防","特攻","特防","速"};

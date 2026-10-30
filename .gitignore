@@ -14,6 +14,10 @@ target/
 
 ### IntelliJ IDEA ###
 .idea
+.run/
+# Keep local verification databases out of archived evidence and Git.
+/document/秋招升级/**/evidence/**/*.sqlite
+/document/秋招升级/**/evidence/**/*.sqlite-*
 *.iws
 *.iml
 *.ipr
