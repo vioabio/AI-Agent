@@ -10,6 +10,10 @@ import io.modelcontextprotocol.server.McpSyncServer;
 import io.modelcontextprotocol.server.transport.HttpServletSseServerTransportProvider;
 import io.modelcontextprotocol.spec.McpSchema;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.TestInstance;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.DirtiesContext;
 
 import java.time.Duration;
 import org.junit.jupiter.api.Assertions;
@@ -52,7 +56,19 @@ import java.util.Map;
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @TestPropertySource(properties = "server.servlet.context-path=/")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class McpClientSseTest {
+
+    @Autowired
+    private McpSyncServer server;
+
+    @AfterAll
+    void closeProtocolServerBeforeServletShutdown() {
+        // End the server-side SSE sessions before Tomcat starts graceful shutdown.
+        // Otherwise a cached context can wait for its own still-open SSE responses.
+        server.closeGracefully();
+    }
 
     @LocalServerPort
     private int port;

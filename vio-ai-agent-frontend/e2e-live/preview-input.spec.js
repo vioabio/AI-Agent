@@ -1,6 +1,5 @@
 import {test,expect} from '@playwright/test'
 import fs from 'node:fs'
-import path from 'node:path'
 import {randomBytes,createHash} from 'node:crypto'
 import {attemptsFrom} from '../../tools/campus/answer-quality.mjs'
 import {auditPreviewArguments} from '../../tools/campus/preview-input-audit.mjs'

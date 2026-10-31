@@ -85,6 +85,9 @@ public class ToolCallAgent extends ReActAgent {
     private boolean suppliedBuildAttempted;
     private boolean suppliedTeamAttempted;
     private TeamDraftIdentityEvidence draftIdentity;
+    private boolean programOnlyPreview;
+    private int movePreviewStage;
+    private boolean mainGuideTopicAttempted;
     private final java.util.Set<String> overviewResourceAttempts=new java.util.HashSet<>();
     private com.vio.vioaiagent.pokemon.team.TeamWorkflowService teamWorkflow;
 
@@ -129,6 +132,12 @@ public class ToolCallAgent extends ReActAgent {
     @Override
     public boolean think() {
         String currentQuestion = currentQuestion();
+        var competition = CompetitionClarification.reply(currentQuestion).or(() -> SourceInstructionReply.reply(currentQuestion));
+        if (competition.isPresent()) {
+            finalAnswer = publishVerified(competition.get());
+            setState(AgentState.FINISHED);
+            return false;
+        }
         var scopeReply = AccountScopeReply.reply(currentQuestion);
         if (scopeReply.isPresent()) {
             finalAnswer = publishVerified(scopeReply.get());
@@ -154,14 +163,16 @@ public class ToolCallAgent extends ReActAgent {
         List<Message> messageList = getMessageList();
         Prompt prompt = new Prompt(messageList, this.chatOptions);
         try {
+            if (planMovePreview(currentQuestion)) return getState() != AgentState.FINISHED;
             if (checkSuppliedTeam(currentQuestion) || checkSuppliedBuild(currentQuestion)) return false;
             ensureProjectGuideSource(currentQuestion);
             prompt = new Prompt(getMessageList(), this.chatOptions);
             var request = getChatClient().prompt(prompt)
                     .system(getSystemPrompt() + (teamAnswerEvidence == null ? "" : teamAnswerEvidence.planningInstruction())
                             + (guideAnswerEvidence == null ? "" : guideAnswerEvidence.planningInstruction())
-                            + draftIdentity.instruction())
-                    .toolCallbacks(draftIdentity.planningTools(TeamBuildAnswerEvidence.planningTools(currentQuestion,getMergedTools())));
+                            + draftIdentity.instruction() + TeamMutationIntent.instruction(currentQuestion))
+                    .toolCallbacks(TeamMutationIntent.planningTools(currentQuestion,
+                            draftIdentity.planningTools(TeamBuildAnswerEvidence.planningTools(currentQuestion,getMergedTools()))));
             // Tool selection is private. A model can put planning text in content,
             // not only reasoning_content, so it must never share the answer stream.
             ChatResponse chatResponse = request.call().chatResponse();
@@ -225,6 +236,28 @@ public class ToolCallAgent extends ReActAgent {
             getMessageList().add(new AssistantMessage("思考时遇到错误：" + e.getMessage()));
             return false;
         }
+    }
+
+    private boolean planMovePreview(String question) {
+        var selected=MovePreviewRequest.select(question);
+        if(selected.isEmpty()||toolExecutionGateway==null||ToolExecutionContextHolder.peek()==null)return false;
+        var names=Arrays.stream(getMergedTools()).map(t->t.getToolDefinition().name()).toList();
+        if(!names.containsAll(List.of("readCurrentTeam","previewTeamChanges")))return false;
+        programOnlyPreview=true;
+        if(movePreviewStage==1 && (savedTeamAnswerEvidence==null||!savedTeamAnswerEvidence.complete())) {
+            finalAnswer=publishVerified("本次未能读取指定队伍，因此未生成变更预览，也未保存修改。请检查队伍归属和资料读取情况。");
+            setState(AgentState.FINISHED);return true;
+        }
+        if(movePreviewStage>=2) {
+            finalAnswer=publishVerified("本次未生成有效变更预览，也未保存修改。请查看执行记录后重试。");
+            setState(AgentState.FINISHED);return true;
+        }
+        boolean preview=movePreviewStage++==1;
+        var call=new AssistantMessage.ToolCall("move-preview-"+java.util.UUID.randomUUID(),"function",
+                preview?"previewTeamChanges":"readCurrentTeam",selected.get().arguments(preview));
+        toolCallChatResponse=new ChatResponse(List.of(new org.springframework.ai.chat.model.Generation(
+                new AssistantMessage("",java.util.Map.of("selectionOrigin","PROGRAM_EXPLICIT_MOVE_PREVIEW"),List.of(call)))));
+        return true;
     }
 
     private boolean checkSuppliedTeam(String question) {
@@ -340,6 +373,26 @@ public class ToolCallAgent extends ReActAgent {
 
     @Override
     public String act() {
+        if(TeamMutationIntent.requested(currentQuestion())) {
+            var generations=toolCallChatResponse.getResults().stream().map(generation->{
+                var output=generation.getOutput();
+                var calls=output.getToolCalls().stream().map(call->new AssistantMessage.ToolCall(call.id(),call.type(),call.name(),
+                        TeamMutationIntent.rationaleArguments(currentQuestion(),call.name(),call.arguments()).orElse(call.arguments()))).toList();
+                return new org.springframework.ai.chat.model.Generation(new AssistantMessage(output.getText(),output.getMetadata(),calls),generation.getMetadata());
+            }).toList();
+            toolCallChatResponse=new ChatResponse(generations,toolCallChatResponse.getMetadata());
+        }
+        var explicitDamage = ExplicitDamageRequest.arguments(currentQuestion());
+        if (explicitDamage.isPresent()) {
+            var generations = toolCallChatResponse.getResults().stream().map(generation -> {
+                var output = generation.getOutput();
+                var calls = output.getToolCalls().stream().map(call -> "calculateBattleDamage".equals(call.name())
+                        ? new AssistantMessage.ToolCall(call.id(), call.type(), call.name(), explicitDamage.get()) : call).toList();
+                return new org.springframework.ai.chat.model.Generation(
+                        new AssistantMessage(output.getText(), output.getMetadata(), calls), generation.getMetadata());
+            }).toList();
+            toolCallChatResponse = new ChatResponse(generations, toolCallChatResponse.getMetadata());
+        }
         if (!toolCallChatResponse.hasToolCalls()) {
             return "没有工具需要调用";
         }
@@ -348,7 +401,9 @@ public class ToolCallAgent extends ReActAgent {
         org.slf4j.MDC.put("stepType", "act");
 
         // 1. 执行工具调用
-        Prompt prompt = new Prompt(getMessageList(), this.chatOptions);
+        Prompt prompt = new Prompt(getMessageList(), programOnlyPreview
+                ? ToolCallingChatOptions.builder().internalToolExecutionEnabled(false)
+                    .toolCallbacks(Arrays.asList(availableTools)).build() : this.chatOptions);
         // RunService 会在异步 worker 中预置完整上下文；不要再次从 RequestContext 生成新的 run/trace。
         // 兼容旧版 /ai/manus 端点：它不经过 Run Service 时没有预置上下文，
         // 仍然要生成受限的请求级上下文，不能因为治理接入而 NPE。
@@ -360,6 +415,16 @@ public class ToolCallAgent extends ReActAgent {
         ToolExecutionContext parentContext = inherited;
         AtomicBoolean approvalRequired = new AtomicBoolean(false);
         ToolExecutionContext context = parentContext.withEventSink(event -> {
+            if(programOnlyPreview && java.util.Set.of("readCurrentTeam","previewTeamChanges").contains(event.toolName())) {
+                var attributes=new java.util.LinkedHashMap<String,Object>(event.attributes());attributes.put("selectionOrigin","PROGRAM_EXPLICIT_MOVE_PREVIEW");
+                event=new com.vio.vioaiagent.tools.governance.ToolGovernanceEvent(event.eventType(),event.runId(),event.toolName(),event.eventId(),event.occurredAt(),attributes);
+            }
+            if (explicitDamage.isPresent() && "calculateBattleDamage".equals(event.toolName())) {
+                var attributes = new java.util.LinkedHashMap<String,Object>(event.attributes());
+                attributes.put("selectionOrigin", ExplicitDamageRequest.ORIGIN);
+                event = new com.vio.vioaiagent.tools.governance.ToolGovernanceEvent(event.eventType(), event.runId(),
+                        event.toolName(), event.eventId(), event.occurredAt(), attributes);
+            }
             if ("approval.required".equals(event.eventType())) {
                 approvalRequired.set(true);
             }
@@ -451,6 +516,14 @@ public class ToolCallAgent extends ReActAgent {
 
     /** No tools are registered for this final synthesis: it cannot perform another action. */
     protected String summarizeAnswer() {
+        if(!mainGuideTopicAttempted&&guideAnswerEvidence!=null&&guideAnswerEvidence.needsReferenceTopic()) {
+            mainGuideTopicAttempted=true;
+            executeGuideSource("图鉴资料 版本 比赛规则 来源日期","PROGRAM_MAIN_GUIDE_TOPIC","reference-topic");
+        }
+        if(!mainGuideTopicAttempted&&guideAnswerEvidence!=null&&guideAnswerEvidence.needsTeamTopic()) {
+            mainGuideTopicAttempted=true;
+            executeGuideSource("组队 角色 属性覆盖 轮转","PROGRAM_MAIN_GUIDE_TOPIC","main-topic");
+        }
         if (savedTeamAnswerEvidence != null && savedTeamAnswerEvidence.ownsClarification()
                 && (damageAnswerEvidence == null || !damageAnswerEvidence.complete())) {
             return publishVerified(savedTeamAnswerEvidence.verifiedClarification()
@@ -460,6 +533,12 @@ public class ToolCallAgent extends ReActAgent {
         boolean guardedDamage = damageAnswerEvidence != null && damageAnswerEvidence.active();
         boolean guardedSaved = savedTeamAnswerEvidence != null && savedTeamAnswerEvidence.complete();
         boolean guarded = guardedTeam || guardedDamage || guardedSaved;
+        if (!guarded && guideAnswerEvidence != null) {
+            var comparison=guideAnswerEvidence.speedComparisonAnswer();
+            if(comparison.isPresent())return publishVerified(comparison.get());
+            var basicFacts = guideAnswerEvidence.basicFactAnswer();
+            if (basicFacts.isPresent()) return publishVerified(basicFacts.get());
+        }
         if (guardedTeam && !teamAnswerEvidence.complete()) {
             String answer = teamAnswerEvidence.missingAnswer();
             if (answerDeltaSink != null) publishDelta(answer);
@@ -477,6 +556,11 @@ public class ToolCallAgent extends ReActAgent {
             // Search success cannot authorize arbitrary prose to inherit citations.
             // Preserve independently checked team/calculation facts for mixed tasks.
             return publishVerified(verifiedPrefix + guideAnswerEvidence.verifiedAnswer(!guardedTeam && !guardedSaved));
+        }
+        if(guardedDamage && damageAnswerEvidence.complete() && !guardedTeam && !guardedSaved) {
+            // A numeric-only calculation has no evidence for a new training narrative.
+            // Lexical screening cannot establish that arbitrary model advice is correct.
+            return publishVerified(verifiedPrefix + damageAnswerEvidence.verifiedInterpretation());
         }
         if (guarded && answerDeltaSink != null) publishDelta(verifiedPrefix);
         var request = getChatClient().prompt()
@@ -504,11 +588,6 @@ public class ToolCallAgent extends ReActAgent {
             if (StrUtil.isBlank(draft)) throw new IllegalStateException("模型未返回最终回答");
             var advicePolicy = teamAnswerEvidence == null ? new TeamAnswerEvidence() : teamAnswerEvidence;
             String advice = advicePolicy.checkedAdvice(draft);
-            if (guardedDamage && damageAnswerEvidence.complete() && !guardedTeam && !guardedSaved
-                    && (!advicePolicy.canPublishAdvice(draft) || !DamageAdvicePolicy.canPublish(draft))) {
-                // Reject the model's prose; derive a useful replacement from verified numbers only.
-                advice = damageAnswerEvidence.verifiedInterpretation();
-            }
             if (guardedSaved) advice = savedTeamAnswerEvidence.checkedAdvice(advice);
             if (answerDeltaSink != null) publishDelta(advice);
             answer = verifiedPrefix + advice;

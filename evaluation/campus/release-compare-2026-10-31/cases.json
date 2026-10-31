@@ -1,0 +1,411 @@
+[
+  {
+    "id": "S2-FACTS-81",
+    "category": "facts",
+    "groupId": "confirmation-S2-FACTS-71",
+    "split": "heldout",
+    "prompt": "请查小火龙与杰尼龟的图鉴，对比两者的速度种族值，说明差值；不要给实际出手顺序或额外特性介绍。",
+    "preconditions": {
+      "team": "complete",
+      "fixtureAccount": "new-isolated-local-account"
+    },
+    "versions": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "language": "zh-CN"
+    },
+    "expected": {
+      "outcome": "answer",
+      "requiredTools": [
+        "lookupPokemonReference"
+      ],
+      "forbiddenTools": [
+        "previewTeamChanges"
+      ],
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "小火龙65、杰尼龟43、差22，明确不是实际速度",
+          "sourceIds": [
+            "pokeapi-4",
+            "pokeapi-7",
+            "reference-vs-rules-v1"
+          ]
+        },
+        {
+          "id": "C2",
+          "text": "仅保留核对过的事实，无额外特性译名或必定先手结论",
+          "sourceIds": [
+            "pokeapi-4",
+            "pokeapi-7",
+            "reference-vs-rules-v1"
+          ]
+        }
+      ]
+    },
+    "annotation": {
+      "by": "Codex",
+      "date": "2026-10-31",
+      "humanReview": "pending",
+      "basis": "Previously observed regression; original prompt and criteria preserved"
+    }
+  },
+  {
+    "id": "S2-GUIDES-97",
+    "category": "guides",
+    "groupId": "scope-new-S2-GUIDES-97",
+    "split": "heldout",
+    "prompt": "检索本地攻略后解释：资料快照标明了抓取日期，为什么仍不能据此判断成员能参加下一场赛事？请区分图鉴来源、版本组和赛事规则公告。",
+    "preconditions": {
+      "team": "complete",
+      "fixtureAccount": "new-isolated-local-account"
+    },
+    "versions": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "language": "zh-CN"
+    },
+    "expected": {
+      "outcome": "answer",
+      "requiredTools": [
+        "searchPokemonGuides"
+      ],
+      "forbiddenTools": [
+        "previewTeamChanges"
+      ],
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "实际节选图鉴与比赛规则原文，区分日期/版本组和赛事公告",
+          "sourceIds": [
+            "reference-vs-rules-v1"
+          ]
+        },
+        {
+          "id": "C2",
+          "text": "不能由有图鉴数据推导参赛资格或当前强度",
+          "sourceIds": [
+            "reference-vs-rules-v1"
+          ]
+        }
+      ]
+    },
+    "annotation": {
+      "by": "Codex",
+      "date": "2026-10-31",
+      "humanReview": "pending",
+      "basis": "Previously observed regression; original prompt and criteria preserved"
+    }
+  },
+  {
+    "id": "S2-GUIDES-98",
+    "category": "guides",
+    "groupId": "scope-new-S2-GUIDES-98",
+    "split": "heldout",
+    "prompt": "请检索并引用一段原文：图鉴里有scarlet-violet版本组的招式记录，是否足以证明具体配招组合满足指定排位规则？我没有提供赛事公告，请明确能确认什么。",
+    "preconditions": {
+      "team": "complete",
+      "fixtureAccount": "new-isolated-local-account"
+    },
+    "versions": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "language": "zh-CN"
+    },
+    "expected": {
+      "outcome": "answer",
+      "requiredTools": [
+        "searchPokemonGuides"
+      ],
+      "forbiddenTools": [
+        "previewTeamChanges"
+      ],
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "实际取得并引用图鉴/版本/规则区别笔记，不能只返回组队泛论",
+          "sourceIds": [
+            "reference-vs-rules-v1"
+          ]
+        },
+        {
+          "id": "C2",
+          "text": "没有公告不能判断资格，标题作者与引文真实",
+          "sourceIds": [
+            "reference-vs-rules-v1"
+          ]
+        }
+      ]
+    },
+    "annotation": {
+      "by": "Codex",
+      "date": "2026-10-31",
+      "humanReview": "pending",
+      "basis": "Previously observed regression; original prompt and criteria preserved"
+    }
+  },
+  {
+    "id": "S2-CLARIFICATION-97",
+    "category": "clarification",
+    "groupId": "scope-new-S2-CLARIFICATION-97",
+    "split": "heldout",
+    "prompt": "桥接字段没有太晶和异常状态，我只想知道当前伤害接口能表达哪些条件、哪些条件不能覆盖；请说明限制，不计算，也不扩写机制倍率。",
+    "preconditions": {
+      "team": "complete",
+      "fixtureAccount": "new-isolated-local-account"
+    },
+    "versions": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "language": "zh-CN"
+    },
+    "expected": {
+      "outcome": "answer",
+      "requiredTools": [],
+      "forbiddenTools": [
+        "previewTeamChanges"
+      ],
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "准确描述接口边界，不调用计算、搜索或修改",
+          "sourceIds": [
+            "damage-engine",
+            "damage-assumptions-v1"
+          ]
+        },
+        {
+          "id": "C2",
+          "text": "不扩写特攻影响出手次序等无依据机制，不给虚构倍率或伤害",
+          "sourceIds": [
+            "damage-engine",
+            "damage-assumptions-v1"
+          ]
+        }
+      ]
+    },
+    "annotation": {
+      "by": "Codex",
+      "date": "2026-10-31",
+      "humanReview": "pending",
+      "basis": "Previously observed regression; original prompt and criteria preserved"
+    }
+  },
+  {
+    "id": "S2-FACTS-97",
+    "category": "facts",
+    "groupId": "scope-new-S2-FACTS-97",
+    "split": "heldout",
+    "prompt": "请查小火龙与雪妖女的图鉴，比较速度种族值，说明两者差多少；这里只比较种族值，不把它当作当前等级的实数。",
+    "preconditions": {
+      "team": "complete",
+      "fixtureAccount": "new-isolated-local-account"
+    },
+    "versions": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "language": "zh-CN"
+    },
+    "expected": {
+      "outcome": "answer",
+      "requiredTools": [
+        "lookupPokemonReference"
+      ],
+      "forbiddenTools": [
+        "previewTeamChanges"
+      ],
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "雪妖女110、小火龙65，差45，实际速度边界正确",
+          "sourceIds": [
+            "pokeapi-478",
+            "pokeapi-4",
+            "reference-vs-rules-v1"
+          ]
+        },
+        {
+          "id": "C2",
+          "text": "不扩写未经查询的特性机制，不宣称必定先手",
+          "sourceIds": [
+            "pokeapi-478",
+            "pokeapi-4",
+            "reference-vs-rules-v1"
+          ]
+        }
+      ]
+    },
+    "annotation": {
+      "by": "Codex",
+      "date": "2026-10-31",
+      "humanReview": "pending",
+      "basis": "Previously observed regression; original prompt and criteria preserved"
+    }
+  },
+  {
+    "id": "S2-DAMAGE-02",
+    "category": "damage",
+    "groupId": "damage-surf",
+    "split": "heldout",
+    "prompt": "请按下列条件调用 calculateBattleDamage，核对真实结果并解释为什么它不是完整对战或合法性证明。条件：{\"generation\":9,\"dataReleaseId\":\"pokeapi-reference-v1\",\"move\":\"surf\",\"field\":{\"gameType\":\"Singles\",\"weather\":null,\"terrain\":null},\"attacker\":{\"species\":\"squirtle\",\"build\":{\"moves\":[\"surf\",\"protect\",\"ice-beam\",\"rain-dance\"],\"ability\":\"torrent\",\"item\":\"leftovers\",\"nature\":\"modest\",\"level\":50,\"evs\":{\"hp\":4,\"atk\":0,\"def\":0,\"spa\":252,\"spd\":0,\"spe\":252},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}},\"defender\":{\"species\":\"charmander\",\"build\":{\"moves\":[\"flamethrower\",\"protect\",\"dragon-pulse\",\"will-o-wisp\"],\"ability\":\"blaze\",\"item\":\"leftovers\",\"nature\":\"timid\",\"level\":50,\"evs\":{\"hp\":4,\"atk\":0,\"def\":0,\"spa\":252,\"spd\":0,\"spe\":252},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}}}",
+    "preconditions": {
+      "team": "complete",
+      "fixtureAccount": "new-isolated-local-account"
+    },
+    "versions": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "language": "zh-CN"
+    },
+    "expected": {
+      "outcome": "answer",
+      "requiredTools": [
+        "calculateBattleDamage"
+      ],
+      "forbiddenTools": [
+        "previewTeamChanges"
+      ],
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "实际计算输入与请求的物种、培养配置、招式、场地逐项一致",
+          "sourceIds": [
+            "damage-engine"
+          ]
+        },
+        {
+          "id": "C2",
+          "text": "伤害/HP/百分比等于固定引擎参考；不加入未表达的太晶、状态或胜率",
+          "sourceIds": [
+            "damage-engine"
+          ]
+        }
+      ],
+      "damageFixture": "surf"
+    },
+    "annotation": {
+      "by": "Codex",
+      "date": "2026-10-31",
+      "humanReview": "pending",
+      "basis": "Previously observed regression; original prompt and criteria preserved"
+    }
+  },
+  {
+    "id": "S2-FACTS-98",
+    "category": "facts",
+    "groupId": "v8-new-S2-FACTS-98",
+    "split": "heldout",
+    "prompt": "请查雪妖女与杰尼龟的图鉴，比较速度种族值并说明差值；不必提供额外特性介绍，实际先后也不作判断。",
+    "preconditions": {
+      "team": "complete",
+      "fixtureAccount": "new-isolated-local-account"
+    },
+    "versions": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "language": "zh-CN"
+    },
+    "expected": {
+      "outcome": "answer",
+      "requiredTools": [
+        "lookupPokemonReference"
+      ],
+      "forbiddenTools": [
+        "previewTeamChanges"
+      ],
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "雪妖女110、杰尼龟43、差67，不当作等级实际速度",
+          "sourceIds": [
+            "pokeapi-478",
+            "pokeapi-7",
+            "reference-vs-rules-v1"
+          ]
+        },
+        {
+          "id": "C2",
+          "text": "没有额外特性、实战培养或先手判断，回答遵循明确排除的内容",
+          "sourceIds": [
+            "pokeapi-478",
+            "pokeapi-7",
+            "reference-vs-rules-v1"
+          ]
+        }
+      ]
+    },
+    "annotation": {
+      "by": "Codex",
+      "date": "2026-10-31",
+      "humanReview": "pending",
+      "basis": "New untouched wording fixed after v8 freeze, related negative-control variants, not third-party blind review"
+    }
+  },
+  {
+    "id": "S2-FACTS-99",
+    "category": "facts",
+    "groupId": "v8-new-S2-FACTS-99",
+    "split": "heldout",
+    "prompt": "请查杰尼龟与小火龙的图鉴，对比速度种族值相差多少；无需给实际出手顺序或额外特性介绍。",
+    "preconditions": {
+      "team": "complete",
+      "fixtureAccount": "new-isolated-local-account"
+    },
+    "versions": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "language": "zh-CN"
+    },
+    "expected": {
+      "outcome": "answer",
+      "requiredTools": [
+        "lookupPokemonReference"
+      ],
+      "forbiddenTools": [
+        "previewTeamChanges"
+      ],
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "杰尼龟43、小火龙65、差22，不当作等级实际速度",
+          "sourceIds": [
+            "pokeapi-7",
+            "pokeapi-4",
+            "reference-vs-rules-v1"
+          ]
+        },
+        {
+          "id": "C2",
+          "text": "没有额外特性、实战培养或先手判断，回答遵循明确排除的内容",
+          "sourceIds": [
+            "pokeapi-7",
+            "pokeapi-4",
+            "reference-vs-rules-v1"
+          ]
+        }
+      ]
+    },
+    "annotation": {
+      "by": "Codex",
+      "date": "2026-10-31",
+      "humanReview": "pending",
+      "basis": "New untouched wording fixed after v8 freeze, related negative-control variants, not third-party blind review"
+    }
+  }
+]

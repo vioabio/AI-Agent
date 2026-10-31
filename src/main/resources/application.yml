@@ -298,6 +298,7 @@ vio:
   damage-engine:
     enabled: ${VIO_DAMAGE_ENGINE_ENABLED:true}
     node: ${VIO_DAMAGE_NODE:node}
+    script: ${VIO_DAMAGE_SCRIPT:${user.dir}/tools/pokemon-engine/calculate-v2.cjs}
   local-guides:
     enabled: ${VIO_LOCAL_GUIDES_ENABLED:true}
     location: ${VIO_LOCAL_GUIDES_LOCATION:classpath:pokemon-strategy/overview-v1.json}

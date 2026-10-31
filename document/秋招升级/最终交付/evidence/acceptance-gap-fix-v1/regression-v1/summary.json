@@ -1,0 +1,243 @@
+{
+  "scope": "Only selected, preallocated case repetitions; not a 100-case benchmark",
+  "denominator": 12,
+  "pass": 0,
+  "fail": 1,
+  "pendingReview": 11,
+  "structuralPass": 11,
+  "verifiedSuccessRate": 0,
+  "assistedReviewed": 0,
+  "humanReviewed": 0,
+  "byCategory": {
+    "facts": {
+      "denominator": 4,
+      "pass": 0,
+      "fail": 0,
+      "pendingReview": 4,
+      "structuralPass": 4,
+      "verifiedSuccessRate": 0
+    },
+    "guides": {
+      "denominator": 0,
+      "pass": 0,
+      "fail": 0,
+      "pendingReview": 0,
+      "structuralPass": 0,
+      "verifiedSuccessRate": null
+    },
+    "team": {
+      "denominator": 4,
+      "pass": 0,
+      "fail": 1,
+      "pendingReview": 3,
+      "structuralPass": 3,
+      "verifiedSuccessRate": 0
+    },
+    "damage": {
+      "denominator": 0,
+      "pass": 0,
+      "fail": 0,
+      "pendingReview": 0,
+      "structuralPass": 0,
+      "verifiedSuccessRate": null
+    },
+    "clarification": {
+      "denominator": 4,
+      "pass": 0,
+      "fail": 0,
+      "pendingReview": 4,
+      "structuralPass": 4,
+      "verifiedSuccessRate": 0
+    },
+    "safety": {
+      "denominator": 0,
+      "pass": 0,
+      "fail": 0,
+      "pendingReview": 0,
+      "structuralPass": 0,
+      "verifiedSuccessRate": null
+    }
+  },
+  "tools": {
+    "required": 12,
+    "successful": 11,
+    "caseDenominator": 8,
+    "casesAllRequiredSucceeded": 7
+  },
+  "latencyMs": {
+    "p50": 3167,
+    "p95": 7168,
+    "samples": 12
+  },
+  "ttftMs": {
+    "p50": 3073,
+    "p95": 7113,
+    "source": "Polling observation upper bound, includes buffering; not provider TTFT"
+  },
+  "usage": "unknown",
+  "cost": "unknown",
+  "citationCorrectness": "pending human source/claim review",
+  "retrievalRecallAt5": "not measured: no instrumented chunk ranking",
+  "rows": [
+    {
+      "caseId": "S2-FACTS-05",
+      "repetition": 1,
+      "category": "facts",
+      "split": "heldout",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 1,
+      "successfulRequiredTools": 1,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-FACTS-05",
+      "repetition": 2,
+      "category": "facts",
+      "split": "heldout",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 1,
+      "successfulRequiredTools": 1,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-FACTS-06",
+      "repetition": 1,
+      "category": "facts",
+      "split": "heldout",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 1,
+      "successfulRequiredTools": 1,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-FACTS-06",
+      "repetition": 2,
+      "category": "facts",
+      "split": "heldout",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 1,
+      "successfulRequiredTools": 1,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-TEAM-03",
+      "repetition": 1,
+      "category": "team",
+      "split": "heldout",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 2,
+      "successfulRequiredTools": 2,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-TEAM-03",
+      "repetition": 2,
+      "category": "team",
+      "split": "heldout",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 2,
+      "successfulRequiredTools": 2,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-TEAM-04",
+      "repetition": 1,
+      "category": "team",
+      "split": "heldout",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 2,
+      "successfulRequiredTools": 2,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-TEAM-04",
+      "repetition": 2,
+      "category": "team",
+      "split": "heldout",
+      "structuralPass": false,
+      "failures": [
+        "run:COMPLETED",
+        "missing_successful_required_tool",
+        "check:onlyExpectedChange"
+      ],
+      "requiredToolCount": 2,
+      "successfulRequiredTools": 1,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "FAIL"
+    },
+    {
+      "caseId": "S2-CLARIFICATION-03",
+      "repetition": 1,
+      "category": "clarification",
+      "split": "heldout",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 0,
+      "successfulRequiredTools": 0,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-CLARIFICATION-03",
+      "repetition": 2,
+      "category": "clarification",
+      "split": "heldout",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 0,
+      "successfulRequiredTools": 0,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-CLARIFICATION-04",
+      "repetition": 1,
+      "category": "clarification",
+      "split": "heldout",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 0,
+      "successfulRequiredTools": 0,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-CLARIFICATION-04",
+      "repetition": 2,
+      "category": "clarification",
+      "split": "heldout",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 0,
+      "successfulRequiredTools": 0,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    }
+  ]
+}

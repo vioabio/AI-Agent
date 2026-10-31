@@ -82,7 +82,7 @@ const output = resolve(options['--output'] || resolve(root, `artifacts/campus/s2
 if (existsSync(output)) throw Error('Use a new output directory; never overwrite evidence')
 mkdirSync(output, { recursive: true })
 const report = { schemaVersion: 1, datasetId: suite.manifest.datasetId, datasetSha256: frozenFileDigest(resolve(suiteDirectory, 'manifest.json')),
-  collectorVersion: 'campus-s2-collector-v6', suitePath: relative(root, suiteDirectory).replaceAll('\\', '/'), suiteFilesSha256: suiteFiles,
+  collectorVersion: 'campus-s2-collector-v7', suitePath: relative(root, suiteDirectory).replaceAll('\\', '/'), suiteFilesSha256: suiteFiles,
   collectorSha256: Object.fromEntries(['s2-evaluate.mjs', 'evaluation.mjs', 'reference-case.mjs', 'tool-inputs.mjs', 'answer-quality.mjs'].map(file => [file, digest(readFileSync(resolve(root, 'tools/campus', file)))])),
   startedAt: new Date().toISOString(), mode: suite.manifest.requiredEvaluationMode ? `real-model-${suite.manifest.requiredEvaluationMode}-via-local-http` : 'real-model-current-tools-via-local-http', selectedCaseIds: ids, split, repetitions,
   sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
@@ -128,7 +128,8 @@ function sourceDigests() {
     'src/main/resources/pokemon-strategy/overview-v1.json','src/main/resources/pokemon-strategy/sources-v1.json',
     'src/main/resources/pokemon-mechanics/references-v1.json','src/main/resources/pokemon-mechanics/references-v1.meta.json',
     'src/main/resources/pokemon-reference/species-names.csv', 'src/main/resources/pokemon-reference/species-names.meta.json',
-    'tools/pokemon-engine/calculate.cjs', 'tools/pokemon-engine/package-lock.json']) result[file] = digest(readFileSync(resolve(root, file)))
+    'tools/pokemon-engine/calculate.cjs', 'tools/pokemon-engine/calculate-v2.cjs',
+    'src/main/resources/application.yml', 'tools/pokemon-engine/package-lock.json']) result[file] = digest(readFileSync(resolve(root, file)))
   return result
 }
 async function collect(item, record) {

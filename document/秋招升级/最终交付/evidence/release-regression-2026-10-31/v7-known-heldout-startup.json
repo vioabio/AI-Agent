@@ -1,0 +1,23 @@
+[
+  "--spring.config.location=classpath:/application.yml,classpath:/application-local.example.yml,file:D:/ai-intern-cjt/ai-intern-folder/my/AI-Agent/src/main/resources/application-deepseek.yml",
+  "--spring.profiles.active=local,deepseek",
+  "--server.address=127.0.0.1",
+  "--server.port=18259",
+  "--vio.http.cors.allowed-origins[0]=http://localhost:3000",
+  "--vio.http.cors.allowed-origins[1]=http://127.0.0.1:13059",
+  "--vio.local-accounts.path=D:\\ai-intern-cjt\\ai-intern-folder\\my\\AI-Agent\\artifacts\\campus\\release-regression-2026-10-31\\runtime\\v7-known-heldout/accounts.sqlite",
+  "--vio.local-history.path=D:\\ai-intern-cjt\\ai-intern-folder\\my\\AI-Agent\\artifacts\\campus\\release-regression-2026-10-31\\runtime\\v7-known-heldout/history.sqlite",
+  "--vio.local-teams.path=D:\\ai-intern-cjt\\ai-intern-folder\\my\\AI-Agent\\artifacts\\campus\\release-regression-2026-10-31\\runtime\\v7-known-heldout/teams.sqlite",
+  "--vio.local-guides.path=D:\\ai-intern-cjt\\ai-intern-folder\\my\\AI-Agent\\artifacts\\campus\\release-regression-2026-10-31\\runtime\\v7-known-heldout/guides.sqlite",
+  "--vio.pokemon.reference.path=D:\\ai-intern-cjt\\ai-intern-folder\\my\\AI-Agent\\artifacts\\campus\\release-regression-2026-10-31/pokeapi",
+  "--vio.pokemon.reference.proxy=http://127.0.0.1:9",
+  "--spring.ai.mcp.client.enabled=false",
+  "--vio.tools.search.enabled=false",
+  "--vio.tools.high-risk.enabled=false",
+  "--vio.agent.v1.enabled=false",
+  "--vio.run.durable-resume=false",
+  "--vio.run.model-cache.enabled=false",
+  "--vio.damage-engine.node=C:/Program Files/nodejs/node.exe",
+  "--logging.level.com.vio.vioaiagent=INFO",
+  "--logging.level.org.springframework.ai=INFO"
+]

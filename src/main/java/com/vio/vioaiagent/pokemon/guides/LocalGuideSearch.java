@@ -50,6 +50,12 @@ public class LocalGuideSearch {
         if(!"pokemon-scarlet-violet".equals(gameReleaseId))throw new IllegalArgumentException("攻略游戏版本未登记");
         List<RetrievedKnowledgeChunk> chunks=retrieve(new KnowledgeRetrievalQuery(query,language,gameReleaseId,format,rules,20));
         Map<String,Hit> result=new LinkedHashMap<>();
+        if(query!=null&&java.util.regex.Pattern.compile("组队|队伍搭配|联防|属性覆盖").matcher(query).find()) {
+            // Reserve one result for the explicitly requested team-building topic.
+            // Long secondary questions about provenance must not crowd it out.
+            var focused=retrieve(new KnowledgeRetrievalQuery("组队 角色 属性覆盖 轮转",language,gameReleaseId,format,rules,4));
+            if(!focused.isEmpty())result.put(focused.getFirst().view().documentId(),index.hit(focused.getFirst()));
+        }
         for(var chunk:chunks) result.putIfAbsent(chunk.view().documentId(),index.hit(chunk));
         return result.values().stream().limit(4).toList();
     }

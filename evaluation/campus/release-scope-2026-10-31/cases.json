@@ -1,0 +1,202 @@
+[
+  {
+    "id": "S2-GUIDES-97",
+    "category": "guides",
+    "groupId": "scope-new-S2-GUIDES-97",
+    "split": "heldout",
+    "prompt": "检索本地攻略后解释：资料快照标明了抓取日期，为什么仍不能据此判断成员能参加下一场赛事？请区分图鉴来源、版本组和赛事规则公告。",
+    "preconditions": {
+      "team": "complete",
+      "fixtureAccount": "new-isolated-local-account"
+    },
+    "versions": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "language": "zh-CN"
+    },
+    "expected": {
+      "outcome": "answer",
+      "requiredTools": [
+        "searchPokemonGuides"
+      ],
+      "forbiddenTools": [
+        "previewTeamChanges"
+      ],
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "实际节选图鉴与比赛规则原文，区分日期/版本组和赛事公告",
+          "sourceIds": [
+            "reference-vs-rules-v1"
+          ]
+        },
+        {
+          "id": "C2",
+          "text": "不能由有图鉴数据推导参赛资格或当前强度",
+          "sourceIds": [
+            "reference-vs-rules-v1"
+          ]
+        }
+      ]
+    },
+    "annotation": {
+      "by": "Codex after-v7-freeze author",
+      "date": "2026-10-31",
+      "humanReview": "pending",
+      "basis": "New source-linked related inputs after candidate freeze; not third-party blind review"
+    }
+  },
+  {
+    "id": "S2-GUIDES-98",
+    "category": "guides",
+    "groupId": "scope-new-S2-GUIDES-98",
+    "split": "heldout",
+    "prompt": "请检索并引用一段原文：图鉴里有scarlet-violet版本组的招式记录，是否足以证明具体配招组合满足指定排位规则？我没有提供赛事公告，请明确能确认什么。",
+    "preconditions": {
+      "team": "complete",
+      "fixtureAccount": "new-isolated-local-account"
+    },
+    "versions": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "language": "zh-CN"
+    },
+    "expected": {
+      "outcome": "answer",
+      "requiredTools": [
+        "searchPokemonGuides"
+      ],
+      "forbiddenTools": [
+        "previewTeamChanges"
+      ],
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "实际取得并引用图鉴/版本/规则区别笔记，不能只返回组队泛论",
+          "sourceIds": [
+            "reference-vs-rules-v1"
+          ]
+        },
+        {
+          "id": "C2",
+          "text": "没有公告不能判断资格，标题作者与引文真实",
+          "sourceIds": [
+            "reference-vs-rules-v1"
+          ]
+        }
+      ]
+    },
+    "annotation": {
+      "by": "Codex after-v7-freeze author",
+      "date": "2026-10-31",
+      "humanReview": "pending",
+      "basis": "New source-linked related inputs after candidate freeze; not third-party blind review"
+    }
+  },
+  {
+    "id": "S2-CLARIFICATION-97",
+    "category": "clarification",
+    "groupId": "scope-new-S2-CLARIFICATION-97",
+    "split": "heldout",
+    "prompt": "桥接字段没有太晶和异常状态，我只想知道当前伤害接口能表达哪些条件、哪些条件不能覆盖；请说明限制，不计算，也不扩写机制倍率。",
+    "preconditions": {
+      "team": "complete",
+      "fixtureAccount": "new-isolated-local-account"
+    },
+    "versions": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "language": "zh-CN"
+    },
+    "expected": {
+      "outcome": "answer",
+      "requiredTools": [],
+      "forbiddenTools": [
+        "previewTeamChanges"
+      ],
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "准确描述接口边界，不调用计算、搜索或修改",
+          "sourceIds": [
+            "damage-engine",
+            "damage-assumptions-v1"
+          ]
+        },
+        {
+          "id": "C2",
+          "text": "不扩写特攻影响出手次序等无依据机制，不给虚构倍率或伤害",
+          "sourceIds": [
+            "damage-engine",
+            "damage-assumptions-v1"
+          ]
+        }
+      ]
+    },
+    "annotation": {
+      "by": "Codex after-v7-freeze author",
+      "date": "2026-10-31",
+      "humanReview": "pending",
+      "basis": "New source-linked related inputs after candidate freeze; not third-party blind review"
+    }
+  },
+  {
+    "id": "S2-FACTS-97",
+    "category": "facts",
+    "groupId": "scope-new-S2-FACTS-97",
+    "split": "heldout",
+    "prompt": "请查小火龙与雪妖女的图鉴，比较速度种族值，说明两者差多少；这里只比较种族值，不把它当作当前等级的实数。",
+    "preconditions": {
+      "team": "complete",
+      "fixtureAccount": "new-isolated-local-account"
+    },
+    "versions": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "language": "zh-CN"
+    },
+    "expected": {
+      "outcome": "answer",
+      "requiredTools": [
+        "lookupPokemonReference"
+      ],
+      "forbiddenTools": [
+        "previewTeamChanges"
+      ],
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "雪妖女110、小火龙65，差45，实际速度边界正确",
+          "sourceIds": [
+            "pokeapi-478",
+            "pokeapi-4",
+            "reference-vs-rules-v1"
+          ]
+        },
+        {
+          "id": "C2",
+          "text": "不扩写未经查询的特性机制，不宣称必定先手",
+          "sourceIds": [
+            "pokeapi-478",
+            "pokeapi-4",
+            "reference-vs-rules-v1"
+          ]
+        }
+      ]
+    },
+    "annotation": {
+      "by": "Codex after-v7-freeze author",
+      "date": "2026-10-31",
+      "humanReview": "pending",
+      "basis": "New source-linked related inputs after candidate freeze; not third-party blind review"
+    }
+  }
+]

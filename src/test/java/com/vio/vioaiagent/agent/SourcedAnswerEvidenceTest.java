@@ -174,10 +174,10 @@ class SourcedAnswerEvidenceTest {
             assertFalse(answer.contains("雨天提升"));assertFalse(answer.contains("50%"));assertFalse(answer.contains("固执性格"));
             assertFalse(answer.contains("本次建议包含尚未核对"));
             if(streaming)assertEquals(answer,String.join("",chunks));
-            verify(model,times(1)).call(any(Prompt.class));verify(model,never()).stream(any(Prompt.class));
+            verify(model,never()).call(any(Prompt.class));verify(model,never()).stream(any(Prompt.class));
         }
     }
-    @Test void publishableDamageCoachingRemainsModelTextAndMixedSavedTasksKeepTheirOwnGuard() throws Exception {
+    @Test void numericDamageUsesProgramInterpretationWhileMixedSavedTasksKeepTheirOwnGuard() throws Exception {
         for(boolean savedTask:new boolean[]{false,true}) {
             var model=mock(ChatModel.class);
             String draft=savedTask?"雨天提升伤害50%，必定击倒。":"保留当前配置作为比较基线，再根据目标对局逐项验证改动。";
@@ -189,9 +189,17 @@ class SourcedAnswerEvidenceTest {
                 var saved=new SavedTeamAnswerEvidence();saved.begin("分析已保存队伍并计算伤害");
                 saved.observe("readCurrentTeam",snapshot("modest",false));agent.setSavedTeamAnswerEvidence(saved);
             }
-            String answer=agent.summarizeAnswer();assertFalse(answer.contains("程序核对"));
-            if(savedTask) { assertTrue(answer.contains("已保存配置"));assertTrue(answer.contains("本次建议包含尚未核对"));assertFalse(answer.contains("雨天提升")); }
-            else assertTrue(answer.endsWith(draft));
+            String answer=agent.summarizeAnswer();
+            if(savedTask) {
+                assertFalse(answer.contains("程序核对"));assertTrue(answer.contains("已保存配置"));
+                assertTrue(answer.contains("本次建议包含尚未核对"));assertFalse(answer.contains("雨天提升"));
+                verify(model,times(1)).call(any(Prompt.class));
+            } else {
+                assertTrue(answer.contains("对局解读（程序核对）"));assertTrue(answer.contains("164～194 HP"));
+                assertTrue(answer.contains("下界已达到"));assertFalse(answer.endsWith(draft));
+                verify(model,never()).call(any(Prompt.class));
+            }
+            verify(model,never()).stream(any(Prompt.class));
         }
     }
     @Test void archivedConditionalClaimIsNotPublishedInEitherDeliveryMode() throws Exception {
@@ -208,7 +216,7 @@ class SourcedAnswerEvidenceTest {
             assertTrue(answer.contains("164～194 HP"));assertTrue(answer.contains("程序核对"));
             assertFalse(answer.contains("加入后区间会变"));assertFalse(answer.contains("光墙、钉子"));
             if(streaming)assertEquals(answer,String.join("",chunks));
-            verify(model,times(1)).call(any(Prompt.class));verify(model,never()).stream(any(Prompt.class));
+            verify(model,never()).call(any(Prompt.class));verify(model,never()).stream(any(Prompt.class));
         }
     }
     public static class ReadToolFixture {

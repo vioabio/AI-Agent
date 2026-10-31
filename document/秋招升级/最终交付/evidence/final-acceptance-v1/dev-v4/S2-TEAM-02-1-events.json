@@ -1,0 +1,752 @@
+[
+  {
+    "schemaVersion": "1",
+    "eventId": 1,
+    "type": "run.created",
+    "sessionId": "2cf395fb-1bde-4fcf-ad81-f103be7c57ad",
+    "runId": "run-cdea4c96-9bac-4405-ae8e-7530998f527e",
+    "traceId": "e3a4d127",
+    "timestamp": "2026-10-30T12:43:16.865438600Z",
+    "payload": {
+      "policyExpiresAt": "2026-10-30T20:41:50.614843900Z",
+      "roles": [
+        "trainer"
+      ],
+      "contractVersion": "v1",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "status": "CREATED",
+      "battleFormatId": "casual-singles",
+      "language": "zh-CN",
+      "policyFingerprint": "4548b1f98659ed358a2947866dd47f12095453ddc695fc8522b2c300cba52cd8",
+      "rulesetVersionId": "casual-v1",
+      "dlcId": "",
+      "principalId": "local-05f0972b-12b1-4a7e-a4fb-f6730e38497d",
+      "bindingId": "oidc:f5aa1f8e1d4a9a9287df788091d1ca175572eb7cffe7ec52f009809597eb2315",
+      "policyVersion": "local-account-v1-1",
+      "tenantId": "local",
+      "knowledgeReleaseId": "",
+      "indexReleaseId": "",
+      "allowedTools": [
+        "calculateBattleDamage",
+        "checkPokemonBuild",
+        "checkPokemonTeamBuild",
+        "checkTypeEffectiveness",
+        "doTerminate",
+        "getTypeChart",
+        "listCurrentTeams",
+        "lookupPokemonLearnset",
+        "lookupPokemonMachine",
+        "lookupPokemonMechanics",
+        "lookupPokemonReference",
+        "lookupPokemonResource",
+        "lookupPokemonTeamReference",
+        "previewTeamChanges",
+        "readCurrentTeam",
+        "searchPokemonGuides",
+        "searchWeb",
+        "web_search"
+      ]
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 2,
+    "type": "run.started",
+    "sessionId": "2cf395fb-1bde-4fcf-ad81-f103be7c57ad",
+    "runId": "run-cdea4c96-9bac-4405-ae8e-7530998f527e",
+    "traceId": "e3a4d127",
+    "timestamp": "2026-10-30T12:43:16.865438600Z",
+    "payload": {
+      "dataReleaseId": "pokeapi-reference-v1",
+      "status": "RUNNING",
+      "contractVersion": "v1",
+      "dlcId": "",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1",
+      "knowledgeReleaseId": "",
+      "battleFormatId": "casual-singles",
+      "indexReleaseId": "",
+      "gameReleaseId": "pokemon-scarlet-violet"
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 3,
+    "type": "context.confirmed",
+    "sessionId": "2cf395fb-1bde-4fcf-ad81-f103be7c57ad",
+    "runId": "run-cdea4c96-9bac-4405-ae8e-7530998f527e",
+    "traceId": "e3a4d127",
+    "timestamp": "2026-10-30T12:43:16.874394Z",
+    "payload": {
+      "dataReleaseId": "pokeapi-reference-v1",
+      "battleFormat": "casual-singles",
+      "contractVersion": "v1",
+      "dlcId": "",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1",
+      "knowledgeReleaseId": "",
+      "battleFormatId": "casual-singles",
+      "indexReleaseId": "",
+      "gameReleaseId": "pokemon-scarlet-violet"
+    }
+  },
+  {
+    "schemaVersion": "v1.1",
+    "eventId": 4,
+    "type": "context.card",
+    "sessionId": "2cf395fb-1bde-4fcf-ad81-f103be7c57ad",
+    "runId": "run-cdea4c96-9bac-4405-ae8e-7530998f527e",
+    "traceId": "e3a4d127",
+    "timestamp": "2026-10-30T12:43:16.874394Z",
+    "payload": {
+      "dataReleaseId": "pokeapi-reference-v1",
+      "battleFormat": "casual-singles",
+      "contractVersion": "v1",
+      "dlcId": "",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1",
+      "knowledgeReleaseId": "",
+      "battleFormatId": "casual-singles",
+      "indexReleaseId": "",
+      "gameReleaseId": "pokemon-scarlet-violet"
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 5,
+    "type": "route.selected",
+    "sessionId": "2cf395fb-1bde-4fcf-ad81-f103be7c57ad",
+    "runId": "run-cdea4c96-9bac-4405-ae8e-7530998f527e",
+    "traceId": "e3a4d127",
+    "timestamp": "2026-10-30T12:43:16.874394Z",
+    "payload": {
+      "dataReleaseId": "pokeapi-reference-v1",
+      "contractVersion": "v1",
+      "dlcId": "",
+      "route": "controlled-agent",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1",
+      "knowledgeReleaseId": "",
+      "battleFormatId": "casual-singles",
+      "indexReleaseId": "",
+      "gameReleaseId": "pokemon-scarlet-violet"
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 6,
+    "type": "tool.started",
+    "sessionId": "2cf395fb-1bde-4fcf-ad81-f103be7c57ad",
+    "runId": "run-cdea4c96-9bac-4405-ae8e-7530998f527e",
+    "traceId": "e3a4d127",
+    "timestamp": "2026-10-30T12:43:17.649765700Z",
+    "payload": {
+      "dataReleaseId": "pokeapi-reference-v1",
+      "battleFormatId": "casual-singles",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "inputEvidence": {
+        "fields": {
+          "/teamId": {
+            "kind": "LITERAL",
+            "value": 77
+          }
+        },
+        "scope": "SUPPLIED_ARGUMENTS_ONLY",
+        "toolVersion": "1.0.0",
+        "schemaVersion": "tool-input-evidence-v1",
+        "parameterDigest": "1407b3600d5993b27b266d007602e504433394415e533ce4aea53a8430bd5c2e",
+        "coverage": "COMPLETE"
+      },
+      "language": "zh-CN",
+      "attempt": 1,
+      "governanceEventId": "bf73baac-60fb-4570-974b-b53bdf9ddcd9",
+      "toolName": "readCurrentTeam",
+      "contractVersion": "v1",
+      "dlcId": "",
+      "knowledgeReleaseId": "",
+      "indexReleaseId": "",
+      "rulesetVersionId": "casual-v1"
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 7,
+    "type": "tool.finished",
+    "sessionId": "2cf395fb-1bde-4fcf-ad81-f103be7c57ad",
+    "runId": "run-cdea4c96-9bac-4405-ae8e-7530998f527e",
+    "traceId": "e3a4d127",
+    "timestamp": "2026-10-30T12:43:17.667360200Z",
+    "payload": {
+      "contractVersion": "v1",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "governanceEventId": "bf73baac-60fb-4570-974b-b53bdf9ddcd9",
+      "status": "SUCCEEDED",
+      "toolVersion": "1.0.0",
+      "battleFormatId": "casual-singles",
+      "traceId": "e3a4d127",
+      "language": "zh-CN",
+      "retryCount": 0,
+      "rulesetVersionId": "casual-v1",
+      "approvalId": "",
+      "toolName": "readCurrentTeam",
+      "dlcId": "",
+      "durationMs": 17,
+      "parameterDigest": "1407b3600d5993b27b266d007602e504433394415e533ce4aea53a8430bd5c2e",
+      "knowledgeReleaseId": "",
+      "indexReleaseId": ""
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 8,
+    "type": "tool.finished",
+    "sessionId": "2cf395fb-1bde-4fcf-ad81-f103be7c57ad",
+    "runId": "run-cdea4c96-9bac-4405-ae8e-7530998f527e",
+    "traceId": "e3a4d127",
+    "timestamp": "2026-10-30T12:43:17.667360200Z",
+    "payload": {
+      "contractVersion": "v1",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "governanceEventId": "bf73baac-60fb-4570-974b-b53bdf9ddcd9",
+      "status": "SUCCEEDED",
+      "toolVersion": "1.0.0",
+      "battleFormatId": "casual-singles",
+      "language": "zh-CN",
+      "retryCount": 0,
+      "rulesetVersionId": "casual-v1",
+      "approvalId": "",
+      "toolName": "readCurrentTeam",
+      "dlcId": "",
+      "timing": {
+        "schemaVersion": "tool-timing-v1",
+        "scope": "CALLBACK_ATTEMPTS",
+        "attempts": [
+          {
+            "accepted": true,
+            "callbackStarted": true,
+            "callbackCompleted": true,
+            "queueWaitMs": 0,
+            "authorizationMs": 0,
+            "executionMs": 16,
+            "observedMs": 16
+          }
+        ],
+        "complete": true,
+        "queueWaitMs": 0,
+        "authorizationMs": 0,
+        "executionMs": 16,
+        "observedMs": 16
+      },
+      "durationMs": 17,
+      "parameterDigest": "1407b3600d5993b27b266d007602e504433394415e533ce4aea53a8430bd5c2e",
+      "knowledgeReleaseId": "",
+      "indexReleaseId": ""
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 9,
+    "type": "tool.started",
+    "sessionId": "2cf395fb-1bde-4fcf-ad81-f103be7c57ad",
+    "runId": "run-cdea4c96-9bac-4405-ae8e-7530998f527e",
+    "traceId": "e3a4d127",
+    "timestamp": "2026-10-30T12:43:19.137730900Z",
+    "payload": {
+      "dataReleaseId": "pokeapi-reference-v1",
+      "battleFormatId": "casual-singles",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "inputEvidence": {
+        "fields": {
+          "/teamId": {
+            "kind": "LITERAL",
+            "value": 77
+          },
+          "/changes/length": {
+            "kind": "LITERAL",
+            "value": 1
+          },
+          "/changes/0/slot": {
+            "kind": "LITERAL",
+            "value": 1
+          },
+          "/changes/0/level": {
+            "kind": "LITERAL",
+            "value": 51
+          },
+          "/rationale": {
+            "sha256": "321dcef6df6a1b0583ff8148598554046ecc484bc231933001c941423e37ee02",
+            "kind": "SHA256_JSON"
+          }
+        },
+        "scope": "SUPPLIED_ARGUMENTS_ONLY",
+        "toolVersion": "1.0.0",
+        "schemaVersion": "tool-input-evidence-v1",
+        "parameterDigest": "21b0f4d8715902063a7ddb41da05b9c1646a55de45c3f2ddda50a6b93d15fd55",
+        "coverage": "COMPLETE",
+        "projectionVersion": "bounded-team-preview-input-v1",
+        "fieldLimit": 144
+      },
+      "language": "zh-CN",
+      "attempt": 1,
+      "governanceEventId": "3752ee2d-d002-4f86-8dd5-4d7ae6dcd6b7",
+      "toolName": "previewTeamChanges",
+      "contractVersion": "v1",
+      "dlcId": "",
+      "knowledgeReleaseId": "",
+      "indexReleaseId": "",
+      "rulesetVersionId": "casual-v1"
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 10,
+    "type": "approval.required",
+    "sessionId": "2cf395fb-1bde-4fcf-ad81-f103be7c57ad",
+    "runId": "run-cdea4c96-9bac-4405-ae8e-7530998f527e",
+    "traceId": "e3a4d127",
+    "timestamp": "2026-10-30T12:43:19.139256800Z",
+    "payload": {
+      "rulesetVersionId": "casual-v1",
+      "indexReleaseId": "",
+      "approvalId": "29761085-f7f7-4bdc-b2bc-b08baf4fd3a6",
+      "dlcId": "",
+      "language": "zh-CN",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "expiresAt": "2026-10-30T12:45:16.847697400Z",
+      "knowledgeReleaseId": "",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "toolName": "applyConfirmedTeamChanges",
+      "teamChange": {
+        "proposalId": "29761085-f7f7-4bdc-b2bc-b08baf4fd3a6",
+        "teamId": 77,
+        "teamName": "S0 休闲练习队伍",
+        "changes": [
+          {
+            "slot": 1,
+            "member": "杰尼龟",
+            "field": "等级",
+            "before": "50",
+            "after": "51"
+          }
+        ],
+        "rationale": "按用户要求仅将第一位杰尼龟等级由50调整为51，其余配置（招式、特性、道具、性格、EV/IV）保持原样。",
+        "expiresAt": "2026-10-30T12:45:16.847697400Z",
+        "calculationEvidence": "未获得本 Run 的有效伤害计算。不能据此给出伤害、胜率或最优配置结论。",
+        "limitations": [
+          "仅保存预览列出的培养配置；理由是策略建议",
+          "图鉴存在与参数通过不代表招式合法或当前环境强势"
+        ]
+      },
+      "governanceEventId": "07c8b33f-ab5e-4b47-8b57-c63b7d139eb7",
+      "battleFormatId": "casual-singles",
+      "contractVersion": "v1"
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 11,
+    "type": "tool.finished",
+    "sessionId": "2cf395fb-1bde-4fcf-ad81-f103be7c57ad",
+    "runId": "run-cdea4c96-9bac-4405-ae8e-7530998f527e",
+    "traceId": "e3a4d127",
+    "timestamp": "2026-10-30T12:43:19.140016Z",
+    "payload": {
+      "contractVersion": "v1",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "governanceEventId": "3752ee2d-d002-4f86-8dd5-4d7ae6dcd6b7",
+      "status": "SUCCEEDED",
+      "toolVersion": "1.0.0",
+      "battleFormatId": "casual-singles",
+      "traceId": "e3a4d127",
+      "language": "zh-CN",
+      "retryCount": 0,
+      "rulesetVersionId": "casual-v1",
+      "approvalId": "",
+      "toolName": "previewTeamChanges",
+      "dlcId": "",
+      "durationMs": 1,
+      "parameterDigest": "21b0f4d8715902063a7ddb41da05b9c1646a55de45c3f2ddda50a6b93d15fd55",
+      "knowledgeReleaseId": "",
+      "indexReleaseId": ""
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 12,
+    "type": "tool.finished",
+    "sessionId": "2cf395fb-1bde-4fcf-ad81-f103be7c57ad",
+    "runId": "run-cdea4c96-9bac-4405-ae8e-7530998f527e",
+    "traceId": "e3a4d127",
+    "timestamp": "2026-10-30T12:43:19.140016Z",
+    "payload": {
+      "contractVersion": "v1",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "governanceEventId": "3752ee2d-d002-4f86-8dd5-4d7ae6dcd6b7",
+      "status": "SUCCEEDED",
+      "toolVersion": "1.0.0",
+      "battleFormatId": "casual-singles",
+      "language": "zh-CN",
+      "retryCount": 0,
+      "rulesetVersionId": "casual-v1",
+      "approvalId": "",
+      "toolName": "previewTeamChanges",
+      "dlcId": "",
+      "timing": {
+        "schemaVersion": "tool-timing-v1",
+        "scope": "CALLBACK_ATTEMPTS",
+        "attempts": [
+          {
+            "accepted": true,
+            "callbackStarted": true,
+            "callbackCompleted": true,
+            "queueWaitMs": 0,
+            "authorizationMs": 0,
+            "executionMs": 0,
+            "observedMs": 0
+          }
+        ],
+        "complete": true,
+        "queueWaitMs": 0,
+        "authorizationMs": 0,
+        "executionMs": 0,
+        "observedMs": 0
+      },
+      "durationMs": 1,
+      "parameterDigest": "21b0f4d8715902063a7ddb41da05b9c1646a55de45c3f2ddda50a6b93d15fd55",
+      "knowledgeReleaseId": "",
+      "indexReleaseId": ""
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 13,
+    "type": "usage",
+    "sessionId": "2cf395fb-1bde-4fcf-ad81-f103be7c57ad",
+    "runId": "run-cdea4c96-9bac-4405-ae8e-7530998f527e",
+    "traceId": "e3a4d127",
+    "timestamp": "2026-10-30T12:43:19.149531600Z",
+    "payload": {
+      "httpRequestCount": "UNKNOWN",
+      "recordsTruncated": false,
+      "modelCallCount": 2,
+      "contractVersion": "v1",
+      "knownSubtotal": {
+        "totalTokens": 13518,
+        "source": "COMPLETE_CALLS_ONLY",
+        "inputTokens": 13274,
+        "outputTokens": 244
+      },
+      "calls": [
+        {
+          "callNo": 1,
+          "mode": "CALL",
+          "outcome": "RETURNED",
+          "configuredModelId": "deepseek-flash",
+          "responseModelId": "deepseek-flash",
+          "requestedModelId": "deepseek-flash",
+          "pricing": {
+            "version": null,
+            "sha256": null,
+            "scope": null,
+            "selectedAt": "2026-10-30T12:43:16.896228600Z",
+            "matchedCardId": null
+          },
+          "durationMs": 753,
+          "firstTextDeltaMs": null,
+          "contextBudget": {
+            "schemaVersion": "context-budget-v1",
+            "estimator": "cl100k-base-proxy-v1",
+            "calibration": "PROXY_UNCALIBRATED",
+            "safetyPercent": 125,
+            "contextTokens": 32768,
+            "inputLimit": 30720,
+            "outputReserve": 2048,
+            "historyLimit": 4096,
+            "availableHistoryTurns": 0,
+            "omittedHistoryTurns": 0,
+            "requestsChecked": 1,
+            "status": "CHECKED",
+            "blockReason": null,
+            "lastEstimate": {
+              "inputTokens": 7895,
+              "history": 0,
+              "system": 1224,
+              "currentMessages": 401,
+              "toolDefinitions": 6270,
+              "toolResults": 0
+            },
+            "estimateSchemaVersion": "context-estimate-pair-v1",
+            "baseEstimate": {
+              "inputTokens": 6369,
+              "history": 0,
+              "system": 982,
+              "currentMessages": 326,
+              "toolDefinitions": 5061,
+              "toolResults": 0
+            }
+          },
+          "usageStatus": "PROVIDER_REPORTED",
+          "tokens": {
+            "totalTokens": 6205,
+            "source": "OPENAI_COMPATIBLE_RESPONSE",
+            "inputTokens": 6158,
+            "outputTokens": 47
+          },
+          "tokenEstimateComparison": {
+            "schemaVersion": "token-estimate-comparison-v1",
+            "status": "PAIR_RECORDED",
+            "baseInputTokens": 6369,
+            "budgetInputTokens": 7895,
+            "providerInputTokens": 6158,
+            "baseErrorTokens": 211,
+            "budgetErrorTokens": 1737,
+            "budgetCovered": true
+          },
+          "billingUsage": {
+            "schemaVersion": "billing-usage-v1",
+            "status": "REPORTED",
+            "cachedInputTokens": 5760,
+            "uncachedInputTokens": 398,
+            "reasoningOutputTokens": null,
+            "reasoningIncludedInOutput": true
+          },
+          "cost": {
+            "schemaVersion": "model-cost-v1",
+            "status": "UNKNOWN",
+            "kind": "REFERENCE_ESTIMATE_NOT_INVOICE",
+            "reason": "PRICING_DISABLED",
+            "currency": null,
+            "amount": null
+          }
+        },
+        {
+          "callNo": 2,
+          "mode": "CALL",
+          "outcome": "RETURNED",
+          "configuredModelId": "deepseek-flash",
+          "responseModelId": "deepseek-flash",
+          "requestedModelId": "deepseek-flash",
+          "pricing": {
+            "version": null,
+            "sha256": null,
+            "scope": null,
+            "selectedAt": "2026-10-30T12:43:17.671359900Z",
+            "matchedCardId": null
+          },
+          "durationMs": 1466,
+          "firstTextDeltaMs": null,
+          "contextBudget": {
+            "schemaVersion": "context-budget-v1",
+            "estimator": "cl100k-base-proxy-v1",
+            "calibration": "PROXY_UNCALIBRATED",
+            "safetyPercent": 125,
+            "contextTokens": 32768,
+            "inputLimit": 30720,
+            "outputReserve": 2048,
+            "historyLimit": 4096,
+            "availableHistoryTurns": 0,
+            "omittedHistoryTurns": 0,
+            "requestsChecked": 2,
+            "status": "CHECKED",
+            "blockReason": null,
+            "lastEstimate": {
+              "inputTokens": 9156,
+              "history": 0,
+              "system": 1224,
+              "currentMessages": 776,
+              "toolDefinitions": 6270,
+              "toolResults": 886
+            },
+            "estimateSchemaVersion": "context-estimate-pair-v1",
+            "baseEstimate": {
+              "inputTokens": 7391,
+              "history": 0,
+              "system": 982,
+              "currentMessages": 634,
+              "toolDefinitions": 5061,
+              "toolResults": 714
+            }
+          },
+          "usageStatus": "PROVIDER_REPORTED",
+          "tokens": {
+            "totalTokens": 7313,
+            "source": "OPENAI_COMPATIBLE_RESPONSE",
+            "inputTokens": 7116,
+            "outputTokens": 197
+          },
+          "tokenEstimateComparison": {
+            "schemaVersion": "token-estimate-comparison-v1",
+            "status": "PAIR_RECORDED",
+            "baseInputTokens": 7391,
+            "budgetInputTokens": 9156,
+            "providerInputTokens": 7116,
+            "baseErrorTokens": 275,
+            "budgetErrorTokens": 2040,
+            "budgetCovered": true
+          },
+          "billingUsage": {
+            "schemaVersion": "billing-usage-v1",
+            "status": "REPORTED",
+            "cachedInputTokens": 6144,
+            "uncachedInputTokens": 972,
+            "reasoningOutputTokens": null,
+            "reasoningIncludedInOutput": true
+          },
+          "cost": {
+            "schemaVersion": "model-cost-v1",
+            "status": "UNKNOWN",
+            "kind": "REFERENCE_ESTIMATE_NOT_INVOICE",
+            "reason": "PRICING_DISABLED",
+            "currency": null,
+            "amount": null
+          }
+        }
+      ],
+      "modelDurationMs": 2219,
+      "toolTimingsTruncated": false,
+      "cost": {
+        "schemaVersion": "model-cost-v1",
+        "status": "UNKNOWN",
+        "kind": "REFERENCE_ESTIMATE_NOT_INVOICE",
+        "reason": "PRICING_DISABLED",
+        "currency": null,
+        "amount": null
+      },
+      "totals": {
+        "totalTokens": 13518,
+        "source": "PROVIDER_REPORTED_SUM",
+        "inputTokens": 13274,
+        "outputTokens": 244
+      },
+      "toolTimings": [
+        {
+          "timing": {
+            "schemaVersion": "tool-timing-v1",
+            "scope": "CALLBACK_ATTEMPTS",
+            "attempts": [
+              {
+                "accepted": true,
+                "callbackStarted": true,
+                "callbackCompleted": true,
+                "queueWaitMs": 0,
+                "authorizationMs": 0,
+                "executionMs": 16,
+                "observedMs": 16
+              }
+            ],
+            "complete": true,
+            "queueWaitMs": 0,
+            "authorizationMs": 0,
+            "executionMs": 16,
+            "observedMs": 16
+          },
+          "toolName": "readCurrentTeam",
+          "eventId": "bf73baac-60fb-4570-974b-b53bdf9ddcd9"
+        },
+        {
+          "timing": {
+            "schemaVersion": "tool-timing-v1",
+            "scope": "CALLBACK_ATTEMPTS",
+            "attempts": [
+              {
+                "accepted": true,
+                "callbackStarted": true,
+                "callbackCompleted": true,
+                "queueWaitMs": 0,
+                "authorizationMs": 0,
+                "executionMs": 0,
+                "observedMs": 0
+              }
+            ],
+            "complete": true,
+            "queueWaitMs": 0,
+            "authorizationMs": 0,
+            "executionMs": 0,
+            "observedMs": 0
+          },
+          "toolName": "previewTeamChanges",
+          "eventId": "3752ee2d-d002-4f86-8dd5-4d7ae6dcd6b7"
+        }
+      ],
+      "responseTiming": {
+        "schemaVersion": "response-timing-v1",
+        "scope": "EXECUTION_ATTEMPT",
+        "origin": "TASK_REGISTERED",
+        "dispatchWaitMs": 0,
+        "firstAnswerReadyMs": null,
+        "answerPath": null,
+        "observedMs": 2283,
+        "deliveryMeasured": false
+      },
+      "coverage": "INSTRUMENTED",
+      "schemaVersion": "model-usage-v1",
+      "dlcId": "",
+      "contextBudget": {
+        "schemaVersion": "context-budget-v1",
+        "estimator": "cl100k-base-proxy-v1",
+        "calibration": "PROXY_UNCALIBRATED",
+        "safetyPercent": 125,
+        "contextTokens": 32768,
+        "inputLimit": 30720,
+        "outputReserve": 2048,
+        "historyLimit": 4096,
+        "availableHistoryTurns": 0,
+        "omittedHistoryTurns": 0,
+        "requestsChecked": 2,
+        "status": "CHECKED",
+        "blockReason": null,
+        "lastEstimate": {
+          "inputTokens": 9156,
+          "history": 0,
+          "system": 1224,
+          "currentMessages": 776,
+          "toolDefinitions": 6270,
+          "toolResults": 886
+        },
+        "estimateSchemaVersion": "context-estimate-pair-v1",
+        "baseEstimate": {
+          "inputTokens": 7391,
+          "history": 0,
+          "system": 982,
+          "currentMessages": 634,
+          "toolDefinitions": 5061,
+          "toolResults": 714
+        }
+      },
+      "knowledgeReleaseId": "",
+      "callsWithUsage": 2,
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "taskBudget": {
+        "schemaVersion": "task-budget-v1",
+        "scope": "RUN",
+        "budgetId": "dce6e2dd-70bf-443f-9f1c-833a91384f7a",
+        "accounting": "MAX_RESERVATION_OR_PROVIDER_V1",
+        "maxModelCalls": 16,
+        "tokenLimit": 131072,
+        "stateKnown": true,
+        "modelCalls": 2,
+        "reservedTokens": 21147,
+        "chargedTokens": 21147,
+        "remainingModelCalls": 14,
+        "remainingTokens": 109925,
+        "status": "ACTIVE",
+        "closed": false,
+        "blockReason": null
+      },
+      "language": "zh-CN",
+      "usageStatus": "COMPLETE",
+      "streamAggregation": "LAST_REPORTED_SNAPSHOT",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "battleFormatId": "casual-singles",
+      "indexReleaseId": "",
+      "scope": "EXECUTION_ATTEMPT",
+      "rulesetVersionId": "casual-v1",
+      "attemptId": "569b7ffb-e623-48d3-8d01-12695a96e1f1"
+    }
+  }
+]

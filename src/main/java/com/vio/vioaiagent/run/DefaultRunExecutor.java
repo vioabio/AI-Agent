@@ -135,7 +135,9 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
         if(chatModel!=null) {
             // The same bounded refusal also protects standalone agents. At the Run boundary
             // we can explicitly account for the known zero-call path before constructing a model client.
-            var scopeReply=com.vio.vioaiagent.agent.AccountScopeReply.reply(run.prompt());
+            var scopeReply=com.vio.vioaiagent.agent.AccountScopeReply.reply(run.prompt())
+                    .or(() -> com.vio.vioaiagent.agent.CompetitionClarification.reply(run.prompt()))
+                    .or(() -> com.vio.vioaiagent.agent.SourceInstructionReply.reply(run.prompt()));
             if(scopeReply.isPresent()) {
                 context.modelUsage().noModelCalls();
                 if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(scopeReply.get());
@@ -143,7 +145,9 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
             }
         }
         if(chatModel!=null && !evaluationPolicy.active()) {
-            var capability=com.vio.vioaiagent.agent.CapabilityCatalog.reply(run.prompt(),run.language(),context.constraints().responseStyle(),allTools);
+            var capability=com.vio.vioaiagent.agent.CapabilityCatalog.missingStatisticsReply(run.prompt(),run.language(),allTools)
+                    .or(() -> com.vio.vioaiagent.agent.CapabilityCatalog.unsupportedDamageReply(run.prompt(),run.language(),allTools))
+                    .or(() -> com.vio.vioaiagent.agent.CapabilityCatalog.reply(run.prompt(),run.language(),context.constraints().responseStyle(),allTools));
             if(capability.isPresent()) {
                 context.modelUsage().noModelCalls();
                 if(context.answerDeltaSink()!=null) context.answerDeltaSink().accept(capability.get());
@@ -164,6 +168,7 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
             agent.setAnswerDeltaSink(answerDeltaSink);
             agent.setMessageList(new java.util.ArrayList<>(context.history()));
             String transcript = agent.run(prompt);
+            if(agent.isProgramOnlyPreview()) context.modelUsage().noModelCalls();
             budget.throwIfBlocked();
             context.modelUsage().checkTaskBudget();
             if (answerDeltaSink != null && agent.getFinalAnswer() == null && run.status() != AgentRunStatus.WAITING_APPROVAL) {

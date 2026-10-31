@@ -30,9 +30,27 @@ public final class GuideAnswerEvidence {
     private final BuildCheckAnswerEvidence buildChecks=new BuildCheckAnswerEvidence();
     private final TeamBuildAnswerEvidence teamBuildChecks=new TeamBuildAnswerEvidence();
     private final MachineAnswerEvidence machines=new MachineAnswerEvidence();
-    public void begin(String prompt) { question=prompt;teamBuildChecks.begin(prompt); initialized = true; projectExplanation = ProjectGuideRequest.requiresSource(prompt); requested = GUIDE_REQUEST.matcher(prompt).find() || projectExplanation; }
+    public void begin(String prompt) { question=prompt;teamBuildChecks.begin(prompt); initialized = true; projectExplanation = ProjectGuideRequest.requiresSource(prompt); requested = GUIDE_REQUEST.matcher(prompt).find() || projectExplanation || (!TeamMutationIntent.requested(prompt) && java.util.regex.Pattern.compile("培养|搭配|对战策略").matcher(prompt).find()); }
     public boolean initialized() { return initialized; }
-    public boolean active() { return teamBuildChecks.attempted() || TeamBuildAnswerEvidence.requested(question) || machines.attempted() || MachineAnswerEvidence.requested(question) || requested || attempted || resourceAttempted || learnsets.attempted() || LearnsetAnswerEvidence.requested(question) || mechanics.attempted() || MechanicAnswerEvidence.requested(question) || buildChecks.attempted() || BuildCheckAnswerEvidence.requested(question)
+    public boolean needsReferenceTopic() {
+        if(question==null||question.length()>800||question.contains("\n")||TeamMutationIntent.requested(question)
+                ||Pattern.compile("```|输入：|读取|保存|修改|变更|计算|组队|联防|属性覆盖").matcher(question).find()
+                ||!Pattern.compile("图鉴|资料快照|资料版本|本地资料|PokéAPI",Pattern.CASE_INSENSITIVE).matcher(question).find()
+                ||!Pattern.compile("规则|赛事|排位|来源日期").matcher(question).find()
+                ||!Pattern.compile("检索|攻略|区分|解释").matcher(question).find())return false;
+        return hits.stream().noneMatch(h->"reference-vs-rules-v1".equals(h.document().id()));
+    }
+    public boolean needsTeamTopic() {
+        if(question==null||question.length()>800||question.contains("\n")||TeamMutationIntent.requested(question)
+                ||ProjectGuideRequest.requiresSource(question)
+                ||Pattern.compile("```|输入：|以下资料|读取|保存|修改|变更|计算").matcher(question).find()
+                ||!Pattern.compile("组队|队伍搭配|联防|属性覆盖").matcher(question).find()
+                ||!Pattern.compile("检索|攻略|笔记|为什么|为何").matcher(question).find())return false;
+        return hits.stream().noneMatch(h->h.document().applicability()!=null
+                &&!h.document().applicability().subjects().isEmpty()&&h.document().applicability().matchesSubject(question))
+                &&references.values().stream().noneMatch(f->question.contains(f.speciesNameZh())||question.toLowerCase(Locale.ROOT).contains(f.slug().toLowerCase(Locale.ROOT)));
+    }
+    public boolean active() { if (TeamMutationIntent.requested(question)) return false; return teamBuildChecks.attempted() || TeamBuildAnswerEvidence.requested(question) || machines.attempted() || MachineAnswerEvidence.requested(question) || requested || attempted || resourceAttempted || learnsets.attempted() || LearnsetAnswerEvidence.requested(question) || mechanics.attempted() || MechanicAnswerEvidence.requested(question) || buildChecks.attempted() || BuildCheckAnswerEvidence.requested(question)
             ||!OverviewResourceCoverage.requiredKinds(question).isEmpty()&&overviewTarget(question).isPresent(); }
     public boolean overviewReady(String rawQuestion) {
         return !TeamBuildAnswerEvidence.requested(rawQuestion)&&!MachineAnswerEvidence.requested(rawQuestion)&&!BuildCheckAnswerEvidence.requested(rawQuestion)&&!MechanicAnswerEvidence.requested(rawQuestion)&&!LearnsetAnswerEvidence.requested(rawQuestion)&&!hits.isEmpty()&&overviewReferenceReady(rawQuestion)
@@ -156,6 +174,47 @@ public final class GuideAnswerEvidence {
     }
     public String verifiedAnswer() {
         return verifiedAnswer(true);
+    }
+    /** Bounded reference lookup, not an interpretation of arbitrary strategy questions. */
+    public Optional<String> basicFactAnswer() {
+        if (question == null || question.length() > 600 || references.isEmpty() || partialReferenceFailure
+                || active() || question.contains("\n") || question.contains("```")
+                || !Pattern.compile("种族值|基础数值|图鉴属性").matcher(question).find()
+                || Pattern.compile("培养|建议|搭配|攻略|配招|努力值|个体值|计算|伤害|对比|比较|克制|弱点|特性|招式|保存|修改|队伍").matcher(question).find())
+            return Optional.empty();
+        String lower = question.toLowerCase(Locale.ROOT);
+        if (references.values().stream().anyMatch(f -> !question.contains(f.speciesNameZh())
+                && !Pattern.compile("(?<![a-z0-9-])" + Pattern.quote(f.slug().toLowerCase(Locale.ROOT)) + "(?![a-z0-9-])")
+                .matcher(lower).find())) return Optional.empty();
+        StringBuilder text = new StringBuilder(referenceSummary());
+        for (var f : references.values()) text.append(EvidenceText.inline(f.speciesNameZh()))
+                .append("的种族值合计：")
+                .append(f.hp() + f.attack() + f.defense() + f.spAttack() + f.spDefense() + f.speed()).append("。\n");
+        return Optional.of(text.append("\n以上为本次已读取成员的本地参考快照，不是历史补丁或实时赛事规则记录；未读取的成员不作确认。")
+                .append("种族值不是任意等级的实际能力值，后者还取决于等级、个体值、努力值和性格。")
+                .append("仅凭这些数据不能证明当前排位合法、热门程度或最优培养。确认合法性还需目标赛制的官方规则与具体配置。\n").toString());
+    }
+    public Optional<String> speedComparisonAnswer() {
+        if(question==null)return Optional.empty();
+        // A declined topic is not a request for that topic. Only remove a closed
+        // list of explicit negative clauses; positive/mixed requests remain guarded.
+        String declined="(?:实际出手顺序|额外特性介绍|特性(?:介绍|效果|内容)?|机制(?:效果|说明)?)";
+        String requested=question.replaceAll("(?:不要|无需|不必)(?:给|提供|补充|展开|介绍|讨论)?"+declined+"(?:[或和与、]"+declined+")*","");
+        if(question.length()>600||references.size()!=2||partialReferenceFailure||active()
+                ||question.contains("\n")||!question.contains("速度种族值")
+                ||!Pattern.compile("对比|比较").matcher(question).find()
+                ||Pattern.compile("培养|搭配|配招|克制|特性|道具|伤害|攻击|防御|特攻|特防|HP|生命").matcher(requested).find())return Optional.empty();
+        var values=new ArrayList<>(references.values());var a=values.get(0);var b=values.get(1);
+        String first="(?:"+Pattern.quote(a.speciesNameZh())+"|"+Pattern.quote(a.slug())+")";
+        String second="(?:"+Pattern.quote(b.speciesNameZh())+"|"+Pattern.quote(b.slug())+")";
+        String head=question.strip().split("[，,；;。]",2)[0];
+        String pair="(?:"+first+"(?:和|与|、)"+second+"|"+second+"(?:和|与|、)"+first+")";
+        if(!Pattern.compile("^(?:请)?(?:查|查询|读取)?"+pair+"的(?:资料|图鉴)$",Pattern.CASE_INSENSITIVE).matcher(head).matches())return Optional.empty();
+        int delta=a.speed()-b.speed();
+        return Optional.of(referenceSummary()+"### 速度种族值比较（程序核对）\n"
+                +EvidenceText.inline(a.speciesNameZh())+"："+a.speed()+"；"+EvidenceText.inline(b.speciesNameZh())+"："+b.speed()+"。\n"
+                +(delta==0?"两者速度种族值相同。":EvidenceText.inline(a.speciesNameZh())+"比"+EvidenceText.inline(b.speciesNameZh())+(delta>0?"高":"低")+Math.abs(delta)+"点。")
+                +"\n这些不是同等级的实际速度，不能据此保证实战先手；本次未核对特性、招式或机制，不补充相关断言。\n");
     }
     public String verifiedAnswer(boolean includeReferences) {
         if(teamBuildChecks.attempted()||TeamBuildAnswerEvidence.requested(question))return teamBuildChecks.summary(question);
