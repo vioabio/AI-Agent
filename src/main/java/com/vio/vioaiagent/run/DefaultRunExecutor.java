@@ -168,7 +168,7 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
             agent.setAnswerDeltaSink(answerDeltaSink);
             agent.setMessageList(new java.util.ArrayList<>(context.history()));
             String transcript = agent.run(prompt);
-            if(agent.isProgramOnlyPreview()) context.modelUsage().noModelCalls();
+            if(agent.isProgramOnlyPreview() || agent.isProgramOnlyTrends()) context.modelUsage().noModelCalls();
             budget.throwIfBlocked();
             context.modelUsage().checkTaskBudget();
             if (answerDeltaSink != null && agent.getFinalAnswer() == null && run.status() != AgentRunStatus.WAITING_APPROVAL) {

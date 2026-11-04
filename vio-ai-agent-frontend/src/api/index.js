@@ -607,6 +607,14 @@ export async function fetchPokemonReferenceStatus({ signal } = {}) {
   }), '读取参考资料配置失败')
 }
 
+/** Bundled Chinese/English species index; independent of live PokéAPI availability. */
+export async function fetchPokemonNames({ signal } = {}) {
+  const response = await authenticatedFetch(`${API_BASE_URL}/pokemon/reference/names?limit=2048`, {
+    credentials: 'include', signal, headers: requestHeaders()
+  })
+  return readJson(response, '读取图鉴名称索引失败')
+}
+
 export async function fetchPokemonReference(query, { dataReleaseId, signal } = {}) {
   return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/reference/pokemon/${encodeURIComponent(query)}${queryString({ dataReleaseId })}`, {
     credentials: 'include', signal, headers: requestHeaders()

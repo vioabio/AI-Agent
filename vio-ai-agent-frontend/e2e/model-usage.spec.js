@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test'
 test.use({ video: 'off' })
+// Usage and execution details are opt-in workspace developer features.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('vio.workspace.developer-mode', 'true'))
+})
 for (const width of [1440, 390]) {
   test(`历史消息中的用量默认折叠并适配网页 ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 900 })
@@ -91,7 +95,7 @@ test('连续发送后上一条回答保留用量，当前任务不重复展示',
     await expect(page.getByLabel('模型用量与耗时')).toHaveCount(number)
     await expect(input).toBeEnabled()
   }
-  await expect(page.locator('.message-content .model-usage-details')).toHaveCount(1)
+  await expect(page.locator('.message-content .model-usage-details')).toHaveCount(2)
   await page.locator('.process-details summary').click()
   await expect(page.locator('.tool-timeline li')).toHaveCount(2)
   await expect(page.locator('.tool-timeline li').first()).toContainText('复用本次任务结果')

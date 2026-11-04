@@ -26,6 +26,8 @@ public final class CapabilityCatalog {
                 ||!Pattern.compile("这周|今天|本周|当前|最近").matcher(request).find()
                 ||!Pattern.compile("(?:胜率|使用率).{0,8}(?:最高|第一|排名)|(?:最强|热门).{0,5}(?:阵容|配招)").matcher(request).find())return Optional.empty();
         if(tools!=null&&Arrays.stream(tools).filter(Objects::nonNull).anyMatch(t->"searchWeb".equals(t.getToolDefinition().name())))return Optional.empty();
+        if(tools!=null&&Arrays.stream(tools).filter(Objects::nonNull).anyMatch(t->"lookupCompetitiveTrends".equals(t.getToolDefinition().name()))
+                &&CompetitiveTrendsRequest.select(request,List.of()).isPresent())return Optional.empty();
         return Optional.of("当前入口未启用实时搜索，本次没有执行赛事统计检索。缺少带赛事名称、日期、赛制与统计口径的可靠来源，不能判定当前胜率最高的配招或使用率第一的阵容。"
                 +"本地图鉴和项目攻略不属于实时赛事统计，也不能证明当前排名或参赛合法性。请提供相应来源后再核对，不编造百分比或榜单。\n");
     }

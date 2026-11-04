@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test'
 test.use({ video: 'off' })
+// Usage and execution details are opt-in workspace developer features.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('vio.workspace.developer-mode', 'true'))
+})
 const timing = { schemaVersion: 'response-timing-v1', scope: 'EXECUTION_ATTEMPT', origin: 'TASK_REGISTERED',
   dispatchWaitMs: 20, firstAnswerReadyMs: 50, observedMs: 60, answerPath: 'BUFFERED', deliveryMeasured: false }
 const tool = { schemaVersion: 'tool-timing-v1', scope: 'CALLBACK_ATTEMPTS', complete: true, queueWaitMs: 12,

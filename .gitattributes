@@ -1,6 +1,9 @@
 /mvnw text eol=lf
 *.cmd text eol=crlf
 
+# Bundled upstream identity tables are verified against exact byte digests.
+/src/main/resources/pokemon-reference/*.csv -text
+
 # Preserve new captured evidence bytes used by verification manifests.
 /document/秋招升级/S2/evidence/team-answer-review-final-v1/** -text
 /document/秋招升级/S2/evidence/team-answer-review-v1/** -text

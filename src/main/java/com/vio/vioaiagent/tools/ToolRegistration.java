@@ -13,6 +13,7 @@ import com.vio.vioaiagent.config.ResourceDownloadProperties;
  */
 @Configuration
 public class ToolRegistration {
+    private final CompetitiveTrendsTool trendsTool = new CompetitiveTrendsTool();
 
     /** 可选治理网关；未加载治理模块时保留旧工具注册行为。 */
     @Autowired(required = false)
@@ -21,8 +22,14 @@ public class ToolRegistration {
     @Value("${search-api.api-key:}")
     private String searchApiKey;
 
+    @Value("${search-api.engine:google}")
+    private String searchEngine = "google";
+
     @Value("${vio.tools.search.enabled:true}")
     private boolean searchEnabled = true;
+
+    @Value("${vio.tools.trends.enabled:true}")
+    private boolean trendsEnabled = true;
 
     @Value("${vio.tools.high-risk.enabled:false}")
     private boolean highRiskToolsEnabled;
@@ -83,9 +90,10 @@ public class ToolRegistration {
         PokeTypeTool pokeTypeTool = new PokeTypeTool();
         // 终止工具属于控制面低风险能力；即使高风险工具关闭，Agent 也能显式结束。
         ToolCallback[] base = searchEnabled && WebSearchTool.isConfigured(searchApiKey)
-                ? ToolCallbacks.from(pokeTypeTool, new WebSearchTool(searchApiKey), new TerminateTool())
+                ? ToolCallbacks.from(pokeTypeTool, new WebSearchTool(searchApiKey, searchEngine), new TerminateTool())
                 : ToolCallbacks.from(pokeTypeTool, new TerminateTool());
         java.util.List<ToolCallback> tools = new java.util.ArrayList<>(java.util.Arrays.asList(base));
+        if (searchEnabled && trendsEnabled) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(trendsTool)));
         if (teamWorkflow != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(teamWorkflow)));
         if (referenceRepository != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.PokemonReferenceTools(referenceRepository,toolScope,resourceReferences))));
         if (learnsetReferences != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.PokemonLearnsetController.Tools(learnsetReferences,toolScope))));

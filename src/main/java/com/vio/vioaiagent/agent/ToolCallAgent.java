@@ -86,6 +86,7 @@ public class ToolCallAgent extends ReActAgent {
     private boolean suppliedTeamAttempted;
     private TeamDraftIdentityEvidence draftIdentity;
     private boolean programOnlyPreview;
+    private boolean programOnlyTrends;
     private int movePreviewStage;
     private boolean mainGuideTopicAttempted;
     private final java.util.Set<String> overviewResourceAttempts=new java.util.HashSet<>();
@@ -144,6 +145,7 @@ public class ToolCallAgent extends ReActAgent {
             setState(AgentState.FINISHED);
             return false;
         }
+        if (answerCompetitiveTrends(currentQuestion)) return false;
         if (draftIdentity == null) draftIdentity = new TeamDraftIdentityEvidence(currentQuestion);
         if (teamAnswerEvidence != null && !teamAnswerEvidence.initialized()) {
             teamAnswerEvidence.begin(currentQuestion);
@@ -236,6 +238,70 @@ public class ToolCallAgent extends ReActAgent {
             getMessageList().add(new AssistantMessage("思考时遇到错误：" + e.getMessage()));
             return false;
         }
+    }
+
+    private boolean answerCompetitiveTrends(String question) {
+        var plan = CompetitiveTrendsRequest.select(question, getMessageList());
+        if (plan.isEmpty() || Arrays.stream(availableTools).noneMatch(t -> "lookupCompetitiveTrends".equals(t.getToolDefinition().name()))) return false;
+        var selected = plan.get();
+        if (selected.format().isEmpty()) {
+            programOnlyTrends = true;
+            finalAnswer = publishVerified(CompetitiveTrendsRequest.clarification());
+            setState(AgentState.FINISHED); return true;
+        }
+        String toolName = selected.webSearch() ? "searchWeb" : "lookupCompetitiveTrends";
+        var callback = Arrays.stream(availableTools).filter(t -> toolName.equals(t.getToolDefinition().name())).findFirst().orElse(null);
+        if (selected.webSearch() && callback == null) {
+            programOnlyTrends = true;
+            finalAnswer = publishVerified("### 获取对应赛事的真实队伍\n请补充游戏、VGC规则（Regulation）、赛事或赛季日期。"
+                    + "当前未配置通用联网搜索，本次没有执行赛事检索；可先在 [Limitless赛事记录](https://play.limitlesstcg.com/tournaments/completed?game=VGC) 查找对应比赛。"
+                    + "启用搜索服务后可在助手中检索队伍来源；Showdown OU 使用率不能替代官方VGC队伍或胜率。\n");
+            setState(AgentState.FINISHED); return true;
+        }
+        var parent = ToolExecutionContextHolder.peek();
+        if (callback == null || toolExecutionGateway == null || parent == null) return false;
+        programOnlyTrends = true;
+        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        String answer;
+        try {
+            if (Thread.currentThread().isInterrupted()) throw new java.util.concurrent.CancellationException("Run cancelled");
+            String query = "Pokémon " + java.time.LocalDate.now(java.time.ZoneOffset.UTC) + " " + selected.query() + " team tournament results site:play.limitlesstcg.com OR site:victoryroad.pro";
+            String input = mapper.writeValueAsString(selected.webSearch() ? java.util.Map.of("query", query) : java.util.Map.of("format", selected.format()));
+            var marked = parent.withEventSink(event -> {
+                var attributes = new java.util.LinkedHashMap<String,Object>(event.attributes());
+                attributes.put("selectionOrigin", "PROGRAM_CURRENT_META_SOURCE");
+                parent.eventSink().accept(new com.vio.vioaiagent.tools.governance.ToolGovernanceEvent(event.eventType(),event.runId(),event.toolName(),event.eventId(),event.occurredAt(),attributes));
+            });
+            var result = toolExecutionGateway.execute(callback, input, marked);
+            String output = result.toModelText();
+            String id = "current-meta-" + java.util.UUID.randomUUID();
+            getMessageList().add(new AssistantMessage("", java.util.Map.of("selectionOrigin", "PROGRAM_CURRENT_META_SOURCE"), List.of(new AssistantMessage.ToolCall(id,"function",toolName,input))));
+            getMessageList().add(new ToolResponseMessage(List.of(new ToolResponseMessage.ToolResponse(id,toolName,output))));
+            if (result.status() != com.vio.vioaiagent.tools.governance.ToolGovernanceResult.Status.EXECUTED
+                    && result.status() != com.vio.vioaiagent.tools.governance.ToolGovernanceResult.Status.DEDUPLICATED)
+                throw new IllegalStateException("在线资料读取未成功");
+            if (selected.webSearch()) {
+                answer = "### 在线赛事资料检索\n检索日期：" + java.time.LocalDate.now(java.time.ZoneOffset.UTC)
+                        + "\n以下为搜索服务实际返回的摘要，仅作为查阅入口；未读取完整队表，不能据此宣布当前最强队伍或胜率。\n\n" + output;
+            } else {
+                var snapshot = mapper.readValue(output, com.vio.vioaiagent.tools.CompetitiveTrendsTool.Snapshot.class);
+                StringBuilder text = new StringBuilder("### 最新已发布的使用率参考\n**赛制：").append(snapshot.format())
+                        .append("** · 统计月份：**").append(snapshot.month()).append("**\n\n统计口径：").append(snapshot.rating())
+                        .append("；样本对战数：").append(snapshot.battles()).append("；抓取时间：").append(snapshot.retrievedAt()).append("。\n\n| 排名 | 宝可梦 | 使用率 |\n| --- | --- | --- |\n");
+                for (var entry : snapshot.entries()) {
+                    String name = com.vio.vioaiagent.pokemon.reference.PokemonNameIndex.all().stream()
+                            .filter(n -> n.slug().replace('-', ' ').equalsIgnoreCase(entry.pokemon()))
+                            .map(n -> n.nameZh() + "（" + entry.pokemon() + "）").findFirst().orElse(entry.pokemon());
+                    text.append("| ").append(entry.rank()).append(" | ").append(name).append(" | ").append(entry.usagePercent()).append("% |\n");
+                }
+                answer = text.append("\n[查看Smogon原始统计](").append(snapshot.sourceUrl()).append(")\n\n**如何用于组队：**先选想使用的核心，再结合角色、属性覆盖和实际对局计算补齐成员；前六名不能直接拼成一支热门队伍。\n\n")
+                        .append(snapshot.limitation()).append("统计发布存在延迟，缓存最长15分钟；该结果不更改当前休闲赛制，也没有保存队伍。\n").toString();
+            }
+        } catch (java.util.concurrent.CancellationException cancelled) { throw cancelled; }
+        catch (Exception failure) {
+            answer = "### 在线资料暂未取得\n本次未取得可核验的在线统计，不能确认当前热门队伍。请稍后重试；若查询VGC，请同时提供游戏、规则与赛事日期。不会用本地旧攻略代替最新榜单。\n";
+        }
+        finalAnswer = publishVerified(answer); setState(AgentState.FINISHED); return true;
     }
 
     private boolean planMovePreview(String question) {

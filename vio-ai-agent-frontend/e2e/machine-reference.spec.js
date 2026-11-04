@@ -23,7 +23,7 @@ for(const width of [1440,390])test(`学习器编号、缺失、过期和迟到�
   return route.fulfill({json:[]})
  })
  await page.goto('/pokemon-workbench')
- await page.getByRole('textbox',{name:'查询目标',exact:true}).fill('杰尼龟')
+ await page.getByRole('combobox',{name:'宝可梦名称或编号',exact:true}).fill('杰尼龟')
  await page.getByRole('button',{name:'查询',exact:true}).click()
  await page.getByRole('button',{name:'加入队伍',exact:true}).click()
  for(const [index,move]of ['water-pulse','ice-beam','protect','surf'].entries())await page.getByLabel(`第 1 位第 ${index+1} 个招式`,{exact:true}).fill(move)

@@ -9,7 +9,7 @@ import { computed, ref, watch } from 'vue'
 const props = defineProps({ formId: { type: [String, Number], default: '' }, name: { type: String, default: '' } })
 const failed = ref(false)
 const validId = computed(() => Number.isSafeInteger(Number(props.formId)) && Number(props.formId) > 0 && Number(props.formId) <= 20000)
-const src = computed(() => [1, 6, 7, 25].includes(Number(props.formId))
+const src = computed(() => [1, 6, 7, 25, 445].includes(Number(props.formId))
   ? `/pokemon/${Number(props.formId)}.png`
   : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${Number(props.formId)}.png`)
 watch(src, () => { failed.value = false })

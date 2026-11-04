@@ -1,5 +1,5 @@
 <template>
-  <button class="preferences-toggle" type="button" :disabled="disabled" @click="open">对话偏好</button>
+  <button class="preferences-toggle" :class="{ compact }" type="button" aria-label="对话偏好" title="对话偏好" :disabled="disabled" @click="open"><UiIcon v-if="compact" name="settings" /><span v-else>对话偏好</span></button>
   <div v-if="opened" class="preferences-overlay" @keydown.esc="close" @keydown.tab="trapFocus">
     <section role="dialog" aria-modal="true" aria-labelledby="preferences-title" class="preferences-dialog">
       <header><h2 id="preferences-title">本次对话偏好</h2><button ref="closeButton" type="button" aria-label="关闭对话偏好" :disabled="saving" @click="close">×</button></header>
@@ -29,7 +29,8 @@
 import { ref, nextTick, watch, onBeforeUnmount } from 'vue'
 import { fetchConversationConstraints, saveConversationConstraints } from '@/api'
 import { defaultConstraints, normalizeConstraints } from '@/api/conversation-constraints'
-const props = defineProps({ conversationId: { type: String, required: true }, disabled: Boolean })
+import UiIcon from '@/components/UiIcon.vue'
+const props = defineProps({ conversationId: { type: String, required: true }, disabled: Boolean, compact: Boolean })
 const emit = defineEmits(['busy'])
 const opened = ref(false), loading = ref(false), saving = ref(false), saved = ref(false)
 const error = ref(''), loadError = ref(''), draft = ref(defaultConstraints()), closeButton = ref(null)

@@ -3,7 +3,6 @@ import { test, expect } from '@playwright/test'
 test.use({ video: 'off' })
 
 const WORKBENCH_PATH = '/pokemon-workbench'
-const WORKBENCH_TITLE = '宝可梦助手'
 const LOGIN_PATH = '/api/oauth2/authorization/vio'
 const LOGOUT_PATH = '/api/logout'
 const SESSION_PATH = '/api/auth/session'
@@ -122,7 +121,7 @@ async function open(page, state) {
 }
 
 async function expectWorkbench(page) {
-  await expect(page.getByRole('heading', { name: WORKBENCH_TITLE })).toBeVisible()
+  await expect(page.locator('.workspace-header h1')).toBeVisible()
   await expect(page.getByTestId('auth-gate')).toHaveCount(0)
 }
 
@@ -170,7 +169,7 @@ async function expectLogoutIncomplete(page, state) {
   expect(state.sessionReads).toBe(reads)
   await expect(page.getByRole('heading', { name: '退出未完成', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: '重试退出', exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: WORKBENCH_TITLE })).toHaveCount(0)
+  await expect(page.locator('.workspace-header h1')).toHaveCount(0)
   await expect(page.getByTestId('session-toolbar')).toHaveCount(0)
   await expect(page.getByRole('heading', { name: '登录后继续', exact: true })).toHaveCount(0)
   expect(state.requests.filter(item => item.path === LOGIN_PATH)).toHaveLength(0)
@@ -182,7 +181,7 @@ test.describe('浏览器会话门禁（本地 fixture）', () => {
     await open(page, state)
     await expect(page.getByTestId('auth-gate')).toBeVisible()
     await expect(page.getByRole('heading', { name: '登录后继续', exact: true })).toBeVisible()
-    await expect(page.getByRole('heading', { name: WORKBENCH_TITLE })).toHaveCount(0)
+    await expect(page.locator('.workspace-header h1')).toHaveCount(0)
     expect(state.businessRequests).toHaveLength(0)
     expect(state.requests.filter(item => item.path === LOGIN_PATH)).toHaveLength(0)
     const origin = new URL(page.url()).origin
@@ -222,7 +221,7 @@ test.describe('浏览器会话门禁（本地 fixture）', () => {
     await expectNoStoredSecrets(page)
     await page.getByRole('button', { name: '退出登录', exact: true }).click()
     await expect(page.getByRole('heading', { name: '登录后继续', exact: true })).toBeVisible()
-    await expect(page.getByRole('heading', { name: WORKBENCH_TITLE })).toHaveCount(0)
+    await expect(page.locator('.workspace-header h1')).toHaveCount(0)
     const index = state.requests.findIndex(item => item.path === LOGOUT_PATH)
     expect(index).toBeGreaterThan(0)
     expect(state.requests[index - 1]).toMatchObject({ path: SESSION_PATH, method: 'GET' })
@@ -267,7 +266,7 @@ test.describe('浏览器会话门禁（本地 fixture）', () => {
     await seedPointers(page)
     await page.clock.fastForward(2_100)
     await expect(page.getByRole('heading', { name: '登录已过期', exact: true })).toBeVisible()
-    await expect(page.getByRole('heading', { name: WORKBENCH_TITLE })).toHaveCount(0)
+    await expect(page.locator('.workspace-header h1')).toHaveCount(0)
     await expectClearedPointers(page)
     const requestsAfterExpiry = state.businessRequests.length
     await page.clock.fastForward(60_000)
@@ -281,7 +280,7 @@ test.describe('浏览器会话门禁（本地 fixture）', () => {
     await seedPointers(page)
     await page.locator('.facts-panel button[type=submit]').click()
     await expect(page.getByRole('heading', { name: '登录已过期', exact: true })).toBeVisible()
-    await expect(page.getByRole('heading', { name: WORKBENCH_TITLE })).toHaveCount(0)
+    await expect(page.locator('.workspace-header h1')).toHaveCount(0)
     await expect(page.getByTestId('session-toolbar')).toHaveCount(0)
     await expectClearedPointers(page)
     expect(state.requests.filter(item => item.path === LOGIN_PATH)).toHaveLength(0)
@@ -312,7 +311,7 @@ test.describe('浏览器会话门禁（本地 fixture）', () => {
       await open(page, state)
       await expect(page.getByRole('heading', { name: '登录状态暂时不可用', exact: true })).toBeVisible()
       await expect(page.getByRole('button', { name: '重试', exact: true })).toBeVisible()
-      await expect(page.getByRole('heading', { name: WORKBENCH_TITLE })).toHaveCount(0)
+      await expect(page.locator('.workspace-header h1')).toHaveCount(0)
       expect(state.businessRequests).toHaveLength(0)
       expect(state.requests.filter(item => item.path === LOGIN_PATH || item.path === LOGOUT_PATH)).toHaveLength(0)
       await expect(page).toHaveURL(/\/game-master(?:\?|$)/)

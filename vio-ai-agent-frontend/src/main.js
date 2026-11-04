@@ -5,6 +5,7 @@ import { createHead } from '@unhead/vue/client'
 import './styles/workspace.css'
 import './styles/reference-layout.css'
 import './styles/accounts.css'
+import './styles/reading-workspace.css'
 
 const app = createApp(App)
 const head = createHead()

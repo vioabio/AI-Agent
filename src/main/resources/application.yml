@@ -84,7 +84,8 @@ springdoc:
 # knife4j 因与 Spring Boot 3.5 不兼容暂时移除，改用 Swagger UI
 # 🔒 SearchAPI Key 请在 application-local.yml 中配置（该文件已被 .gitignore 忽略）
 search-api:
-  # api-key: your-searchapi-key-here
+  api-key: ${SEARCH_API_KEY:}
+  engine: ${SEARCH_API_ENGINE:google}
 # ==================== 安全配置 ====================
 # 默认关闭，生产环境通过 application-prod.yml 覆盖为 true
 vio:
@@ -131,6 +132,10 @@ vio:
   mcp:
     enabled: false
   tools:
+    search:
+      enabled: ${VIO_TOOLS_SEARCH_ENABLED:true}
+    trends:
+      enabled: ${VIO_TOOLS_TRENDS_ENABLED:true}
     execution:
       # 独立工具池；超时包含排队，不响应中断的回调继续占用原 worker。
       thread-count: ${VIO_TOOL_THREAD_COUNT:8}

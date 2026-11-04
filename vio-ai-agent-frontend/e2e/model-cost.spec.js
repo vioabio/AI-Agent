@@ -2,6 +2,10 @@ import { test, expect } from '@playwright/test'
 import fixture from './fixtures/model-cost.json' with { type: 'json' }
 
 test.use({ video: 'off' })
+// Usage and execution details are opt-in workspace developer features.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('vio.workspace.developer-mode', 'true'))
+})
 for (const width of [1440, 390]) {
   test(`参考费用与缺失明细适配网页 ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 900 })

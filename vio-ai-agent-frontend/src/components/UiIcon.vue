@@ -20,6 +20,7 @@ const paths = {
   chevron: ['m6 9 6 6 6-6'],
   arrow: ['M4 12h16m-6-6 6 6-6 6'],
   menu: ['M4 6h16M4 12h16M4 18h16'],
+  collapse: ['m11 6-6 6 6 6m7-12-6 6 6 6'],
   close: ['m6 6 12 12M6 18 18 6'],
   chart: ['M4 20V10h3v10H4ZM10 20V4h3v16h-3ZM16 20V7h3v13h-3'],
   search: ['M16 10a6 6 0 1 1-12 0 6 6 0 0 1 12 0Zm-2 4 6 6'],

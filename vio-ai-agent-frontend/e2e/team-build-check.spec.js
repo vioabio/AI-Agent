@@ -25,7 +25,7 @@ for(const width of [1440,390])test(`整队核对、错误汇总、重试与配�
  })
  await page.goto('/pokemon-workbench')
  const panel=page.locator('.team-build-check-panel:visible'),button=panel.getByRole('button',{name:'检查整队配置',exact:true})
- await page.getByRole('textbox',{name:'查询目标',exact:true}).fill('杰尼龟');await page.getByRole('button',{name:'查询',exact:true}).click();await page.getByRole('button',{name:'加入队伍',exact:true}).click()
+ await page.getByRole('combobox',{name:'宝可梦名称或编号',exact:true}).fill('杰尼龟');await page.getByRole('button',{name:'查询',exact:true}).click();await page.getByRole('button',{name:'加入队伍',exact:true}).click()
  for(const [i,move]of ['water-pulse','ice-beam','protect','surf'].entries())await page.getByLabel(`第 1 位第 ${i+1} 个招式`,{exact:true}).fill(move)
  await page.getByLabel('第 1 位特性',{exact:true}).fill('torrent')
  await expect(button).toBeEnabled()

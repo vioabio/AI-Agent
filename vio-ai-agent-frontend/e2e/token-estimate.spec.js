@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 test.use({ video: 'off' })
+// Usage and execution details are opt-in workspace developer features.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('vio.workspace.developer-mode', 'true'))
+})
 function usage(base, budget, attemptId) {
   const fixture=JSON.parse(readFileSync(new URL('./fixtures/model-cost.json',import.meta.url)))
   fixture.attemptId=attemptId

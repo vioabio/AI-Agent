@@ -31,7 +31,7 @@ for(const width of [1440,390])test(`配方数量、来源差异、重试与配�
   return route.fulfill({json:[]})
  })
  await page.goto('/pokemon-workbench')
- await page.getByRole('textbox',{name:'查询目标',exact:true}).fill('杰尼龟');await page.getByRole('button',{name:'查询',exact:true}).click();await page.getByRole('button',{name:'加入队伍',exact:true}).click()
+ await page.getByRole('combobox',{name:'宝可梦名称或编号',exact:true}).fill('杰尼龟');await page.getByRole('button',{name:'查询',exact:true}).click();await page.getByRole('button',{name:'加入队伍',exact:true}).click()
  for(const [i,move]of ['water-pulse','ice-beam','protect','surf'].entries())await page.getByLabel(`第 1 位第 ${i+1} 个招式`,{exact:true}).fill(move)
  await page.getByLabel('第 1 位特性',{exact:true}).fill('torrent')
  const panel=page.locator('.build-check-panel:visible'),check=panel.getByRole('button',{name:'检查当前配招',exact:true})

@@ -1,13 +1,14 @@
 <template>
-  <section v-if="run" class="run-panel" :class="{ 'has-team-preview': !!run.approval?.teamChange }" aria-live="polite">
+  <section v-if="run" class="run-panel" :class="{ 'has-team-preview': !!run.approval?.teamChange, 'compact-run': compact }" aria-live="polite">
     <div class="run-summary">
       <span class="run-status" :class="run.status">{{ statusLabel(run.status) }}</span>
-      <span class="transport-badge" title="事件快照 · 游标可重连；按游标补读，支持断线重连">回答与资料记录</span>
+      <span v-if="!compact" class="transport-badge" title="事件快照 · 游标可重连；按游标补读，支持断线重连">回答与资料记录</span>
+      <button v-if="compact" class="run-details-toggle" type="button" :aria-expanded="detailsOpen" @click="detailsOpen = !detailsOpen"><UiIcon name="info" />{{ sourceCount ? `来源 ${sourceCount}` : '来源与详情' }}<UiIcon name="chevron" /></button>
       <span v-if="run.streamError === 'UNREGISTERED_EVENT_TYPE'" class="protocol-warning" role="status">
         检测到未登记事件，已忽略不展示
       </span>
       <button
-        v-if="canCancel"
+        v-if="canCancel && !compact"
         class="cancel-btn"
         type="button"
         @click="$emit('cancel', run.runId)"
@@ -15,7 +16,7 @@
         停止任务
       </button>
       <button
-        v-if="run.status === 'reconnecting'"
+        v-if="run.status === 'reconnecting' && !compact"
         class="retry-btn"
         type="button"
         @click="$emit('reconnect', run.runId)"
@@ -24,10 +25,11 @@
       </button>
     </div>
 
+    <div v-show="!compact || detailsOpen" class="run-evidence-details">
     <details class="audit-details">
     <summary>资料版本与反馈（可选）</summary>
-    <code v-if="run.runId">Run {{ run.runId }}</code>
-    <code v-if="run.traceId" class="trace-id">trace {{ run.traceId }}</code>
+    <code v-if="run.runId && (!compact || developerMode)">Run {{ run.runId }}</code>
+    <code v-if="run.traceId && (!compact || developerMode)" class="trace-id">trace {{ run.traceId }}</code>
     <div v-if="canGiveFeedback" class="feedback-card" aria-label="回答反馈">
       <span>这次回答对你有帮助吗？</span>
       <button type="button" class="feedback-btn" @click="$emit('feedback', { answerId: run.answerId, feedbackType: 'HELPFUL' })">
@@ -121,6 +123,17 @@
       </ul>
     </details>
 
+    <ul v-if="run.citations?.length" class="citation-list">
+      <li v-for="(citation, index) in run.citations" :key="citation.id || citation.url || index">
+        <a v-if="citationUrl(citation)" :href="citationUrl(citation)" target="_blank" rel="noopener noreferrer">
+          {{ citation.title || citation.sourceTitle || citationUrl(citation) }}
+        </a>
+        <span v-else>{{ citation.title || citation.sourceTitle || citation.text || citation.evidenceText || citation }}</span>
+      </li>
+    </ul>
+
+    </div>
+
     <div v-if="run.approval" class="approval-card">
       <strong>{{ run.approval.teamChange ? '队伍修改预览' : '需要人工审批' }}</strong>
       <template v-if="run.approval.teamChange">
@@ -143,6 +156,7 @@
       </div>
     </div>
 
+    <div v-if="!compact || developerMode" class="developer-run-details">
     <ModelUsageDetails :attempts="run.modelUsageAttempts || []" :client-timing="run.clientTiming" />
     <details v-if="run.toolTimeline?.length" class="process-details"><summary>查看执行过程 · {{ run.toolTimeline.length }} 次工具调用</summary>
     <ol class="tool-timeline">
@@ -157,14 +171,7 @@
     </ol>
     </details>
 
-    <ul v-if="run.citations?.length" class="citation-list">
-      <li v-for="(citation, index) in run.citations" :key="citation.id || citation.url || index">
-        <a v-if="citationUrl(citation)" :href="citationUrl(citation)" target="_blank" rel="noopener noreferrer">
-          {{ citation.title || citation.sourceTitle || citationUrl(citation) }}
-        </a>
-        <span v-else>{{ citation.title || citation.sourceTitle || citation.text || citation.evidenceText || citation }}</span>
-      </li>
-    </ul>
+    </div>
 
     <p v-if="run.error" class="run-error">{{ run.error }}</p>
   </section>
@@ -179,6 +186,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import ModelUsageDetails from '@/components/ModelUsageDetails.vue'
+import UiIcon from '@/components/UiIcon.vue'
 import { formatToolTiming } from '@/api/response-timing'
 import { fetchAnswerFeedback } from '@/api'
 import { statusLabel, toolFailureLabel } from '@/api/run-contract'
@@ -188,10 +196,17 @@ const { state: authState } = useAuthSession()
 const localChat = computed(() => authState.snapshot?.mode === 'disabled')
 
 const props = defineProps({
-  run: { type: Object, default: null }
+  run: { type: Object, default: null },
+  compact: Boolean,
+  developerMode: Boolean
 })
 
 defineEmits(['cancel', 'reconnect', 'approve', 'feedback'])
+const detailsOpen = ref(false)
+watch(() => props.run?.runId, () => { detailsOpen.value = false })
+const sourceCount = computed(() => new Set([...(props.run?.citations || []), ...(props.run?.cards?.facts || []), ...(props.run?.cards?.citations || [])]
+  .map(item => citationUrl(item)).filter(Boolean)).size)
+
 
 const canCancel = computed(() => ['creating', 'running', 'waiting_approval', 'reconnecting'].includes(props.run?.status))
 const teamDecisionMessage = computed(() => props.run?.approval?.teamChange

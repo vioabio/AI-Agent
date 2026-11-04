@@ -24,6 +24,10 @@ public class PokemonReferenceController {
     @GetMapping("/pokemon/{query}") public LocalPokeApiRepository.Detail detail(@PathVariable String query, @RequestParam String dataReleaseId) {
         return repository.detail(query, dataReleaseId);
     }
+    @GetMapping("/names") public java.util.List<PokemonNameIndex.Entry> names(
+            @RequestParam(defaultValue="") String query, @RequestParam(defaultValue="30") int limit) {
+        return PokemonNameIndex.search(query, limit);
+    }
     @GetMapping("/resources/{kind}/{slug}") public Map<String,Object> resource(@PathVariable String kind, @PathVariable String slug, @RequestParam String dataReleaseId) {
         if(resources!=null&&java.util.Set.of("ability","move","nature").contains(kind))return resources.read(kind,slug,dataReleaseId);
         return repository.resource(kind,slug,dataReleaseId);

@@ -159,14 +159,15 @@ test('其他窗口已决定时自动回读任务，409本身不作为保存证�
 })
 
 for (const width of [1440, 390]) {
-  test(`多成员长预览内部滚动但决定按钮始终可见 ${width}`, async ({ page }) => {
+  test(`多成员长预览随消息滚动且能显式定位与取消 ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
     const { state } = await fixture(page, 'dense')
     await expect(page.locator('.proposal-table tbody tr')).toHaveCount(6)
     const confirm = page.getByRole('button', { name: '确认保存', exact: true })
     const deny = page.getByRole('button', { name: '取消修改', exact: true })
-    await expect(confirm).toBeInViewport(); await expect(deny).toBeInViewport()
-    await page.locator('.proposal-content').evaluate(el => { el.scrollTop = el.scrollHeight })
+    await expect(page.getByRole('button', { name: '查看修改预览', exact: true })).toBeInViewport()
+    await page.getByRole('button', { name: '查看修改预览', exact: true }).click()
+    await page.locator('.message-list').evaluate(el => { el.scrollTop = el.scrollHeight })
     await expect(page.locator('.proposal-table tbody tr').last()).toBeInViewport()
     await expect(confirm).toBeInViewport(); await expect(deny).toBeInViewport()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
