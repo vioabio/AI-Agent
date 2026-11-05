@@ -38,6 +38,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Prepare Maven wrapper
+        shell: bash
+        run: |
+          git rev-parse HEAD
+          git ls-files --stage -- mvnw
+          chmod +x ./mvnw
+          test -x ./mvnw
+          ls -l ./mvnw
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
