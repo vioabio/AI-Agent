@@ -83,18 +83,15 @@
             </div>
             <span class="state-chip" :class="factsState.status">{{ stateLabel(factsState.status) }}</span>
           </div>
-          <form class="inline-form fact-search-form" @submit.prevent="searchFacts">
+          <form class="inline-form fact-search-form" role="search" aria-label="图鉴搜索" @submit.prevent="searchFacts">
             <UiIcon name="search" />
             <label class="grow">
               <span class="sr-only">查询目标</span>
-              <input ref="factSearchInput" v-model.trim="factQuery" list="pokemon-name-options" maxlength="80" aria-label="宝可梦名称或编号" placeholder="输入中文名 / 英文名 / 编号" />
+              <input ref="factSearchInput" v-model.trim="factQuery" list="pokemon-name-options" maxlength="80" aria-label="宝可梦名称或编号" placeholder="中文名、英文名或编号" autocomplete="off" :spellcheck="false" />
               <datalist id="pokemon-name-options"><option v-for="entry in nameSuggestions" :key="entry.nationalNo" :value="entry.nameZh">#{{ entry.nationalNo }} · {{ entry.slug }}</option></datalist>
             </label>
-            <details class="fact-search-options"><summary>编号</summary><label class="number-field">
-              全国编号
-              <input v-model="nationalNo" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="可选" />
-            </label></details>
-            <button class="secondary-btn dex-search-button" type="submit" aria-label="查询" title="查询图鉴" :disabled="factsState.status === 'loading'"><UiIcon name="search" /><span class="sr-only">查询</span></button>
+            <button v-if="factQuery" class="fact-search-clear" type="button" aria-label="清空图鉴搜索" title="清空搜索" @click="factQuery = ''; factSearchInput?.focus()"><UiIcon name="close" /></button>
+            <button class="secondary-btn dex-search-button" type="submit" aria-label="查询" title="查询图鉴" :disabled="factsState.status === 'loading'"><UiIcon :name="factsState.status === 'loading' ? 'history' : 'search'" /><span>{{ factsState.status === 'loading' ? '查询中' : '搜索' }}</span></button>
           </form>
 
           <div v-if="factsState.status === 'loading'" class="state-box loading" role="status">正在读取版本化事实…</div>
@@ -115,7 +112,7 @@
               </div>
               <div class="base-stats-heading"><strong>种族值 · {{ factStatOptions.reduce((sum, stat) => sum + Number(fact[stat.key] || 0), 0) }}</strong><small>刻度 0–255</small></div>
               <dl class="base-stat-bars">
-                <div v-for="stat in factStatOptions" :key="stat.key"><dt>{{ stat.label }}</dt><dd><span class="stat-track"><span :style="{ width: `${Math.min(100, Math.max(0, Number(fact[stat.key]) / 255 * 100))}%`, background: statColor(fact[stat.key]) }"></span></span><strong>{{ fact[stat.key] }}</strong></dd></div>
+                <div v-for="stat in factStatOptions" :key="stat.key" :style="{ '--stat-color': stat.color }"><dt>{{ stat.label }}</dt><dd><span class="stat-track"><span :style="{ width: `${Math.min(100, Math.max(0, Number(fact[stat.key]) / 255 * 100))}%`, background: stat.color }"></span></span><strong>{{ fact[stat.key] }}</strong></dd></div>
               </dl>
               <div class="fact-actions">
                 <button class="primary-btn" type="button" :disabled="teamsState.status === 'saving'" @click="addFactToTeam(fact)"><UiIcon name="plus" />加入队伍</button>
@@ -437,7 +434,6 @@
 <script setup>
 import { pokemonFactQuestion, teamMemberDescription, damageQuestion, guideQuestion } from '@/api/reference-prompts'
 import { factSearchParameters, matchingPokemonNames } from '@/api/pokemon-navigation'
-import { statColor } from '@/api/workspace-layout'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
   calculateTypeEffectiveness,
@@ -483,9 +479,9 @@ const resourceMenu = ref(null)
 const selectedMember = ref(0)
 const knownFacts = reactive({})
 const factStatOptions = [
-  {key:'hp',label:'HP',color:'#e8bd5b'}, {key:'attack',label:'攻击',color:'#e49b68'},
-  {key:'defense',label:'防御',color:'#79b48c'}, {key:'spAttack',label:'特攻',color:'#72b7da'},
-  {key:'spDefense',label:'特防',color:'#9c9fd4'}, {key:'speed',label:'速度',color:'#ce97ba'}
+  {key:'hp',label:'HP',color:'#e78186'}, {key:'attack',label:'攻击',color:'#e9a35f'},
+  {key:'defense',label:'防御',color:'#62ad88'}, {key:'spAttack',label:'特攻',color:'#5bb4ce'},
+  {key:'spDefense',label:'特防',color:'#6b96d5'}, {key:'speed',label:'速度',color:'#a78bcb'}
 ]
 function showSection(value) {
   if (resourceMenu.value) resourceMenu.value.open = false
@@ -555,7 +551,6 @@ async function openPokemon(query) {
   showSection('facts')
   const identity = props.pokemonNames.find(entry => String(entry.nationalNo) === String(query))
   factQuery.value = identity?.nameZh || String(query || '')
-  nationalNo.value = ''
   await searchFacts()
 }
 defineExpose({ showSection, openPokemon, resumeConversation, analyzeCurrentTeam, refreshHistory: loadConversations, refreshConfirmedTeam })
@@ -593,7 +588,6 @@ const context = props.scenario || reactive({
 })
 
 const factQuery = ref('')
-const nationalNo = ref('')
 const nameSuggestions = computed(() => matchingPokemonNames(factQuery.value, props.pokemonNames))
 const facts = ref([])
 const teams = ref([])
@@ -984,7 +978,7 @@ async function searchFacts() {
   emit('fact-selected', null)
   try {
     validateContext()
-    const search = factSearchParameters(factQuery.value, nationalNo.value, props.pokemonNames)
+    const search = factSearchParameters(factQuery.value, '', props.pokemonNames)
     const parsedNo = search.nationalNo
     if (parsedNo !== undefined && (!Number.isInteger(parsedNo) || parsedNo <= 0)) throw new Error('全国编号必须是正整数')
     const result = await fetchPokemonFacts({

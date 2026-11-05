@@ -20,9 +20,6 @@ export function groupConversations(items, now = new Date()) {
   }
   return ['今天', '昨天', '更早'].filter(label => groups.has(label)).map(label => ({ label, items: groups.get(label) }))
 }
-export function statColor(value) {
-  return Number(value) >= 120 ? '#58a77c' : Number(value) >= 80 ? '#dfb344' : '#d77b7e'
-}
 export function trapFocusWithin(event, element) {
   const nodes = [...(element?.querySelectorAll('button:enabled,a[href],input:enabled,select:enabled,textarea:enabled,summary,[tabindex="0"]') || [])]
     .filter(node => node.getClientRects().length && !node.closest('[inert]'))

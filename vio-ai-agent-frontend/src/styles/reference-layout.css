@@ -84,14 +84,21 @@
 .reference-layout .resource-status { font-size:12px; padding-top:8px; }
 .reference-layout .resource-status.positive-notice { position:absolute; width:1px; height:1px; overflow:hidden; padding:0; clip-path:inset(50%); }
 .reference-layout .facts-panel>.panel-heading { display:none; }
-.reference-layout .fact-search-form { position:relative; display:flex; flex-wrap:nowrap; align-items:center; padding:0 12px; gap:8px; border:1px solid #dce4de; border-radius:11px; margin:0 0 12px; min-height:47px; }
-.reference-layout .fact-search-form>.ui-icon { width:20px; height:20px; color:#9aa49e; }
-.reference-layout .fact-search-form .grow { min-width:0; }
-.reference-layout .fact-search-form .grow input { border:0; height:44px; background:transparent; padding:7px 0; box-shadow:none; outline-offset:-3px; font-size:15px; }
-.reference-layout .fact-search-form>button { padding:6px; font-size:12px; border:0; color:#708e7c; }
-.reference-layout .fact-search-options { color:#8a9c90; font-size:11px; }
-.reference-layout .fact-search-options summary { list-style:none; }
-.reference-layout .fact-search-options[open] .number-field { position:absolute; top:49px; right:0; width:160px; padding:12px; background:#fff; border:1px solid var(--line); border-radius:8px; z-index:5; box-shadow:0 8px 24px #25443015; }
+.workbench-page .fact-search-form { position:relative; display:flex; flex-wrap:nowrap; align-items:center; padding:5px 6px 5px 12px; gap:9px; border:1px solid #d6e2da; border-radius:12px; margin:0 0 14px; min-height:50px; background:#f8fbf9; transition:border-color .15s,box-shadow .15s,background .15s; }
+.workbench-page .fact-search-form:focus-within { border-color:#76a68d; background:#fff; box-shadow:0 0 0 3px #35745612; }
+.workbench-page .fact-search-form>.ui-icon { display:block; width:19px; height:19px; color:#6c8979; }
+.workbench-page .fact-search-form .grow { flex:1; min-width:0; }
+.workbench-page .fact-search-form .grow input { width:100%; min-width:0; height:36px; border:0; border-radius:0; background:transparent; padding:4px 0; font:inherit; font-size:14px; color:#244435; box-shadow:none; outline:none; }
+.workbench-page .fact-search-form .grow input::placeholder { color:#73857a; }
+.workbench-page .fact-search-form .grow input::-webkit-calendar-picker-indicator { display:none !important; }
+.workbench-page .fact-search-form .fact-search-clear { display:grid; place-items:center; flex:0 0 28px; width:28px; height:32px; padding:0; color:#75897d; border:0; border-radius:7px; background:transparent; }
+.workbench-page .fact-search-form .fact-search-clear:hover { background:#e8f0eb; color:#285e43; }
+.workbench-page .fact-search-form .fact-search-clear .ui-icon { width:16px; height:16px; }
+.workbench-page .fact-search-form .dex-search-button { display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; gap:5px; min-width:70px; height:36px; padding:0 11px; border:0; border-radius:8px; background:#326b55; color:#fff; font-size:13px; font-weight:600; }
+.workbench-page .fact-search-form .dex-search-button:hover:enabled { background:#24563e; }
+.workbench-page .fact-search-form .dex-search-button:disabled { opacity:.6; cursor:wait; }
+.workbench-page .fact-search-form .dex-search-button .ui-icon { width:16px; height:16px; }
+.workbench-page .fact-search-form button:focus-visible { outline:2px solid #2d6c4f; outline-offset:2px; }
 .reference-layout .fact-card { position:relative; padding:17px 17px 10px; background:linear-gradient(145deg,#fff 45%,#f8fbf9); border-radius:12px; }
 .reference-layout .fact-favorite { position:absolute; top:16px; right:17px; color:#adbaad; z-index:1; }
 .reference-layout .fact-favorite .ui-icon { width:22px; height:22px; }
