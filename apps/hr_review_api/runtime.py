@@ -13,6 +13,7 @@ from apps.hr_review_api.services.auth_service import AuthService
 from apps.hr_review_api.services.candidate_query_service import CandidateQueryService
 from apps.hr_review_api.services.dashboard_service import DashboardService
 from apps.hr_review_api.services.review_service import ReviewService
+from apps.hr_review_api.services.analysis_task_service import AnalysisTaskService
 
 
 class CookieOptions(TypedDict):
@@ -25,6 +26,8 @@ class CookieOptions(TypedDict):
 @dataclass(frozen=True, slots=True)
 class AuthRuntime:
     login_service: AuthService
+    session_cookie_name: str
+    csrf_cookie_name: str
     cookie_options: CookieOptions
     cookie_max_age: int
     cookie_domain: str | None
@@ -34,6 +37,7 @@ class AuthRuntime:
 class CandidateRuntime:
     query_service: CandidateQueryService
     review_service: ReviewService
+    task_service: AnalysisTaskService
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,12 +56,19 @@ class ApplicationServices:
 def build_engine(settings: HRReviewSettings) -> Engine:
     """只接受 HR Web 专用连接，禁止隐式回退到采集主库配置。"""
 
-    return create_engine(settings.database_url, future=True, pool_pre_ping=True)
+    return create_engine(
+        settings.database_url, future=True, pool_pre_ping=True, hide_parameters=True
+    )
 
 
 def build_services(engine: Engine, settings: HRReviewSettings) -> ApplicationServices:
     auth_service = AuthService(engine, settings, AuthRepository())
-    candidate_repository = CandidateRepository()
+    if settings.enable_queue_projection:
+        from sqlalchemy import inspect
+        from liepin_rpa.analysis_job_schema import queue_metadata
+        if not set(queue_metadata.tables) <= set(inspect(engine).get_table_names()):
+            raise ValueError("Queue projection requires explicit migration to 20261105_08")
+    candidate_repository = CandidateRepository(queue_projection_enabled=settings.enable_queue_projection)
     batch_repository = BatchRepository(settings.batch_state_path)
     query_service = CandidateQueryService(engine, candidate_repository, batch_repository)
     review_service = ReviewService(engine, candidate_repository, query_service)
@@ -76,6 +87,8 @@ def build_services(engine: Engine, settings: HRReviewSettings) -> ApplicationSer
     return ApplicationServices(
         auth=AuthRuntime(
             login_service=auth_service,
+            session_cookie_name=settings.session_cookie_name,
+            csrf_cookie_name=settings.csrf_cookie_name,
             cookie_options=cookie_options,
             cookie_max_age=settings.session_hours * 3600,
             cookie_domain=settings.cookie_domain,
@@ -83,6 +96,7 @@ def build_services(engine: Engine, settings: HRReviewSettings) -> ApplicationSer
         candidates=CandidateRuntime(
             query_service=query_service,
             review_service=review_service,
+            task_service=AnalysisTaskService(engine, enabled=settings.enable_shadow_tasks),
         ),
         dashboard=DashboardRuntime(
             dashboard_service=dashboard_service,

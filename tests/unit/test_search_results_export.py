@@ -227,13 +227,13 @@ def test_needs_review_is_separated_from_not_relevant_and_displayed() -> None:
 
 
 def test_export_labels_low_score_needs_review_as_below_review_threshold() -> None:
-    assert format_hit_status("reviewed", "待复核", "needs_review", 79) == (
-        "Coze未达80分待复核线，未发送"
+    assert format_hit_status("reviewed", "待复核", "needs_review", 89) == (
+        "AI未达90分待复核线，未发送"
     )
-    assert format_skip_reason("reviewed", "待复核", "needs_review", 79) == (
-        "Coze分数未达到80分待复核线"
+    assert format_skip_reason("reviewed", "待复核", "needs_review", 89) == (
+        "AI分数未达到90分待复核线"
     )
-    assert format_hit_status("reviewed", "待复核", "needs_review", 80) == (
+    assert format_hit_status("reviewed", "待复核", "needs_review", 90) == (
         "需人工复核，未发送"
     )
 

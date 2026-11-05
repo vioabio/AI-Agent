@@ -7,19 +7,22 @@ import {
 } from "@ant-design/icons";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Layout, Space, Tabs, Typography } from "antd";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router";
+import { lazy, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router";
 
-import { CandidateDetailDrawer } from "../features/candidate-detail/CandidateDetailDrawer";
 import { MetricCards } from "../features/dashboard/MetricCards";
-import { ReportPreviewDrawer } from "../features/report-preview/ReportPreviewDrawer";
 import { CandidateTable } from "../features/review-queue/CandidateTable";
 import { QueueFilters, type FilterValues } from "../features/review-queue/QueueFilters";
 import { api, type QueueParams } from "../shared/api/client";
 import { queryKeys } from "../shared/api/queryKeys";
 import type { User } from "../shared/api/types";
+import { AsyncContent } from "../shared/components/AsyncContent";
+import { jobLabels } from "../shared/jobProfiles";
 
-const allJobs = ["daren_live_bd_v1", "finance_shared_management_v1"];
+const CandidateDetailDrawer = lazy(() => import("../features/candidate-detail/CandidateDetailDrawer").then((module) => ({ default: module.CandidateDetailDrawer })));
+const ReportPreviewDrawer = lazy(() => import("../features/report-preview/ReportPreviewDrawer").then((module) => ({ default: module.ReportPreviewDrawer })));
+
+const allJobs = Object.keys(jobLabels);
 const scopeTabs = [
   { key: "pending", label: "待审核" },
   { key: "progress", label: "推进中" }, { key: "closed", label: "已结束" },
@@ -32,6 +35,9 @@ export function WorkbenchPage({ user }: { user: User }) {
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
   const [selected, setSelected] = useState<string>();
   const [reportOpen, setReportOpen] = useState(false);
+  // Load on first use, then keep the component mounted like the original drawers.
+  const [detailRequested, setDetailRequested] = useState(false);
+  const [reportRequested, setReportRequested] = useState(false);
   const queryClient = useQueryClient();
   const params = useMemo(() => queueParams(search), [search]);
   const batches = useQuery({
@@ -88,7 +94,8 @@ export function WorkbenchPage({ user }: { user: User }) {
           <Typography.Title level={4}>候选人审核与招聘进度工作台</Typography.Title>
         </Space>
         <Space size={12}>
-          <Button ghost icon={<BarChartOutlined />} onClick={() => setReportOpen(true)}>日报实时预览</Button>
+          <Link to="/analysis-tasks"><Button ghost>影子分析任务</Button></Link>
+          <Button ghost icon={<BarChartOutlined />} onClick={() => { setReportRequested(true); setReportOpen(true); }}>日报实时预览</Button>
           <div className="current-user"><Typography.Text>{user.display_name}</Typography.Text><small>{user.role}</small></div>
           <Button type="text" danger icon={<LogoutOutlined />} loading={logout.isPending} onClick={() => logout.mutate()}>退出</Button>
         </Space>
@@ -133,14 +140,14 @@ export function WorkbenchPage({ user }: { user: User }) {
                 next.set("order", sortOrder);
                 commitSearch(next);
               }}
-              onOpen={setSelected}
+              onOpen={(fingerprint) => { setDetailRequested(true); setSelected(fingerprint); }}
               onRetry={() => { void queue.refetch(); }}
             />
           </div>
         </Layout.Content>
       </Layout>
-      <CandidateDetailDrawer fingerprint={selected} onClose={() => setSelected(undefined)} canSubmit={user.role !== "read_only"} />
-      <ReportPreviewDrawer
+      {detailRequested ? <AsyncContent label="候选人详情"><CandidateDetailDrawer fingerprint={selected} onClose={() => setSelected(undefined)} canSubmit={user.role !== "read_only"} /></AsyncContent> : null}
+      {reportRequested ? <AsyncContent label="日报预览"><ReportPreviewDrawer
         open={reportOpen}
         onClose={() => setReportOpen(false)}
         batchId={selectedReportBatch?.batch_id}
@@ -148,7 +155,7 @@ export function WorkbenchPage({ user }: { user: User }) {
         defaultsToLatest={!params.batchId}
         batchListSettled={batches.isFetched}
         jobProfileId={params.batchId ? params.jobProfileId : undefined}
-      />
+      /></AsyncContent> : null}
     </Layout>
   );
 }

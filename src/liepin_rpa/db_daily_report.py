@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from liepin_rpa.analysis_execution import (
+    has_analysis_execution_failure, legacy_analysis_success_sql,
+)
+
 import json
 import hashlib
 from collections import defaultdict
@@ -497,6 +501,7 @@ def _legacy_current_analysis_ctes(*, locator_where: str = "") -> str:
             SELECT *
             FROM ranked_current_analysis
             WHERE analysis_rank = 1
+              AND {legacy_analysis_success_sql("ranked_current_analysis.analysis_reason", "ranked_current_analysis.execution_status")}
         )
     """
 
@@ -582,6 +587,8 @@ def load_recruitment_progress_snapshot(
                c.match_result,
                c.match_score,
                c.analysis_reason,
+               c.execution_status, c.error_code, c.retryable, c.retry_after,
+               c.analysis_run_id, c.analyzed_text_hash,
                c.created_at AS analyzed_at
         FROM scoped_candidate_jobs scoped
         LEFT JOIN candidate_resume_experience_records r
@@ -647,6 +654,7 @@ def load_recruitment_progress_snapshot(
             match_score,
             analysis_status=analysis_status,
             analysis_reason=analysis_reason,
+            execution_status=row.get("execution_status"),
         ):
             actionable_pending += 1
             hr_status_counts[HRReviewStatus.PENDING_REVIEW.value] += 1
@@ -823,7 +831,7 @@ def _load_prior_analysis_identity_scope(
     """Load the exact seven-day identity scope used by the HR portal."""
 
     sql = text(
-        """
+        f"""
         SELECT a.candidate_fingerprint,
                a.experience,
                l.candidate_name,
@@ -833,7 +841,7 @@ def _load_prior_analysis_identity_scope(
           ON l.candidate_fingerprint = a.candidate_fingerprint
         WHERE a.match_score IS NOT NULL
           AND a.match_result IN ('relevant', 'needs_review', 'not_relevant')
-          AND (a.analysis_reason IS NULL OR a.analysis_reason NOT LIKE '%Coze API%')
+          AND {legacy_analysis_success_sql("a.analysis_reason", "a.execution_status")}
           AND a.created_at >= :analyzed_from
           AND a.created_at < :analyzed_before
         """
@@ -964,6 +972,7 @@ def _build_candidate_outcome(
         match_score=coze_result.match_score if coze_result is not None else None,
         score_breakdown=dict(coze_result.score_breakdown) if coze_result is not None else {},
         analysis_reason=coze_result.analysis_reason if coze_result is not None else None,
+        execution_status=coze_result.execution_status if coze_result is not None else None,
         evidence_summary=list(coze_result.evidence_summary) if coze_result is not None else [],
         hit_status=hit_status,
         continue_without_db_record=False,
@@ -1209,7 +1218,7 @@ def _load_cumulative_review_candidates_by_job(
         LEFT JOIN candidate_resume_experience_records record
           ON record.candidate_fingerprint = analysis.candidate_fingerprint
         WHERE analysis.match_result = 'needs_review'
-          AND COALESCE(analysis.analysis_reason, '') NOT LIKE '%Coze API%'
+          AND {legacy_analysis_success_sql("analysis.analysis_reason", "analysis.execution_status")}
           AND COALESCE(analysis.match_score, 0) >= :needs_review_min_score
           AND COALESCE(record.manual_suppress_report, 0) = 0
         ORDER BY job_name, analysis.match_score DESC, candidate_name
@@ -1254,6 +1263,7 @@ def _load_cumulative_review_candidates_by_job(
                 match_score=_optional_int(row.get("match_score")),
                 score_breakdown=_parse_score_breakdown(row.get("score_breakdown_json")),
                 analysis_reason=_optional_str(row.get("analysis_reason")),
+                execution_status=_optional_str(row.get("execution_status")),
                 evidence_summary=evidence_summary,
                 hit_status=_optional_str(row.get("hit_status")) or "reviewed",
                 recent_experience_summary=_extract_recent_experience_summary(experience),
@@ -1553,6 +1563,8 @@ def _load_report_candidate_records(
                c.analysis_status AS analysis_status,
                c.match_result AS match_result,
                c.analysis_reason AS analysis_reason,
+               c.execution_status, c.error_code, c.retryable, c.retry_after,
+               c.analysis_run_id, c.analyzed_text_hash,
                c.score_breakdown_json,
                c.evidence_summary_json,
                c.created_at AS analyzed_at,
@@ -1614,7 +1626,7 @@ def _count_cumulative_report_metrics(settings: Settings) -> dict[str, int]:
                     WHEN c.match_result = 'not_relevant'
                       OR (
                           c.match_result = 'needs_review'
-                          AND COALESCE(c.analysis_reason, '') NOT LIKE '%Coze API%'
+                          AND {legacy_analysis_success_sql("c.analysis_reason", "c.execution_status")}
                           AND COALESCE(c.match_score, 0) < :needs_review_min_score
                       )
                     THEN 1 ELSE 0
@@ -1623,7 +1635,7 @@ def _count_cumulative_report_metrics(settings: Settings) -> dict[str, int]:
             SUM(
                 CASE
                     WHEN c.match_result = 'needs_review'
-                     AND COALESCE(c.analysis_reason, '') NOT LIKE '%Coze API%'
+                     AND {legacy_analysis_success_sql("c.analysis_reason", "c.execution_status")}
                      AND COALESCE(c.match_score, 0) >= :needs_review_min_score
                     THEN 1 ELSE 0
                 END
@@ -1692,7 +1704,7 @@ def _count_cumulative_report_metrics_by_job(
             SUM(
                 CASE
                     WHEN analysis.match_result = 'needs_review'
-                     AND COALESCE(analysis.analysis_reason, '') NOT LIKE '%Coze API%'
+                     AND {legacy_analysis_success_sql("analysis.analysis_reason", "analysis.execution_status")}
                      AND COALESCE(analysis.match_score, 0) >= :needs_review_min_score
                     THEN 1 ELSE 0
                 END
@@ -1980,6 +1992,8 @@ def _load_latest_analysis_map(settings: Settings) -> dict[str, dict[str, object]
                c.match_score,
                c.score_breakdown_json,
                c.analysis_reason,
+               c.execution_status, c.error_code, c.retryable, c.retry_after,
+               c.analysis_run_id, c.analyzed_text_hash,
                c.evidence_summary_json,
                c.updated_at,
                c.analysis_version,
@@ -2037,6 +2051,12 @@ def _coze_result_from_cache_record(record: dict[str, object] | None) -> CozeMatc
         evidence_summary=_parse_string_list(record.get("evidence_summary_json")),
         raw_data="",
         parsed_payload={},
+        execution_status=record.get("execution_status"),
+        error_code=record.get("error_code"),
+        retryable=bool(record.get("retryable")),
+        retry_after=record.get("retry_after"),
+        analysis_run_id=record.get("analysis_run_id"),
+        analyzed_text_hash=record.get("analyzed_text_hash"),
     )
 
 
@@ -2071,10 +2091,9 @@ def _parse_json_value(value: object) -> object:
 
 
 def _is_coze_api_failure_outcome(outcome: CandidateProcessOutcome) -> bool:
-    """Exclude system-side Coze failures from human-review report statistics."""
-    return bool(
-        outcome.match_result == "needs_review"
-        and "Coze API" in (outcome.analysis_reason or "")
+    """Exclude provider execution failures from human-review report statistics."""
+    return has_analysis_execution_failure(
+        outcome.analysis_reason, execution_status=outcome.execution_status
     )
 
 

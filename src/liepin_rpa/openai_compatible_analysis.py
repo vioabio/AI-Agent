@@ -52,8 +52,13 @@ def analyze_resume_record_with_openai_compatible(
     )
     last_error: Exception | None = None
     last_raw_data = ""
+    deadline = time.monotonic() + settings.llm_total_timeout_seconds
 
     for attempt in range(1, settings.llm_max_attempts + 1):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            last_error = TimeoutError("Analysis total time budget exhausted")
+            break
         try:
             completion = client.chat.completions.create(
                 model=settings.llm_model,
@@ -62,7 +67,11 @@ def analyze_resume_record_with_openai_compatible(
                     {"role": "user", "content": request_json},
                 ],
                 response_format={"type": "json_object"},
+                timeout=min(settings.llm_timeout_seconds, remaining),
             )
+            if time.monotonic() >= deadline:
+                last_error = TimeoutError("Analysis response arrived after the total deadline")
+                break
             last_raw_data = completion.choices[0].message.content or ""
             payload = parse_analysis_payload(last_raw_data)
             validation_errors = validate_analysis_payload(
@@ -102,10 +111,13 @@ def analyze_resume_record_with_openai_compatible(
                 detail=type(exc).__name__,
             )
         except APIStatusError as exc:
-            if not _is_retryable_status(exc.status_code):
-                raise RuntimeError(
-                    f"LLM API returned non-retryable HTTP {exc.status_code}"
-                ) from exc
+            if not _is_retryable_status(exc.status_code, retry_auth_errors=settings.llm_retry_auth_errors):
+                result = build_needs_review_result(
+                    raw_data=last_raw_data, reason=f"HTTP {exc.status_code}",
+                    provider_label="模型", source="api_rejected",
+                )
+                result.error_code = f"http_{exc.status_code}"
+                return result
             last_error = exc
             _log_retry(
                 settings=settings,
@@ -116,21 +128,34 @@ def analyze_resume_record_with_openai_compatible(
             )
 
         if attempt < settings.llm_max_attempts:
-            time.sleep(min(2**attempt, 15) + random.uniform(0, 0.75))
+            delay = min(2**attempt, 15) + random.uniform(0, 0.75)
+            if delay >= deadline - time.monotonic():
+                last_error = TimeoutError("Analysis budget cannot accommodate another retry")
+                break
+            time.sleep(delay)
 
     source = "api_error" if isinstance(
         last_error,
-        (APIConnectionError, APITimeoutError, APIStatusError),
+        (APIConnectionError, APITimeoutError, APIStatusError, TimeoutError),
     ) else "payload_validation"
-    return build_needs_review_result(
+    result = build_needs_review_result(
         raw_data=last_raw_data,
-        reason=str(last_error or "model returned no usable result"),
+        reason=(
+            f"HTTP {last_error.status_code}" if isinstance(last_error, APIStatusError)
+            else type(last_error).__name__ if isinstance(last_error, (APIConnectionError, APITimeoutError))
+            else str(last_error or "model returned no usable result")
+        ),
         provider_label="模型",
         source=source,
     )
+    if isinstance(last_error, TimeoutError):
+        result.error_code = "deadline_exceeded"
+    return result
 
 
-def _is_retryable_status(status_code: int) -> bool:
+def _is_retryable_status(status_code: int, *, retry_auth_errors: bool = True) -> bool:
+    if status_code == 401:
+        return retry_auth_errors
     return status_code in RETRYABLE_STATUS_CODES or status_code >= 500
 
 

@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import Engine
 
-from apps.hr_review_api.api import auth, candidates, dashboard
+from apps.hr_review_api.api import auth, candidates, dashboard, analysis_tasks
 from apps.hr_review_api.config import HRReviewSettings
 from apps.hr_review_api.domain.errors import (
     AuthenticationError,
@@ -19,6 +19,8 @@ from apps.hr_review_api.domain.errors import (
     CsrfValidationError,
     InvalidReviewTransitionError,
     LoginRateLimitedError,
+    AnalysisTaskNotFoundError,
+    AnalysisTaskConflictError,
     ReviewConflictError,
 )
 from apps.hr_review_api.runtime import build_engine, build_services
@@ -56,6 +58,7 @@ def create_app(
     application.include_router(auth.router)
     application.include_router(dashboard.router)
     application.include_router(candidates.router)
+    application.include_router(analysis_tasks.router)
     _install_exception_handlers(application)
     return application
 
@@ -69,6 +72,8 @@ def _install_exception_handlers(application: FastAPI) -> None:
         (CandidateNotFoundError, 404, "candidate_not_found"),
         (BatchNotFoundError, 404, "batch_not_found"),
         (ReviewConflictError, 409, "review_conflict"),
+        (AnalysisTaskNotFoundError, 404, "analysis_task_not_found"),
+        (AnalysisTaskConflictError, 409, "analysis_task_conflict"),
         (InvalidReviewTransitionError, 422, "invalid_review_transition"),
     )
     for exception_type, status_code, code in mappings:

@@ -91,38 +91,6 @@
               ],
               "title": "X-Csrf-Token"
             }
-          },
-          {
-            "name": "hr_review_csrf",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Hr Review Csrf"
-            }
-          },
-          {
-            "name": "hr_review_session",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Hr Review Session"
-            }
           }
         ],
         "responses": {
@@ -176,24 +144,6 @@
         ],
         "summary": "Me",
         "operationId": "me_api_v1_me_get",
-        "parameters": [
-          {
-            "name": "hr_review_session",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Hr Review Session"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -206,21 +156,11 @@
             }
           },
           "401": {
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Unauthorized"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -235,24 +175,6 @@
         ],
         "summary": "List Batches",
         "operationId": "list_batches_api_v1_batches_get",
-        "parameters": [
-          {
-            "name": "hr_review_session",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Hr Review Session"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -265,21 +187,11 @@
             }
           },
           "401": {
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Unauthorized"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -358,22 +270,6 @@
                 }
               ],
               "title": "Reviewer Name"
-            }
-          },
-          {
-            "name": "hr_review_session",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Hr Review Session"
             }
           }
         ],
@@ -459,22 +355,6 @@
                 }
               ],
               "title": "Job Profile Id"
-            }
-          },
-          {
-            "name": "hr_review_session",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Hr Review Session"
             }
           }
         ],
@@ -788,22 +668,6 @@
               "default": "desc",
               "title": "Sort Order"
             }
-          },
-          {
-            "name": "hr_review_session",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Hr Review Session"
-            }
           }
         ],
         "responses": {
@@ -866,22 +730,6 @@
               "type": "string",
               "title": "Candidate Fingerprint"
             }
-          },
-          {
-            "name": "hr_review_session",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Hr Review Session"
-            }
           }
         ],
         "responses": {
@@ -891,6 +739,83 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CandidateDetailResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/candidates/{candidate_fingerprint}/evidence-search": {
+      "get": {
+        "tags": [
+          "candidates"
+        ],
+        "summary": "Search Candidate Evidence",
+        "operationId": "search_candidate_evidence_api_v1_candidates__candidate_fingerprint__evidence_search_get",
+        "parameters": [
+          {
+            "name": "candidate_fingerprint",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Candidate Fingerprint"
+            }
+          },
+          {
+            "name": "dimension_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "industry_depth",
+                "beauty_continuity",
+                "role_evidence"
+              ],
+              "type": "string",
+              "default": "role_evidence",
+              "title": "Dimension Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceSearchResponse"
                 }
               }
             }
@@ -959,38 +884,6 @@
                 }
               ],
               "title": "X-Csrf-Token"
-            }
-          },
-          {
-            "name": "hr_review_csrf",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Hr Review Csrf"
-            }
-          },
-          {
-            "name": "hr_review_session",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Hr Review Session"
             }
           }
         ],
@@ -1084,22 +977,6 @@
               "type": "string",
               "title": "Candidate Fingerprint"
             }
-          },
-          {
-            "name": "hr_review_session",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Hr Review Session"
-            }
           }
         ],
         "responses": {
@@ -1145,10 +1022,529 @@
           }
         }
       }
+    },
+    "/api/v1/analysis-tasks": {
+      "get": {
+        "tags": [
+          "shadow-analysis"
+        ],
+        "summary": "List Analysis Tasks",
+        "operationId": "list_analysis_tasks_api_v1_analysis_tasks_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisTaskPageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analysis-tasks/{job_id}": {
+      "get": {
+        "tags": [
+          "shadow-analysis"
+        ],
+        "summary": "Get Analysis Task",
+        "operationId": "get_analysis_task_api_v1_analysis_tasks__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisTaskDetailResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analysis-tasks/{job_id}/retry": {
+      "post": {
+        "tags": [
+          "shadow-analysis"
+        ],
+        "summary": "Retry Analysis Task",
+        "operationId": "retry_analysis_task_api_v1_analysis_tasks__job_id__retry_post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetryAnalysisTaskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisTaskDetailResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AnalysisSnapshotResponse": {
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "title": "Snapshot Id"
+          },
+          "content_hash": {
+            "type": "string",
+            "title": "Content Hash"
+          },
+          "normalization_version": {
+            "type": "string",
+            "title": "Normalization Version"
+          },
+          "raw_text": {
+            "type": "string",
+            "title": "Raw Text"
+          },
+          "is_current": {
+            "type": "boolean",
+            "title": "Is Current"
+          }
+        },
+        "type": "object",
+        "required": [
+          "snapshot_id",
+          "content_hash",
+          "normalization_version",
+          "raw_text",
+          "is_current"
+        ],
+        "title": "AnalysisSnapshotResponse"
+      },
+      "AnalysisTaskDetailResponse": {
+        "properties": {
+          "task": {
+            "$ref": "#/components/schemas/AnalysisTaskResponse"
+          },
+          "snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisSnapshotResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ShadowResultResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence_refs": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceReferenceResponse"
+            },
+            "type": "array",
+            "title": "Evidence Refs"
+          },
+          "result_status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "verified",
+              "invalid"
+            ],
+            "title": "Result Status"
+          },
+          "execution": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ShadowExecutionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "task",
+          "snapshot",
+          "result",
+          "evidence_refs",
+          "result_status"
+        ],
+        "title": "AnalysisTaskDetailResponse"
+      },
+      "AnalysisTaskPageResponse": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisTaskResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "AnalysisTaskPageResponse"
+      },
+      "AnalysisTaskResponse": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "candidate_fingerprint": {
+            "type": "string",
+            "title": "Candidate Fingerprint"
+          },
+          "candidate_name": {
+            "type": "string",
+            "title": "Candidate Name"
+          },
+          "job_profile_id": {
+            "type": "string",
+            "title": "Job Profile Id"
+          },
+          "batch_id": {
+            "type": "string",
+            "title": "Batch Id"
+          },
+          "collection_completed": {
+            "type": "boolean",
+            "title": "Collection Completed"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "retry_wait",
+              "succeeded",
+              "failed",
+              "cancelled",
+              "superseded"
+            ],
+            "title": "Status"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          },
+          "max_attempts": {
+            "type": "integer",
+            "title": "Max Attempts"
+          },
+          "lease_token": {
+            "type": "integer",
+            "title": "Lease Token"
+          },
+          "last_error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error Code"
+          },
+          "source_type": {
+            "type": "string",
+            "const": "synthetic",
+            "title": "Source Type"
+          },
+          "available_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Available At"
+          },
+          "deadline_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Deadline At"
+          },
+          "can_retry": {
+            "type": "boolean",
+            "title": "Can Retry"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "candidate_fingerprint",
+          "candidate_name",
+          "job_profile_id",
+          "batch_id",
+          "collection_completed",
+          "status",
+          "attempts",
+          "max_attempts",
+          "lease_token",
+          "last_error_code",
+          "source_type",
+          "available_at",
+          "deadline_at",
+          "can_retry"
+        ],
+        "title": "AnalysisTaskResponse"
+      },
       "BatchListResponse": {
         "properties": {
           "items": {
@@ -1282,6 +1678,44 @@
             },
             "type": "array",
             "title": "History"
+          },
+          "analysis_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analysis Run Id"
+          },
+          "analysis_snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisSnapshotResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence_refs": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceReferenceResponse"
+            },
+            "type": "array",
+            "title": "Evidence Refs"
+          },
+          "evidence_status": {
+            "type": "string",
+            "enum": [
+              "legacy",
+              "verified",
+              "invalid"
+            ],
+            "title": "Evidence Status",
+            "default": "legacy"
           }
         },
         "type": "object",
@@ -1659,6 +2093,186 @@
         ],
         "title": "ErrorResponse"
       },
+      "EvidenceReferenceResponse": {
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "title": "Evidence Id"
+          },
+          "snapshot_id": {
+            "type": "string",
+            "title": "Snapshot Id"
+          },
+          "chunk_id": {
+            "type": "string",
+            "title": "Chunk Id"
+          },
+          "summary_index": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Summary Index"
+          },
+          "start": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Start"
+          },
+          "end": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "End"
+          },
+          "quote": {
+            "type": "string",
+            "title": "Quote"
+          }
+        },
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "snapshot_id",
+          "chunk_id",
+          "summary_index",
+          "start",
+          "end",
+          "quote"
+        ],
+        "title": "EvidenceReferenceResponse"
+      },
+      "EvidenceSearchHitResponse": {
+        "properties": {
+          "chunk_id": {
+            "type": "string",
+            "title": "Chunk Id"
+          },
+          "snapshot_id": {
+            "type": "string",
+            "title": "Snapshot Id"
+          },
+          "start": {
+            "type": "integer",
+            "title": "Start"
+          },
+          "end": {
+            "type": "integer",
+            "title": "End"
+          },
+          "quote": {
+            "type": "string",
+            "title": "Quote"
+          },
+          "section": {
+            "type": "string",
+            "title": "Section"
+          },
+          "organization": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chunk_id",
+          "snapshot_id",
+          "start",
+          "end",
+          "quote",
+          "section",
+          "organization"
+        ],
+        "title": "EvidenceSearchHitResponse"
+      },
+      "EvidenceSearchResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "unavailable"
+            ],
+            "title": "Status"
+          },
+          "analysis_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analysis Run Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "dimension_id": {
+            "type": "string",
+            "title": "Dimension Id"
+          },
+          "dimension_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dimension Label"
+          },
+          "retrieval_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retrieval Version"
+          },
+          "hits": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceSearchHitResponse"
+            },
+            "type": "array",
+            "title": "Hits"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "dimension_id"
+        ],
+        "title": "EvidenceSearchResponse"
+      },
       "HRReviewStatus": {
         "type": "string",
         "enum": [
@@ -1669,10 +2283,10 @@
           "on_hold",
           "resume_rejected",
           "interview_rejected",
+          "rejected",
           "hired"
         ],
-        "title": "HRReviewStatus",
-        "description": "工作台、正式日报与测试共同使用的唯一 HR 状态定义。"
+        "title": "HRReviewStatus"
       },
       "HTTPValidationError": {
         "properties": {
@@ -1788,6 +2402,21 @@
         ],
         "title": "MessageResponse"
       },
+      "RetryAnalysisTaskRequest": {
+        "properties": {
+          "lease_token": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Lease Token"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "lease_token"
+        ],
+        "title": "RetryAnalysisTaskRequest"
+      },
       "ReviewEventResponse": {
         "properties": {
           "id": {
@@ -1859,6 +2488,436 @@
           "items"
         ],
         "title": "ReviewHistoryResponse"
+      },
+      "ShadowAttemptResponse": {
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "title": "Sequence"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "succeeded",
+              "failed",
+              "abandoned",
+              "unknown"
+            ],
+            "title": "Status"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "reserved_tokens": {
+            "type": "integer",
+            "title": "Reserved Tokens"
+          },
+          "reserved_cost_micros": {
+            "type": "integer",
+            "title": "Reserved Cost Micros"
+          },
+          "reported_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reported Tokens"
+          },
+          "reported_cost_micros": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reported Cost Micros"
+          },
+          "request": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ShadowRequestReceiptResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "sequence",
+          "status",
+          "started_at",
+          "finished_at",
+          "error_code",
+          "reserved_tokens",
+          "reserved_cost_micros",
+          "reported_tokens",
+          "reported_cost_micros",
+          "request"
+        ],
+        "title": "ShadowAttemptResponse"
+      },
+      "ShadowExecutionResponse": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "const": "synthetic_only",
+            "title": "Mode"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "price_version": {
+            "type": "string",
+            "title": "Price Version"
+          },
+          "charged_tokens": {
+            "type": "integer",
+            "title": "Charged Tokens"
+          },
+          "max_tokens": {
+            "type": "integer",
+            "title": "Max Tokens"
+          },
+          "charged_cost_micros": {
+            "type": "integer",
+            "title": "Charged Cost Micros"
+          },
+          "max_cost_micros": {
+            "type": "integer",
+            "title": "Max Cost Micros"
+          },
+          "history_truncated": {
+            "type": "boolean",
+            "title": "History Truncated"
+          },
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/ShadowAttemptResponse"
+            },
+            "type": "array",
+            "title": "Attempts"
+          },
+          "tool_rounds": {
+            "items": {
+              "$ref": "#/components/schemas/ShadowToolRoundResponse"
+            },
+            "type": "array",
+            "title": "Tool Rounds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mode",
+          "currency",
+          "price_version",
+          "charged_tokens",
+          "max_tokens",
+          "charged_cost_micros",
+          "max_cost_micros",
+          "history_truncated",
+          "attempts"
+        ],
+        "title": "ShadowExecutionResponse"
+      },
+      "ShadowRequestReceiptResponse": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "started",
+              "received",
+              "http_error",
+              "timeout",
+              "connection_error",
+              "invalid_response",
+              "not_sent",
+              "unknown"
+            ],
+            "title": "State"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "http_status": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Http Status"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "reported_cost_micros": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reported Cost Micros"
+          }
+        },
+        "type": "object",
+        "required": [
+          "state",
+          "started_at",
+          "completed_at",
+          "http_status",
+          "error_code",
+          "latency_ms",
+          "input_tokens",
+          "output_tokens",
+          "reported_cost_micros"
+        ],
+        "title": "ShadowRequestReceiptResponse"
+      },
+      "ShadowResultResponse": {
+        "properties": {
+          "beauty_relevant": {
+            "type": "boolean",
+            "title": "Beauty Relevant"
+          },
+          "match_result": {
+            "type": "string",
+            "enum": [
+              "relevant",
+              "needs_review",
+              "not_relevant"
+            ],
+            "title": "Match Result"
+          },
+          "match_score": {
+            "type": "integer",
+            "title": "Match Score"
+          },
+          "score_breakdown": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Score Breakdown"
+          },
+          "analysis_reason": {
+            "type": "string",
+            "title": "Analysis Reason"
+          },
+          "evidence_summary": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence Summary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "beauty_relevant",
+          "match_result",
+          "match_score",
+          "score_breakdown",
+          "analysis_reason",
+          "evidence_summary"
+        ],
+        "title": "ShadowResultResponse"
+      },
+      "ShadowToolRoundResponse": {
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "title": "Sequence"
+          },
+          "attempt_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attempt Sequence"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "reserved",
+              "started",
+              "received",
+              "error",
+              "unknown"
+            ],
+            "title": "State"
+          },
+          "reserved_tokens": {
+            "type": "integer",
+            "title": "Reserved Tokens"
+          },
+          "reserved_cost_micros": {
+            "type": "integer",
+            "title": "Reserved Cost Micros"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "reported_cost_micros": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reported Cost Micros"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sequence",
+          "attempt_sequence",
+          "state",
+          "reserved_tokens",
+          "reserved_cost_micros",
+          "input_tokens",
+          "output_tokens",
+          "reported_cost_micros",
+          "started_at",
+          "finished_at"
+        ],
+        "title": "ShadowToolRoundResponse"
       },
       "SubmitReviewRequest": {
         "properties": {

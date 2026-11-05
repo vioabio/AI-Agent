@@ -10,6 +10,7 @@
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "check:bundle": "node scripts/check-build-budget.mjs",
     "generate:api": "openapi-typescript ../../openapi/hr-review-openapi.json -o src/shared/api/schema.d.ts"
   },
   "dependencies": {

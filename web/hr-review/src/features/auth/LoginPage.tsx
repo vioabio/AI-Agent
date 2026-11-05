@@ -33,7 +33,9 @@ export function LoginPage() {
       </section>
       <Card className="login-card" variant="borderless">
         <Typography.Title level={3}>欢迎回来</Typography.Title>
-        <Typography.Paragraph type="secondary">使用内部账号登录</Typography.Paragraph>
+        <Typography.Paragraph type="secondary">
+          {import.meta.env.VITE_HR_DEMO === "true" ? "演示环境 · 仅包含虚构数据" : "使用内部账号登录 · 现有招聘数据"}
+        </Typography.Paragraph>
         {error ? <Alert type="error" message={error} showIcon closable /> : null}
         <Form<LoginValues> layout="vertical" onFinish={(values) => { login.mutate(values); }} requiredMark={false}>
           <Form.Item name="username" label="用户名" rules={[{ required: true, message: "请输入用户名" }]}>

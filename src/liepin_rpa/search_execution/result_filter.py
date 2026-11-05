@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from liepin_rpa.analysis_execution import has_analysis_execution_failure
+
 import json
 import random
 import re
@@ -197,6 +199,8 @@ class CandidateProcessOutcome:
     matched_experience_summary: str | None = None
     candidate_age: int | None = None
     profile_collection_completed: bool = False
+    execution_status: str | None = None
+    analysis_job_id: str | None = None
 
 
 class ResultFilterError(SearchFlowError):
@@ -220,6 +224,7 @@ class ResultPageFilter:
         jd_card_min_score: int | None = None,
         search_batch_id: str | None = None,
         search_batch_job_id: str | None = None,
+        analysis_dispatcher=None,
     ) -> None:
         self.device = device
         self.detector = detector or build_page_detector()
@@ -227,10 +232,15 @@ class ResultPageFilter:
         self.max_stagnant_swipes = max_stagnant_swipes
         self.write_to_db = write_to_db
         self.send_messages = send_messages
+        if analysis_dispatcher is not None and (send_messages or not write_to_db or not job_profile_path or not search_batch_id):
+            raise ValueError("Queued collection requires DB writes, an explicit job/batch, and messages disabled")
+        self.analysis_dispatcher = analysis_dispatcher
         self.max_profiles_per_keyword = max(1, int(max_profiles_per_keyword))
         resolved_mode = (selection_mode or ("ai_first" if ai_first_selection else "legacy")).strip().lower()
         if resolved_mode not in {"legacy", "ai_first", "jd_smart"}:
             raise ValueError("selection_mode must be legacy, ai_first, or jd_smart")
+        if analysis_dispatcher is not None and resolved_mode != "jd_smart":
+            raise ValueError("Queued collection requires JD smart rules")
         self.selection_mode = resolved_mode
         self.ai_first_selection = resolved_mode == "ai_first"
         self.target_candidate_fingerprints = {
@@ -1124,6 +1134,21 @@ class ResultPageFilter:
                 candidate_age=candidate_age,
                 profile_collection_completed=True,
             )
+        if self.analysis_dispatcher is not None:
+            decision = self.analysis_dispatcher.submit(batch_id=self.search_batch_id,
+                candidate_fingerprint=candidate_fingerprint, candidate_name=candidate_name or "未命名候选人",
+                job_profile_id=str(self.job_profile.get("id") or ""),
+                resume_record={**structured_resume, "experience": experience, "sections": report.sections})
+            self.device.press_back()
+            self._wait(2.0)
+            return CandidateProcessOutcome(candidate_name=candidate_name, candidate_fingerprint=candidate_fingerprint,
+                search_keyword=search_keyword, brand_keyword=seed.brand_keyword, role_keyword=seed.role_keyword,
+                communication_label=communication_label, analysis_status="等待分析" if decision.state == "queued" else "待人工核验",
+                match_result=None, match_score=None, score_breakdown={}, analysis_reason=decision.reason_code,
+                evidence_summary=[], hit_status="analysis_queued" if decision.state == "queued" else "analysis_intake_review",
+                continue_without_db_record=False, message_send_success=False, message_send_reason="queued_analysis_no_communication",
+                message_send_attempts=0, message_screenshot_path=None, candidate_age=candidate_age,
+                profile_collection_completed=True, analysis_job_id=decision.job_id)
         analysis_settings = self._analysis_settings(settings)
         analysis_version = analysis_settings.coze_analysis_version
         analysis_cache_record = (
@@ -1220,6 +1245,8 @@ class ResultPageFilter:
                 # not_relevant into an outbound message.
                 automatic_communication_allowed = allows_automatic_communication(
                     analysis_result.match_result
+                ) and not has_analysis_execution_failure(
+                    analysis_result.analysis_reason, execution_status=analysis_result.execution_status
                 )
                 if (
                     self.write_to_db
@@ -1240,6 +1267,13 @@ class ResultPageFilter:
                         score_breakdown=analysis_result.score_breakdown,
                         analysis_reason=analysis_result.analysis_reason,
                         evidence_summary=analysis_result.evidence_summary,
+                        execution_status=getattr(analysis_result, "execution_status", None),
+                        error_code=getattr(analysis_result, "error_code", None),
+                        retryable=getattr(analysis_result, "retryable", None),
+                        retry_after=getattr(analysis_result, "retry_after", None),
+                        analysis_run_id=getattr(analysis_result, "analysis_run_id", None),
+                        analyzed_text_hash=getattr(analysis_result, "analyzed_text_hash", None),
+                        job_profile_id=str(self.job_profile.get("id") or "") if self.job_profile else None,
                     )
                     self._log(
                         "candidate_analysis_cache_status_repaired",
@@ -1290,6 +1324,8 @@ class ResultPageFilter:
                 )
                 automatic_communication_allowed = allows_automatic_communication(
                     analysis_response.match_result
+                ) and not has_analysis_execution_failure(
+                    analysis_response.analysis_reason, execution_status=analysis_response.execution_status
                 )
                 analysis_status = analysis_status_for_match_result(
                     analysis_response.match_result
@@ -1307,6 +1343,13 @@ class ResultPageFilter:
                         score_breakdown=analysis_response.score_breakdown,
                         analysis_reason=analysis_response.analysis_reason,
                         evidence_summary=analysis_response.evidence_summary,
+                        execution_status=getattr(analysis_response, "execution_status", None),
+                        error_code=getattr(analysis_response, "error_code", None),
+                        retryable=getattr(analysis_response, "retryable", None),
+                        retry_after=getattr(analysis_response, "retry_after", None),
+                        analysis_run_id=getattr(analysis_response, "analysis_run_id", None),
+                        analyzed_text_hash=getattr(analysis_response, "analyzed_text_hash", None),
+                        job_profile_id=str(self.job_profile.get("id") or "") if self.job_profile else None,
                     )
 
             self._preserve_high_value_candidate(
@@ -1328,6 +1371,9 @@ class ResultPageFilter:
                 and analysis_result.match_result
                 in {"relevant", "needs_review", "not_relevant"}
                 and analysis_result.match_score is not None
+                and not has_analysis_execution_failure(
+                    analysis_result.analysis_reason, execution_status=analysis_result.execution_status
+                )
                 and (
                     existing_record is None
                     or str(existing_record.get("experience_hash") or "")
@@ -1488,6 +1534,7 @@ class ResultPageFilter:
             match_score=analysis_result.match_score if analysis_result is not None else None,
             score_breakdown=analysis_result.score_breakdown if analysis_result is not None else {},
             analysis_reason=analysis_result.analysis_reason if analysis_result is not None else None,
+            execution_status=analysis_result.execution_status if analysis_result is not None else None,
             evidence_summary=analysis_result.evidence_summary if analysis_result is not None else [],
             hit_status=hit_status,
             continue_without_db_record=continue_without_db_record,
@@ -1911,6 +1958,12 @@ class ResultPageFilter:
             evidence_summary=ResultPageFilter._parse_string_list(record.get("evidence_summary_json")),
             raw_data="",
             parsed_payload={},
+            execution_status=record.get("execution_status"),
+            error_code=record.get("error_code"),
+            retryable=bool(record.get("retryable")),
+            retry_after=record.get("retry_after"),
+            analysis_run_id=record.get("analysis_run_id"),
+            analyzed_text_hash=record.get("analyzed_text_hash"),
         )
 
     @staticmethod
@@ -2557,6 +2610,10 @@ class ResultPageFilter:
     @staticmethod
     def _is_high_value_analysis(analysis_result: ResumeAnalysisResult | None) -> bool:
         if analysis_result is None:
+            return False
+        if has_analysis_execution_failure(
+            analysis_result.analysis_reason, execution_status=analysis_result.execution_status
+        ):
             return False
         if is_relevant_match_result(analysis_result.match_result):
             return True

@@ -35,3 +35,11 @@ class InvalidReviewTransitionError(HRReviewError):
 
 class BatchNotFoundError(HRReviewError):
     """搜索批次不存在或批次状态文件不可用。"""
+
+
+class AnalysisTaskNotFoundError(HRReviewError):
+    """任务不存在、不是当前版本，或不在授权岗位范围内。"""
+
+
+class AnalysisTaskConflictError(HRReviewError):
+    """任务版本/状态已变更，不能执行该操作。"""

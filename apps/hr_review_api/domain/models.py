@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from apps.hr_review_api.domain.access_policy import UserRole
+from liepin_rpa.resume_evidence import EvidenceReference
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,6 +121,10 @@ class CandidateDetail:
     manual_review_feedback: str | None
     sources: tuple[CandidateSource, ...]
     history: tuple[ReviewEvent, ...]
+    analysis_run_id: str | None = None
+    analysis_snapshot: dict[str, object] | None = None
+    evidence_refs: tuple[EvidenceReference, ...] = ()
+    evidence_status: str = "legacy"
 
 
 @dataclass(frozen=True, slots=True)

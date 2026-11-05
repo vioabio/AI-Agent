@@ -1,9 +1,20 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
 import { renderApp } from "../../test/render";
 import { QueueFilters } from "./QueueFilters";
+
+test("offers the authorized AI and FDE job labels and submits the exact profile id", async () => {
+  const onChange = vi.fn();
+  renderApp(<QueueFilters values={{}} batches={[]} allowedJobs={["ai_development_engineer_v1", "fde_ai_deployment_engineer_v1"]}
+    onChange={onChange} onReset={vi.fn()} />);
+  await userEvent.click(screen.getByRole("combobox", { name: "岗位" }));
+  await waitFor(() => { expect(screen.getByText("AI 开发工程师")).toBeVisible(); });
+  expect(screen.queryByText("达人营销与达播负责人")).not.toBeInTheDocument();
+  await userEvent.click(screen.getByText("AI 前沿部署工程师（FDE）"));
+  expect(onChange).toHaveBeenLastCalledWith("job", "fde_ai_deployment_engineer_v1");
+});
 
 test("emits reviewer and communication filters without score controls", async () => {
   const onChange = vi.fn();

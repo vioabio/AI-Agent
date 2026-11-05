@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import json
+import uuid
 from collections.abc import Mapping, Sequence
 from contextlib import closing
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 
 import xxhash
 from sqlalchemy import (
     BigInteger,
+    Boolean,
+    and_,
+    case,
     Column,
     DateTime,
     MetaData,
@@ -29,6 +33,10 @@ from sqlalchemy import (
 from sqlalchemy.engine import Engine, URL
 from sqlalchemy.pool import QueuePool
 from sqlalchemy.dialects.mysql import insert as mysql_insert
+
+from liepin_rpa.analysis_execution import AnalysisExecutionStatus, execution_status_from_legacy_reason
+from liepin_rpa.analysis_evidence_store import evidence_metadata, persist_analysis_evidence, result_document
+from liepin_rpa.analysis_job_schema import queue_metadata
 
 from liepin_rpa.candidate_identity import (
     HistoricalCandidateEvidence,
@@ -61,6 +69,10 @@ LEGACY_ANALYSIS_VERSION = "legacy"
 LOGGER = get_logger(__name__)
 
 metadata = MetaData()
+for evidence_table in evidence_metadata.sorted_tables:
+    evidence_table.to_metadata(metadata)
+for queue_table in queue_metadata.sorted_tables:
+    queue_table.to_metadata(metadata)
 
 resume_experience_records = Table(
     RESUME_EXPERIENCE_TABLE_NAME,
@@ -92,6 +104,9 @@ resume_experience_records = Table(
     Column("manual_suppress_communication", BigInteger, nullable=False, server_default=text("0")),
     Column("manual_suppress_report", BigInteger, nullable=False, server_default=text("0")),
     Column("manual_reviewed_at", DateTime, nullable=True),
+    Column("manual_reviewed_by", BigInteger, nullable=True),
+    Column("manual_review_assignee_id", BigInteger, nullable=True),
+    Column("manual_review_revision", BigInteger, nullable=False, server_default=text("0")),
     Column("created_at", TIMESTAMP, nullable=False, server_default=func.current_timestamp()),
     Column("updated_at", TIMESTAMP, nullable=False, server_default=func.current_timestamp()),
     mysql_charset="utf8mb4",
@@ -163,6 +178,12 @@ resume_analysis_cache = Table(
     Column("score_breakdown_json", Text, nullable=True),
     Column("analysis_reason", Text, nullable=True),
     Column("evidence_summary_json", Text, nullable=True),
+    Column("execution_status", String(32), nullable=True),
+    Column("error_code", String(64), nullable=True),
+    Column("retryable", Boolean, nullable=True),
+    Column("retry_after", DateTime, nullable=True),
+    Column("analysis_run_id", String(64), nullable=True),
+    Column("analyzed_text_hash", String(64), nullable=True),
     Column("created_at", TIMESTAMP, nullable=False, server_default=func.current_timestamp()),
     Column("updated_at", TIMESTAMP, nullable=False, server_default=func.current_timestamp()),
     UniqueConstraint(
@@ -268,7 +289,21 @@ def execute_sql_script(settings: Settings, sql: str) -> None:
 
 def ensure_resume_experience_schema(settings: Settings) -> None:
     engine = get_engine(settings)
-    metadata.create_all(engine, checkfirst=True)
+    evidence_tables = set(evidence_metadata.tables)
+    inspector = inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+    if not evidence_tables <= existing_tables:
+        raise RuntimeError(
+            "Resume evidence schema is missing; run the explicit Alembic migration "
+            "to 20261105_04 before collection/reporting. No evidence tables were auto-created."
+        )
+    if RESUME_ANALYSIS_CACHE_TABLE_NAME in existing_tables:
+        columns = {item["name"] for item in inspector.get_columns(RESUME_ANALYSIS_CACHE_TABLE_NAME)}
+        if not {"execution_status", "error_code", "retryable", "retry_after", "analysis_run_id", "analyzed_text_hash"} <= columns:
+            raise RuntimeError("Complete the explicit Alembic migration to 20261105_04 before any runtime schema maintenance")
+    metadata.create_all(engine, checkfirst=True, tables=[
+        table for table in metadata.sorted_tables if table.name not in evidence_tables | set(queue_metadata.tables)
+    ])
     _ensure_resume_experience_columns(engine)
     _ensure_analysis_cache_columns(engine)
     _ensure_source_locator_columns(engine)
@@ -1185,6 +1220,12 @@ def get_analysis_cache_record(
                 resume_analysis_cache.c.score_breakdown_json,
                 resume_analysis_cache.c.analysis_reason,
                 resume_analysis_cache.c.evidence_summary_json,
+                resume_analysis_cache.c.execution_status,
+                resume_analysis_cache.c.error_code,
+                resume_analysis_cache.c.retryable,
+                resume_analysis_cache.c.retry_after,
+                resume_analysis_cache.c.analysis_run_id,
+                resume_analysis_cache.c.analyzed_text_hash,
                 resume_analysis_cache.c.created_at,
                 resume_analysis_cache.c.updated_at,
             ).where(
@@ -1209,12 +1250,38 @@ def upsert_analysis_cache_record(
     score_breakdown: Mapping[str, int] | None = None,
     analysis_reason: str | None = None,
     evidence_summary: Sequence[str] | None = None,
+    execution_status: str | None = None,
+    error_code: str | None = None,
+    retryable: bool | None = None,
+    retry_after: datetime | None = None,
+    analysis_run_id: str | None = None,
+    analyzed_text_hash: str | None = None,
+    job_profile_id: str | None = None,
 ) -> int:
     ensure_resume_experience_schema(settings)
+    if execution_status is None:
+        execution_status = execution_status_from_legacy_reason(analysis_reason)
+        if execution_status is None:
+            execution_status = (
+                AnalysisExecutionStatus.SUCCEEDED
+                if match_result in {"relevant", "needs_review", "not_relevant"}
+                and match_score is not None else AnalysisExecutionStatus.LEGACY_UNKNOWN
+            )
+    execution_status = AnalysisExecutionStatus(execution_status)
+    if retryable is None:
+        retryable = execution_status == AnalysisExecutionStatus.TRANSIENT_ERROR
+    if execution_status == AnalysisExecutionStatus.TRANSIENT_ERROR and retry_after is None:
+        retry_after = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=10)
+    if analyzed_text_hash is not None:
+        if not job_profile_id or not isinstance(experience, str) or not experience.strip():
+            raise ValueError("Bound analysis requires the job and exact analyzed text")
+        analysis_run_id = analysis_run_id or uuid.uuid4().hex
+    elif analysis_run_id is not None:
+        raise ValueError("Analysis run identity requires its original input hash")
     stmt = mysql_insert(resume_analysis_cache).values(
         candidate_fingerprint=candidate_fingerprint,
         experience_hash=experience_hash,
-        experience=_string_or_none(experience),
+        experience=experience if isinstance(experience, str) else None,
         analysis_version=analysis_version,
         analysis_status=analysis_status,
         match_result=_string_or_none(match_result),
@@ -1222,19 +1289,58 @@ def upsert_analysis_cache_record(
         score_breakdown_json=_json_string_or_none(score_breakdown),
         analysis_reason=_string_or_none(analysis_reason),
         evidence_summary_json=_json_string_or_none(evidence_summary),
+        execution_status=execution_status,
+        error_code=error_code,
+        retryable=retryable,
+        retry_after=retry_after,
+        analysis_run_id=analysis_run_id,
+        analyzed_text_hash=analyzed_text_hash,
     )
-    stmt = stmt.on_duplicate_key_update(
-        analysis_status=stmt.inserted.analysis_status,
-        experience=stmt.inserted.experience,
-        match_result=stmt.inserted.match_result,
-        match_score=stmt.inserted.match_score,
-        score_breakdown_json=stmt.inserted.score_breakdown_json,
-        analysis_reason=stmt.inserted.analysis_reason,
-        evidence_summary_json=stmt.inserted.evidence_summary_json,
-        updated_at=func.current_timestamp(),
+    # Preserve a pending retry deadline across duplicate writes/status repairs.
+    # A real retry after expiry starts a new failure window.
+    retry_deadline = case(
+        (
+            and_(
+                resume_analysis_cache.c.execution_status == "transient_error",
+                stmt.inserted.execution_status == "transient_error",
+                resume_analysis_cache.c.retry_after > func.utc_timestamp(),
+            ),
+            resume_analysis_cache.c.retry_after,
+        ),
+        else_=stmt.inserted.retry_after,
     )
+    # MySQL evaluates assignments left-to-right: inspect the old execution state
+    # for the deadline before replacing it with the incoming state.
+    stmt = stmt.on_duplicate_key_update([
+        ("retry_after", retry_deadline),
+        ("analysis_status", stmt.inserted.analysis_status),
+        ("experience", stmt.inserted.experience),
+        ("match_result", stmt.inserted.match_result),
+        ("match_score", stmt.inserted.match_score),
+        ("score_breakdown_json", stmt.inserted.score_breakdown_json),
+        ("analysis_reason", stmt.inserted.analysis_reason),
+        ("evidence_summary_json", stmt.inserted.evidence_summary_json),
+        ("execution_status", stmt.inserted.execution_status),
+        ("error_code", stmt.inserted.error_code),
+        ("retryable", stmt.inserted.retryable),
+        ("analysis_run_id", stmt.inserted.analysis_run_id),
+        ("analyzed_text_hash", stmt.inserted.analyzed_text_hash),
+        ("updated_at", func.current_timestamp()),
+    ])
     engine = get_engine(settings)
     with engine.begin() as connection:
+        if analysis_run_id is not None:
+            persist_analysis_evidence(
+                connection, analysis_run_id=analysis_run_id,
+                candidate_fingerprint=candidate_fingerprint, job_profile_id=job_profile_id,
+                analysis_version=analysis_version, raw_text=experience,
+                analyzed_text_hash=analyzed_text_hash,
+                result=result_document(
+                    match_result=_string_or_none(match_result), match_score=match_score,
+                    score_breakdown=score_breakdown, analysis_reason=_string_or_none(analysis_reason),
+                    evidence_summary=evidence_summary, execution_status=execution_status,
+                ),
+            )
         connection.execute(stmt)
         cache_id = connection.execute(
             select(resume_analysis_cache.c.id).where(
@@ -1501,6 +1607,12 @@ def _ensure_analysis_cache_columns(engine: Engine) -> None:
         }
     except Exception:
         return
+    required = {"execution_status", "error_code", "retryable", "retry_after", "analysis_run_id", "analyzed_text_hash"}
+    if not required <= column_names:
+        raise RuntimeError(
+            "Analysis execution schema is outdated; run the explicit Alembic "
+            "migration to 20261105_04 before starting collection/reporting."
+        )
     alter_statements: list[str] = []
     if "match_score" not in column_names:
         alter_statements.append(
@@ -1847,6 +1959,12 @@ def _merge_analysis_cache_rows(
                     score_breakdown_json=duplicate["score_breakdown_json"],
                     analysis_reason=duplicate["analysis_reason"],
                     evidence_summary_json=duplicate["evidence_summary_json"],
+                    execution_status=duplicate.get("execution_status"),
+                    error_code=duplicate.get("error_code"),
+                    retryable=duplicate.get("retryable"),
+                    retry_after=duplicate.get("retry_after"),
+                    analysis_run_id=duplicate.get("analysis_run_id"),
+                    analyzed_text_hash=duplicate.get("analyzed_text_hash"),
                     updated_at=duplicate["updated_at"],
                 )
             )

@@ -149,6 +149,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/candidates/{candidate_fingerprint}/evidence-search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search Candidate Evidence */
+        get: operations["search_candidate_evidence_api_v1_candidates__candidate_fingerprint__evidence_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/candidates/{candidate_fingerprint}/review": {
         parameters: {
             query?: never;
@@ -183,10 +200,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/analysis-tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Analysis Tasks */
+        get: operations["list_analysis_tasks_api_v1_analysis_tasks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analysis-tasks/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Analysis Task */
+        get: operations["get_analysis_task_api_v1_analysis_tasks__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analysis-tasks/{job_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Analysis Task */
+        post: operations["retry_analysis_task_api_v1_analysis_tasks__job_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AnalysisSnapshotResponse */
+        AnalysisSnapshotResponse: {
+            /** Snapshot Id */
+            snapshot_id: string;
+            /** Content Hash */
+            content_hash: string;
+            /** Normalization Version */
+            normalization_version: string;
+            /** Raw Text */
+            raw_text: string;
+            /** Is Current */
+            is_current: boolean;
+        };
+        /** AnalysisTaskDetailResponse */
+        AnalysisTaskDetailResponse: {
+            task: components["schemas"]["AnalysisTaskResponse"];
+            snapshot: components["schemas"]["AnalysisSnapshotResponse"] | null;
+            result: components["schemas"]["ShadowResultResponse"] | null;
+            /** Evidence Refs */
+            evidence_refs: components["schemas"]["EvidenceReferenceResponse"][];
+            /**
+             * Result Status
+             * @enum {string}
+             */
+            result_status: "pending" | "verified" | "invalid";
+            execution?: components["schemas"]["ShadowExecutionResponse"] | null;
+        };
+        /** AnalysisTaskPageResponse */
+        AnalysisTaskPageResponse: {
+            /** Enabled */
+            enabled: boolean;
+            /** Items */
+            items: components["schemas"]["AnalysisTaskResponse"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** AnalysisTaskResponse */
+        AnalysisTaskResponse: {
+            /** Job Id */
+            job_id: string;
+            /** Candidate Fingerprint */
+            candidate_fingerprint: string;
+            /** Candidate Name */
+            candidate_name: string;
+            /** Job Profile Id */
+            job_profile_id: string;
+            /** Batch Id */
+            batch_id: string;
+            /** Collection Completed */
+            collection_completed: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "running" | "retry_wait" | "succeeded" | "failed" | "cancelled" | "superseded";
+            /** Attempts */
+            attempts: number;
+            /** Max Attempts */
+            max_attempts: number;
+            /** Lease Token */
+            lease_token: number;
+            /** Last Error Code */
+            last_error_code: string | null;
+            /**
+             * Source Type
+             * @constant
+             */
+            source_type: "synthetic";
+            /**
+             * Available At
+             * Format: date-time
+             */
+            available_at: string;
+            /**
+             * Deadline At
+             * Format: date-time
+             */
+            deadline_at: string;
+            /** Can Retry */
+            can_retry: boolean;
+        };
         /** BatchListResponse */
         BatchListResponse: {
             /** Items */
@@ -230,6 +383,17 @@ export interface components {
             sources: components["schemas"]["CandidateSourceResponse"][];
             /** History */
             history: components["schemas"]["ReviewEventResponse"][];
+            /** Analysis Run Id */
+            analysis_run_id?: string | null;
+            analysis_snapshot?: components["schemas"]["AnalysisSnapshotResponse"] | null;
+            /** Evidence Refs */
+            evidence_refs?: components["schemas"]["EvidenceReferenceResponse"][];
+            /**
+             * Evidence Status
+             * @default legacy
+             * @enum {string}
+             */
+            evidence_status: "legacy" | "verified" | "invalid";
         };
         /** CandidatePageResponse */
         CandidatePageResponse: {
@@ -332,12 +496,67 @@ export interface components {
             /** Details */
             details?: components["schemas"]["ErrorDetail"][];
         };
+        /** EvidenceReferenceResponse */
+        EvidenceReferenceResponse: {
+            /** Evidence Id */
+            evidence_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /** Chunk Id */
+            chunk_id: string;
+            /** Summary Index */
+            summary_index: number;
+            /** Start */
+            start: number;
+            /** End */
+            end: number;
+            /** Quote */
+            quote: string;
+        };
+        /** EvidenceSearchHitResponse */
+        EvidenceSearchHitResponse: {
+            /** Chunk Id */
+            chunk_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /** Start */
+            start: number;
+            /** End */
+            end: number;
+            /** Quote */
+            quote: string;
+            /** Section */
+            section: string;
+            /** Organization */
+            organization: string | null;
+        };
+        /** EvidenceSearchResponse */
+        EvidenceSearchResponse: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "available" | "unavailable";
+            /** Analysis Run Id */
+            analysis_run_id?: string | null;
+            /** Snapshot Id */
+            snapshot_id?: string | null;
+            /** Dimension Id */
+            dimension_id: string;
+            /** Dimension Label */
+            dimension_label?: string | null;
+            /** Retrieval Version */
+            retrieval_version?: string | null;
+            /** Hits */
+            hits?: components["schemas"]["EvidenceSearchHitResponse"][];
+            /** Message */
+            message?: string | null;
+        };
         /**
          * HRReviewStatus
-         * @description 工作台、正式日报与测试共同使用的唯一 HR 状态定义。
          * @enum {string}
          */
-        HRReviewStatus: "pending_review" | "recommended_contact" | "contacted" | "interviewing" | "on_hold" | "resume_rejected" | "interview_rejected" | "hired";
+        HRReviewStatus: "pending_review" | "recommended_contact" | "contacted" | "interviewing" | "on_hold" | "resume_rejected" | "interview_rejected" | "rejected" | "hired";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -386,6 +605,11 @@ export interface components {
             /** Message */
             message: string;
         };
+        /** RetryAnalysisTaskRequest */
+        RetryAnalysisTaskRequest: {
+            /** Lease Token */
+            lease_token: number;
+        };
         /** ReviewEventResponse */
         ReviewEventResponse: {
             /** Id */
@@ -412,6 +636,136 @@ export interface components {
         ReviewHistoryResponse: {
             /** Items */
             items: components["schemas"]["ReviewEventResponse"][];
+        };
+        /** ShadowAttemptResponse */
+        ShadowAttemptResponse: {
+            /** Sequence */
+            sequence: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "running" | "succeeded" | "failed" | "abandoned" | "unknown";
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Finished At */
+            finished_at: string | null;
+            /** Error Code */
+            error_code: string | null;
+            /** Reserved Tokens */
+            reserved_tokens: number;
+            /** Reserved Cost Micros */
+            reserved_cost_micros: number;
+            /** Reported Tokens */
+            reported_tokens: number | null;
+            /** Reported Cost Micros */
+            reported_cost_micros: number | null;
+            request: components["schemas"]["ShadowRequestReceiptResponse"] | null;
+        };
+        /** ShadowExecutionResponse */
+        ShadowExecutionResponse: {
+            /**
+             * Mode
+             * @constant
+             */
+            mode: "synthetic_only";
+            /** Currency */
+            currency: string;
+            /** Price Version */
+            price_version: string;
+            /** Charged Tokens */
+            charged_tokens: number;
+            /** Max Tokens */
+            max_tokens: number;
+            /** Charged Cost Micros */
+            charged_cost_micros: number;
+            /** Max Cost Micros */
+            max_cost_micros: number;
+            /** History Truncated */
+            history_truncated: boolean;
+            /** Attempts */
+            attempts: components["schemas"]["ShadowAttemptResponse"][];
+            /** Tool Rounds */
+            tool_rounds?: components["schemas"]["ShadowToolRoundResponse"][];
+        };
+        /** ShadowRequestReceiptResponse */
+        ShadowRequestReceiptResponse: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "started" | "received" | "http_error" | "timeout" | "connection_error" | "invalid_response" | "not_sent" | "unknown";
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Completed At */
+            completed_at: string | null;
+            /** Http Status */
+            http_status: number | null;
+            /** Error Code */
+            error_code: string | null;
+            /** Latency Ms */
+            latency_ms: number | null;
+            /** Input Tokens */
+            input_tokens: number | null;
+            /** Output Tokens */
+            output_tokens: number | null;
+            /** Reported Cost Micros */
+            reported_cost_micros: number | null;
+        };
+        /** ShadowResultResponse */
+        ShadowResultResponse: {
+            /** Beauty Relevant */
+            beauty_relevant: boolean;
+            /**
+             * Match Result
+             * @enum {string}
+             */
+            match_result: "relevant" | "needs_review" | "not_relevant";
+            /** Match Score */
+            match_score: number;
+            /** Score Breakdown */
+            score_breakdown: {
+                [key: string]: number;
+            };
+            /** Analysis Reason */
+            analysis_reason: string;
+            /** Evidence Summary */
+            evidence_summary: string[];
+        };
+        /** ShadowToolRoundResponse */
+        ShadowToolRoundResponse: {
+            /** Sequence */
+            sequence: number;
+            /** Attempt Sequence */
+            attempt_sequence: number | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "reserved" | "started" | "received" | "error" | "unknown";
+            /** Reserved Tokens */
+            reserved_tokens: number;
+            /** Reserved Cost Micros */
+            reserved_cost_micros: number;
+            /** Input Tokens */
+            input_tokens: number | null;
+            /** Output Tokens */
+            output_tokens: number | null;
+            /** Reported Cost Micros */
+            reported_cost_micros: number | null;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Finished At */
+            finished_at: string | null;
         };
         /** SubmitReviewRequest */
         SubmitReviewRequest: {
@@ -522,10 +876,7 @@ export interface operations {
                 "X-CSRF-Token"?: string | null;
             };
             path?: never;
-            cookie?: {
-                hr_review_csrf?: string | null;
-                hr_review_session?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -572,9 +923,7 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: {
-                hr_review_session?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -596,15 +945,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
         };
     };
     list_batches_api_v1_batches_get: {
@@ -612,9 +952,7 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: {
-                hr_review_session?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -636,15 +974,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
         };
     };
     dashboard_summary_api_v1_dashboard_summary_get: {
@@ -657,9 +986,7 @@ export interface operations {
             };
             header?: never;
             path?: never;
-            cookie?: {
-                hr_review_session?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -709,9 +1036,7 @@ export interface operations {
             };
             header?: never;
             path?: never;
-            cookie?: {
-                hr_review_session?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -775,9 +1100,7 @@ export interface operations {
             };
             header?: never;
             path?: never;
-            cookie?: {
-                hr_review_session?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -826,9 +1149,7 @@ export interface operations {
             path: {
                 candidate_fingerprint: string;
             };
-            cookie?: {
-                hr_review_session?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -870,6 +1191,57 @@ export interface operations {
             };
         };
     };
+    search_candidate_evidence_api_v1_candidates__candidate_fingerprint__evidence_search_get: {
+        parameters: {
+            query?: {
+                dimension_id?: "industry_depth" | "beauty_continuity" | "role_evidence";
+            };
+            header?: never;
+            path: {
+                candidate_fingerprint: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceSearchResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     submit_review_api_v1_candidates__candidate_fingerprint__review_patch: {
         parameters: {
             query?: never;
@@ -879,10 +1251,7 @@ export interface operations {
             path: {
                 candidate_fingerprint: string;
             };
-            cookie?: {
-                hr_review_csrf?: string | null;
-                hr_review_session?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -953,9 +1322,7 @@ export interface operations {
             path: {
                 candidate_fingerprint: string;
             };
-            cookie?: {
-                hr_review_session?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -979,6 +1346,214 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_analysis_tasks_api_v1_analysis_tasks_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisTaskPageResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_analysis_task_api_v1_analysis_tasks__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisTaskDetailResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_analysis_task_api_v1_analysis_tasks__job_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetryAnalysisTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisTaskDetailResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

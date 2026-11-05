@@ -12,6 +12,7 @@ from apps.hr_review_api.schemas.candidates import (
     CandidatePageResponse,
     CandidateSort,
     CandidateSummaryResponse,
+    EvidenceSearchResponse,
     ReviewEventResponse,
     ReviewHistoryResponse,
     ReviewScope,
@@ -96,6 +97,21 @@ def get_candidate(
         candidate_fingerprint=candidate_fingerprint,
     )
     return CandidateDetailResponse.model_validate(detail)
+
+
+@router.get(
+    "/candidates/{candidate_fingerprint}/evidence-search", response_model=EvidenceSearchResponse,
+    responses={401: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+)
+def search_candidate_evidence(
+    candidate_fingerprint: str, request: Request,
+    user: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    dimension_id: Literal["industry_depth", "beauty_continuity", "role_evidence"] = "role_evidence",
+) -> EvidenceSearchResponse:
+    result = get_services(request).candidates.query_service.search_evidence(
+        user=user, candidate_fingerprint=candidate_fingerprint, dimension_id=dimension_id,
+    )
+    return EvidenceSearchResponse.model_validate(result)
 
 
 @router.patch(

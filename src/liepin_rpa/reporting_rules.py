@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
+from liepin_rpa.analysis_execution import has_analysis_execution_failure
+
 from liepin_rpa.candidate_decision_rules import (
     ANALYSIS_STATUS_MATCHED,
     ANALYSIS_STATUS_NEEDS_REVIEW,
@@ -79,13 +81,16 @@ def is_actionable_needs_review_result(
     *,
     analysis_status: object = None,
     analysis_reason: object = None,
+    execution_status: object = None,
     min_score: int = ACTIONABLE_NEEDS_REVIEW_MIN_SCORE,
 ) -> bool:
     has_review_result = has_needs_review_result(
         match_result,
         analysis_status=analysis_status,
     )
-    if not has_review_result or "Coze API" in str(analysis_reason or ""):
+    if not has_review_result or has_analysis_execution_failure(
+        analysis_reason, execution_status=execution_status
+    ):
         return False
     try:
         return int(match_score) >= int(min_score)
@@ -126,9 +131,10 @@ def is_actionable_report_result(
     *,
     analysis_status: object = None,
     analysis_reason: object = None,
+    execution_status: object = None,
     min_score: int = ACTIONABLE_DAREN_MIN_SCORE,
 ) -> bool:
-    if "Coze API" in str(analysis_reason or ""):
+    if has_analysis_execution_failure(analysis_reason, execution_status=execution_status):
         return False
     try:
         score = int(match_score)

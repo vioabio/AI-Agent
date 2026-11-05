@@ -2,6 +2,7 @@ import { Button, Divider, Input, Select, Space, Typography } from "antd";
 import { useEffect, useState } from "react";
 
 import { reviewStatusOptions } from "./reviewStatuses";
+import { jobLabels } from "../../shared/jobProfiles";
 
 export interface FilterValues {
   batch?: string;
@@ -23,11 +24,6 @@ interface Props {
   onChange: (key: keyof FilterValues, value: string | number | undefined) => void;
   onReset: () => void;
 }
-
-const jobLabels: Record<string, string> = {
-  daren_live_bd_v1: "达人营销与达播负责人",
-  finance_shared_management_v1: "财务共享与管理经理",
-};
 
 export function QueueFilters({ values, batches, allowedJobs, onChange, onReset }: Props) {
   const set = <Key extends keyof FilterValues>(key: Key, value: FilterValues[Key]) => onChange(key, value);

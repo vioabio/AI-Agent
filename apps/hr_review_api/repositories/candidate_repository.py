@@ -11,6 +11,7 @@ from sqlalchemy import (
     and_,
     case,
     exists,
+    false,
     func,
     insert,
     or_,
@@ -39,6 +40,8 @@ from apps.hr_review_api.persistence.tables import (
     manual_review_events,
     sensitive_access_events,
 )
+from liepin_rpa.analysis_execution import analysis_success_condition
+from liepin_rpa.analysis_evidence_store import analysis_evidence_runs, read_bound_evidence, result_document
 from liepin_rpa.candidate_decision_rules import (
     ANALYSIS_STATUS_MATCHED,
     ANALYSIS_STATUS_NEEDS_REVIEW,
@@ -63,6 +66,8 @@ from liepin_rpa.db import (
 JOB_TITLES = {
     "daren_live_bd_v1": "达人营销与达播负责人",
     "finance_shared_management_v1": "财务共享与管理经理",
+    "ai_development_engineer_v1": "AI 开发工程师",
+    "fde_ai_deployment_engineer_v1": "AI 前沿部署工程师（FDE）",
 }
 SORT_FIELD_NAMES = {
     "candidate_name": "candidate_name",
@@ -80,6 +85,9 @@ CURRENT_PERIOD_PATTERN = re.compile(r"(?:至今|现在|目前|present)", re.IGNO
 
 class CandidateRepository:
     """候选人查询与人工审核持久化；产品口径由 Service 通过 criteria 提供。"""
+
+    def __init__(self, *, queue_projection_enabled=False):
+        self.queue_projection_enabled = queue_projection_enabled
 
     def list_candidates(
         self,
@@ -195,6 +203,27 @@ class CandidateRepository:
             allowed_job_profile_ids=allowed_job_profile_ids,
             allowed_batch_ids=allowed_batch_ids,
         )
+        breakdown = _decode_json(row["score_breakdown_json"])
+        bundle = read_bound_evidence(
+            connection, analysis_run_id=row["analysis_run_id"],
+            candidate_fingerprint=candidate_fingerprint,
+            job_profile_id=str(row["job_profile_id"] or ""),
+            analysis_version=str(row["analysis_version"] or ""),
+            result=result_document(
+                match_result=row["match_result"], match_score=row["cached_match_score"],
+                score_breakdown=breakdown if isinstance(breakdown, dict) else {},
+                analysis_reason=row["analysis_reason"], evidence_summary=_decode_evidence(row["evidence_summary_json"]),
+                execution_status=row["execution_status"],
+            ),
+        )
+        snapshot_view = None
+        if bundle.snapshot is not None:
+            current_text = row["latest_resume_experience"] if row["latest_resume_experience"] is not None else row["experience"]
+            snapshot_view = {
+                "snapshot_id": bundle.snapshot.snapshot_id, "content_hash": bundle.snapshot.content_hash,
+                "normalization_version": bundle.snapshot.normalization_version,
+                "raw_text": bundle.snapshot.raw_text, "is_current": current_text == bundle.snapshot.raw_text,
+            }
         return CandidateDetail(
             summary=self._summary_from_row(row),
             experience=str(row["experience"]) if row["experience"] is not None else None,
@@ -219,6 +248,10 @@ class CandidateRepository:
                 for source in _deduplicate_source_rows(source_rows)
             ),
             history=history,
+            analysis_run_id=bundle.analysis_run_id,
+            analysis_snapshot=snapshot_view,
+            evidence_refs=bundle.references,
+            evidence_status=bundle.status,
         )
 
     def list_review_history(
@@ -476,14 +509,40 @@ class CandidateRepository:
         )
 
     def _base_select(self, criteria: CandidateQueryCriteria) -> Select[tuple[object, ...]]:
+        bound_scope = analysis_evidence_runs.alias("bound_analysis_scope")
+        scope_jobs = {criteria.job_profile_id} if criteria.job_profile_id else criteria.allowed_job_profile_ids
         latest_analysis_ids = (
             select(
                 resume_analysis_cache.c.candidate_fingerprint.label("candidate_fingerprint"),
                 func.max(resume_analysis_cache.c.id).label("analysis_id"),
             )
+            .select_from(resume_analysis_cache.outerjoin(bound_scope, and_(
+                bound_scope.c.analysis_run_id == resume_analysis_cache.c.analysis_run_id,
+                bound_scope.c.candidate_fingerprint == resume_analysis_cache.c.candidate_fingerprint,
+            )))
+            # Filter bound runs by their actual job BEFORE choosing the latest.
+            # NULL retains legacy compatibility; forged pointers fail evidence validation.
+            .where(or_(bound_scope.c.job_profile_id.is_(None), bound_scope.c.job_profile_id.in_(scope_jobs))
+                   if scope_jobs else true())
             .group_by(resume_analysis_cache.c.candidate_fingerprint)
             .subquery("latest_analysis_ids")
         )
+        if self.queue_projection_enabled:
+            from liepin_rpa.analysis_job_schema import analysis_jobs as queued_jobs, job_heads
+            is_queued = exists(select(1).select_from(queued_jobs).where(
+                queued_jobs.c.analysis_run_id == resume_analysis_cache.c.analysis_run_id))
+            current = exists(select(1).select_from(queued_jobs.join(job_heads,
+                job_heads.c.current_job_id == queued_jobs.c.job_id)).where(
+                    queued_jobs.c.analysis_run_id == resume_analysis_cache.c.analysis_run_id,
+                    queued_jobs.c.status == "succeeded", job_heads.c.published_run_id == resume_analysis_cache.c.analysis_run_id))
+            latest_analysis_ids = (select(resume_analysis_cache.c.candidate_fingerprint.label("candidate_fingerprint"),
+                    func.max(resume_analysis_cache.c.id).label("analysis_id"))
+                .select_from(resume_analysis_cache.outerjoin(bound_scope, and_(
+                    bound_scope.c.analysis_run_id == resume_analysis_cache.c.analysis_run_id,
+                    bound_scope.c.candidate_fingerprint == resume_analysis_cache.c.candidate_fingerprint)))
+                .where(or_(~is_queued, current), or_(bound_scope.c.job_profile_id.is_(None), bound_scope.c.job_profile_id.in_(scope_jobs))
+                       if scope_jobs else true())
+                .group_by(resume_analysis_cache.c.candidate_fingerprint).subquery("latest_analysis_ids"))
         candidate_fingerprint = latest_analysis_ids.c.candidate_fingerprint
         latest_locator_ids = (
             select(
@@ -516,6 +575,7 @@ class CandidateRepository:
             else_="daren_live_bd_v1",
         )
         job_profile = func.coalesce(
+            analysis_evidence_runs.c.job_profile_id,
             resume_source_locators.c.job_profile_id,
             inferred_job_profile,
         )
@@ -568,6 +628,10 @@ class CandidateRepository:
             resume_analysis_cache.c.score_breakdown_json,
             resume_analysis_cache.c.analysis_reason,
             resume_analysis_cache.c.evidence_summary_json,
+            resume_analysis_cache.c.analysis_run_id,
+            resume_analysis_cache.c.execution_status,
+            resume_analysis_cache.c.match_score.label("cached_match_score"),
+            resume_experience_records.c.experience.label("latest_resume_experience"),
             job_profile.label("job_profile_id"),
             func.coalesce(
                 resume_search_hits.c.search_keyword,
@@ -592,6 +656,10 @@ class CandidateRepository:
                 resume_analysis_cache,
                 resume_analysis_cache.c.id == latest_analysis_ids.c.analysis_id,
             )
+            .outerjoin(analysis_evidence_runs, and_(
+                analysis_evidence_runs.c.analysis_run_id == resume_analysis_cache.c.analysis_run_id,
+                analysis_evidence_runs.c.candidate_fingerprint == candidate_fingerprint,
+            ))
             .outerjoin(
                 resume_experience_records,
                 resume_experience_records.c.candidate_fingerprint == candidate_fingerprint,
@@ -732,12 +800,13 @@ class CandidateRepository:
         ]
         if criteria.exclude_temporary_ai_failure:
             candidate_filters.append(
-                or_(
-                    resume_analysis_cache.c.analysis_reason.is_(None),
-                    ~resume_analysis_cache.c.analysis_reason.contains("Coze API"),
+                analysis_success_condition(
+                    resume_analysis_cache.c.analysis_reason, resume_analysis_cache.c.execution_status
                 )
             )
-        return and_(*candidate_filters)
+        return and_(*candidate_filters, analysis_success_condition(
+            resume_analysis_cache.c.analysis_reason, resume_analysis_cache.c.execution_status
+        ))
 
     @staticmethod
     def _review_scope_filters(criteria: CandidateQueryCriteria) -> list[ColumnElement[bool]]:
@@ -925,6 +994,9 @@ class CandidateRepository:
             inferred_job = resume_search_hits.c.search_keyword.like("%财务%")
         elif criteria.job_profile_id == "daren_live_bd_v1":
             inferred_job = ~resume_search_hits.c.search_keyword.like("%财务%")
+        elif criteria.job_profile_id is not None:
+            # Legacy keywords cannot establish an AI/FDE job association.
+            inferred_job = false()
         else:
             inferred_job = true()
         return or_(scoped_locator, and_(no_locator, inferred_job))

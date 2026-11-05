@@ -66,6 +66,26 @@ class ReviewHistoryResponse(BaseModel):
     items: list[ReviewEventResponse]
 
 
+class AnalysisSnapshotResponse(BaseModel):
+    snapshot_id: str
+    content_hash: str
+    normalization_version: str
+    raw_text: str
+    is_current: bool
+
+
+class EvidenceReferenceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    evidence_id: str
+    snapshot_id: str
+    chunk_id: str
+    summary_index: int = Field(ge=0)
+    start: int = Field(ge=0)
+    end: int = Field(gt=0)
+    quote: str
+
+
 class CandidateDetailResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -79,6 +99,31 @@ class CandidateDetailResponse(BaseModel):
     manual_review_feedback: str | None
     sources: list[CandidateSourceResponse]
     history: list[ReviewEventResponse]
+    analysis_run_id: str | None = None
+    analysis_snapshot: AnalysisSnapshotResponse | None = None
+    evidence_refs: list[EvidenceReferenceResponse] = Field(default_factory=list)
+    evidence_status: Literal["legacy", "verified", "invalid"] = "legacy"
+
+
+class EvidenceSearchHitResponse(BaseModel):
+    chunk_id: str
+    snapshot_id: str
+    start: int
+    end: int
+    quote: str
+    section: str
+    organization: str | None
+
+
+class EvidenceSearchResponse(BaseModel):
+    status: Literal["available", "unavailable"]
+    analysis_run_id: str | None = None
+    snapshot_id: str | None = None
+    dimension_id: str
+    dimension_label: str | None = None
+    retrieval_version: str | None = None
+    hits: list[EvidenceSearchHitResponse] = Field(default_factory=list)
+    message: str | None = None
 
 
 class SubmitReviewRequest(BaseModel):

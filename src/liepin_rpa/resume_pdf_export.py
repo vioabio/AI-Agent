@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from liepin_rpa.analysis_execution import has_analysis_execution_failure
+
 from datetime import datetime
 from html import escape as html_escape
 from pathlib import Path
@@ -377,6 +379,11 @@ def _format_hit_status(hit_status: str) -> str:
 
 
 def _format_candidate_status(candidate: ReportCandidate) -> str:
+    if has_analysis_execution_failure(candidate.analysis_reason, execution_status=candidate.execution_status):
+        if candidate.execution_status == "blocked":
+            return "AI请求被拒绝，待处理"
+        if not _has_needs_review_result(candidate):
+            return "AI分析失败，待复核"
     if _requires_recollection(candidate):
         return "需重新采集"
     if _requires_analysis_retry(candidate):
@@ -386,6 +393,7 @@ def _format_candidate_status(candidate: ReportCandidate) -> str:
         candidate.match_score,
         analysis_status=candidate.analysis_status,
         analysis_reason=candidate.analysis_reason,
+        execution_status=candidate.execution_status,
     ):
         return "待人工复核"
     if _has_needs_review_result(candidate):
@@ -424,7 +432,7 @@ def _requires_analysis_retry(candidate: ReportCandidate) -> bool:
 def _is_coze_api_failure(candidate: ReportCandidate) -> bool:
     return bool(
         _has_needs_review_result(candidate)
-        and "Coze API" in (candidate.analysis_reason or "")
+        and has_analysis_execution_failure(candidate.analysis_reason, execution_status=candidate.execution_status)
     )
 
 

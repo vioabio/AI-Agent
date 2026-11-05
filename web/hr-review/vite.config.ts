@@ -1,13 +1,22 @@
 import react from "@vitejs/plugin-react";
+import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
+  build: {
+    manifest: true,
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => /\/node_modules\/(react|react-dom|scheduler)\//.test(id) ? "react-runtime" : undefined,
+      },
+    },
+  },
   server: {
     host: "127.0.0.1",
     port: 5173,
     proxy: {
-      "/api": "http://127.0.0.1:8000",
+      "/api": loadEnv(mode, ".", "HR_").HR_API_PROXY_TARGET || "http://127.0.0.1:8000",
     },
   },
   test: {
@@ -15,6 +24,7 @@ export default defineConfig({
     setupFiles: "./src/test/setup.ts",
     css: true,
     globals: true,
+    maxWorkers: 2,
     include: ["src/**/*.test.{ts,tsx}"],
   },
-});
+}));

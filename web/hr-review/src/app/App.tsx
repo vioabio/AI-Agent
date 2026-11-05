@@ -1,11 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
+import { lazy } from "react";
 import { Navigate, Route, Routes } from "react-router";
 
-import { LoginPage } from "../features/auth/LoginPage";
+import { AsyncContent } from "../shared/components/AsyncContent";
 import { api } from "../shared/api/client";
 import { queryKeys } from "../shared/api/queryKeys";
 import { LoadingState } from "../shared/components/LoadingState";
-import { WorkbenchPage } from "./WorkbenchPage";
+const LoginPage = lazy(() => import("../features/auth/LoginPage").then((module) => ({ default: module.LoginPage })));
+const WorkbenchPage = lazy(() => import("./WorkbenchPage").then((module) => ({ default: module.WorkbenchPage })));
+const AnalysisTasksPage = lazy(() => import("../features/analysis-tasks/AnalysisTasksPage").then((module) => ({ default: module.AnalysisTasksPage })));
 
 export function App() {
   const session = useQuery({ queryKey: queryKeys.me, queryFn: api.me, retry: false });
@@ -16,8 +19,9 @@ export function App() {
 
   return (
     <Routes>
-      <Route path="/login" element={session.data ? <Navigate to="/" replace /> : <LoginPage />} />
-      <Route path="/" element={session.data ? <WorkbenchPage user={session.data} /> : <Navigate to="/login" replace />} />
+      <Route path="/login" element={session.data ? <Navigate to="/" replace /> : <AsyncContent key="login" label="登录页面"><LoginPage /></AsyncContent>} />
+      <Route path="/" element={session.data ? <AsyncContent key="workbench" label="工作台"><WorkbenchPage user={session.data} /></AsyncContent> : <Navigate to="/login" replace />} />
+      <Route path="/analysis-tasks" element={session.data ? <AsyncContent key="tasks" label="影子分析任务"><AnalysisTasksPage /></AsyncContent> : <Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -14,7 +14,10 @@ def main() -> int:
 
     engine = create_engine("sqlite+pysqlite:///:memory:", future=True)
     app = create_app(
-        settings=HRReviewSettings(HR_REVIEW_DATABASE_URL="sqlite+pysqlite:///:memory:"),
+        settings=HRReviewSettings(
+            _env_file=None, APP_ENV="development",
+            HR_REVIEW_DATABASE_URL="sqlite+pysqlite:///:memory:",
+        ),
         engine=engine,
     )
     output = Path("openapi/hr-review-openapi.json")

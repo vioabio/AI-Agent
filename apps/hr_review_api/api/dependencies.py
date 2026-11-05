@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, cast
 
-from fastapi import Cookie, Depends, Header, Request
+from fastapi import Depends, Header, Request
 
 from apps.hr_review_api.domain.models import AuthenticatedUser
 from apps.hr_review_api.runtime import ApplicationServices
@@ -18,9 +18,9 @@ def get_services(request: Request) -> ApplicationServices:
 
 def get_auth_context(
     request: Request,
-    session_token: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
 ) -> AuthContext:
-    return get_services(request).auth.login_service.authenticate(session_token)
+    auth = get_services(request).auth
+    return auth.login_service.authenticate(request.cookies.get(auth.session_cookie_name))
 
 
 def get_current_user(
@@ -33,7 +33,9 @@ def require_csrf(
     request: Request,
     context: Annotated[AuthContext, Depends(get_auth_context)],
     csrf_header: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
-    csrf_cookie: Annotated[str | None, Cookie(alias=CSRF_COOKIE_NAME)] = None,
 ) -> AuthContext:
-    get_services(request).auth.login_service.verify_csrf(context, csrf_header, csrf_cookie)
+    auth = get_services(request).auth
+    auth.login_service.verify_csrf(
+        context, csrf_header, request.cookies.get(auth.csrf_cookie_name)
+    )
     return context

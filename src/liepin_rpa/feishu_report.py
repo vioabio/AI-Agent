@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from liepin_rpa.analysis_execution import has_analysis_execution_failure
+
 import json
 import time
 from dataclasses import dataclass, field
@@ -63,6 +65,7 @@ class ReportCandidate:
     recent_experience_summary: str | None = None
     matched_experience_summary: str | None = None
     candidate_age: int | None = None
+    execution_status: str | None = None
 
 
 @dataclass(slots=True)
@@ -359,6 +362,7 @@ def _aggregate_candidates(outcomes: list[CandidateProcessOutcome]) -> list[Repor
             candidate.match_score = outcome.match_score
             candidate.score_breakdown = dict(outcome.score_breakdown)
             candidate.analysis_reason = outcome.analysis_reason
+            candidate.execution_status = outcome.execution_status
             candidate.evidence_summary = list(outcome.evidence_summary)
             candidate.communication_label = outcome.communication_label
             candidate.hit_status = outcome.hit_status
@@ -1136,6 +1140,8 @@ def _is_featured_candidate(item: ReportCandidate) -> bool:
 
 
 def _is_relevant_candidate(item: ReportCandidate) -> bool:
+    if has_analysis_execution_failure(item.analysis_reason, execution_status=item.execution_status):
+        return False
     return is_actionable_relevant_result(
         item.match_result,
         item.match_score,
@@ -1150,6 +1156,7 @@ def _is_needs_review_candidate(item: ReportCandidate) -> bool:
         item.match_score,
         analysis_status=item.analysis_status,
         analysis_reason=item.analysis_reason,
+        execution_status=item.execution_status,
         min_score=_candidate_report_min_score(item),
     )
 
@@ -1179,14 +1186,14 @@ def _candidate_report_min_score(item: ReportCandidate) -> int:
 def _is_coze_api_failure_candidate(item: ReportCandidate) -> bool:
     return bool(
         _has_needs_review_result(item)
-        and "Coze API" in (item.analysis_reason or "")
+        and has_analysis_execution_failure(item.analysis_reason, execution_status=item.execution_status)
     )
 
 
 def _requires_recollection(item: ReportCandidate) -> bool:
     return (
         _has_needs_review_result(item)
-        and "Coze API" in (item.analysis_reason or "")
+        and has_analysis_execution_failure(item.analysis_reason, execution_status=item.execution_status)
         and not item.recent_experience_summary
         and not item.evidence_summary
     )
@@ -1196,12 +1203,14 @@ def _format_review_reason(item: ReportCandidate) -> str:
     if _requires_recollection(item):
         return "历史采集未保存完整简历正文，需重新进入详情采集后自动复评。"
     reason = _normalize_text(item.analysis_reason or "未提供复核原因")
-    if "Coze API" in reason:
+    if has_analysis_execution_failure(item.analysis_reason, execution_status=item.execution_status):
         return "AI分析暂时失败，系统将在日报生成时自动复评；本次暂需人工复核。"
     return reason
 
 
 def _is_not_relevant_candidate(item: ReportCandidate) -> bool:
+    if has_analysis_execution_failure(item.analysis_reason, execution_status=item.execution_status):
+        return False
     if _is_needs_review_candidate(item) or _is_relevant_candidate(item):
         return False
     return bool(

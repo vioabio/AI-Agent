@@ -128,7 +128,19 @@ def parse_args() -> argparse.Namespace:
             "May be provided more than once. Other matched candidates are never contacted."
         ),
     )
+    parser.add_argument("--queue-analysis", action="store_true",
+        help="Opt-in: enqueue collected resumes instead of synchronous analysis; requires --collect-only and explicit queue migration")
+    parser.add_argument("--queue-price-version")
+    parser.add_argument("--queue-input-price-micros", type=int)
+    parser.add_argument("--queue-output-price-micros", type=int)
+    parser.add_argument("--queue-input-reserve", type=int, default=30000)
+    parser.add_argument("--queue-output-limit", type=int, default=1024)
+    parser.add_argument("--queue-strategy", choices=("fulltext", "tools"), default="fulltext")
+    parser.add_argument("--queue-concurrency-limit", type=int, choices=(1, 2, 4), default=1)
+    parser.add_argument("--queue-currency", default="USD")
     args = parser.parse_args()
+    if args.queue_analysis and (not args.collect_only or args.send_report):
+        parser.error("--queue-analysis requires --collect-only and cannot send a synchronous report")
     if args.no_send_message and args.collect_only:
         parser.error("--collect-only cannot be combined with --no-send-message/--dry-run")
     if args.target_candidate_fingerprint and (args.no_send_message or args.collect_only):
@@ -297,6 +309,19 @@ def _run_main(
     sys.stderr.reconfigure(encoding="utf-8")
     checkpoint_store = WorkflowCheckpointStore(Path(args.checkpoint_file))
     write_to_db, send_messages = resolve_run_permissions(args)
+    analysis_dispatcher = None
+    if getattr(args, "queue_analysis", False):
+        if not args.collect_only or args.send_report or settings.selection_mode != "jd_smart" or not search_batch_id:
+            raise ValueError("Queued collection requires a named JD batch, collect-only mode, and no synchronous report")
+        from liepin_rpa.collected_dispatcher import build_collected_dispatcher
+        from liepin_rpa.db import get_engine
+        profile = load_job_profile(settings.workflow_job_profile_path)
+        if not getattr(args, "queue_price_version", None) or args.queue_input_price_micros is None or args.queue_output_price_micros is None:
+            raise ValueError("Queued collection requires an explicit frozen price version and both rates")
+        analysis_dispatcher = build_collected_dispatcher(get_engine(settings), job_profile_id=profile["id"], batch_id=search_batch_id,
+            model=settings.llm_model, price_version=args.queue_price_version, input_price=args.queue_input_price_micros,
+            output_price=args.queue_output_price_micros, input_reserve=args.queue_input_reserve, output_limit=args.queue_output_limit,
+            strategy=args.queue_strategy, concurrency_limit=args.queue_concurrency_limit, currency=args.queue_currency)
     if write_to_db and settings.selection_mode == "jd_smart" and (
         not search_batch_id or not search_batch_job_id or batch_started_at is None
     ):
@@ -422,6 +447,7 @@ def _run_main(
             jd_card_min_score=settings.workflow_jd_card_min_score,
             search_batch_id=search_batch_id,
             search_batch_job_id=search_batch_job_id,
+            analysis_dispatcher=analysis_dispatcher,
         ),
         checkpoint_store=checkpoint_store,
         checkpoint_catalog_key=catalog_key,
@@ -600,6 +626,12 @@ def main() -> int:
                     checkpoint_file=args.checkpoint_file,
                 )
                 batch_completed = batch.get("status") == "completed"
+            if (getattr(args, "queue_analysis", False) and exit_code == 0 and checkpoint_complete
+                    and (batch_completed or args.standalone_job)):
+                from liepin_rpa.analysis_jobs import AnalysisJobQueue
+                from liepin_rpa.db import get_engine
+                AnalysisJobQueue(get_engine(settings), binding_source="gateway_input",
+                    price_version=args.queue_price_version, currency=args.queue_currency).close_collection(batch_id)
             state_store.mark_finished(
                 run_id=run_id,
                 status=resolve_finished_run_status(

@@ -28,6 +28,7 @@ const detail = {
   experience: "候选人信息：年龄：32岁 工作内容：工作10年以上·5段工作经历；某保险公司；2025.04-至今(1年4个月)；统筹总账核算与财务数字化升级： 1. 往来账款专项治理。 2. 应收保费精细化管控。 3. 月结全流程管控。 4. 标准化业财核对体系搭建。",
   experience_hash: "hash",
   analysis_version: "v2",
+  evidence_status: "legacy",
   score_breakdown: ["beauty_continuity: 14", "industry_depth: 23", "role_evidence: 59"],
   analysis_reason: "经验匹配",
   evidence_summary: ["具备复杂业务管理经验", "有团队协同和流程建设证据"],

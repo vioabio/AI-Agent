@@ -5,8 +5,6 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response
 
 from apps.hr_review_api.api.dependencies import (
-    CSRF_COOKIE_NAME,
-    SESSION_COOKIE_NAME,
     get_auth_context,
     get_services,
     require_csrf,
@@ -35,14 +33,14 @@ def login(payload: LoginRequest, request: Request, response: Response) -> LoginR
     )
     cookie_options = services.auth.cookie_options
     response.set_cookie(
-        SESSION_COOKIE_NAME,
+        services.auth.session_cookie_name,
         result.session_token,
         httponly=True,
         max_age=services.auth.cookie_max_age,
         **cookie_options,
     )
     response.set_cookie(
-        CSRF_COOKIE_NAME,
+        services.auth.csrf_cookie_name,
         result.csrf_token,
         httponly=False,
         max_age=services.auth.cookie_max_age,
@@ -68,8 +66,12 @@ def logout(
 
     services = get_services(request)
     services.auth.login_service.logout(context)
-    response.delete_cookie(SESSION_COOKIE_NAME, path="/", domain=services.auth.cookie_domain)
-    response.delete_cookie(CSRF_COOKIE_NAME, path="/", domain=services.auth.cookie_domain)
+    response.delete_cookie(
+        services.auth.session_cookie_name, path="/", domain=services.auth.cookie_domain
+    )
+    response.delete_cookie(
+        services.auth.csrf_cookie_name, path="/", domain=services.auth.cookie_domain
+    )
     return MessageResponse(message="已退出登录")
 
 

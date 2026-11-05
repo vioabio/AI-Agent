@@ -17,10 +17,14 @@ from apps.hr_review_api.domain.models import (
     ReviewEvent,
 )
 from apps.hr_review_api.repositories.batch_repository import BatchRepository
-from apps.hr_review_api.repositories.candidate_repository import CandidateRepository
+from apps.hr_review_api.repositories.candidate_repository import CandidateRepository, JOB_TITLES
 from liepin_rpa.reporting_rules import ACTIONABLE_MIN_SCORE
+from liepin_rpa.analysis_versioning import content_hash
+from liepin_rpa.resume_evidence import build_snapshot
+from liepin_rpa.retrieval.lexical import LexicalRetriever
+from liepin_rpa.retrieval.plans import load_query_plan
 
-JOB_PROFILE_IDS = frozenset({"daren_live_bd_v1", "finance_shared_management_v1"})
+JOB_PROFILE_IDS = frozenset(JOB_TITLES)
 
 
 class CandidateQueryService:
@@ -93,6 +97,37 @@ class CandidateQueryService:
             if detail is None:
                 raise CandidateNotFoundError("候选人不存在或无岗位访问权限")
         return history
+
+    def search_evidence(self, *, user: AuthenticatedUser, candidate_fingerprint: str, dimension_id: str) -> dict:
+        # No client-selected snapshot IDs, file paths or model calls. Reuse detail authorization.
+        detail = self.get_detail(user=user, candidate_fingerprint=candidate_fingerprint)
+        unavailable = {"status": "unavailable", "dimension_id": dimension_id,
+                       "message": "当前分析没有可检索的原文快照，请重新分析或核对简历。"}
+        if detail.evidence_status != "verified" or detail.analysis_snapshot is None:
+            return unavailable
+        try:
+            plan = load_query_plan(detail.summary.job_profile_id or "")
+            dimension = next((item for item in plan.dimensions if item.dimension_id == dimension_id), None)
+            if dimension is None:
+                return unavailable
+            snapshot = build_snapshot(candidate_fingerprint, detail.analysis_snapshot["raw_text"])
+            if snapshot.snapshot_id != detail.analysis_snapshot["snapshot_id"]:
+                return unavailable
+            retriever = LexicalRetriever(snapshot)
+            hits = retriever.search(dimension.query, candidate_fingerprint=candidate_fingerprint,
+                                    snapshot_id=snapshot.snapshot_id, limit=5)
+        except (OSError, ValueError):
+            return unavailable
+        return {
+            "status": "available", "analysis_run_id": detail.analysis_run_id,
+            "snapshot_id": snapshot.snapshot_id, "dimension_id": dimension_id,
+            "dimension_label": dimension.label,
+            "retrieval_version": content_hash({"ranker": retriever.version, "plan": plan.version}),
+            "hits": [{"chunk_id": hit.chunk.chunk_id, "snapshot_id": hit.chunk.snapshot_id,
+                      "start": hit.chunk.start, "end": hit.chunk.end, "quote": hit.chunk.text,
+                      "section": hit.chunk.section, "organization": hit.chunk.organization} for hit in hits],
+            "message": None if hits else "没有检索到相关片段；这不表示候选人没有相关经历。",
+        }
 
     def build_criteria(
         self,

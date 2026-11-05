@@ -60,8 +60,28 @@ button, input, textarea, select { font: inherit; }
 .ai-evidence-list { display: grid; gap: 10px; margin: 0; padding-left: 26px; color: #2b3747; font-size: 15px; line-height: 1.75; }
 .ai-evidence-list li { padding-left: 4px; }
 .ai-evidence-list li::marker { color: #32759b; font-weight: 700; }
+.evidence-source-panel { display: grid; gap: 18px; width: 100%; }
+.evidence-source-link { margin-left: 10px; padding: 0; color: #21678c; border: 0; border-bottom: 1px solid currentColor; background: transparent; font: inherit; cursor: pointer; }
+.evidence-source-link:focus-visible { outline: 2px solid #32759b; outline-offset: 3px; }
+.snapshot-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.snapshot-document { margin-top: 12px; }
+.snapshot-document pre { margin: 0; font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
+.snapshot-document mark { padding: 2px 0; color: #402e07; background: #ffec99; border-bottom: 2px solid #c79013; }
+.snapshot-document mark:focus { outline: 2px solid #c79013; outline-offset: 3px; }
+.retrieval-panel { padding: 18px; border: 1px solid #dbe2e8; border-radius: 6px; background: #f7fafb; }
+.retrieval-panel > .ant-alert { margin-top: 14px; }
+.retrieval-results { display: grid; gap: 12px; margin-top: 16px; }
+.retrieval-hit { padding: 14px; background: #fff; border: 1px solid #e1e7ed; border-radius: 5px; }
+.retrieval-hit .ant-typography { white-space: pre-wrap; overflow-wrap: anywhere; }
 .ai-empty { grid-column: 1 / -1; margin: 0; color: #7a8998; line-height: 1.8; }
 .source-card { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; background: #f7f9fa; border: 1px solid #e5eaed; border-radius: 8px; }
 .report-stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.shadow-workspace { max-width: 1440px; margin: 0 auto; padding: 28px; }
+.shadow-toolbar { margin-bottom: 18px; }
+.shadow-toolbar .ant-typography { margin: 0 20px 0 0; }
+.shadow-workspace > .ant-alert { margin-bottom: 18px; }
+.shadow-detail { display: grid; gap: 18px; }
+.shadow-original { margin: 0; padding: 18px; border: 1px solid #dbe2e8; border-radius: 6px; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.8; }
 .report-stat-row .ant-statistic { padding: 12px; background: #f5f8f9; border-radius: 8px; }
 @media (max-width: 1300px) { .topbar { padding-inline: 16px; } .workspace { padding-inline: 14px; } }
+.async-content { padding: 24px; color: #475569; }

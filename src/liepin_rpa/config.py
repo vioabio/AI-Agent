@@ -75,7 +75,9 @@ class Settings(BaseSettings):
     )
     llm_api_key: SecretStr | None = Field(default=None, alias="LLM_API_KEY")
     llm_model: str | None = Field(default=None, alias="LLM_MODEL")
-    llm_timeout_seconds: float = Field(default=240.0, alias="LLM_TIMEOUT_SECONDS")
+    llm_timeout_seconds: float = Field(default=240.0, gt=0, alias="LLM_TIMEOUT_SECONDS")
+    llm_total_timeout_seconds: float = Field(default=300.0, gt=0, alias="LLM_TOTAL_TIMEOUT_SECONDS")
+    llm_retry_auth_errors: bool = Field(default=True, alias="LLM_RETRY_AUTH_ERRORS")
     llm_max_attempts: int = Field(default=4, alias="LLM_MAX_ATTEMPTS", ge=1, le=8)
     llm_jd_analysis_version: str = Field(
         default="2026-08-19-daren-live-bd-llm-v2",

@@ -4,10 +4,13 @@ import type {
   CandidateDetail,
   CandidatePage,
   Dashboard,
+  EvidenceSearch,
   LiveReport,
   LoginResponse,
   SubmitReview,
   User,
+  AnalysisTaskPage,
+  AnalysisTaskDetail,
 } from "./types";
 
 export class ApiError extends Error {
@@ -45,11 +48,18 @@ export const api = {
     }),
   logout: () => request<{ message: string }>("/api/v1/auth/logout", { method: "POST" }),
   me: () => request<User>("/api/v1/me"),
+  analysisTasks: (page: number) => request<AnalysisTaskPage>(`/api/v1/analysis-tasks?${new URLSearchParams({ page: String(page), page_size: "20" })}`),
+  analysisTask: (jobId: string) => request<AnalysisTaskDetail>(`/api/v1/analysis-tasks/${encodeURIComponent(jobId)}`),
+  retryAnalysisTask: (jobId: string, leaseToken: number) => request<AnalysisTaskDetail>(`/api/v1/analysis-tasks/${encodeURIComponent(jobId)}/retry`, {
+    method: "POST", body: JSON.stringify({ lease_token: leaseToken }),
+  }),
   batches: () => request<BatchList>("/api/v1/batches"),
   queue: (params: QueueParams) =>
     request<CandidatePage>(`/api/v1/review-queue?${queueSearchParams(params).toString()}`),
   candidate: (fingerprint: string) =>
     request<CandidateDetail>(`/api/v1/candidates/${encodeURIComponent(fingerprint)}`),
+  evidenceSearch: (fingerprint: string, dimensionId: string) =>
+    request<EvidenceSearch>(`/api/v1/candidates/${encodeURIComponent(fingerprint)}/evidence-search?${new URLSearchParams({ dimension_id: dimensionId })}`),
   submitReview: (fingerprint: string, payload: SubmitReview) =>
     request<CandidateDetail>(`/api/v1/candidates/${encodeURIComponent(fingerprint)}/review`, {
       method: "PATCH",
@@ -62,7 +72,9 @@ export const api = {
 };
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const csrf = readCookie("hr_review_csrf");
+  const cookiePrefix = import.meta.env.VITE_HR_COOKIE_PREFIX ||
+    (import.meta.env.VITE_HR_DEMO === "true" ? "hr_demo" : "hr_review");
+  const csrf = readCookie(`${cookiePrefix}_csrf`);
   const response = await fetch(path, {
     ...init,
     credentials: "include",

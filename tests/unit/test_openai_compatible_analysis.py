@@ -1,10 +1,15 @@
 from pathlib import Path
 from types import SimpleNamespace
 
+import httpx
+import pytest
+from openai import APIStatusError
+
 from liepin_rpa.analysis_contract import (
     analysis_contract_from_job_profile,
     validate_analysis_payload,
 )
+from liepin_rpa.resume_evidence import resume_text_hash
 from liepin_rpa.analysis_gateway import analyze_resume_record
 from liepin_rpa.config import Settings
 from liepin_rpa.search_execution.result_filter import ResultPageFilter
@@ -87,6 +92,83 @@ def test_openai_compatible_analysis_returns_validated_result(monkeypatch) -> Non
     assert result.match_result == "relevant"
     assert result.match_score == 86
     assert completions.calls[0]["response_format"] == {"type": "json_object"}
+
+
+def test_gateway_binds_the_original_input_before_provider_execution(monkeypatch, tmp_path):
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("JSON", encoding="utf-8")
+    original = "  原始简历🙂\r\n唯一证据\n"
+
+    def fake(settings, *, resume_record, system_prompt, analysis_contract):
+        resume_record["experience"] = "修改过的副本"
+        return llm_module.analysis_result_from_payload(llm_module.parse_analysis_payload(VALID_PAYLOAD), raw_data=VALID_PAYLOAD)
+
+    monkeypatch.setattr(gateway_module, "analyze_resume_record_with_openai_compatible", fake)
+    result = analyze_resume_record(_settings(), resume_record={"experience": original}, prompt_path=prompt)
+    assert result.analyzed_text_hash == resume_text_hash(original)
+    assert len(result.analysis_run_id) == 32
+    assert set(result.parsed_payload) == {
+        "beauty_relevant", "match_result", "match_score", "score_breakdown", "analysis_reason", "evidence_summary"
+    }
+
+
+@pytest.mark.parametrize("text,should_bind", [("简短且未变换的正文", True), ("前段\n\n后段", False), ("长" * 4001, False)])
+def test_gateway_does_not_claim_full_input_provenance_after_coze_transform(monkeypatch, text, should_bind):
+    import liepin_rpa.coze_workflow as coze
+
+    def fake(*args, **kwargs):
+        return llm_module.analysis_result_from_payload(llm_module.parse_analysis_payload(VALID_PAYLOAD), raw_data=VALID_PAYLOAD)
+
+    monkeypatch.setattr(coze, "analyze_resume_record_with_coze", fake)
+    result = analyze_resume_record(_settings(RESUME_ANALYSIS_PROVIDER="coze"),
+                                   resume_record={"experience": text}, prompt_path=None)
+    assert (result.analyzed_text_hash is not None) == should_bind
+    assert (result.analysis_run_id is not None) == should_bind
+
+
+@pytest.mark.parametrize("late_success", [False, True])
+def test_total_deadline_prevents_additional_calls_and_discards_late_success(monkeypatch, late_success):
+    clock = {"now": 0.0}
+    completions = FakeCompletions([VALID_PAYLOAD if late_success else "invalid"])
+    original_create = completions.create
+
+    def create(**kwargs):
+        response = original_create(**kwargs)
+        clock["now"] += 4.0 if late_success else 2.0
+        return response
+
+    completions.create = create
+    FakeOpenAI.completions = completions
+    monkeypatch.setattr(llm_module, "OpenAI", FakeOpenAI)
+    monkeypatch.setattr(llm_module.time, "monotonic", lambda: clock["now"])
+    monkeypatch.setattr(llm_module.time, "sleep", lambda _: pytest.fail("Must not wait beyond budget"))
+    result = llm_module.analyze_resume_record_with_openai_compatible(
+        _settings(LLM_TOTAL_TIMEOUT_SECONDS=3), resume_record={}, system_prompt="JSON"
+    )
+    assert len(completions.calls) == 1
+    assert completions.calls[0]["timeout"] == 3
+    assert result.error_code == "deadline_exceeded"
+    assert result.match_result == "needs_review"
+
+
+def test_ordinary_auth_failure_can_fail_fast_without_logging_provider_body(monkeypatch):
+    calls = []
+
+    def create(**kwargs):
+        calls.append(kwargs)
+        request = httpx.Request("POST", "https://example.invalid/v1/chat/completions")
+        raise APIStatusError("sensitive upstream body", response=httpx.Response(401, request=request), body=None)
+
+    FakeOpenAI.completions = SimpleNamespace(create=create)
+    monkeypatch.setattr(llm_module, "OpenAI", FakeOpenAI)
+    result = llm_module.analyze_resume_record_with_openai_compatible(
+        _settings(LLM_RETRY_AUTH_ERRORS=False), resume_record={}, system_prompt="JSON"
+    )
+    assert len(calls) == 1
+    assert result.execution_status == "blocked"
+    assert not result.retryable
+    assert result.error_code == "http_401"
+    assert "sensitive" not in result.analysis_reason
 
 
 def test_invalid_payload_retries_then_safely_returns_needs_review(monkeypatch) -> None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from liepin_rpa.analysis_execution import has_analysis_execution_failure
+
 import csv
 import json
 import time
@@ -28,11 +30,12 @@ EXPORT_COLUMNS = [
     "命中状态",
     "动作结果",
     "是否发送",
-    "Coze状态",
-    "Coze结果",
-    "Coze分数",
+    "AI状态",
+    "AI结果",
+    "AI分数",
     "未发送/跳过原因",
-    "Coze原因",
+    "AI原因",
+    "AI执行状态",
     "证据摘要",
     "简历内容",
     "命中时间",
@@ -110,7 +113,11 @@ def export_search_results(
         candidate_rows=sum(1 for row in export_rows if row["候选人"]),
         sent_count=sum(1 for row in export_rows if row["是否发送"] == "是"),
         needs_review_count=sum(
-            1 for row in export_rows if _is_counted_needs_review(row["Coze结果"], row["Coze分数"])
+            1 for row in export_rows
+            if _is_counted_needs_review(row["AI结果"], row["AI分数"])
+            and not has_analysis_execution_failure(
+                row["AI原因"], execution_status=row["AI执行状态"] or None
+            )
         ),
         no_candidate_keywords=sum(
             1 for row in export_rows if row["命中状态"] == "no_candidate_in_batch"
@@ -274,6 +281,7 @@ def _load_hit_rows(
                c.match_result,
                c.match_score,
                c.analysis_reason,
+               c.execution_status,
                c.evidence_summary_json,
                COALESCE(c.experience, r.experience) AS experience,
                c.updated_at AS analysis_updated_at,
@@ -317,11 +325,14 @@ def _build_export_row(row: dict[str, object]) -> dict[str, object]:
         "候选人": row.get("candidate_name") or "",
         "候选人指纹": row.get("candidate_fingerprint") or "",
         "命中状态": hit_status,
-        "动作结果": format_hit_status(hit_status, analysis_status, match_result, match_score),
+        "动作结果": format_hit_status(
+            hit_status, analysis_status, match_result, match_score,
+            execution_status=row.get("execution_status"), analysis_reason=row.get("analysis_reason"),
+        ),
         "是否发送": "是" if sent else "否",
-        "Coze状态": analysis_status,
-        "Coze结果": match_result,
-        "Coze分数": match_score if match_score is not None else "",
+        "AI状态": analysis_status,
+        "AI结果": match_result,
+        "AI分数": match_score if match_score is not None else "",
         "未发送/跳过原因": ""
         if sent
         else format_skip_reason(
@@ -329,8 +340,10 @@ def _build_export_row(row: dict[str, object]) -> dict[str, object]:
             analysis_status,
             match_result,
             match_score,
+            execution_status=row.get("execution_status"), analysis_reason=row.get("analysis_reason"),
         ),
-        "Coze原因": row.get("analysis_reason") or "",
+        "AI原因": row.get("analysis_reason") or "",
+        "AI执行状态": row.get("execution_status") or "",
         "证据摘要": _format_evidence_summary(row.get("evidence_summary_json")),
         "简历内容": row.get("experience") or "",
         "命中时间": _format_datetime(row.get("hit_created_at")),
@@ -349,11 +362,12 @@ def _build_no_candidate_row(keyword: dict[str, str]) -> dict[str, object]:
         "命中状态": "no_candidate_in_batch",
         "动作结果": "本批无可处理候选人",
         "是否发送": "否",
-        "Coze状态": "",
-        "Coze结果": "",
-        "Coze分数": "",
+        "AI状态": "",
+        "AI结果": "",
+        "AI分数": "",
         "未发送/跳过原因": "本批未采集到可处理候选人",
-        "Coze原因": "",
+        "AI原因": "",
+        "AI执行状态": "",
         "证据摘要": "",
         "命中时间": "",
         "分析时间": "",
@@ -366,11 +380,16 @@ def format_hit_status(
     analysis_status: str = "",
     match_result: str = "",
     match_score: object = None,
+    *,
+    execution_status: object = None,
+    analysis_reason: object = None,
 ) -> str:
     if hit_status == "sent":
         return "已发送消息"
     if hit_status == "immediate_job_confirmed":
         return "已确认岗位并发送"
+    if has_analysis_execution_failure(analysis_reason, execution_status=execution_status):
+        return "AI分析失败，待复核"
     if hit_status == "skipped_recent_continue":
         return "7天内已沟通过，跳过"
     if hit_status.startswith("send_failed:"):
@@ -381,11 +400,11 @@ def format_hit_status(
         match_result,
         analysis_status=analysis_status,
     ) or (match_result in (None, "") and hit_status == "not_relevant"):
-        return "Coze未通过，未发送"
+        return "AI未通过，未发送"
     if _is_counted_needs_review(match_result, match_score):
         return "需人工复核，未发送"
     if match_result == "needs_review":
-        return f"Coze未达{ACTIONABLE_NEEDS_REVIEW_MIN_SCORE}分待复核线，未发送"
+        return f"AI未达{ACTIONABLE_NEEDS_REVIEW_MIN_SCORE}分待复核线，未发送"
     if hit_status == "reviewed":
         return "已评估，未发送"
     if hit_status == "intention_communication_skipped":
@@ -406,9 +425,14 @@ def format_skip_reason(
     analysis_status: str = "",
     match_result: str = "",
     match_score: object = None,
+    *,
+    execution_status: object = None,
+    analysis_reason: object = None,
 ) -> str:
     if hit_status in SENT_HIT_STATUSES:
         return ""
+    if has_analysis_execution_failure(analysis_reason, execution_status=execution_status):
+        return "AI分析未成功完成，需重试或人工复核"
     if hit_status == "continue_without_db_record":
         return "页面显示继续沟通，但库里没有历史沟通记录，按保护逻辑不发送"
     if hit_status == "skipped_recent_continue":
@@ -416,14 +440,14 @@ def format_skip_reason(
     if hit_status.startswith("send_failed:"):
         return hit_status.removeprefix("send_failed:")
     if _is_counted_needs_review(match_result, match_score):
-        return "Coze返回需人工复核"
+        return "AI返回需人工复核"
     if match_result == "needs_review":
-        return f"Coze分数未达到{ACTIONABLE_NEEDS_REVIEW_MIN_SCORE}分待复核线"
+        return f"AI分数未达到{ACTIONABLE_NEEDS_REVIEW_MIN_SCORE}分待复核线"
     if is_not_relevant_result(
         match_result,
         analysis_status=analysis_status,
     ) or (match_result in (None, "") and hit_status == "not_relevant"):
-        return "Coze判断不匹配"
+        return "AI判断不匹配"
     if hit_status == "reviewed":
         return "已评估但未进入发送条件"
     if hit_status == "intention_communication_skipped":

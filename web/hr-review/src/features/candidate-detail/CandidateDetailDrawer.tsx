@@ -12,8 +12,7 @@ import {
   reviewStatusLabels,
 } from "../../shared/displayLabels";
 import { ReviewForm } from "../review-submit/ReviewForm";
-import { AIAnalysisPanel } from "./AIAnalysisPanel";
-import { ResumeDocument } from "./ResumeDocument";
+import { EvidenceSourcePanel } from "./EvidenceSourcePanel";
 
 const DEFAULT_DRAWER_WIDTH = 760;
 const MIN_DRAWER_WIDTH = 620;
@@ -104,8 +103,7 @@ export function CandidateDetailDrawer({ fingerprint, onClose, canSubmit }: { fin
             { key: "revision", label: "人工版本", children: detail.data.summary.revision },
           ]} />
           <SensitiveLinks sources={detail.data.sources} />
-          <Section title="完整简历正文"><ResumeDocument value={detail.data.experience} /></Section>
-          <Section title="AI 判断依据"><AIAnalysisPanel analysisReason={detail.data.analysis_reason} scoreBreakdown={detail.data.score_breakdown} evidenceSummary={detail.data.evidence_summary} /></Section>
+          <EvidenceSourcePanel key={`${detail.data.summary.candidate_fingerprint}:${detail.data.analysis_run_id ?? "legacy"}`} detail={detail.data} />
           <Section title="来源与定位"><Space direction="vertical">{detail.data.sources.map((source) => <div className="source-card" key={`${source.created_at}-${source.search_keyword}`}><Typography.Text strong>{source.search_keyword}</Typography.Text><Typography.Text type="secondary">搜索包：{source.search_pack_id ?? "-"} · 来源账号：{source.source_account_alias ?? "-"} · 定位状态：{source.locator_quality}</Typography.Text>{source.platform_interaction_note ? <Alert type="warning" message="猎聘互动提示（非候选人姓名）" description={source.platform_interaction_note} /> : null}</div>)}</Space></Section>
           <Divider />
           <Section title="提交审核"><ReviewForm detail={detail.data} canSubmit={canSubmit} /></Section>

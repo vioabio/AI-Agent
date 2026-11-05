@@ -2,8 +2,13 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping
+
+from liepin_rpa.analysis_execution import (
+    AnalysisExecutionStatus,
+    is_transient_execution_failure,
+)
 
 from liepin_rpa.candidate_decision_rules import (
     MATCH_RESULT_NEEDS_REVIEW,
@@ -56,6 +61,12 @@ class ResumeAnalysisResult:
     evidence_summary: list[str]
     raw_data: str
     parsed_payload: dict[str, Any]
+    execution_status: str | None = None
+    error_code: str | None = None
+    retryable: bool = False
+    retry_after: datetime | None = None
+    analysis_run_id: str | None = None
+    analyzed_text_hash: str | None = None
 
 
 def parse_analysis_payload(raw_data: str) -> dict[str, Any]:
@@ -173,6 +184,7 @@ def analysis_result_from_payload(
         evidence_summary=normalize_string_list(payload, "evidence_summary"),
         raw_data=raw_data,
         parsed_payload=payload,
+        execution_status=AnalysisExecutionStatus.SUCCEEDED,
     )
 
 
@@ -192,6 +204,8 @@ def build_needs_review_result(
             f"需要人工复核：{provider_label} API 临时异常，"
             f"系统未进行自动匹配判断。{reason}"
         )
+    elif source == "api_rejected":
+        analysis_reason = f"需要人工复核：{provider_label}请求被拒绝，系统未进行自动匹配判断。{reason}"
     payload: dict[str, Any] = {
         "beauty_relevant": False,
         "match_result": MATCH_RESULT_NEEDS_REVIEW,
@@ -209,6 +223,23 @@ def build_needs_review_result(
         evidence_summary=[],
         raw_data=raw_data,
         parsed_payload=payload,
+        execution_status=(
+            AnalysisExecutionStatus.TRANSIENT_ERROR
+            if source == "api_error" else (
+                AnalysisExecutionStatus.BLOCKED if source == "api_rejected"
+                else AnalysisExecutionStatus.INVALID_OUTPUT
+            )
+        ),
+        error_code=(
+            "provider_error" if source == "api_error" else (
+                "provider_rejected" if source == "api_rejected" else "invalid_payload"
+            )
+        ),
+        retryable=source == "api_error",
+        retry_after=(
+            datetime.now(timezone.utc).replace(tzinfo=None) + ANALYSIS_TRANSIENT_CACHE_TTL
+            if source == "api_error" else None
+        ),
     )
 
 
@@ -216,7 +247,9 @@ def is_transient_analysis_review(result: ResumeAnalysisResult | None) -> bool:
     return bool(
         result is not None
         and result.match_result == MATCH_RESULT_NEEDS_REVIEW
-        and "API 临时异常" in (result.analysis_reason or "")
+        and is_transient_execution_failure(
+            result.analysis_reason, execution_status=result.execution_status
+        )
     )
 
 
@@ -231,6 +264,10 @@ def transient_analysis_cache_retry_due(
         return False
     if cache_record is None:
         return True
+    retry_after = coerce_retry_deadline(cache_record.get("retry_after"))
+    if retry_after is not None:
+        resolved_now = coerce_retry_deadline(now or datetime.now(timezone.utc))
+        return resolved_now is not None and resolved_now >= retry_after
     cached_at = coerce_cache_datetime(
         cache_record.get("updated_at") or cache_record.get("created_at")
     )
@@ -238,6 +275,20 @@ def transient_analysis_cache_retry_due(
     if cached_at is None or resolved_now is None:
         return True
     return resolved_now - cached_at >= ttl
+
+
+def coerce_retry_deadline(value: object) -> datetime | None:
+    """New execution deadlines are UTC; legacy cache timestamps keep their policy."""
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    if not isinstance(value, datetime):
+        return None
+    if value.tzinfo is not None:
+        value = value.astimezone(timezone.utc)
+    return value.replace(tzinfo=None)
 
 
 def coerce_cache_datetime(value: object) -> datetime | None:

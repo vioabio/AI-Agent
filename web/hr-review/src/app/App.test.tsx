@@ -5,6 +5,8 @@ import { afterEach, test, vi } from "vitest";
 
 import { renderApp } from "../test/render";
 import { App } from "./App";
+// Warm the route during module collection; this test measures focus retention.
+import "../features/auth/LoginPage";
 
 afterEach(() => {
   focusManager.setFocused(undefined);

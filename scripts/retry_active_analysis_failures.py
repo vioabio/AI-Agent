@@ -189,6 +189,13 @@ def main() -> int:
             score_breakdown=result.score_breakdown,
             analysis_reason=result.analysis_reason,
             evidence_summary=result.evidence_summary,
+            execution_status=getattr(result, "execution_status", None),
+            error_code=getattr(result, "error_code", None),
+            retryable=getattr(result, "retryable", None),
+            retry_after=getattr(result, "retry_after", None),
+            analysis_run_id=getattr(result, "analysis_run_id", None),
+            analyzed_text_hash=getattr(result, "analyzed_text_hash", None),
+            job_profile_id=str(profile.get("id") or ""),
         )
         counts[f"{job}:{result.match_result or 'unknown'}"] += 1
         print(

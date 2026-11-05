@@ -7,7 +7,7 @@ import { renderApp } from "../../test/render";
 
 const detail = {
   summary: { candidate_fingerprint: "fp-1", candidate_name: "陈女士", job_profile_id: "daren_live_bd_v1", job_title: "达人营销与达播负责人", age: 32, match_result: "relevant", analysis_status: "匹配", match_score: 92, current_company_title: null, communication_status: "sent", review_status: "pending_review", reviewer_id: null, reviewer_name: null, revision: 0, has_share_link: false, updated_at: "2026-08-18T10:00:00+08:00" },
-  experience: "完整简历", experience_hash: "hash", analysis_version: "v1", score_breakdown: [], analysis_reason: "匹配", evidence_summary: [], manual_review_feedback: null, sources: [], history: [],
+  experience: "完整简历", experience_hash: "hash", analysis_version: "v1", evidence_status: "legacy" as const, score_breakdown: [], analysis_reason: "匹配", evidence_summary: [], manual_review_feedback: null, sources: [], history: [],
 };
 
 test("requires feedback and prevents read-only submission", async () => {
