@@ -44,6 +44,25 @@ async function installApiFixture(page, state) {
     const request = route.request()
     const url = new URL(request.url())
     const pathname = url.pathname
+    if (pathname === '/api/pokemon/reference/build-options') {
+      if (state.optionsFailure) {
+        await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'候选资料暂不可用'})});return
+      }
+      const kind=url.searchParams.get('kind'), pokemonId=Number(url.searchParams.get('pokemonId'))
+      const query=(url.searchParams.get('query') || '').toLowerCase()
+      if (state.delayOptionsQuery === query) await new Promise(resolve => { state.releaseOptions = resolve })
+      const candidates=kind==='ability' ? (pokemonId===7
+        ? [{slug:'torrent',nameZh:'激流',hidden:false}]
+        : [{slug:'blaze',nameZh:'猛火',hidden:false},{slug:'solar-power',nameZh:'太阳之力',hidden:true}])
+        : kind==='move' ? [{slug:'flamethrower',nameZh:'喷射火焰',typeKey:'fire',damageClass:'special',power:90,accuracy:100},{slug:'protect',nameZh:'守住',typeKey:'normal',damageClass:'status',power:null,accuracy:null}]
+        : [{slug:'leftovers',nameZh:'吃剩的东西'},{slug:'life-orb',nameZh:'生命宝珠'}]
+      const matches=candidates.filter(value=>value.slug.includes(query)||value.nameZh.includes(query)).map(value=>({kind,...value}))
+      const offset=Number(url.searchParams.get('offset') || 0), paginate=state.paginateItems&&kind==='item'
+      const items=paginate?matches.slice(offset,offset+1):matches
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({kind,pokemonId:kind==='item'?null:pokemonId,gameReleaseId:url.searchParams.get('gameReleaseId'),dataReleaseId:url.searchParams.get('dataReleaseId'),items,total:matches.length,nextOffset:paginate&&offset+1<matches.length?offset+1:null})})
+      if (state.delayOptionsQuery === query) state.delayedOptionsFinished=true
+      return
+    }
     if(pathname === '/api/pokemon/reference/status') {
       await route.fulfill({status:state.referenceEnabled?200:404,contentType:'application/json',body:JSON.stringify({enabled:state.referenceEnabled,dataReleaseId:'pokeapi-reference-v1',status:'LOCAL_REFERENCE'})});return
     }
@@ -168,6 +187,137 @@ async function openWorkbench(page, state) {
 }
 
 test.describe('N5 宝可梦工作台关键交互', () => {
+  test('旧搜索响应不能覆盖新选择，道具加载更多保留已显示候选', async ({page}) => {
+    const state=initialState();state.referenceEnabled=true;state.delayOptionsQuery='猛';state.paginateItems=true
+    await openWorkbench(page,state)
+    await page.locator('.facts-panel button[type=submit]').click()
+    await page.getByRole('button',{name:'加入队伍',exact:true}).click()
+    const ability=page.getByRole('combobox',{name:'第 1 位特性',exact:true})
+    await ability.fill('猛')
+    await expect.poll(()=>typeof state.releaseOptions).toBe('function')
+    await ability.fill('太阳')
+    await page.getByRole('option',{name:/太阳之力/}).click()
+    state.releaseOptions()
+    await expect.poll(()=>state.delayedOptionsFinished).toBeTruthy()
+    await expect(ability).toHaveValue('太阳之力')
+    await page.getByRole('combobox',{name:'第 1 位道具',exact:true}).click()
+    await expect(page.getByRole('option',{name:/吃剩的东西/})).toBeVisible()
+    await page.getByRole('button',{name:'加载更多',exact:true}).click()
+    await expect(page.getByRole('option',{name:/生命宝珠/})).toBeVisible()
+    await expect(page.getByRole('option',{name:/吃剩的东西/})).toBeVisible()
+  })
+
+  test('中文特性招式道具候选保存英文标识，隐藏特性及招式参数可见且禁止重复', async ({page}) => {
+    await page.setViewportSize({width:1366,height:900})
+    const state=initialState();state.referenceEnabled=true
+    await openWorkbench(page,state)
+    await page.locator('.facts-panel button[type=submit]').click()
+    await page.getByRole('button',{name:'加入队伍',exact:true}).click()
+    await page.getByLabel('队伍名称').fill('中文配置队')
+    const ability=page.getByRole('combobox',{name:'第 1 位特性',exact:true})
+    await ability.click()
+    await expect(page.getByRole('option',{name:/太阳之力/})).toContainText('隐藏特性')
+    await ability.fill('猛火')
+    await page.getByRole('option',{name:/猛火/}).click()
+    await expect(ability).toHaveValue('猛火')
+    const move=page.getByRole('combobox',{name:'第 1 位第 1 个招式',exact:true})
+    await move.fill('喷射')
+    await expect(page.getByRole('option',{name:/喷射火焰/})).toContainText('威力 90')
+    await page.getByRole('option',{name:/喷射火焰/}).click()
+    await page.getByRole('combobox',{name:'第 1 位第 2 个招式',exact:true}).click()
+    await expect(page.getByRole('option',{name:/喷射火焰/})).toBeDisabled()
+    await expect(page.getByRole('option',{name:/守住/})).toContainText('威力 —')
+    await page.screenshot({path:'../artifacts/build-options-dropdown.png'})
+    await page.getByRole('option',{name:/守住/}).click()
+    const item=page.getByRole('combobox',{name:'第 1 位道具',exact:true})
+    await item.fill('吃剩')
+    await page.getByRole('option',{name:/吃剩的东西/}).click()
+    await page.getByRole('button',{name:'保存队伍',exact:true}).click()
+    await expect(page.locator('.roster-save-state')).toHaveText('已保存')
+    expect(state.teams[0].members[0].build).toMatchObject({ability:'blaze',item:'leftovers',moves:['flamethrower','protect']})
+    await item.click()
+    await page.getByRole('option',{name:'不携带道具',exact:true}).click()
+    await expect(item).toHaveValue('')
+  })
+
+  test('候选读取失败可重试且保留手动配置，键盘可以选择候选', async ({page}) => {
+    const state=initialState();state.referenceEnabled=true;state.optionsFailure=true
+    await openWorkbench(page,state)
+    await page.locator('.facts-panel button[type=submit]').click()
+    await page.getByRole('button',{name:'加入队伍',exact:true}).click()
+    const ability=page.getByRole('combobox',{name:'第 1 位特性',exact:true})
+    await ability.fill('legacy-ability')
+    await expect(page.locator('.build-option-popup [role=alert]')).toBeVisible()
+    state.optionsFailure=false
+    await page.locator('.build-option-popup').getByRole('button',{name:'重试',exact:true}).click()
+    await expect(page.locator('.build-option-popup')).toContainText('未找到匹配候选')
+    await ability.press('Escape')
+    await expect(ability).toHaveValue('legacy-ability')
+    await ability.click()
+    await expect(page.getByRole('option',{name:/猛火/})).toBeVisible()
+    await ability.press('ArrowDown');await ability.press('Enter')
+    await expect(ability).toHaveValue('猛火')
+  })
+
+  test('队伍 JSON 导出保留未保存配置，导入回填后以新队伍保存', async ({page}) => {
+    const state = initialState(); state.referenceEnabled = true
+    await openWorkbench(page, state)
+    await page.locator('.facts-panel button[type=submit]').click()
+    await page.getByRole('button', {name:'加入队伍', exact:true}).click()
+    await page.getByLabel('队伍名称').fill('导出测试队')
+    await page.getByLabel('第 1 位第 1 个招式', {exact:true}).fill('flamethrower')
+    await page.getByLabel('第 1 位 特攻 EV', {exact:true}).fill('252')
+    await page.getByRole('button', {name:'保存队伍', exact:true}).click()
+    await expect(page.locator('.roster-save-state')).toHaveText('已保存')
+    await page.getByLabel('第 1 位等级', {exact:true}).fill('60')
+    const downloading = page.waitForEvent('download')
+    await page.getByRole('button', {name:'导出', exact:true}).click()
+    const download = await downloading
+    expect(download.suggestedFilename()).toBe('导出测试队.json')
+    const stream = await download.createReadStream()
+    const chunks = []
+    for await (const chunk of stream) chunks.push(chunk)
+    const contents = Buffer.concat(chunks)
+    const file = JSON.parse(contents.toString())
+    expect(file.team.members[0].build.level).toBe(60)
+    expect(file.team.members[0].build.moves).toEqual(['flamethrower'])
+    expect(file.team.members[0].build.evs.spa).toBe(252)
+    expect(file.team.id).toBeUndefined()
+    expect(file.team.ownerId).toBeUndefined()
+    page.once('dialog', dialog => dialog.accept())
+    const choosing = page.waitForEvent('filechooser')
+    await page.getByRole('button', {name:'导入', exact:true}).click()
+    await (await choosing).setFiles({ name:'队伍.json', mimeType:'application/json', buffer:contents })
+    await expect(page.locator('.roster-transfer-notice')).toContainText('已导入')
+    await expect(page.getByLabel('第 1 位等级', {exact:true})).toHaveValue('60')
+    await expect(page.getByLabel('第 1 位 特攻 EV', {exact:true})).toHaveValue('252')
+    await expect(page.getByRole('button', {name:'保存队伍', exact:true})).toBeVisible()
+    const created = page.waitForRequest(request => request.url().includes('/teams') && request.method() === 'POST')
+    await page.getByRole('button', {name:'保存队伍', exact:true}).click()
+    expect((await created).postDataJSON().members[0].build.level).toBe(60)
+    await expect(page.locator('.roster-save-state')).toHaveText('已保存')
+  })
+
+  test('损坏文件和取消替换不会改动队伍草稿，同一文件可再次导入', async ({page}) => {
+    await openWorkbench(page, initialState())
+    await page.getByLabel('队伍名称').fill('保留这个草稿')
+    const input = page.getByLabel('导入队伍文件')
+    await input.setInputFiles({ name:'broken.json', mimeType:'application/json', buffer:Buffer.from('{') })
+    await expect(page.locator('.roster-transfer-notice')).toContainText('导入失败')
+    await expect(page.getByLabel('队伍名称')).toHaveValue('保留这个草稿')
+    const {createTeamExport} = await import('../src/api/team-transfer.js')
+    const stats = {hp:0,atk:0,def:0,spa:0,spd:0,spe:0}
+    const team = {name:'导入队',rulesetId:'casual-v1',dataReleaseId:FACT.dataReleaseId,members:[{formId:6,slot:2,build:{moves:[],ability:'',item:'',nature:'hardy',level:50,evs:stats,ivs:stats}}]}
+    const file = {name:'valid.json',mimeType:'application/json',buffer:Buffer.from(createTeamExport(team,FACT.gameReleaseId))}
+    page.once('dialog', dialog => dialog.dismiss())
+    await input.setInputFiles(file)
+    await expect(page.getByLabel('队伍名称')).toHaveValue('保留这个草稿')
+    page.once('dialog', dialog => dialog.accept())
+    await input.setInputFiles(file)
+    await expect(page.getByLabel('队伍名称')).toHaveValue('导入队')
+    await expect(page.getByLabel('第 2 位等级', {exact:true})).toHaveValue('50')
+  })
+
   test('图鉴收藏绑定版本，消息格式化不执行模型中的 HTML', async ({page}) => {
     const state=initialState();state.referenceEnabled=true
     state.messages=[{role:'assistant',content:'**图鉴说明**\n<script>window.injected=1</script>\n这是 **水属性** 资料。'}]
@@ -228,6 +378,11 @@ test.describe('N5 宝可梦工作台关键交互', () => {
       await page.getByRole('button',{name:'队伍配置',exact:true}).click()
       await page.getByLabel('队伍名称').fill('网页适配草稿')
       await expect(page.getByRole('button',{name:'保存队伍',exact:true})).toBeVisible()
+      await expect(page.getByRole('button',{name:'导出',exact:true})).toBeVisible()
+      await expect(page.getByRole('button',{name:'导入',exact:true})).toBeVisible()
+      await expect(page.locator('.roster-name .ui-icon')).toHaveCount(0)
+      expect((await page.getByLabel('队伍名称').boundingBox()).width).toBeLessThanOrEqual(222)
+      if (viewport.width === 1366) await page.screenshot({path:'../artifacts/team-toolbar-1366.png'})
       await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width)
       await page.getByRole('button',{name:'图鉴',exact:true}).click()
       if(viewport.width<1280) await page.getByRole('button',{name:'关闭资料侧栏',exact:true}).click()

@@ -621,6 +621,12 @@ export async function fetchPokemonReference(query, { dataReleaseId, signal } = {
   }), '读取宝可梦详细资料失败')
 }
 
+export async function fetchPokemonBuildOptions({ kind, pokemonId, dataReleaseId, gameReleaseId, query = '', offset = 0 }, { signal } = {}) {
+  return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/reference/build-options${queryString({ kind, pokemonId: kind === 'item' ? undefined : pokemonId, dataReleaseId, gameReleaseId, query, offset, limit: 50 })}`, {
+    credentials: 'include', signal, headers: requestHeaders()
+  }), '读取配置候选失败')
+}
+
 export async function calculateEngineDamage(payload, { signal } = {}) {
   return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/calculations/engine-damage`, {
     method:'POST',credentials:'include',signal,headers:requestHeaders({'Content-Type':'application/json'}),body:JSON.stringify(payload)

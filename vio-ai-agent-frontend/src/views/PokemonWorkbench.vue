@@ -19,9 +19,10 @@
       <details ref="resourceMenu" class="more-resources"><summary>更多<UiIcon name="chevron" /></summary><div><button v-for="tab in resourceTabs.slice(4)" :key="tab.id" type="button" :aria-pressed="section === tab.id" @click="showSection(tab.id)">{{ tab.label }}</button></div></details>
     </nav>
     <p class="resource-status" :class="{ 'positive-notice': /^(已将|已收藏|队伍分析问题已)/.test(resourceNotice) }" role="status">{{ resourceNotice }}</p>
+    <input ref="teamImportInput" type="file" accept=".json,application/json" hidden aria-label="导入队伍文件" @change="importTeamFile" />
     <main class="workbench-content">
       <p class="trust-banner" aria-label="数据可信边界">本地参考资料，不代表排位合法性。<span>资料来源与版本可展开查看。</span></p>
-      <TeamRoster v-if="workspaceMode === 'team'" v-model:name="teamForm.name" :cards="rosterCards" :selected-member="selectedMember" :saved="teamSaved" :saving="teamsState.status === 'saving'" :editing="isEditingTeam" form-id="team-editor-form" @select="selectedMember = $event" @add="showSection('facts')" @reset="isEditingTeam ? cancelEditTeam() : resetTeamForm()" />
+      <TeamRoster v-if="workspaceMode === 'team'" v-model:name="teamForm.name" :cards="rosterCards" :selected-member="selectedMember" :saved="teamSaved" :saving="teamsState.status === 'saving'" :editing="isEditingTeam" :importing="teamImporting" :transfer-notice="teamTransferNotice" :transfer-error="teamTransferError" form-id="team-editor-form" @export="exportTeamFile" @import="chooseTeamFile" @select="selectedMember = $event" @add="showSection('facts')" @reset="isEditingTeam ? cancelEditTeam() : resetTeamForm()" />
 
       <section v-if="!embedded" class="context-panel panel">
         <div class="panel-heading">
@@ -225,7 +226,7 @@
             <span class="state-chip" :class="teamsState.status">{{ ['loading','saving','permission','error'].includes(teamsState.status) ? stateLabel(teamsState.status) : teamForm.members.some(Boolean) ? '未保存草稿' : teams.length ? `${teams.length} 支已保存队伍` : '新队伍' }}</span>
           </div>
           <form id="team-editor-form" class="team-form team-editor-form" @submit.prevent="saveTeam">
-            <TeamRoster v-if="workspaceMode !== 'team'" v-model:name="teamForm.name" :cards="rosterCards" :selected-member="selectedMember" :saved="teamSaved" :saving="teamsState.status === 'saving'" :editing="isEditingTeam" form-id="team-editor-form" @select="selectedMember = $event" @add="showSection('facts')" @reset="isEditingTeam ? cancelEditTeam() : resetTeamForm()" />
+            <TeamRoster v-if="workspaceMode !== 'team'" v-model:name="teamForm.name" :cards="rosterCards" :selected-member="selectedMember" :saved="teamSaved" :saving="teamsState.status === 'saving'" :editing="isEditingTeam" :importing="teamImporting" :transfer-notice="teamTransferNotice" :transfer-error="teamTransferError" form-id="team-editor-form" @export="exportTeamFile" @import="chooseTeamFile" @select="selectedMember = $event" @add="showSection('facts')" @reset="isEditingTeam ? cancelEditTeam() : resetTeamForm()" />
             <details class="team-version-settings"><summary>队伍版本与形态编号</summary>
             <div class="two-fields">
               <label>
@@ -251,10 +252,10 @@
               <summary>成员配置 <small>第 {{ index + 1 }} 位</small></summary>
               <div class="member-profile-grid">
                 <div class="member-identity"><PokemonPortrait :form-id="member" :name="memberName(index)" /><strong>{{ memberName(index) }}</strong><small v-if="memberFact(index)?.type1" class="type-tag" :data-type="memberFact(index).type1">{{ memberFact(index).type1 }}</small><button type="button" class="danger-link" :disabled="teamsState.status === 'saving'" @click="removeDraftMember(index)">移除成员</button></div>
-                <div class="member-profile-fields"><label>等级<input v-model.number="memberBuilds[index].level" :aria-label="`第 ${index + 1} 位等级`" type="number" min="1" max="100" /></label><label>性格<select v-model="memberBuilds[index].nature" :aria-label="`第 ${index + 1} 位性格`"><option v-for="nature in natureOptions" :key="nature" :value="nature">{{ natureLabels[nature] || nature }}</option></select></label><label>特性（英文）<input v-model="memberBuilds[index].ability" :aria-label="`第 ${index + 1} 位特性`" placeholder="torrent" maxlength="80" /></label><label>道具（英文）<input v-model="memberBuilds[index].item" :aria-label="`第 ${index + 1} 位道具`" placeholder="未选择" maxlength="80" /></label></div>
+                <div class="member-profile-fields"><label>等级<input v-model.number="memberBuilds[index].level" :aria-label="`第 ${index + 1} 位等级`" type="number" min="1" max="100" /></label><label>性格<select v-model="memberBuilds[index].nature" :aria-label="`第 ${index + 1} 位性格`"><option v-for="nature in natureOptions" :key="nature" :value="nature">{{ natureLabels[nature] || nature }}</option></select></label><label>特性<BuildOptionSelect v-model="memberBuilds[index].ability" kind="ability" :pokemon-id="member" :data-release-id="teamForm.dataReleaseId" :game-release-id="context.gameReleaseId" :active="selectedMember === index" :disabled="teamsState.status === 'saving'" :id="`member-${index}-ability`" :label="`第 ${index + 1} 位特性`" placeholder="搜索或选择特性" /></label><label>道具<BuildOptionSelect v-model="memberBuilds[index].item" kind="item" :pokemon-id="member" :data-release-id="teamForm.dataReleaseId" :game-release-id="context.gameReleaseId" :active="selectedMember === index" :disabled="teamsState.status === 'saving'" :id="`member-${index}-item`" :label="`第 ${index + 1} 位道具`" placeholder="不携带 / 搜索道具" /></label></div>
               </div>
               <h3 class="moves-heading">招式配置</h3>
-              <div class="move-slots"><label v-for="slot in 4" :key="slot"><UiIcon name="book" /><span class="sr-only">第 {{ index + 1 }} 位第 {{ slot }} 个招式</span><input :value="moveAt(index, slot - 1)" :aria-label="`第 ${index + 1} 位第 ${slot} 个招式`" placeholder="待配置（英文）" maxlength="80" @input="setMove(index, slot - 1, $event.target.value)" /></label></div>
+              <div class="move-slots"><label v-for="slot in 4" :key="slot"><UiIcon name="book" /><span class="sr-only">第 {{ index + 1 }} 位第 {{ slot }} 个招式</span><BuildOptionSelect :model-value="moveAt(index, slot - 1)" kind="move" :pokemon-id="member" :data-release-id="teamForm.dataReleaseId" :game-release-id="context.gameReleaseId" :active="selectedMember === index" :disabled="teamsState.status === 'saving'" :id="`member-${index}-move-${slot}`" :label="`第 ${index + 1} 位第 ${slot} 个招式`" :excluded-slugs="Array.from({length:4}, (_, other) => other === slot - 1 ? '' : moveAt(index, other)).filter(Boolean)" placeholder="搜索或选择招式" @update:model-value="setMove(index, slot - 1, $event)" /></label></div>
               <details class="bulk-moves"><summary>批量填写招式</summary><label>招式（英文名或 slug，逗号分隔）<input v-model="memberBuilds[index].movesText" :aria-label="`第 ${index + 1} 位招式`" placeholder="surf, ice-beam" maxlength="320" /></label></details>
               <table class="training-table"><caption>努力值 / 个体值</caption><thead><tr><th scope="col">能力</th><th scope="col">努力值 EV</th><th scope="col">个体值 IV</th></tr></thead><tbody><tr v-for="stat in statOptions" :key="stat.key"><th scope="row">{{ stat.label }}</th><td><input v-model.number="memberBuilds[index].evs[stat.key]" :aria-label="`第 ${index + 1} 位 ${stat.label} EV`" type="number" min="0" max="252" /></td><td><input v-model.number="memberBuilds[index].ivs[stat.key]" :aria-label="`第 ${index + 1} 位 ${stat.label} IV`" type="number" min="0" max="31" /></td></tr></tbody></table>
               <small class="ev-total" :class="{ invalid: Object.values(memberBuilds[index].evs).reduce((sum,n) => sum + Number(n), 0) > 510 }">努力值 {{ Object.values(memberBuilds[index].evs).reduce((sum,n) => sum + Number(n), 0) }} / 510</small>
@@ -457,8 +458,10 @@ import { BATTLE_FORMAT_OPTIONS, resolveBattleFormat, resolveGameRelease } from '
 import PokemonPortrait from '@/components/PokemonPortrait.vue'
 import UiIcon from '@/components/UiIcon.vue'
 import TeamRoster from '@/components/TeamRoster.vue'
+import BuildOptionSelect from '@/components/BuildOptionSelect.vue'
 import BuildCheckPanel from '@/components/BuildCheckPanel.vue'
 import TeamBuildCheckPanel from '@/components/TeamBuildCheckPanel.vue'
+import { createTeamExport, parseTeamImport, teamFileName, MAX_TEAM_FILE_BYTES } from '@/api/team-transfer'
 import {buildCheckDraft} from '@/api/build-check'
 import {teamBuildQuestion} from '@/api/team-build-check'
 
@@ -1055,7 +1058,78 @@ async function loadTeams() {
   }
 }
 
+const teamImportInput = ref(null)
+const teamImporting = ref(false)
+const teamTransferNotice = ref('')
+const teamTransferError = ref(false)
+function transferNotice(message, error = false) {
+  teamTransferNotice.value = message
+  teamTransferError.value = error
+}
+function exportTeamFile() {
+  if (teamsState.status === 'saving' || teamImporting.value) return
+  let url
+  try {
+    const team = { ...teamForm, members: teamForm.members.flatMap((id, index) => id.trim()
+      ? [{ formId: Number(id), slot: index + 1, build: serializeBuild(index) }] : []) }
+    const contents = createTeamExport(team, context.gameReleaseId)
+    url = URL.createObjectURL(new Blob([contents], { type: 'application/json;charset=utf-8' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = teamFileName(team.name)
+    document.body.append(link)
+    link.click()
+    link.remove()
+    transferNotice('已导出当前队伍配置（包含未保存修改）。')
+  } catch (error) {
+    transferNotice(`导出失败：${error.message}`, true)
+  } finally {
+    if (url) setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+}
+function chooseTeamFile() {
+  if (teamsState.status !== 'saving' && !teamImporting.value) teamImportInput.value?.click()
+}
+async function importTeamFile(event) {
+  const file = event.target.files?.[0]
+  event.target.value = '' // Selecting the same file again must still trigger change.
+  if (!file || teamImporting.value || teamsState.status === 'saving') return
+  const snapshot = JSON.stringify([teamForm, memberBuilds, editingTeamId.value, context])
+  teamImporting.value = true
+  try {
+    if (!/\.json$/i.test(file.name)) throw new Error('请选择 JSON 队伍文件')
+    if (file.size > MAX_TEAM_FILE_BYTES) throw new Error('队伍文件不能超过 1 MB')
+    const team = parseTeamImport(await file.text(), context.gameReleaseId)
+    if (disposed) return
+    if (snapshot !== JSON.stringify([teamForm, memberBuilds, editingTeamId.value, context])) throw new Error('读取期间队伍或版本已变更，请重新导入')
+    const notices = []
+    if (!teamSaved.value && (teamForm.name || teamForm.members.some(Boolean))) notices.push('当前未保存的草稿将被替换。')
+    if (team.rulesetId !== context.rulesetVersionId || team.dataReleaseId !== context.dataReleaseId) notices.push('文件与当前规则或数据版本不同，将保留文件中的队伍版本。')
+    if (notices.length && !window.confirm(`${notices.join('\n')}\n确认导入？已有的已保存队伍不会被覆盖。`)) return
+    // Do not accept portable file IDs as an existing account-owned team.
+    editingTeamId.value = null
+    editingBaseline.value = ''
+    teamForm.name = team.name
+    teamForm.rulesetId = team.rulesetId
+    teamForm.dataReleaseId = team.dataReleaseId
+    teamForm.members = Array.from({ length: 6 }, (_, index) => {
+      const member = team.members.find(value => value.slot === index + 1)
+      memberBuilds[index] = member ? { ...defaultBuild(), ...member.build, movesText: member.build.moves.join(', ') } : defaultBuild()
+      return member ? String(member.formId) : ''
+    })
+    selectedMember.value = team.members[0].slot - 1
+    teamFormError.value = ''
+    hydrateTeamMembers(team)
+    transferNotice(`已导入「${team.name}」，点击保存队伍创建新队伍。格式校验不代表赛制合法性。`)
+  } catch (error) {
+    if (!disposed) transferNotice(`导入失败：${error.message}`, true)
+  } finally {
+    teamImporting.value = false
+  }
+}
+
 async function saveTeam() {
+  if (teamImporting.value || teamsState.status === 'saving') return
   const controller = beginRequest(teamMutationRequestController)
   teamMutationRequestController = controller
   teamFormError.value = ''
