@@ -57,6 +57,17 @@ jobs:
       - name: Verify queued collection, durable tools and HR projection together
         id: remaining_acceptance
         run: python -m eval.remaining_acceptance
+      - name: Start integrated demo from clean checkout and verify HTTP login, tasks and evidence
+        id: clean_environment
+        run: python -m eval.clean_environment_acceptance
+      - name: Preserve clean environment report
+        if: ${{ !cancelled() && steps.clean_environment.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: clean-environment-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/environment-acceptance/clean-*/report.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Preserve remaining integration report
         if: ${{ !cancelled() && steps.remaining_acceptance.outcome != 'skipped' }}
         uses: actions/upload-artifact@v4

@@ -1,15 +1,28 @@
 """Opt-in disposable loopback MySQL integration, no provider/device/production data."""
 import argparse
-from datetime import datetime, timedelta
+from datetime import timedelta
 import json
+import hashlib
 import multiprocessing
 import os
 from pathlib import Path
 import time
+import traceback
 import uuid
 
-from sqlalchemy import create_engine, inspect, select
+from sqlalchemy import create_engine, inspect, select, func, insert
 from sqlalchemy.engine import make_url
+
+
+def stub_payload():
+    """A valid frozen-contract result; never substitute a live model in this harness."""
+    from liepin_rpa.analysis_contract import validate_analysis_payload
+    payload = {"beauty_relevant": True, "match_result": "relevant", "match_score": 90,
+        "score_breakdown": {"industry_depth": 30, "beauty_continuity": 20, "role_evidence": 40},
+        "analysis_reason": "Synthetic MySQL callback", "evidence_summary": ["Synthetic implementation evidence."]}
+    if validate_analysis_payload(payload):
+        raise ValueError("MySQL stub must satisfy the frozen scoring contract")
+    return payload
 
 
 def validate_database_url(value):
@@ -30,6 +43,68 @@ def _claim_process(value, output):
         output.put({"error_type": type(error).__name__})
     finally:
         engine.dispose()
+
+
+def _wait_until_eligible(queue, batch):
+    """Wait on real DB time: legacy MySQL DATETIME can round inserts to next second."""
+    from liepin_rpa.analysis_job_schema import analysis_jobs
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        with queue.engine.connect() as connection:
+            available = connection.scalar(select(func.max(analysis_jobs.c.available_at)).where(
+                analysis_jobs.c.batch_id == batch))
+            if available is not None and available <= queue._now(connection):
+                return
+        time.sleep(0.05)
+    raise TimeoutError("Disposable MySQL tasks did not become eligible")
+
+
+def _verify_projection(queue, enqueue, payload):
+    """Exercise MySQL auto-increment, rollback and current-only idempotent HR writes."""
+    from liepin_rpa.analysis_projection import project_current_result
+    from liepin_rpa.db import resume_source_locators, resume_experience_records, resume_analysis_cache
+    from liepin_rpa.analysis_jobs import JobBudget
+    from liepin_rpa.analysis_contract import DEFAULT_ANALYSIS_CONTRACT
+    from liepin_rpa.analysis_versioning import content_hash
+    batch, person = "mysql-projection", "mysql-projection-0"
+    queue.create_batch(batch)
+    job = enqueue(batch, 0)
+    assert enqueue(batch, 0) == job
+    _wait_until_eligible(queue, batch)
+    lease = queue.claim("projection-worker")
+    assert lease.job_id == job
+    queue.complete(lease, payload=payload, analyzed_text_hash=queue.read_input(lease).input_hash)
+    try:
+        project_current_result(queue, job)
+    except ValueError as error:
+        if str(error) != "Projection requires the original collected source locator":
+            raise
+    else:
+        raise AssertionError("projection_without_locator_was_not_rejected")
+    with queue.engine.begin() as connection:
+        assert connection.scalar(select(func.count()).select_from(resume_analysis_cache)) == 0
+        connection.execute(insert(resume_source_locators).values(candidate_fingerprint=person,
+            candidate_name="Synthetic MySQL person", job_profile_id="ai_development_engineer_v1",
+            search_batch_id=batch, search_keyword="AI"))
+        connection.execute(insert(resume_experience_records).values(candidate_fingerprint=person,
+            manual_review_status="on_hold", manual_review_feedback="Synthetic human feedback",
+            manual_review_revision=8, manual_suppress_communication=1, manual_suppress_report=1))
+    assert project_current_result(queue, job) == "projected"
+    assert project_current_result(queue, job) == "already_projected"
+    with queue.engine.connect() as connection:
+        human = connection.execute(select(resume_experience_records).where(
+            resume_experience_records.c.candidate_fingerprint == person)).mappings().one()
+        assert human["manual_review_revision"] == 8 and human["manual_review_feedback"] == "Synthetic human feedback"
+        assert human["manual_review_status"] == "on_hold"
+        assert human["manual_suppress_communication"] == human["manual_suppress_report"] == 1
+        assert connection.scalar(select(func.count()).select_from(resume_analysis_cache)) == 1
+    newer = queue.enqueue(batch_id=batch, candidate_fingerprint=person, job_profile_id="ai_development_engineer_v1",
+        raw_text="Synthetic implementation evidence. Updated.", pipeline_fingerprint=content_hash("mysql-stub-v1"),
+        contract=DEFAULT_ANALYSIS_CONTRACT, budget=JobBudget(), deadline_seconds=86400)["job_id"]
+    assert newer != job and project_current_result(queue, job) == "not_current"
+    queue.cancel(newer, operator="mysql-acceptance")
+    return {"duplicate_enqueue_idempotent": True, "projection_idempotent": True,
+        "missing_locator_rollback": True, "manual_fields_preserved": True, "superseded_projection_rejected": True}
 
 
 def exercise(value):
@@ -58,13 +133,11 @@ def exercise(value):
         command.upgrade(config, "head")
         queue = AnalysisJobQueue(engine, lease_seconds=300)
         queue.configure(QueueLimits(max_in_flight=4, requests_per_minute=1000, tokens_per_minute=10000000))
-        payload = {"beauty_relevant": True, "match_result": "relevant", "match_score": 90,
-            "score_breakdown": {"industry_depth": 30, "beauty_continuity": 30, "role_evidence": 30},
-            "analysis_reason": "Synthetic MySQL callback", "evidence_summary": ["Synthetic implementation evidence."]}
+        payload = stub_payload()
         def enqueue(batch, number):
             return queue.enqueue(batch_id=batch, candidate_fingerprint=f"{batch}-{number}", job_profile_id="ai_development_engineer_v1",
                 raw_text="Synthetic implementation evidence.", pipeline_fingerprint=content_hash("mysql-stub-v1"),
-                contract=DEFAULT_ANALYSIS_CONTRACT, budget=JobBudget(), deadline_seconds=86400)
+                contract=DEFAULT_ANALYSIS_CONTRACT, budget=JobBudget(), deadline_seconds=86400)["job_id"]
         def callback(item):
             time.sleep(0.01)
             return WorkerOutput(payload, item.input_hash)
@@ -74,14 +147,16 @@ def exercise(value):
             queue.create_batch(batch)
             for number in range(12):
                 enqueue(batch, number)
+            _wait_until_eligible(queue, batch)
             start = time.perf_counter()
             stats = AnalysisWorker(queue, callback, concurrency=concurrency).run_ready(max_dispatches=12)
-            assert stats["succeeded"] == 12 and stats["dispatched"] == 12
+            assert stats["succeeded"] == 12 and stats["dispatched"] == 12, f"concurrency_{concurrency}_completion"
             measurements.append({"concurrency": concurrency, "database_and_stub_seconds": round(time.perf_counter() - start, 4),
                                  "tasks": 12, "stats": stats})
         queue.create_batch("mysql-crash")
         for number in range(8):
             enqueue("mysql-crash", number)
+        _wait_until_eligible(queue, "mysql-crash")
         context = multiprocessing.get_context("spawn")
         output = context.Queue()
         processes = [context.Process(target=_claim_process, args=(value, output)) for _ in range(8)]
@@ -121,11 +196,15 @@ def exercise(value):
         else:
             stale_rejected = False
         assert stale_rejected
+        queue.clock = None
+        projection = _verify_projection(queue, enqueue, payload)
         return {"mode": "disposable_mysql_and_stub_only", "quality_claim_allowed": False, "release_approved": False,
             "real_model_calls": 0, "mysql_version": mysql_version,
+            "schema_initialization": "metadata_baseline_07_then_real_migration_08",
             "migration_08_up_down_up": True, "measurements": measurements,
             "multiprocess_claims_unique": True, "in_flight_limit_observed": 4, "stale_completion_rejected": stale_rejected,
-            "recovery_stats": recovered, "clock": "injected_for_expiry_only", "model_latency_measured": False}
+            "recovery_stats": recovered, "clock": "injected_for_expiry_only", "model_latency_measured": False,
+            "hr_projection": projection}
     finally:
         engine.dispose()
 
@@ -142,7 +221,11 @@ def main(argv=None):
         report = exercise(os.environ.get("UPGRADE_MYSQL_TEST_URL", ""))
         report["status"] = "passed"
     except Exception as error:
-        report = {"status": "failed", "error_type": type(error).__name__, "release_approved": False}
+        # Frame locations only: exception messages/locals can contain database credentials.
+        report = {"status": "failed", "error_type": type(error).__name__, "release_approved": False,
+            "failure_frames": [{"file": Path(frame.filename).name, "line": frame.lineno, "function": frame.name}
+                               for frame in traceback.extract_tb(error.__traceback__)]}
+    report["harness_sha256"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     (directory / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(f"MySQL isolated acceptance {report['status']}: {directory / 'report.json'}")
     return int(report["status"] != "passed")
