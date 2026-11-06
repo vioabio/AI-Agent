@@ -260,8 +260,8 @@ jobs:
         env:
           SPRING_PROFILES_ACTIVE: demo
         run: |
+          source ops/ci/compose-smoke-cleanup.sh
           docker compose up -d --build
-          trap 'docker compose down -v' EXIT
           for attempt in {1..30}; do
             if curl --fail --silent http://localhost:8123/api/actuator/health/readiness >/dev/null; then
               break

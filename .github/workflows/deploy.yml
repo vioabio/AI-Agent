@@ -105,8 +105,8 @@ jobs:
       - name: Compose smoke (preflight only)
         if: ${{ github.event_name == 'push' || inputs.run_compose_smoke }}
         run: |
+          source ops/ci/compose-smoke-cleanup.sh
           docker compose up -d --build
-          trap 'docker compose down -v' EXIT
           for attempt in {1..36}; do
             if curl --fail --silent http://localhost:8123/api/actuator/health/readiness >/dev/null; then break; fi
             if [ "$attempt" -eq 36 ]; then
