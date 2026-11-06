@@ -83,7 +83,6 @@ class DemoPersistenceWiringTest {
                         "vio.security.global-quota-backend=jdbc")
                 .withBean(JdbcTemplate.class, () -> jdbc)
                 .withBean(ObjectMapper.class, ObjectMapper::new)
-                .withBean(ParameterMasker.class, ParameterMasker::new)
                 .withUserConfiguration(components);
     }
 
@@ -98,7 +97,8 @@ class DemoPersistenceWiringTest {
                 assertThat(context.getBean(pair.contract())).isInstanceOf(pair.jdbc());
             }
             assertThat(context).hasSingleBean(RunEventOutboxAppender.class)
-                    .hasSingleBean(ToolAuditSink.class).hasSingleBean(GlobalQuotaStore.class);
+                    .hasSingleBean(ToolAuditSink.class).hasSingleBean(GlobalQuotaStore.class)
+                    .hasSingleBean(ParameterMasker.class);
             assertThat(context.getBean(RunEventOutboxAppender.class)).isInstanceOf(JdbcRunEventOutboxAppender.class);
             assertThat(context.getBean(ToolAuditSink.class)).isInstanceOf(JdbcToolAuditSink.class);
             assertThat(context.getBean(GlobalQuotaStore.class)).isInstanceOf(JdbcGlobalQuotaStore.class);
@@ -184,10 +184,10 @@ class DemoPersistenceWiringTest {
     void componentScanSelectsOnlyJdbcAuditWhenItIsPresent(String profile) {
         new ApplicationContextRunner().withPropertyValues("spring.profiles.active=" + profile)
                 .withBean(JdbcTemplate.class, () -> jdbc)
-                .withBean(ParameterMasker.class, ParameterMasker::new)
                 .withUserConfiguration(JdbcAuditSinkScan.class).run(context -> {
                     assertThat(context).hasNotFailed().hasSingleBean(ToolAuditSink.class)
-                            .doesNotHaveBean(FailClosedToolAuditSink.class);
+                            .doesNotHaveBean(FailClosedToolAuditSink.class)
+                            .hasSingleBean(ParameterMasker.class);
                     assertThat(context.getBean(ToolAuditSink.class)).isInstanceOf(JdbcToolAuditSink.class);
                     assertNoJdbcOperations();
                 });
