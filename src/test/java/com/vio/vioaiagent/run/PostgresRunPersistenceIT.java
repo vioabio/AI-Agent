@@ -75,7 +75,8 @@ class PostgresRunPersistenceIT {
             "knowledge_ingestion_outbox", "knowledge_ingestion_dlq", "vector_build_job",
             "agent_authorization_snapshot",
             "agent_authorization_snapshot_revocation", "knowledge_release_approval",
-            "evaluation_report", "flyway_schema_history");
+            "evaluation_report", "agent_run_step_output", "conversation_constraints",
+            "flyway_schema_history");
 
     private static JdbcTemplate jdbc;
     private static JdbcRunRepository runs;
@@ -98,6 +99,10 @@ class PostgresRunPersistenceIT {
                 .load();
         var result = flyway.migrate();
         assertTrue(result.migrationsExecuted > 0, "空库必须实际执行迁移，否则本测试没有验证到迁移链");
+        assertEquals(PostgresMigrationCatalog.VERSIONS.size(), result.migrationsExecuted,
+                "空库必须执行清单中的每一个迁移");
+        flyway.validate();
+        assertEquals(0, flyway.info().pending().length, "迁移完成后不应存在待执行脚本");
 
         // 与生产一致：只依赖迁移后的真实 schema，不额外造表。
         jdbc = new JdbcTemplate(dataSource);
@@ -112,7 +117,7 @@ class PostgresRunPersistenceIT {
     // ==================== 迁移链 ====================
 
     @Test
-    @DisplayName("29 个迁移在空库完整执行，关键表真实存在且无失败记录")
+    @DisplayName("迁移清单在空库逐版本完整执行，关键表真实存在且无失败记录")
     void flywayMigrationsApplyOnRealPostgres() {
         for (String table : EXPECTED_TABLES) {
             Integer count = jdbc.queryForObject(
@@ -126,10 +131,11 @@ class PostgresRunPersistenceIT {
                 "select count(*) from flyway_schema_history where success = false", Integer.class);
         assertEquals(0, failed, "不应存在失败的迁移记录");
 
-        Integer applied = jdbc.queryForObject(
-                "select count(*) from flyway_schema_history where success = true", Integer.class);
-        assertNotNull(applied);
-        assertTrue(applied >= 29, () -> "期望至少 29 条成功迁移，实际 " + applied);
+        List<String> appliedVersions = jdbc.queryForList(
+                "select version from flyway_schema_history where success = true order by installed_rank",
+                String.class);
+        assertEquals(PostgresMigrationCatalog.VERSIONS, appliedVersions,
+                "成功迁移必须与脚本清单逐版本一致，不能用最大版本号或表数量推算迁移数量");
     }
 
     @Test
