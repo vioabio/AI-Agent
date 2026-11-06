@@ -4,6 +4,8 @@
 
 后续由操作者逐步推进的具体命令、勾选项、前置缺口和记录模板，见 [真实模型接入、质量评测与灰度操作手册](LIVE_VALIDATION_AND_ROLLOUT_RUNBOOK.md)。手册未执行的真实步骤保持未验收。
 
+当前选定的新开发方向：以 recruiting-copilot 编排猎聘与 BOSS 双平台电脑端采集，现有 AI-HR 负责正式分析和审核，见 [双平台接入开发方案](DUAL_PLATFORM_COPILOT_INTEGRATION_PLAN.md)。用户已选择暂缓完整真实质量评测；接入检查和未验收的质量工作分别记录。
+
 更新日期：2026-11-05
 
 适用项目：`D:\jianlizhuanqu`
