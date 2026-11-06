@@ -257,6 +257,7 @@ npx.cmd --yes pnpm@10 build
 - [第 7 阶段统一本地验收与三分钟演示](docs/UPGRADE_STAGE_7.md)
 - [AI/FDE 主工作台独立演示启动](docs/HR_LOCAL_START.md#aifde-主工作台演示v6)
 - [剩余阶段补齐、队列 Worker、HR 投影与工具恢复](docs/UPGRADE_REMAINING_IMPLEMENTATION.md)
+- [新环境、远程 CI 与隔离 MySQL 验收结果](docs/UPGRADE_ENVIRONMENT_ACCEPTANCE.md)
 
 在已安装依赖的本地环境执行 `.\.venv\Scripts\python.exe -m scripts.run_upgrade_acceptance --include-sdk --verify`，可生成并复核检索、队列、脚本工具、影子 API 和 SDK 本地假服务的独立合成验收包。已有包可用 `python -m scripts.verify_upgrade_acceptance <manifest路径> --require-sdk` 复核，加入 `--check-source` 可对比本机源码。该命令不调用真实模型，不代表生产发布或真实质量验收；CI 配置已接入，本地验证不能替代远程工作流运行记录。
 
