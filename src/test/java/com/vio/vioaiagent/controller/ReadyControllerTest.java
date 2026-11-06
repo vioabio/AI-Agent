@@ -19,13 +19,37 @@ import static org.mockito.Mockito.when;
 class ReadyControllerTest {
 
     @Test
-    void returnsUnavailableWhenDatabaseHealthIsDown() {
+    void optionalAggregateFailureDoesNotOverrideConfiguredReadiness() {
         ApplicationAvailability availability = mock(ApplicationAvailability.class);
         HealthEndpoint healthEndpoint = mock(HealthEndpoint.class);
         ObjectProvider<HealthEndpoint> provider = mock(ObjectProvider.class);
         when(availability.getReadinessState()).thenReturn(ReadinessState.ACCEPTING_TRAFFIC);
         when(provider.getIfAvailable()).thenReturn(healthEndpoint);
         when(healthEndpoint.health()).thenReturn(Health.down().build());
+        when(healthEndpoint.healthForPath("readiness")).thenReturn(Health.up().build());
+
+        assertEquals(200, new ReadyController(availability, provider).ready().getStatusCode().value());
+        org.mockito.Mockito.verify(healthEndpoint, org.mockito.Mockito.never()).health();
+    }
+
+    @Test
+    void missingReadinessGroupFailsClosed() {
+        ApplicationAvailability availability = mock(ApplicationAvailability.class);
+        ObjectProvider<HealthEndpoint> provider = mock(ObjectProvider.class);
+        when(availability.getReadinessState()).thenReturn(ReadinessState.ACCEPTING_TRAFFIC);
+        when(provider.getIfAvailable()).thenReturn(mock(HealthEndpoint.class));
+
+        assertEquals(503, new ReadyController(availability, provider).ready().getStatusCode().value());
+    }
+
+    @Test
+    void returnsUnavailableWhenDatabaseHealthIsDown() {
+        ApplicationAvailability availability = mock(ApplicationAvailability.class);
+        HealthEndpoint healthEndpoint = mock(HealthEndpoint.class);
+        ObjectProvider<HealthEndpoint> provider = mock(ObjectProvider.class);
+        when(availability.getReadinessState()).thenReturn(ReadinessState.ACCEPTING_TRAFFIC);
+        when(provider.getIfAvailable()).thenReturn(healthEndpoint);
+        when(healthEndpoint.healthForPath("readiness")).thenReturn(Health.down().build());
 
         assertEquals(503, new ReadyController(availability, provider).ready().getStatusCode().value());
     }
@@ -37,7 +61,7 @@ class ReadyControllerTest {
         ObjectProvider<HealthEndpoint> provider = mock(ObjectProvider.class);
         when(availability.getReadinessState()).thenReturn(ReadinessState.ACCEPTING_TRAFFIC);
         when(provider.getIfAvailable()).thenReturn(healthEndpoint);
-        when(healthEndpoint.health()).thenReturn(Health.up().build());
+        when(healthEndpoint.healthForPath("readiness")).thenReturn(Health.up().build());
 
         assertEquals(200, new ReadyController(availability, provider).ready().getStatusCode().value());
     }
@@ -49,7 +73,7 @@ class ReadyControllerTest {
         ObjectProvider<HealthEndpoint> provider = mock(ObjectProvider.class);
         when(availability.getReadinessState()).thenReturn(ReadinessState.ACCEPTING_TRAFFIC);
         when(provider.getIfAvailable()).thenReturn(healthEndpoint);
-        when(healthEndpoint.health()).thenThrow(new IllegalStateException("database probe failed"));
+        when(healthEndpoint.healthForPath("readiness")).thenThrow(new IllegalStateException("database probe failed"));
 
         assertEquals(503, new ReadyController(availability, provider).ready().getStatusCode().value());
     }
@@ -82,7 +106,7 @@ class ReadyControllerTest {
         when(availability.getReadinessState()).thenReturn(ReadinessState.ACCEPTING_TRAFFIC);
         when(healthProvider.getIfAvailable()).thenReturn(healthEndpoint);
         when(catalogProvider.getIfAvailable()).thenReturn(catalog);
-        when(healthEndpoint.health()).thenReturn(Health.up().build());
+        when(healthEndpoint.healthForPath("readiness")).thenReturn(Health.up().build());
         when(catalog.activeIndex()).thenReturn(java.util.Optional.of(active));
 
         var response = new ReadyController(availability, healthProvider, catalogProvider).details();

@@ -17,8 +17,14 @@ RUN mvn -B -ntp dependency:go-offline
 # .gitignore，本地 application-local.yml / mcp-servers.json 即使未被 Git
 # 跟踪，也可能被带入构建层并永久留在镜像历史中。
 COPY src/main ./src/main
+# pom.xml packages these frozen server rules from outside src/main.
+# Copy only the two declared public inputs, never evaluation runs or local data.
+COPY evaluation/v1.1/manifest.json evaluation/v1.1/metric-dictionary.json ./evaluation/v1.1/
 RUN mvn -B -ntp -DskipTests package \
-    && cp target/vio-ai-agent-*.jar /workspace/app.jar
+    && cp target/vio-ai-agent-*.jar /workspace/app.jar \
+    && jar tf /workspace/app.jar > /workspace/jar-entries.txt \
+    && grep -Fxq 'BOOT-INF/classes/evaluation/v1.1/manifest.json' /workspace/jar-entries.txt \
+    && grep -Fxq 'BOOT-INF/classes/evaluation/v1.1/metric-dictionary.json' /workspace/jar-entries.txt
 
 FROM eclipse-temurin:21-jre-jammy AS runtime
 WORKDIR /app

@@ -182,8 +182,7 @@ vio:
         role-tools: {}
     global-quota-enabled: ${VIO_GLOBAL_QUOTA_ENABLED:false}
     global-quota-backend: ${VIO_GLOBAL_QUOTA_BACKEND:jdbc}
-    api-keys:
-      "${VIO_API_KEY}": "演示环境令牌:default"
+    bootstrap-api-key: ${VIO_API_KEY}
     allowed-paths:
       - ${user.dir}/tmp
     blocked-commands: []

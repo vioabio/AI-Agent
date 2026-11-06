@@ -132,7 +132,9 @@ public class ReadyController {
     private boolean dependenciesHealthy() {
         if (healthEndpoint == null) return true;
         try {
-            HealthComponent health = healthEndpoint.health();
+            // Match configured readiness (demo/prod include DB), rather than
+            // aggregate health containing optional, unused integrations.
+            HealthComponent health = healthEndpoint.healthForPath("readiness");
             return health != null && Status.UP.equals(health.getStatus());
         } catch (RuntimeException ex) {
             // Actuator contributor（例如数据库连接池）可能在启动/故障切换期间

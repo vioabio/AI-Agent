@@ -5,6 +5,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.core.env.Environment;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+import com.vio.vioaiagent.security.TokenStore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,6 +33,28 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @DisplayName("B01 demo profile 真实装配")
 class DemoProfileActivationTest {
+
+    @Configuration(proxyBeanMethods = false)
+    @EnableConfigurationProperties(SecurityProperties.class)
+    static class SecurityBindingConfiguration {}
+
+    @Test
+    void environmentApiKeyAuthenticatesWithRealProfileBinding() {
+        for (String profile : new String[]{"demo", "prod"}) {
+            runnerWithPlaceholders()
+                    .withUserConfiguration(SecurityBindingConfiguration.class)
+                    .withPropertyValues("spring.profiles.active=" + profile,
+                            "VIO_API_KEY=ci-only-vio-token")
+                    .run(context -> {
+                        assertThat(context).hasNotFailed();
+                        TokenStore store = new TokenStore(context.getBean(SecurityProperties.class));
+                        assertThat(store.validate("ci-only-vio-token")).isNotNull();
+                        assertThat(store.validate("${VIO_API_KEY}")).isNull();
+                        assertThat(store.validate("VIO_API_KEY")).isNull();
+                        assertThat(store.validate("vioapikey")).isNull();
+                    });
+        }
+    }
 
     /** 让带占位符的属性可解析，但不真的连库。 */
     private ApplicationContextRunner runnerWithPlaceholders() {

@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.bind.ConstructorBinding;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 /**
  * 安全配置属性 — 类型安全的 YAML 配置绑定.
@@ -18,6 +19,7 @@ import java.util.Map;
  * @param allowedPaths    文件操作白名单路径
  * @param blockedCommands 禁止执行的命令正则表达式列表
  * @param trustedProxyCidrs 允许提供转发客户端 IP 的可信代理 IP/CIDR；空列表表示不信任任何转发头
+ * @param bootstrapApiKey 环境注入的启动令牌；占位符必须写在属性值中，不能写在 Map 键中
  * @author vio
  */
 @ConfigurationProperties(prefix = "vio.security")
@@ -26,7 +28,8 @@ public record SecurityProperties(
         Map<String, String> apiKeys,
         List<String> allowedPaths,
         List<String> blockedCommands,
-        List<String> trustedProxyCidrs) {
+        List<String> trustedProxyCidrs,
+        String bootstrapApiKey) {
 
     /**
      * 多构造器 record 必须显式声明配置绑定构造器。否则 Spring Boot 会将
@@ -35,10 +38,20 @@ public record SecurityProperties(
      */
     @ConstructorBinding
     public SecurityProperties {
-        apiKeys = apiKeys == null ? Collections.emptyMap() : Map.copyOf(apiKeys);
+        Map<String, String> configuredKeys = new HashMap<>(apiKeys == null ? Map.of() : apiKeys);
+        if (bootstrapApiKey != null && !bootstrapApiKey.isBlank()) {
+            configuredKeys.put(bootstrapApiKey, "环境配置令牌:default");
+        }
+        apiKeys = Map.copyOf(configuredKeys);
         allowedPaths = allowedPaths == null ? List.of() : List.copyOf(allowedPaths);
         blockedCommands = blockedCommands == null ? List.of() : List.copyOf(blockedCommands);
         trustedProxyCidrs = trustedProxyCidrs == null ? List.of() : List.copyOf(trustedProxyCidrs);
+    }
+
+    public SecurityProperties(boolean enabled, Map<String, String> apiKeys,
+                              List<String> allowedPaths, List<String> blockedCommands,
+                              List<String> trustedProxyCidrs) {
+        this(enabled, apiKeys, allowedPaths, blockedCommands, trustedProxyCidrs, null);
     }
 
     /** 保留旧代码与测试使用的四参数构造器；默认不信任任何转发头。 */
