@@ -687,13 +687,19 @@ public class ToolCallAgent extends ReActAgent {
         var calls = new java.util.LinkedHashMap<String, AssistantMessage.ToolCall>();
         boolean separated = false;
         try (var chunks = request.stream().chatResponse()
-                .timeout(java.time.Duration.ofSeconds(60)).toStream()) {
+                // BlockingIterable prioritizes onError over queued onNext values.
+                // Queue terminal signals as data so the worker drains earlier deltas
+                // before propagating a failure, without retrying or switching threads.
+                .timeout(java.time.Duration.ofSeconds(60)).materialize().toStream()) {
             var iterator = chunks.iterator();
             while (iterator.hasNext()) {
                 if (Thread.currentThread().isInterrupted()) {
                     throw new java.util.concurrent.CancellationException("Run cancelled");
                 }
-                ChatResponse chunk = iterator.next();
+                var signal = iterator.next();
+                if (signal.isOnError()) throw reactor.core.Exceptions.propagate(signal.getThrowable());
+                if (!signal.isOnNext()) continue;
+                ChatResponse chunk = signal.get();
                 if (chunk.getResult() == null) continue;
                 AssistantMessage output = chunk.getResult().getOutput();
                 for (var call : output.getToolCalls()) {

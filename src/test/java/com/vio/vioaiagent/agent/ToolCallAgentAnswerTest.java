@@ -2,6 +2,7 @@ package com.vio.vioaiagent.agent;
 
 import com.vio.vioaiagent.agent.model.AgentState;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.RepeatedTest;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -214,7 +215,7 @@ class ToolCallAgentAnswerTest {
             assertSame(original, com.vio.vioaiagent.tools.governance.ToolExecutionContextHolder.peek());
         } finally { com.vio.vioaiagent.tools.governance.ToolExecutionContextHolder.clear(); }
     }
-    @Test
+    @RepeatedTest(20)
     void brokenStreamDoesNotRestartGenerationOrPretendPartialAnswerIsComplete() {
         ChatModel model = mock(ChatModel.class);
         when(model.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(
@@ -230,6 +231,27 @@ class ToolCallAgentAnswerTest {
         agent.setAnswerDeltaSink(chunks::add);
         agent.run("你好");
         assertEquals(List.of("部分回答"), chunks);
+        assertNull(agent.getFinalAnswer());
+        assertEquals(AgentState.FINISHED, agent.getState());
+        verify(model, times(1)).stream(any(Prompt.class));
+        verify(model, times(1)).call(any(Prompt.class));
+    }
+    @Test
+    void streamFailureBeforeAnyDeltaDoesNotInventAnAnswerOrRetry() {
+        ChatModel model = mock(ChatModel.class);
+        when(model.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(
+                new Generation(new AssistantMessage("规划完成")))));
+        when(model.stream(any(Prompt.class))).thenReturn(
+                reactor.core.publisher.Flux.error(new IllegalStateException("connection lost")));
+        ToolCallAgent agent = new ToolCallAgent(new ToolCallback[0]);
+        agent.setChatClient(ChatClient.builder(model).build());
+        agent.setSystemPrompt("Be helpful.");
+        java.util.List<String> chunks = new java.util.ArrayList<>();
+        agent.setAnswerDeltaSink(chunks::add);
+
+        agent.run("你好");
+
+        assertTrue(chunks.isEmpty());
         assertNull(agent.getFinalAnswer());
         assertEquals(AgentState.FINISHED, agent.getState());
         verify(model, times(1)).stream(any(Prompt.class));
