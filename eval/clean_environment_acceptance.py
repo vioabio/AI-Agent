@@ -16,13 +16,20 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _publish_port(directory, port):
+    # A reader must never observe an existing but still empty/partial port file.
+    temporary = directory / "port.tmp"
+    temporary.write_text(str(port), encoding="ascii")
+    temporary.replace(directory / "port.txt")
+
+
 def serve(directory):
     import uvicorn
     from scripts.run_integrated_demo import build_integrated_demo_app
     app = build_integrated_demo_app(demo_dir=directory / "demo")
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))
-        (directory / "port.txt").write_text(str(listener.getsockname()[1]), encoding="ascii")
+        _publish_port(directory, listener.getsockname()[1])
         uvicorn.Server(uvicorn.Config(app, log_level="warning")).run(sockets=[listener])
 
 

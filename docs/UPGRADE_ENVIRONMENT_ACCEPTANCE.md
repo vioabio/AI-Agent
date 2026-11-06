@@ -34,6 +34,7 @@ CI 的 JSON 附件配置保留 7 天；过期后可以重新运行工作流生�
 3. 新增 MySQL HR 投影验证：自动增长主键、重复入队、重复投影、缺少原始来源的事务回滚、新版本阻止旧投影，以及人工状态、反馈、revision 和两项抑制字段保留。
 4. 失败报告增加文件名/函数/行号，不输出异常原文、连接串或局部变量。报告记录验收脚本 SHA256。
 5. 新增 `eval.clean_environment_acceptance` 和 CI 步骤。子进程不继承应用凭据、模型端点及代理变量；仅创建独立合成库、调用自己启动的 loopback 假模型服务。父进程完成检查后停止服务。
+6. 文档提交后的 [42157945562](https://github.com/vioabio/AI-HR/actions/runs/42157945562) 再次运行时，后端全量 539 项、统一/投影验收、MySQL、前端均通过，但新增 HTTP 启动验收偶发读到尚未写完的空端口文件。改为临时文件写完后原子替换，并增加暂停写入时的并发读回归测试；最终提交结果见[最新主分支 CI](https://github.com/vioabio/AI-HR/actions/workflows/ci.yml?query=branch%3Amain)。不通过重复运行来掩盖此竞争。
 
 ## MySQL 实测范围与边界
 
