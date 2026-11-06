@@ -55,7 +55,8 @@ class ParameterMaskerTest {
     @Test
     @DisplayName("token 字段应被脱敏")
     void shouldMaskToken() {
-        Map<String, Object> params = Map.of("auth_token", "eyJhbGciOiJIUzI1NiJ9...");
+        // This tests field-name masking, not JWT parsing; use an obvious inert fixture.
+        Map<String, Object> params = Map.of("auth_token", "test-token");
         Map<String, Object> masked = masker.mask(params);
 
         assertEquals(ParameterMasker.REDACTED, masked.get("auth_token"));
