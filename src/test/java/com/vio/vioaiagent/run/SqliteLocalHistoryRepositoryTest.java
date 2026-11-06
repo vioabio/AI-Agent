@@ -17,6 +17,7 @@ class SqliteLocalHistoryRepositoryTest {
     @Test
     void enabledLocalStoreReplacesBothMemoryRepositories() {
         new org.springframework.boot.test.context.runner.ApplicationContextRunner()
+                .withInitializer(c -> c.getEnvironment().setActiveProfiles("local"))
                 .withBean(ObjectMapper.class, ObjectMapper::new)
                 .withPropertyValues("vio.local-history.enabled=true",
                         "vio.local-history.path=" + directory.resolve("wiring.sqlite"))

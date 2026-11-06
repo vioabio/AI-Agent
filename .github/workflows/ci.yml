@@ -32,9 +32,6 @@ jobs:
       # F01：资源游标签名密钥不再有默认值，compose 启动前必须显式提供，
       # 否则 StartupContractValidator 会按设计拒绝启动。
       VIO_RESOURCE_CURSOR_SECRET: ci-only-cursor-secret
-      # F01：compose 使用 demo profile（prod 的受限演示覆盖层）。
-      # prod 默认 OIDC_REQUIRED=true，未接入真实 OIDC 时会 fail-closed 拒绝启动。
-      SPRING_PROFILES_ACTIVE: demo
       # R01：OIDC 在本 CI 中保持关闭，故此处只提供夹具占位。
       # 若将来在 CI 打开 VIO_OIDC_ENABLED，client secret 引用将按
       # secret://<name> → VIO_OIDC_SECRET_<NAME 大写> 解析，缺项会拒绝启动。
@@ -259,6 +256,9 @@ jobs:
           docker compose --profile monitoring config --quiet
 
       - name: Compose smoke
+        # Only containers need demo; Maven configuration tests select their own profiles.
+        env:
+          SPRING_PROFILES_ACTIVE: demo
         run: |
           docker compose up -d --build
           trap 'docker compose down -v' EXIT

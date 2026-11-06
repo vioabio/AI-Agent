@@ -96,6 +96,11 @@ test('CI compose smoke 提供启动契约要求的全部变量与 demo profile',
     `CI 未提供以下必需环境变量，Compose smoke 会因启动契约失败：\n  ${missing.join('\n  ')}`);
   assert.match(ciText, /SPRING_PROFILES_ACTIVE:\s*demo/,
     'CI 必须显式使用 demo profile，否则 prod 的 OIDC_REQUIRED=true 会阻断启动');
+  assert.doesNotMatch(ciText.split('    steps:')[0], /^\s+SPRING_PROFILES_ACTIVE:/m,
+    'Compose profile 不得放入 job env，避免污染 Maven 配置测试');
+  const smokeStep = ciText.slice(ciText.indexOf('      - name: Compose smoke'));
+  assert.match(smokeStep, /env:\s+SPRING_PROFILES_ACTIVE:\s*demo/,
+    'demo profile 必须限定在 Compose smoke 步骤');
 });
 
 test('demo profile 成对放开 OIDC，且不提供游标密钥默认值', () => {

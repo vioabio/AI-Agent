@@ -40,7 +40,8 @@ class RedisGlobalQuotaConfigurationTest {
     private AnnotationConfigApplicationContext context(boolean enabled, String backend,
                                                         boolean prod, boolean withTemplate) {
         AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-        if (prod) context.getEnvironment().setActiveProfiles("prod");
+        // Do not inherit the CI runner's Compose smoke profile.
+        context.getEnvironment().setActiveProfiles(prod ? "prod" : "local");
         TestPropertyValues.of(
                 "vio.security.global-quota-enabled=" + enabled,
                 "vio.security.global-quota-backend=" + backend)
