@@ -260,6 +260,7 @@ npx.cmd --yes pnpm@10 build
 - [新环境、远程 CI 与隔离 MySQL 验收结果](docs/UPGRADE_ENVIRONMENT_ACCEPTANCE.md)
 - [真实模型接入、质量评测与灰度逐步操作手册](docs/LIVE_VALIDATION_AND_ROLLOUT_RUNBOOK.md)
 - [基于 recruiting-copilot 的猎聘与 BOSS 双平台接入方案](docs/DUAL_PLATFORM_COPILOT_INTEGRATION_PLAN.md)
+- [双平台 A 阶段进度、工具安装与专用浏览器登录](docs/DUAL_PLATFORM_STAGE_A.md)
 
 在已安装依赖的本地环境执行 `.\.venv\Scripts\python.exe -m scripts.run_upgrade_acceptance --include-sdk --verify`，可生成并复核检索、队列、脚本工具、影子 API 和 SDK 本地假服务的独立合成验收包。已有包可用 `python -m scripts.verify_upgrade_acceptance <manifest路径> --require-sdk` 复核，加入 `--check-source` 可对比本机源码。该命令不调用真实模型，不代表生产发布或真实质量验收；CI 配置已接入，本地验证不能替代远程工作流运行记录。
 

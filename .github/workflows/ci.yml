@@ -9,6 +9,29 @@ permissions:
   contents: read
 
 jobs:
+  recruiting-toolchain:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: tools/recruiting/package-lock.json
+      - name: Restore pinned tools and verify help without platform login
+        run: python -m scripts.setup_recruiting_toolchain --install
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: recruiting-toolchain-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/recruiting/toolchain-report.json
+          if-no-files-found: error
+          retention-days: 7
   mysql-queue:
     runs-on: ubuntu-latest
     services:

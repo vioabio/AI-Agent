@@ -1,5 +1,21 @@
 # 本机 HR 工作台入口
 
+## 无招聘者账号的运行方式
+
+没有猎聘/BOSS 招聘者账号时，使用下文 **AI/FDE 主工作台演示（v6）**，无需手机或真实模型密钥。它使用虚构简历与预计算结果，可以体验筛选、原文和人工审核；尚未包含双平台真实采集。
+
+如果需要体验已有“合成采集 → 队列 → 工具回合 → 当前结果投影 → HR 审核”流程，可以把 v6 后端命令替换为：
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn scripts.run_integrated_demo:build_integrated_demo_app --factory --host 127.0.0.1 --port 18182
+```
+
+前端仍按 v6 的 `18182` 代理、`hr_ai_demo` Cookie 和 `15176` 端口配置，账号仍为 `demo` / `DemoReview2026!`。两种后端只能选择一种占用 `18182`。集成演示使用独立 `artifacts/hr_demo/integrated-v1/`，模型响应来自本机假服务，不产生真实模型费用，也不读取本机生产 `.env`。它验证已有管线，双平台来源导入还需后续开发。
+
+双平台接入改为先完成模拟数据版本，待取得招聘者权限后补真实平台验收，见 [A 阶段实施与后续安排](DUAL_PLATFORM_STAGE_A.md)。
+
+## 原有入口
+
 真实数据：<http://127.0.0.1:5173/login>，使用现有 HR 账号密码。
 后端读取本机 `.env` 的 `HR_REVIEW_DATABASE_URL`，连接已有招聘数据库。
 审核操作会修改真实候选人的人工状态，请在演示入口练习。
