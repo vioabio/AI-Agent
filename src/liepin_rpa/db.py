@@ -37,6 +37,7 @@ from sqlalchemy.dialects.mysql import insert as mysql_insert
 from liepin_rpa.analysis_execution import AnalysisExecutionStatus, execution_status_from_legacy_reason
 from liepin_rpa.analysis_evidence_store import evidence_metadata, persist_analysis_evidence, result_document
 from liepin_rpa.analysis_job_schema import queue_metadata
+from liepin_rpa.sourcing.schema import sourcing_metadata
 
 from liepin_rpa.candidate_identity import (
     HistoricalCandidateEvidence,
@@ -73,6 +74,8 @@ for evidence_table in evidence_metadata.sorted_tables:
     evidence_table.to_metadata(metadata)
 for queue_table in queue_metadata.sorted_tables:
     queue_table.to_metadata(metadata)
+for source_table in sourcing_metadata.sorted_tables:
+    source_table.to_metadata(metadata)
 
 resume_experience_records = Table(
     RESUME_EXPERIENCE_TABLE_NAME,

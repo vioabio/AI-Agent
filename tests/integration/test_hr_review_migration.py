@@ -75,6 +75,19 @@ def test_collected_and_tools_migration_renders_mysql_without_connecting():
     assert "UPDATE candidate_resume" not in sql
 
 
+def test_sourcing_ledger_migration_renders_mysql_without_rewriting_legacy_data():
+    output = StringIO()
+    config = Config("alembic.ini", output_buffer=output)
+    config.set_main_option("sqlalchemy.url", "mysql+pymysql://offline:offline@invalid.invalid/offline")
+    command.upgrade(config, "20261105_08:20261107_09", sql=True)
+    sql = output.getvalue()
+    assert "CREATE TABLE sourcing_runs" in sql and "CREATE TABLE candidate_source_identities" in sql
+    assert "CREATE TABLE sourcing_platform_runs" in sql and "CREATE TABLE sourcing_observations" in sql
+    assert "payload_json LONGTEXT NOT NULL" in sql and "utf8mb4_bin" in sql
+    assert "ALTER TABLE candidate_resume" not in sql and "UPDATE candidate_resume" not in sql
+    assert "DROP TABLE" not in sql
+
+
 def test_hr_review_migration_upgrade_and_downgrade(tmp_path) -> None:
     database = tmp_path / "migration.sqlite"
     engine = create_engine(f"sqlite+pysqlite:///{database}", future=True)
@@ -135,8 +148,10 @@ def test_hr_review_migration_upgrade_and_downgrade(tmp_path) -> None:
     assert {"analysis_run_id", "analyzed_text_hash"} <= execution_columns
     assert {"candidate_resume_snapshots", "candidate_resume_analysis_runs", "candidate_resume_evidence_refs"} <= set(inspector.get_table_names())
     from liepin_rpa.analysis_job_schema import queue_metadata
+    from liepin_rpa.sourcing.schema import sourcing_metadata
     assert set(queue_metadata.tables) <= set(inspector.get_table_names())
-    for table in queue_metadata.sorted_tables:
+    assert set(sourcing_metadata.tables) <= set(inspector.get_table_names())
+    for table in [*queue_metadata.sorted_tables, *sourcing_metadata.sorted_tables]:
         actual = {column["name"]: column for column in inspector.get_columns(table.name)}
         assert set(actual) == set(table.c.keys())
         for column in table.c:
@@ -179,6 +194,7 @@ def test_hr_review_migration_upgrade_and_downgrade(tmp_path) -> None:
     assert "hr_users" not in inspector.get_table_names()
     assert "candidate_resume_snapshots" not in inspector.get_table_names()
     assert not set(queue_metadata.tables) & set(inspector.get_table_names())
+    assert not set(sourcing_metadata.tables) & set(inspector.get_table_names())
     assert "execution_status" not in {
         column["name"] for column in inspector.get_columns("candidate_resume_analysis_cache")
     }
