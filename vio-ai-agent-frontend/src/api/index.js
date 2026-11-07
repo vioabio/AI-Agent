@@ -622,9 +622,15 @@ export async function fetchPokemonReference(query, { dataReleaseId, signal } = {
 }
 
 export async function fetchPokemonBuildOptions({ kind, pokemonId, dataReleaseId, gameReleaseId, query = '', offset = 0 }, { signal } = {}) {
-  return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/reference/build-options${queryString({ kind, pokemonId: kind === 'item' ? undefined : pokemonId, dataReleaseId, gameReleaseId, query, offset, limit: 50 })}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/pokemon/reference/build-options${queryString({ kind, pokemonId: kind === 'item' ? undefined : pokemonId, dataReleaseId, gameReleaseId, query, offset, limit: 50 })}`, {
     credentials: 'include', signal, headers: requestHeaders()
-  }), '读取配置候选失败')
+  })
+  if (response.status === 404) {
+    const error = new Error('当前后端未提供配置候选接口。请重新编译并重启后端（仅刷新网页无效），使用 local 配置并启用 VIO_POKEMON_REFERENCE_ENABLED；若已重启，请检查前端代理是否指向正确的后端。')
+    error.status = 404
+    throw error
+  }
+  return readJson(response, '读取配置候选失败')
 }
 
 export async function calculateEngineDamage(payload, { signal } = {}) {

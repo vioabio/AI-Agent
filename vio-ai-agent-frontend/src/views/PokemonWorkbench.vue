@@ -459,6 +459,7 @@ import PokemonPortrait from '@/components/PokemonPortrait.vue'
 import UiIcon from '@/components/UiIcon.vue'
 import TeamRoster from '@/components/TeamRoster.vue'
 import BuildOptionSelect from '@/components/BuildOptionSelect.vue'
+import { NATURE_LABELS } from '@/api/pokemon-natures'
 import BuildCheckPanel from '@/components/BuildCheckPanel.vue'
 import TeamBuildCheckPanel from '@/components/TeamBuildCheckPanel.vue'
 import { createTeamExport, parseTeamImport, teamFileName, MAX_TEAM_FILE_BYTES } from '@/api/team-transfer'
@@ -682,7 +683,7 @@ function defaultBuild() { return { movesText:'',ability:'',item:'',nature:'hardy
 const memberBuilds = reactive(Array.from({length:6}, defaultBuild))
 const rosterCards = computed(() => teamForm.members.map((id,index)=>({id,name:memberName(index),level:memberBuilds[index].level})))
 const teamSaved = computed(() => !!editingTeamId.value && editingBaseline.value === JSON.stringify([teamForm,memberBuilds]))
-const natureLabels = {hardy:'勤奋',modest:'内敛',timid:'胆小',adamant:'固执',jolly:'爽朗',bold:'大胆'}
+const natureLabels = NATURE_LABELS
 function buildPayload() { const value=defaultBuild(); delete value.movesText; return {...value,moves:[]} }
 const engineForm=reactive({attacker:{species:'',build:buildPayload()},defender:{species:'',build:buildPayload()},move:'',field:{weather:'',terrain:''}})
 const engineResult=ref(null),engineState=ref('idle'),engineError=ref('')
