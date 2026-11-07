@@ -1,0 +1,15 @@
+login_required_page:
+  any_of:
+    - text_contains: "登录"
+    - text_contains: "验证码"
+
+risk_control_page:
+  any_of:
+    - text_contains: "风险"
+    - text_contains: "验证"
+    - text_contains: "实名认证"
+
+network_error_page:
+  any_of:
+    - text_contains: "网络"
+    - text_contains: "重试"

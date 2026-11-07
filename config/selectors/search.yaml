@@ -1,0 +1,24 @@
+search_entry_page:
+  any_of:
+    - text_contains: "搜索职位"
+    - content_desc: "历史记录"
+    - content_desc: "按职位搜索"
+    - content_desc: "清空"
+
+search_condition_page:
+  any_of:
+    - text: "公司"
+    - text: "职位"
+    - text: "筛选"
+    - content_desc: "不限职类"
+
+position_filter_page:
+  any_of:
+    - content_desc: "选择职位类别"
+    - text_contains: "输入职位名称查找职位类别"
+    - content_desc: "全部"
+
+search_submit:
+  candidates:
+    - content_desc: "搜索"
+    - text: "搜索"

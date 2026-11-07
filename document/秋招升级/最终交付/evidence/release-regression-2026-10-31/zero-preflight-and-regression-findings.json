@@ -1,9 +1,0 @@
-{
-  "stage": "before release-publish suite was written or any model collection for it",
-  "recordType": "summary-transcribed-from-tool-output-not-raw-capture",
-  "finding": "Native engine returns range 0-0, but @smogon/calc Result.desc throws damage[damage.length - 1] === 0.",
-  "modelExecuted": false,
-  "newInputDenominatorTreatment": "DAMAGE-96 is a known preflight regression; four other post-freeze questions remain new-input observations.",
-  "secondaryRegression": "Editing the frozen calculate.cjs in place invalidated expanded-v1 source provenance, causing two tool audit tests to fail. Preserve those logs; ship the zero-safe implementation as calculate-v2.cjs and retain frozen v1 bytes instead of rewriting historical corpus or assertions.",
-  "backendRegression": "Three SourcedAnswerEvidenceTest assertions still required a model call/free model coaching for numeric-only requests. Update the behavioral contract to no final model call/program interpretation while preserving mixed-saved-task guards, numeric assertions and draft-leak assertions. Do not remove these tests."
-}
