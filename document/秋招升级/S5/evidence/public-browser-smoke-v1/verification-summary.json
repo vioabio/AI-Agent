@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "public-build-browser-smoke-verification-v1",
+  "date": "2026-10-29",
+  "mode": "REAL_BUILT_FRONTEND_HTTP_SQLITE_NO_MODEL",
+  "uniqueCases": 2,
+  "finalPassed": 2,
+  "viewports": [
+    1440,
+    390
+  ],
+  "modelRequests": 0,
+  "pageErrors": 0,
+  "noHorizontalOverflow": true,
+  "savedTeamVisibleAndInViewportAfterReload": true,
+  "apiResponsesMocked": false,
+  "previewOrigin": "http://127.0.0.1:13059",
+  "backendOrigin": "http://127.0.0.1:18259",
+  "bothServicesStopped": true,
+  "jarSha256": "3b486024f240cada4fb73a6cb59fd21743d7a29fa464bf107fa0c998df0e9a7c",
+  "frontendIndexSha256": "a30eb1e9d10b9da28c4579dedaf3885a920c502bb8d1b0d1027cea09ae16bf95",
+  "publicReferenceBundle": "Frozen two-species public bundle; no new factual accuracy claim",
+  "externalBrowserRequestsBlocked": 0,
+  "history404": "New conversations without messages return 404 and are handled as empty; retained in API traffic, not erased",
+  "rounds": [
+    {
+      "id": "v1",
+      "scope": "Initial login/query/save/API reread",
+      "passed": 2
+    },
+    {
+      "id": "v2",
+      "scope": "Added saved-card UI assertion",
+      "passed": 1,
+      "failed": 1,
+      "reason": "Mobile probe clicked a tab behind the open resource overlay; test interaction corrected without force click or app change"
+    },
+    {
+      "id": "v3",
+      "scope": "Correct mobile overlay interaction",
+      "passed": 2
+    },
+    {
+      "id": "v4",
+      "scope": "Final saved card explicitly scrolled into viewport for screenshots",
+      "passed": 2
+    }
+  ],
+  "fullDemoVideoRecorded": false,
+  "browserModelFlowTested": false,
+  "aiApprovalWorkflowTested": false,
+  "s5Complete": false,
+  "humanReviewOfThisBatch": false,
+  "sourceSha256": {
+    "vio-ai-agent-frontend/e2e-live/public-workspace.spec.js": "8d321d4c3e251344e3ab456c87e0edb6ed31d3ae7643506e0c59a02ab3002546",
+    "vio-ai-agent-frontend/playwright.public-workspace.config.js": "e51ac605c38a50d23d3902ac1ea911c804b2a94040a12f20698a4407126126ac"
+  },
+  "artifactSha256": {
+    "desktop.json": "4b2f88851b75ac847e29e32f4c605db59953065d4e4d38bbad13320979974cde",
+    "desktop.png": "e45e70b5e27c2039bc362fe68950654ec519378d784d8b07a18c10be1e56dcfa",
+    "intermediate-collector.spec.js": "3d92e1a3dd1c4d4729847ba79700b7b3afabca23820e24c92ec968c11c64a28b",
+    "mobile-intermediate-failed.json": "e2fccb350fcbb82dfe5c4ee6a6f73ad6827aeecd935d6a498fac44455ccbe197",
+    "mobile.json": "7872a782fbd3e9a5fa20a2a5b15c87610b8cfb404bcabe04bc3e1ae51d329c3c",
+    "mobile.png": "a32cd6b42fb68c2e450f2766bc128f094e6595325398ef11f6b221cd079536d0",
+    "playwright.public-workspace.config.js": "e51ac605c38a50d23d3902ac1ea911c804b2a94040a12f20698a4407126126ac",
+    "public-workspace.spec.js": "8d321d4c3e251344e3ab456c87e0edb6ed31d3ae7643506e0c59a02ab3002546",
+    "smoke-preview.config.mjs": "8d250dce9593bf628abcc0e160b358ba51d1db1afbf1fd4d73f0909d0a0e40db"
+  },
+  "logSha256": {
+    "artifacts/public-browser-live-v1-2026-10-29.log": "6549f439cbe0cb2233f41150728fd34e5b5aeb42d3382054d27d4d049afa582d",
+    "artifacts/public-browser-live-v2-2026-10-29.log": "b58b41e5f7aeb4acdf009881e9fcfa8c3111e03bfa3722b2c5f675e30332c88c",
+    "artifacts/public-browser-live-v3-2026-10-29.log": "71b0c99210a7e3fda9b5c6b71e9637c607912748769eb75cc7c39b780f56a878",
+    "artifacts/public-browser-live-v4-2026-10-29.log": "b4ed368cd33cfa09f0ea2f5073f2658ed6917e25cedf79d0b24c5036a637b241",
+    "artifacts/public-browser-lint-2026-10-29.log": "28841550c6c0b7ca0d87126822260d7da738fbb2a01fbbe9d341a8910ef40c6b"
+  }
+}

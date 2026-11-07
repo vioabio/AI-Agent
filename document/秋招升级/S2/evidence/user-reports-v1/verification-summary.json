@@ -1,0 +1,232 @@
+{
+  "schemaVersion": "user-report-verification-v1",
+  "verifiedAt": "2026-10-26T10:11:58.078Z",
+  "backend": {
+    "tests": 1103,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3
+  },
+  "targeted": {
+    "tests": 58,
+    "overlapsFull": true,
+    "newJavaTests": 9
+  },
+  "node": {
+    "tests": 111,
+    "passed": 111,
+    "newTests": 9
+  },
+  "frontendContract": {
+    "tests": 139,
+    "passed": 139
+  },
+  "stages": [
+    {
+      "stage": "model",
+      "captureSha256": "505afdc60dbf9813e8e8a64aded97b33fe7f2aeb1ba6e7b32d1a1b2afc4e4ab7",
+      "collectorVersion": "campus-s2-collector-v3",
+      "collectorSha256": {
+        "s2-evaluate.mjs": "b9e65a0bf65323a5e6af29fb08542da425d49d9d51b5eb7074618096cb5a9359",
+        "evaluation.mjs": "d16a3dc03016240e3fa5732725aca69707c082a006d89661debb2e23952d73b5",
+        "reference-case.mjs": "d0c390047e600fc10b283510a7f6baf46c1f2cdec40db50a3b1324d8dec97c91",
+        "tool-inputs.mjs": "bab6b8b5c445ccd450cb33bfbe5b01c8286223cf1c800745923c936350b14311",
+        "answer-quality.mjs": "fd044636b409860e29df7e9f40f97917e783060b7e3bf1dbeaed8a84a7d26644"
+      },
+      "runtime": {
+        "configuredProvider": "dashscope",
+        "configuredModelId": "qwen-plus",
+        "generationDefaults": {
+          "temperature": 0,
+          "topP": 1,
+          "maxTokens": null,
+          "scope": "CONFIGURED_DEFAULTS_NOT_PROVIDER_REQUEST_ATTESTATION"
+        },
+        "guideReferencePolicy": null,
+        "guideOverviewPolicy": null
+      },
+      "denominator": 4,
+      "completed": 4,
+      "structuralPass": 3,
+      "fail": 1,
+      "pending": 3,
+      "modelCalls": 22
+    },
+    {
+      "stage": "model-fixed",
+      "captureSha256": "8da8b3df7e8121a39bd735b8eafef9d53ac8e7a1780ae8e60c89867ef0804478",
+      "collectorVersion": "campus-s2-collector-v4",
+      "collectorSha256": {
+        "s2-evaluate.mjs": "d3963dab4ee47b533c6864ab3bb872a673e501581751d77b7985fa9497fc49dd",
+        "evaluation.mjs": "a910909066bc7dc35b1194c0227fa7f8556684f06e236084f7321cd562d14770",
+        "reference-case.mjs": "d0c390047e600fc10b283510a7f6baf46c1f2cdec40db50a3b1324d8dec97c91",
+        "tool-inputs.mjs": "bab6b8b5c445ccd450cb33bfbe5b01c8286223cf1c800745923c936350b14311",
+        "answer-quality.mjs": "fd044636b409860e29df7e9f40f97917e783060b7e3bf1dbeaed8a84a7d26644"
+      },
+      "runtime": {
+        "configuredProvider": "dashscope",
+        "configuredModelId": "qwen-plus",
+        "generationDefaults": {
+          "temperature": 0,
+          "topP": 1,
+          "maxTokens": null,
+          "scope": "CONFIGURED_DEFAULTS_NOT_PROVIDER_REQUEST_ATTESTATION"
+        },
+        "guideReferencePolicy": {
+          "version": "verified-reference-retention-v1",
+          "scope": "KEEP_ONLY_BOUND_UNAFFECTED_MEMBER_READS_INVALIDATE_SAME_OR_UNKNOWN_TARGET_NOT_COMPLETE_TEAM_EVIDENCE"
+        },
+        "guideOverviewPolicy": null
+      },
+      "denominator": 4,
+      "completed": 3,
+      "structuralPass": 3,
+      "fail": 1,
+      "pending": 3,
+      "modelCalls": 26
+    },
+    {
+      "stage": "model-final",
+      "captureSha256": "241c3f33d524e9a730dff63acc9542aa73cac8918835135670eaa4df3a1af529",
+      "collectorVersion": "campus-s2-collector-v4",
+      "collectorSha256": {
+        "s2-evaluate.mjs": "d3963dab4ee47b533c6864ab3bb872a673e501581751d77b7985fa9497fc49dd",
+        "evaluation.mjs": "a910909066bc7dc35b1194c0227fa7f8556684f06e236084f7321cd562d14770",
+        "reference-case.mjs": "d0c390047e600fc10b283510a7f6baf46c1f2cdec40db50a3b1324d8dec97c91",
+        "tool-inputs.mjs": "bab6b8b5c445ccd450cb33bfbe5b01c8286223cf1c800745923c936350b14311",
+        "answer-quality.mjs": "fd044636b409860e29df7e9f40f97917e783060b7e3bf1dbeaed8a84a7d26644"
+      },
+      "runtime": {
+        "configuredProvider": "dashscope",
+        "configuredModelId": "qwen-plus",
+        "generationDefaults": {
+          "temperature": 0,
+          "topP": 1,
+          "maxTokens": null,
+          "scope": "CONFIGURED_DEFAULTS_NOT_PROVIDER_REQUEST_ATTESTATION"
+        },
+        "guideReferencePolicy": {
+          "scope": "KEEP_ONLY_BOUND_UNAFFECTED_MEMBER_READS_INVALIDATE_SAME_OR_UNKNOWN_TARGET_NOT_COMPLETE_TEAM_EVIDENCE",
+          "version": "verified-reference-retention-v1"
+        },
+        "guideOverviewPolicy": {
+          "scope": "PROGRAM_VERIFIED_REFERENCE_AND_GENERAL_GUIDE_ONLY_EXCLUDES_CALCULATION_TEAM_AND_WRITES",
+          "version": "bounded-reference-overview-ready-v1"
+        }
+      },
+      "denominator": 4,
+      "completed": 4,
+      "structuralPass": 4,
+      "fail": 0,
+      "pending": 4,
+      "modelCalls": 9
+    }
+  ],
+  "semanticReview": {
+    "assistedReviewed": 4,
+    "humanReviewed": 0,
+    "verifiedTaskPass": 0,
+    "pending": 4,
+    "assistedFlagged": 2
+  },
+  "formalAdmission": {
+    "baseCases": 36,
+    "provisionalCases": 2,
+    "newFormalAdmissions": 0,
+    "heldoutRun": false
+  },
+  "provenance": {
+    "sourceCount": 485,
+    "runtimeClasses": 65,
+    "sourceIdentitySha256": "7d6eef57f537cd30212eeea7458aeee1581357a088422937a6021198bf0ded3a",
+    "runtimeIdentitySha256": "c7e2fd61091ae02c974a74c9cfae791f14fac6298300fa6d701c63e173aefa5a",
+    "publicBundleManifestSha256": "46e8d9080f671d371b5ae31584b8cca5e548542bfc9bf7f5ae18fe8e3caf5a72"
+  },
+  "sourceSha256": {
+    "src/main/java/com/vio/vioaiagent/agent/GuideAnswerEvidence.java": "677f4a24475ca35eb1f443c810503c3dcc5cb861ab69842408e523ee895ed9a0",
+    "src/main/java/com/vio/vioaiagent/agent/GuideReferenceIdentity.java": "bbdd58cdeb22515a3cc2f2abe893ac5b7c4ed682299e2929d8f44879d8e75000",
+    "src/main/java/com/vio/vioaiagent/agent/ToolCallAgent.java": "fa85bd59882ba51571aaca6ca9b53821b642351b44b827ac9f1c83081637af1c",
+    "src/main/java/com/vio/vioaiagent/controller/LocalRuntimeController.java": "89a7d3af976a4beee63e8bd2583fd50e5fd3bb280c0da1154697177e3f940dd4",
+    "src/test/java/com/vio/vioaiagent/agent/GuideReferenceRetentionTest.java": "7de5f01fbcf717e97988212bac99bbc5712c5b1767edf43779964e919d6dc806",
+    "src/test/java/com/vio/vioaiagent/agent/GuideOverviewReadyTest.java": "6ef99de802c55bbb9ddbb690eef54a1ace07eae00e112145ad1543e989439c3e",
+    "tools/campus/reference-case.mjs": "d0c390047e600fc10b283510a7f6baf46c1f2cdec40db50a3b1324d8dec97c91",
+    "tools/campus/reference-case.test.mjs": "e707b69d1424143a83e80c712282aec03f3c6a60c543512ba72c07e1a9d1b2f2",
+    "tools/campus/build-user-report-seed.mjs": "280f1d521f7f05a232239c5be31f1077b7564cefcaf686f1f259adbd3f25d377",
+    "tools/campus/s2-evaluate.mjs": "d3963dab4ee47b533c6864ab3bb872a673e501581751d77b7985fa9497fc49dd",
+    "tools/campus/evaluation.mjs": "a910909066bc7dc35b1194c0227fa7f8556684f06e236084f7321cd562d14770",
+    "tools/campus/evaluation.test.mjs": "358a8c9fa8245fb4355c9627c6df1722ac66c3756db131d4c0e07b886fa46172"
+  },
+  "logs": [
+    {
+      "file": "artifacts/user-reports-targeted-2026-10-26.log",
+      "sha256": "22c2c3a7ba6b25e20c51f3e448761d6114dee90b10f024d7c970f80b3dae5e37"
+    },
+    {
+      "file": "artifacts/user-reports-targeted-verified-2026-10-26.log",
+      "sha256": "cf4e8f521f3672db000ae6341569045849022ace349ffdac81470c9b1387de64"
+    },
+    {
+      "file": "artifacts/user-reports-readiness-targeted-2026-10-26.log",
+      "sha256": "68632da385c1551f4e134ea485cf35c3e682c6586c86081ebd31c7c7504114ae"
+    },
+    {
+      "file": "artifacts/user-reports-readiness-targeted-verified-2026-10-26.log",
+      "sha256": "c0b2824d771e7245978661c8f9a5f5e491bb79f543392c32dc482ea3e8b03407"
+    },
+    {
+      "file": "artifacts/user-reports-backend-full-2026-10-26.log",
+      "sha256": "8b97356f649b33a1fbecb08eed73e0d32dd4043ad356c08f5d0952f04bf0ccd1"
+    },
+    {
+      "file": "artifacts/user-reports-backend-final-2026-10-26.log",
+      "sha256": "f8708008620de2dc742b17adf4354c5de2049a48897d8af021ccb88ac1e978a3"
+    },
+    {
+      "file": "artifacts/user-reports-tools-final-all-2026-10-26.log",
+      "sha256": "4655da6e0ec8a42f35f025c0195e03ca0c8d96cf6bb45d7c02484c08d7f0ee2f"
+    },
+    {
+      "file": "artifacts/user-reports-frontend-contract-2026-10-26.log",
+      "sha256": "e191e08194951c9cb00bf871cc154b99265bc202d801b589adb3352ef135a109"
+    },
+    {
+      "file": "artifacts/user-reports-real-2026-10-26.log",
+      "sha256": "c3290106e6024ae8344652245efe3f20f2123ed6f4eca29965b6c5aacd7a2bd7"
+    },
+    {
+      "file": "artifacts/user-reports-real-fixed-2026-10-26.log",
+      "sha256": "c6051dc46aab232b58196d9321e5981bd4f1f113a5cc981ac6bc90ca926ee8c1"
+    },
+    {
+      "file": "artifacts/user-reports-real-final-2026-10-26.log",
+      "sha256": "760ee4e7bd91ea71ced283db8fea64dea21f5e679b8cf6453f674d100783c7e2"
+    }
+  ],
+  "preservedFailures": [
+    "Initial structural failure: later Blastoise lookup removed validated Squirtle facts",
+    "First fix test correctly rejected stale unbound reads; added real argument/identity binding",
+    "Intermediate Froslass run exceeded unchanged task budget after repeated tools",
+    "Readiness unit fixture initially missed required form fields; fixture corrected, gates unchanged"
+  ],
+  "limits": [
+    "Two provisional user reports, two repetitions each; not a 100-case benchmark or independent heldout",
+    "Program source-only overview, not autonomous model synthesis or complete species coaching",
+    "Controlled public-cache-only resource condition; not all live tools or offline model capability",
+    "AI source relevance findings remain, human review pending",
+    "No billing, PostgreSQL, multi-instance or remote CI acceptance"
+  ],
+  "frozen": {
+    "s2DatasetHeldoutUnchanged": true,
+    "s3CorpusLabelsUnchanged": true,
+    "originalFiveCodeReferencesUnchanged": true
+  },
+  "cleanup": {
+    "isolatedPortClosed": 18161,
+    "daily8123Untouched": true,
+    "daily3000Untouched": true,
+    "privateModelConfigInspected": false,
+    "committed": false,
+    "pushed": false,
+    "deployed": false
+  }
+}

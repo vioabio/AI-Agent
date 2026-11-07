@@ -1,0 +1,162 @@
+{
+  "source": "local @smogon/calc 0.12.0; deterministic fixture, not model quality",
+  "input": {
+    "generation": 9,
+    "dataReleaseId": "pokeapi-reference-v1",
+    "move": "surf",
+    "field": {
+      "gameType": "Singles",
+      "weather": null,
+      "terrain": null
+    },
+    "attacker": {
+      "species": "squirtle",
+      "build": {
+        "moves": [
+          "surf",
+          "protect",
+          "ice-beam",
+          "rain-dance"
+        ],
+        "ability": "torrent",
+        "item": "leftovers",
+        "nature": "modest",
+        "level": 50,
+        "evs": {
+          "hp": 4,
+          "atk": 0,
+          "def": 0,
+          "spa": 252,
+          "spd": 0,
+          "spe": 252
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        }
+      }
+    },
+    "defender": {
+      "species": "charmander",
+      "build": {
+        "moves": [
+          "flamethrower",
+          "protect",
+          "dragon-pulse",
+          "will-o-wisp"
+        ],
+        "ability": "blaze",
+        "item": "leftovers",
+        "nature": "timid",
+        "level": 50,
+        "evs": {
+          "hp": 4,
+          "atk": 0,
+          "def": 0,
+          "spa": 252,
+          "spd": 0,
+          "spe": 252
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        }
+      }
+    }
+  },
+  "result": {
+    "engine": "@smogon/calc",
+    "engineVersion": "0.12.0",
+    "generation": 9,
+    "dataReleaseId": "pokeapi-reference-v1",
+    "range": {
+      "minimum": 164,
+      "maximum": 194
+    },
+    "defenderHp": 115,
+    "percent": {
+      "minimum": 142.6086956521739,
+      "maximum": 168.69565217391303
+    },
+    "description": "252+ SpA Squirtle Surf vs. 4 HP / 0 SpD Charmander: 164-194 (142.6 - 168.6%) -- guaranteed OHKO",
+    "attackerBaseStats": {
+      "hp": 44,
+      "atk": 48,
+      "def": 65,
+      "spa": 50,
+      "spd": 64,
+      "spe": 43
+    },
+    "defenderBaseStats": {
+      "hp": 39,
+      "atk": 52,
+      "def": 43,
+      "spa": 60,
+      "spd": 50,
+      "spe": 65
+    },
+    "assumptions": {
+      "attacker": {
+        "species": "Squirtle",
+        "level": 50,
+        "nature": "Modest",
+        "ability": "Torrent",
+        "item": "Leftovers",
+        "evs": {
+          "hp": 4,
+          "atk": 0,
+          "def": 0,
+          "spa": 252,
+          "spd": 0,
+          "spe": 252
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        }
+      },
+      "defender": {
+        "species": "Charmander",
+        "level": 50,
+        "nature": "Timid",
+        "ability": "Blaze",
+        "item": "Leftovers",
+        "evs": {
+          "hp": 4,
+          "atk": 0,
+          "def": 0,
+          "spa": 252,
+          "spd": 0,
+          "spe": 252
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        }
+      },
+      "move": "Surf",
+      "field": {
+        "gameType": "Singles",
+        "weather": null,
+        "terrain": null
+      }
+    },
+    "limitation": "Assumes full HP, no stat boosts, screens, hazards, status, Tera or other unprovided field effects. This is not a legality or win-rate result."
+  }
+}

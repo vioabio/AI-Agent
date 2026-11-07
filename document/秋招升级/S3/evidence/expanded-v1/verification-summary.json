@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-23",
+  "backend": {
+    "tests": 937,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3,
+    "knownForkShutdownWarning": true,
+    "logSha256": "d59c0eca6b86181e0ed501c6a83defdb6fefbf822829566d5d415207d40c79db"
+  },
+  "node": {
+    "tests": 39,
+    "failures": 0,
+    "logSha256": "950524072526cf44f6507aa6aa5bfe18971d26b3b83449dbac25f955ec563187"
+  },
+  "source": {
+    "documents": 12,
+    "chunks": 20,
+    "corpusSha256": "b0a1204403f6aaf610543399afdb11c4b37bc9614ce376c47befa843319b8b8f",
+    "humanReview": "pending"
+  },
+  "retrieval": {
+    "planned": 24,
+    "positive": 16,
+    "negative": 8,
+    "documentRecallWithinTop5Chunks": 1,
+    "mrrAt5": 0.96875,
+    "negativeEmptyAccuracy": 1,
+    "sourcesVerified": 24,
+    "seedEvidenceCoverageAt5": 1,
+    "scope": "Source-linked development seeds, not exhaustive relevance judgments, human acceptance, heldout quality, or an S2 ablation result."
+  },
+  "modelFixedChecks": {
+    "planned": 3,
+    "pass": 3,
+    "humanAcceptance": "not performed"
+  },
+  "restartReused": true,
+  "heldoutComparison": "not performed",
+  "preservedSetupFailure": {
+    "retrieval": "retrieval-final",
+    "model": "model-final",
+    "cause": "Collector was started before server readiness; no model result claimed"
+  }
+}

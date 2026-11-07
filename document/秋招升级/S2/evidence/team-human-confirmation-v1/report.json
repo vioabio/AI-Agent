@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "team-overall-attestation-report-v1",
+  "bundleSha256": "82dfa64b68a40299f8774caacd225b81ed2c5af2d7ce2e452dda41ad73f232df",
+  "denominator": 3,
+  "humanOverallAccepted": 3,
+  "attestedTaskPass": 3,
+  "unconfirmed": 0,
+  "criterionLevelReviewsAdded": 0,
+  "rows": [
+    {
+      "id": "two-members-missing-build",
+      "answerSha256": "7eb79cb303f9cd7ab74025d999cb1466610af592a1c0ab2b05dce54d3acdc952",
+      "overallHumanAccepted": true,
+      "engineering": {
+        "status": "COMPLETED",
+        "captureIntegrity": true,
+        "v1Pass": false,
+        "v2Pass": true
+      },
+      "attestedTaskPass": true
+    },
+    {
+      "id": "sparse-original-order",
+      "answerSha256": "4a95ebd6f52c1a718016aa56408d86b0abbf451c0acde3c20f1e4b5f969a785c",
+      "overallHumanAccepted": true,
+      "engineering": {
+        "status": "COMPLETED",
+        "captureIntegrity": true,
+        "v1Pass": false,
+        "v2Pass": true
+      },
+      "attestedTaskPass": true
+    },
+    {
+      "id": "six-members-no-build",
+      "answerSha256": "099b3e5021a44de4e5f9aae1351f101bc4f7ac0fac5face8af0fd50819ce1bb6",
+      "overallHumanAccepted": true,
+      "engineering": {
+        "status": "COMPLETED",
+        "captureIntegrity": true,
+        "v1Pass": true,
+        "v2Pass": true
+      },
+      "attestedTaskPass": true
+    }
+  ],
+  "identityAssurance": "SELF_REPORTED_USER_CHAT_NOT_AUTHENTICATED",
+  "formalAdmissions": 0,
+  "scope": "Overall human approval only; no invented criterion reasons/quotes and no new model experiment or formal-suite admission"
+}

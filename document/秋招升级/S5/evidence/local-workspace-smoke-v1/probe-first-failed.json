@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "public-workspace-smoke-probe-v1",
+  "checks": {
+    "localMode": true,
+    "registration": true,
+    "loginProfile": true,
+    "runtimeAvailable": true,
+    "teamListAvailable": true
+  },
+  "modelRequestsIssued": 0,
+  "referenceNetworkRequestsIssued": 0,
+  "scope": "Basic local startup/auth/runtime only; no model quality, restart persistence, frontend browser or clean-machine acceptance",
+  "runtimeVersion": "bound-team-build-answer-v3",
+  "error": "Unexpected HTTP 403 at /auth/local/login",
+  "pass": false
+}

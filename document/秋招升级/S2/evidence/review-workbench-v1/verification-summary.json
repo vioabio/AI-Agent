@@ -1,0 +1,181 @@
+{
+  "schemaVersion": "review-workbench-verification-v1",
+  "verifiedAt": "2026-10-26T08:34:32.213Z",
+  "node": {
+    "tests": 102,
+    "passed": 102,
+    "failures": 0,
+    "newTests": 14
+  },
+  "browser": {
+    "schemaVersion": "review-workbench-browser-qa-v1",
+    "passed": true,
+    "desktop": "1440x1000",
+    "mobile": "390x844",
+    "checks": [
+      "six actual observations visible",
+      "raw source navigation",
+      "unreviewed export rejected",
+      "partial AI-only export",
+      "edits invalidate acknowledgement",
+      "draft restore clears acknowledgement",
+      "wrong bundle draft rejected",
+      "human attestation required",
+      "mobile has no horizontal overflow",
+      "injection remains text",
+      "no external requests or JS errors"
+    ],
+    "reviewerFixture": "AI_ASSISTED_SYNTHETIC_NOT_HUMAN_ACCEPTANCE",
+    "screenshots": [
+      "desktop.png",
+      "mobile.png"
+    ]
+  },
+  "realObservations": {
+    "reusedFrom": "project-guide-v1",
+    "denominator": 6,
+    "engineeringPass": 6,
+    "literalMismatchCases": 1,
+    "fail": 1,
+    "pendingReview": 5,
+    "humanReviewed": 0,
+    "verifiedTaskPass": 0,
+    "newModelCalls": 0,
+    "bundleSha256": "b2e9554eb38d1f1fbf3bd850fe4d86cf0dcb0f25351f29e249d3407a2f4d4143"
+  },
+  "syntheticBrowserImport": {
+    "reviewerType": "ai-assisted",
+    "humanReviewed": 0,
+    "assistedReviewed": 1,
+    "verifiedTaskPass": 0,
+    "scope": "Synthetic UI/parser evidence only; not semantic review"
+  },
+  "questionIntake": {
+    "schemaVersion": "campus-question-intake-audit-v1",
+    "targetSize": 100,
+    "frozenFormalCases": 36,
+    "pendingCandidates": 2,
+    "userReportedCandidates": 2,
+    "aiAuthoredVariants": 0,
+    "newBenchmarkAdmissions": 0,
+    "unfilledFormalSlots": 64,
+    "exactDuplicateCandidates": 0,
+    "groupingReview": "PENDING_SEMANTIC_DEDUPLICATION",
+    "rows": [
+      {
+        "id": "CQ-SQUIRTLE-STRATEGY-001",
+        "originKind": "USER_TYPED",
+        "promptSha256": "80e7463244ef34b9e1d603a6e6c12f38d66f993fedba934d0fe8e8aa5822f93c",
+        "exactSeedMatch": null,
+        "exactCandidateMatch": null,
+        "status": "PENDING_SOURCE_GROUPING_AND_HUMAN_REVIEW"
+      },
+      {
+        "id": "CQ-FROSLASS-ANSWER-001",
+        "originKind": "USER_REPORTED_APP_PROMPT",
+        "promptSha256": "520dc88b051d9a2caf096d10f73b4277dbcd7b907b256f6079a9f3d3eca3d0d2",
+        "exactSeedMatch": null,
+        "exactCandidateMatch": null,
+        "status": "PENDING_SOURCE_GROUPING_AND_HUMAN_REVIEW"
+      }
+    ],
+    "scope": "Question intake only. Existing source-linked seeds are not independently verified user samples; candidates and AI variants do not enlarge the benchmark or assign heldout membership."
+  },
+  "previousBackendEvidence": {
+    "tests": 1090,
+    "skipped": 3,
+    "scope": "Previous turn; Java unchanged, not rerun in this batch"
+  },
+  "previousFrontendContractEvidence": {
+    "tests": 139,
+    "scope": "Previous turn; business frontend unchanged, not rerun in this batch"
+  },
+  "preservedFailure": {
+    "log": "artifacts/review-workbench-tools-verified-2026-10-26.log",
+    "errors": 2,
+    "cause": "New test omitted fs import; import restored and all 102 tests passed"
+  },
+  "frozen": {
+    "s2ManifestSha256": "e86629f7538651098a19964993759514c87b3df77f3c04ad31260a75f9dc10c0",
+    "s2DatasetHeldoutUnchanged": true,
+    "s3CorpusAndLabelsUnchanged": true,
+    "originalCodeReferencesUnchanged": true
+  },
+  "sourceSha256": {
+    "tools/campus/ablation-review.mjs": "9406521a7d2ce6e848a7bb30b01642e551d1922b5cfe2929a3d5ec9607498cc1",
+    "tools/campus/ablation-review.test.mjs": "796ea214d5094b61a22d99ecf9205e2bb88053cd7bc73897a9bf61a3ac5be5fe",
+    "tools/campus/review-workbench.mjs": "61450e391bef77589900aca9e9bbe89b799e179d8d24a3178c6aa2f57b3aeb7d",
+    "tools/campus/review-workbench-html.mjs": "2016f9ff01067dca82726301160dc8393315ed129828a0f390170afd488c35e3",
+    "tools/campus/review-workbench-client.js": "e789b568b28ded235c6f62847fa3ccfd2ea74c63e051425468b071808dad272b",
+    "tools/campus/review-workbench-browser.mjs": "28adb721ba3546921cbfd967cfae90f95022330d61d18cad15b0cc321299f8e8",
+    "tools/campus/question-intake.mjs": "2317800dc6ce78da048a4cd76b8fd941d418ac22b4df01677430c7e1e79a3820",
+    "tools/campus/question-intake.test.mjs": "50cc5b1ae2f19b25131408e7b1d76f21750e0a2e6d7927b80218027ff1740bfe",
+    "evaluation/campus/question-intake/candidates-v1.json": "98ee16f922e61289b9f2d8531e9572431ab4bb6d2e07e6d033a843f2aaceedb6"
+  },
+  "logs": [
+    {
+      "file": "artifacts/review-workbench-targeted-2026-10-26.log",
+      "sha256": "bdfe125f8bb6ca89d27df25a2c5b4474ef6cb46ad98909ea416269cd09b1928c"
+    },
+    {
+      "file": "artifacts/review-workbench-tools-2026-10-26.log",
+      "sha256": "18ddf13cca79837bd6da8049b5b2d99813929b050858099011e3d90c3b417ef3"
+    },
+    {
+      "file": "artifacts/review-workbench-tools-verified-2026-10-26.log",
+      "sha256": "7706a909fa5be0fd480e8e9998584683983f270f640cb1591361865c444a210a"
+    },
+    {
+      "file": "artifacts/review-workbench-tools-final-2026-10-26.log",
+      "sha256": "24db085e15e5cac837b4c6cb196554b9d2f24472f33d98b2c9211d47d48e990f"
+    },
+    {
+      "file": "artifacts/review-workbench-build-final-2026-10-26.log",
+      "sha256": "3f12634226f9a87cdd18c273c9198164e237bdddb2e007f556da843b5fb96ba4"
+    },
+    {
+      "file": "artifacts/review-workbench-browser-final-2026-10-26.log",
+      "sha256": "7c91417edf77fe1cd9100c29f4f6c0db8580aeb9ff77c6ec654be072262e2f1c"
+    },
+    {
+      "file": "artifacts/review-workbench-import-final-2026-10-26.log",
+      "sha256": "238ca9800c115e79fbc448a1544142d4a7019a8dcdc40fa6cbcb0da112a5178d"
+    },
+    {
+      "file": "artifacts/review-workbench-portable-2026-10-26.log",
+      "sha256": "633bb989e65f7f3cdff0d06ad505bf80a97f4a6cae15f2d5d7d943b5beda0fdb"
+    }
+  ],
+  "cleanup": {
+    "noApplicationServicesStarted": true,
+    "daily8123Untouched": true,
+    "daily3000Untouched": true,
+    "privateModelConfigInspected": false,
+    "committed": false,
+    "pushed": false,
+    "deployed": false
+  },
+  "limits": [
+    "Self-declared reviewer identity, no authentication/signature",
+    "A saved review bundle does not independently re-prove original collection",
+    "Sources are project-authored and pending independent review",
+    "Candidates do not enlarge the formal benchmark",
+    "No new heldout, PostgreSQL, multi-instance or remote CI acceptance"
+  ],
+  "portableRendering": {
+    "pass": true,
+    "bundleBytesMatch": true,
+    "previousObservationHashesMatch": true,
+    "localLinksVerified": 114
+  },
+  "scope": "Review-tooling sub-batch before the later Java source-coverage fix; source hashes are historical snapshots",
+  "assistedBeforeFix": {
+    "type": "ai-assisted",
+    "count": 6,
+    "humanReviewed": 0,
+    "file": "document/秋招升级/S2/evidence/review-workbench-v1/assisted-reviews-before-fix.json",
+    "sha256": "ccfb63a5feeb42a31342438aaff8bd760567df002e4774941661be3580a8ecb6",
+    "scope": "Actual AI text/source screening, not synthetic UI interaction and not human acceptance"
+  },
+  "subsequentVerification": "project-guide-coverage-v1/verification-summary.json"
+}

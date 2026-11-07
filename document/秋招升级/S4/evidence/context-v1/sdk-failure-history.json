@@ -1,0 +1,345 @@
+{
+  "scope": "All three planned conversation runs from each implementation revision, preserved without best-of selection. Latest revision functional checks are separate from answer quality.",
+  "revisions": [
+    {
+      "path": "artifacts/campus/s4-context/conversation-2026-10-24/scenario.json",
+      "sha256": "7dd98c6e601ddb21588bb031fd6ff42a87bb484a69a6cf0c013dace60749fa4e",
+      "planned": 3,
+      "functionalPass": 0,
+      "setupError": "Unexpected end of JSON input",
+      "records": [
+        {
+          "round": 1,
+          "status": "run.failed",
+          "pass": false,
+          "context": {
+            "pass": true,
+            "rows": [
+              {
+                "pass": true,
+                "status": "CHECKED",
+                "requestsChecked": 1,
+                "modelCalls": 1,
+                "omittedHistoryTurns": 0,
+                "availableHistoryTurns": 0,
+                "blockReason": null,
+                "calls": [
+                  {
+                    "estimatedInputTokens": 5951,
+                    "inputLimit": 30720,
+                    "outputReserve": 2048,
+                    "providerInputTokens": null,
+                    "estimator": "cl100k-base-proxy-v1",
+                    "calibration": "PROXY_UNCALIBRATED"
+                  }
+                ]
+              }
+            ],
+            "cost": "UNKNOWN",
+            "scope": "Request preflight estimates, separate from provider usage and billing"
+          }
+        },
+        {
+          "round": 2,
+          "status": "run.failed",
+          "pass": false,
+          "context": {
+            "pass": true,
+            "rows": [
+              {
+                "pass": true,
+                "status": "CHECKED",
+                "requestsChecked": 1,
+                "modelCalls": 1,
+                "omittedHistoryTurns": 0,
+                "availableHistoryTurns": 0,
+                "blockReason": null,
+                "calls": [
+                  {
+                    "estimatedInputTokens": 5948,
+                    "inputLimit": 30720,
+                    "outputReserve": 2048,
+                    "providerInputTokens": null,
+                    "estimator": "cl100k-base-proxy-v1",
+                    "calibration": "PROXY_UNCALIBRATED"
+                  }
+                ]
+              }
+            ],
+            "cost": "UNKNOWN",
+            "scope": "Request preflight estimates, separate from provider usage and billing"
+          }
+        },
+        {
+          "round": 3,
+          "status": "run.failed",
+          "pass": false,
+          "context": {
+            "pass": true,
+            "rows": [
+              {
+                "pass": true,
+                "status": "CHECKED",
+                "requestsChecked": 1,
+                "modelCalls": 1,
+                "omittedHistoryTurns": 0,
+                "availableHistoryTurns": 0,
+                "blockReason": null,
+                "calls": [
+                  {
+                    "estimatedInputTokens": 5927,
+                    "inputLimit": 30720,
+                    "outputReserve": 2048,
+                    "providerInputTokens": null,
+                    "estimator": "cl100k-base-proxy-v1",
+                    "calibration": "PROXY_UNCALIBRATED"
+                  }
+                ]
+              }
+            ],
+            "cost": "UNKNOWN",
+            "scope": "Request preflight estimates, separate from provider usage and billing"
+          }
+        }
+      ],
+      "cause": "SDK 1.0.0.2 maxTokens Bean conversion defect before HTTP"
+    },
+    {
+      "path": "artifacts/campus/s4-context/conversation-ready-2026-10-24/scenario.json",
+      "sha256": "ccec0ac553041baa697c4ba6e4ce1885be31647274d48d15e5ab30dd9c44dea4",
+      "planned": 3,
+      "functionalPass": 0,
+      "setupError": null,
+      "records": [
+        {
+          "round": 1,
+          "status": "run.failed",
+          "pass": false,
+          "context": {
+            "pass": true,
+            "rows": [
+              {
+                "pass": true,
+                "status": "BLOCKED",
+                "requestsChecked": 2,
+                "modelCalls": 1,
+                "omittedHistoryTurns": 0,
+                "availableHistoryTurns": 0,
+                "blockReason": "UNSUPPORTED_OPTIONS",
+                "calls": [
+                  {
+                    "estimatedInputTokens": 5951,
+                    "inputLimit": 30720,
+                    "outputReserve": 2048,
+                    "providerInputTokens": 3834,
+                    "estimator": "cl100k-base-proxy-v1",
+                    "calibration": "PROXY_UNCALIBRATED"
+                  }
+                ]
+              }
+            ],
+            "cost": "UNKNOWN",
+            "scope": "Request preflight estimates, separate from provider usage and billing"
+          }
+        },
+        {
+          "round": 2,
+          "status": "run.failed",
+          "pass": false,
+          "context": {
+            "pass": true,
+            "rows": [
+              {
+                "pass": true,
+                "status": "BLOCKED",
+                "requestsChecked": 2,
+                "modelCalls": 1,
+                "omittedHistoryTurns": 0,
+                "availableHistoryTurns": 0,
+                "blockReason": "UNSUPPORTED_OPTIONS",
+                "calls": [
+                  {
+                    "estimatedInputTokens": 5948,
+                    "inputLimit": 30720,
+                    "outputReserve": 2048,
+                    "providerInputTokens": 3832,
+                    "estimator": "cl100k-base-proxy-v1",
+                    "calibration": "PROXY_UNCALIBRATED"
+                  }
+                ]
+              }
+            ],
+            "cost": "UNKNOWN",
+            "scope": "Request preflight estimates, separate from provider usage and billing"
+          }
+        },
+        {
+          "round": 3,
+          "status": "run.failed",
+          "pass": false,
+          "context": {
+            "pass": true,
+            "rows": [
+              {
+                "pass": true,
+                "status": "BLOCKED",
+                "requestsChecked": 2,
+                "modelCalls": 1,
+                "omittedHistoryTurns": 0,
+                "availableHistoryTurns": 0,
+                "blockReason": "UNSUPPORTED_OPTIONS",
+                "calls": [
+                  {
+                    "estimatedInputTokens": 5927,
+                    "inputLimit": 30720,
+                    "outputReserve": 2048,
+                    "providerInputTokens": 3823,
+                    "estimator": "cl100k-base-proxy-v1",
+                    "calibration": "PROXY_UNCALIBRATED"
+                  }
+                ]
+              }
+            ],
+            "cost": "UNKNOWN",
+            "scope": "Request preflight estimates, separate from provider usage and billing"
+          }
+        }
+      ],
+      "cause": "Generic planning path fixed; native final-answer options unsupported by budget copier"
+    },
+    {
+      "path": "artifacts/campus/s4-context/conversation-validated-2026-10-24/scenario.json",
+      "sha256": "ca985c9d5864776122979262a97c5c7048b0c8d33e630d73d0e2f2bb39ae2419",
+      "planned": 3,
+      "functionalPass": 3,
+      "setupError": null,
+      "records": [
+        {
+          "round": 1,
+          "status": "run.completed",
+          "pass": true,
+          "context": {
+            "pass": true,
+            "rows": [
+              {
+                "pass": true,
+                "status": "CHECKED",
+                "requestsChecked": 2,
+                "modelCalls": 2,
+                "omittedHistoryTurns": 0,
+                "availableHistoryTurns": 0,
+                "blockReason": null,
+                "calls": [
+                  {
+                    "estimatedInputTokens": 5951,
+                    "inputLimit": 30720,
+                    "outputReserve": 2048,
+                    "providerInputTokens": 3834,
+                    "estimator": "cl100k-base-proxy-v1",
+                    "calibration": "PROXY_UNCALIBRATED"
+                  },
+                  {
+                    "estimatedInputTokens": 2294,
+                    "inputLimit": 30720,
+                    "outputReserve": 2048,
+                    "providerInputTokens": 1482,
+                    "estimator": "cl100k-base-proxy-v1",
+                    "calibration": "PROXY_UNCALIBRATED"
+                  }
+                ]
+              }
+            ],
+            "cost": "UNKNOWN",
+            "scope": "Request preflight estimates, separate from provider usage and billing"
+          }
+        },
+        {
+          "round": 2,
+          "status": "run.completed",
+          "pass": true,
+          "context": {
+            "pass": true,
+            "rows": [
+              {
+                "pass": true,
+                "status": "CHECKED",
+                "requestsChecked": 2,
+                "modelCalls": 2,
+                "omittedHistoryTurns": 0,
+                "availableHistoryTurns": 1,
+                "blockReason": null,
+                "calls": [
+                  {
+                    "estimatedInputTokens": 6218,
+                    "inputLimit": 30720,
+                    "outputReserve": 2048,
+                    "providerInputTokens": 3959,
+                    "estimator": "cl100k-base-proxy-v1",
+                    "calibration": "PROXY_UNCALIBRATED"
+                  },
+                  {
+                    "estimatedInputTokens": 2568,
+                    "inputLimit": 30720,
+                    "outputReserve": 2048,
+                    "providerInputTokens": 1613,
+                    "estimator": "cl100k-base-proxy-v1",
+                    "calibration": "PROXY_UNCALIBRATED"
+                  }
+                ]
+              }
+            ],
+            "cost": "UNKNOWN",
+            "scope": "Request preflight estimates, separate from provider usage and billing"
+          }
+        },
+        {
+          "round": 3,
+          "status": "run.completed",
+          "pass": true,
+          "context": {
+            "pass": true,
+            "rows": [
+              {
+                "pass": true,
+                "status": "CHECKED",
+                "requestsChecked": 2,
+                "modelCalls": 2,
+                "omittedHistoryTurns": 1,
+                "availableHistoryTurns": 2,
+                "blockReason": null,
+                "calls": [
+                  {
+                    "estimatedInputTokens": 6250,
+                    "inputLimit": 30720,
+                    "outputReserve": 2048,
+                    "providerInputTokens": 3969,
+                    "estimator": "cl100k-base-proxy-v1",
+                    "calibration": "PROXY_UNCALIBRATED"
+                  },
+                  {
+                    "estimatedInputTokens": 2636,
+                    "inputLimit": 30720,
+                    "outputReserve": 2048,
+                    "providerInputTokens": 1644,
+                    "estimator": "cl100k-base-proxy-v1",
+                    "calibration": "PROXY_UNCALIBRATED"
+                  }
+                ]
+              }
+            ],
+            "cost": "UNKNOWN",
+            "scope": "Request preflight estimates, separate from provider usage and billing"
+          }
+        }
+      ],
+      "cause": "Generic and native call/stream adapted; current revision validated"
+    }
+  ],
+  "qualityReview": {
+    "scope": "Direct observation by development agent, not independent human acceptance",
+    "round": 3,
+    "oneSentenceRequirement": "FAIL",
+    "issue": "Visible restrictions were mentioned, but response expanded into unsolicited team framing and examples without tool evidence. Lexical restriction check is not answer quality approval.",
+    "followup": "Add task-intent/conciseness regressions and independent factual review; do not tune heldout cases."
+  }
+}

@@ -1,0 +1,130 @@
+[
+  {
+    "caseId": "S2-DAMAGE-95",
+    "repetition": 1,
+    "observationSha256": "1840f466453f8aa4e70c32c1589591bcd78accbc8f3a59cb8744fd2132ed49e7",
+    "reviewerType": "ai-assisted",
+    "reviewer": "Codex source-linked output review",
+    "reviewedAt": "2026-10-31T07:36:11.730Z",
+    "note": "Sun、48对53级、Ember及原配置保留，15–18 HP/159/9.43–11.32%，算术解读与限制正确，不额外生成培养结论。",
+    "decisions": [
+      {
+        "criterionId": "C1",
+        "verdict": "pass",
+        "reason": "Sun、48对53级、Ember及原配置保留，15–18 HP/159/9.43–11.32%，算术解读与限制正确，不额外生成培养结论。",
+        "sourceIds": [
+          "damage-engine"
+        ]
+      },
+      {
+        "criterionId": "C2",
+        "verdict": "pass",
+        "reason": "Sun、48对53级、Ember及原配置保留，15–18 HP/159/9.43–11.32%，算术解读与限制正确，不额外生成培养结论。",
+        "sourceIds": [
+          "damage-engine"
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "S2-DAMAGE-96",
+    "repetition": 1,
+    "observationSha256": "76c477c5acbc72198cefb6589e33a8e3869f172449840e55e4b98b18855b6361",
+    "reviewerType": "ai-assisted",
+    "reviewer": "Codex source-linked output review",
+    "reviewedAt": "2026-10-31T07:36:11.733Z",
+    "note": "已知零伤害预检回归：Tackle、42对57级、Froslass原配置保留，0–0 HP/165/0%，不据零结果臆断原因。v2运行源码摘要与实际事件共同核对，旧v1来源本身不能证明新版描述修复。",
+    "decisions": [
+      {
+        "criterionId": "C1",
+        "verdict": "pass",
+        "reason": "已知零伤害预检回归：Tackle、42对57级、Froslass原配置保留，0–0 HP/165/0%，不据零结果臆断原因。v2运行源码摘要与实际事件共同核对，旧v1来源本身不能证明新版描述修复。",
+        "sourceIds": [
+          "damage-engine"
+        ]
+      },
+      {
+        "criterionId": "C2",
+        "verdict": "pass",
+        "reason": "已知零伤害预检回归：Tackle、42对57级、Froslass原配置保留，0–0 HP/165/0%，不据零结果臆断原因。v2运行源码摘要与实际事件共同核对，旧v1来源本身不能证明新版描述修复。",
+        "sourceIds": [
+          "damage-engine"
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "S2-FACTS-95",
+    "repetition": 1,
+    "observationSha256": "08fc87cbd6bb79cad02bfcae2fb2ab9f289c1a8e8d3d51429c1caf1903ca7c90",
+    "reviewerType": "ai-assisted",
+    "reviewer": "Codex source-linked output review",
+    "reviewedAt": "2026-10-31T07:36:11.734Z",
+    "note": "雪妖女冰/幽灵及70/80/70/80/70/110，总和480纠正490；明确不是等级57的实际能力合计。",
+    "decisions": [
+      {
+        "criterionId": "C1",
+        "verdict": "pass",
+        "reason": "雪妖女冰/幽灵及70/80/70/80/70/110，总和480纠正490；明确不是等级57的实际能力合计。",
+        "sourceIds": [
+          "pokeapi-478",
+          "reference-vs-rules-v1"
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "S2-GUIDES-95",
+    "repetition": 1,
+    "observationSha256": "896c1678d0f324125d611149abb57afa1b9510a05dc2395fcbe11b6a288a21b6",
+    "reviewerType": "ai-assisted",
+    "reviewer": "Codex source-linked output review",
+    "reviewedAt": "2026-10-31T07:36:11.734Z",
+    "note": "真实角色笔记包含可靠输出、速度控制、轮转和替换改善/牺牲，标题作者与片段一致，保留原创及非实时边界。",
+    "decisions": [
+      {
+        "criterionId": "C1",
+        "verdict": "pass",
+        "reason": "真实角色笔记包含可靠输出、速度控制、轮转和替换改善/牺牲，标题作者与片段一致，保留原创及非实时边界。",
+        "sourceIds": [
+          "team-roles-v1"
+        ]
+      },
+      {
+        "criterionId": "C2",
+        "verdict": "pass",
+        "reason": "真实角色笔记包含可靠输出、速度控制、轮转和替换改善/牺牲，标题作者与片段一致，保留原创及非实时边界。",
+        "sourceIds": [
+          "team-roles-v1"
+        ]
+      }
+    ]
+  },
+  {
+    "caseId": "S2-TEAM-95",
+    "repetition": 1,
+    "observationSha256": "043f6772181e225224ca3cb0a2c56d8a07d9799441add4274ddc720c71ed1e90",
+    "reviewerType": "ai-assisted",
+    "reviewer": "Codex source-linked output review",
+    "reviewedAt": "2026-10-31T07:36:11.734Z",
+    "note": "仅第一位招式为surf/protect/rain-dance三项，其他配置不变，理由中性，等待实际确认并取消后存储不变。",
+    "decisions": [
+      {
+        "criterionId": "C1",
+        "verdict": "pass",
+        "reason": "仅第一位招式为surf/protect/rain-dance三项，其他配置不变，理由中性，等待实际确认并取消后存储不变。",
+        "sourceIds": [
+          "team-contract"
+        ]
+      },
+      {
+        "criterionId": "C2",
+        "verdict": "pass",
+        "reason": "仅第一位招式为surf/protect/rain-dance三项，其他配置不变，理由中性，等待实际确认并取消后存储不变。",
+        "sourceIds": [
+          "team-contract"
+        ]
+      }
+    ]
+  }
+]

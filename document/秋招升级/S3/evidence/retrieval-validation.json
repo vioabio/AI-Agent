@@ -1,0 +1,267 @@
+{
+  "mode": "real-local-http-lexical-retrieval-no-model",
+  "datasetId": "campus-s3-retrieval-dev-v1",
+  "datasetSha256": "24245cf4aa4d59733ccc24882b1c2fd27aebb9de409d041b6ad4b441eac5455e",
+  "corpusSha256": "b03a376daf16104f092cc25cf72994b76812728c7f322282334837df74119f98",
+  "startedAt": "2026-10-23T08:01:25.105Z",
+  "finishedAt": "2026-10-23T08:01:26.684Z",
+  "index": {
+    "algorithm": "local-guide-bm25-cjk2-v1",
+    "fingerprint": "sha256:a4679d1de6040b34edae3e542aad9db18e5c5c68321b3fd731c09a666a596978",
+    "builtAt": "2026-10-23T08:01:15.608207900Z",
+    "reused": false,
+    "documentCount": 4,
+    "chunkCount": 4,
+    "duplicateCount": 0,
+    "embeddingModel": "none"
+  },
+  "restartIndex": {
+    "algorithm": "local-guide-bm25-cjk2-v1",
+    "fingerprint": "sha256:a4679d1de6040b34edae3e542aad9db18e5c5c68321b3fd731c09a666a596978",
+    "builtAt": "2026-10-23T08:01:15.608207900Z",
+    "reused": true,
+    "documentCount": 4,
+    "chunkCount": 4,
+    "duplicateCount": 0,
+    "embeddingModel": "none"
+  },
+  "restartFinishedAt": "2026-10-23T08:03:13.059Z",
+  "restartSameRows": true,
+  "summary": {
+    "planned": 13,
+    "positive": 8,
+    "negative": 5,
+    "documentRecallWithinTop5Chunks": 1,
+    "mrrAt5": 1,
+    "negativeEmptyAccuracy": 1,
+    "sourcesVerified": 13,
+    "scope": "Tiny four-document development regression. Not heldout quality, chunk-labelled recall, or an S2 ablation result."
+  },
+  "rows": [
+    {
+      "caseId": "S3-R01",
+      "expected": [
+        "team-roles-v1"
+      ],
+      "retrieved": [
+        "team-roles-v1",
+        "training-configuration-v1",
+        "reference-vs-rules-v1"
+      ],
+      "chunkIds": [
+        "guide-1f006f2c31a0ba1374981af3dad38a6a1d303786f83a6f43272a8c1a16cc7873",
+        "guide-64fa09195505940b67f83bfdfb1de9a35f6b90e5a16ef52cd2f6f1bac7f08614",
+        "guide-77695e0482127ba91a61a9866202330c25fbdb78c571a8c51e502983f841acdd"
+      ],
+      "positive": true,
+      "recallAt5": 1,
+      "reciprocalRankAt5": 1,
+      "emptyCorrect": null,
+      "sourcesVerified": true
+    },
+    {
+      "caseId": "S3-R02",
+      "expected": [
+        "training-configuration-v1"
+      ],
+      "retrieved": [
+        "training-configuration-v1",
+        "team-roles-v1"
+      ],
+      "chunkIds": [
+        "guide-64fa09195505940b67f83bfdfb1de9a35f6b90e5a16ef52cd2f6f1bac7f08614",
+        "guide-1f006f2c31a0ba1374981af3dad38a6a1d303786f83a6f43272a8c1a16cc7873"
+      ],
+      "positive": true,
+      "recallAt5": 1,
+      "reciprocalRankAt5": 1,
+      "emptyCorrect": null,
+      "sourcesVerified": true
+    },
+    {
+      "caseId": "S3-R03",
+      "expected": [
+        "damage-assumptions-v1"
+      ],
+      "retrieved": [
+        "damage-assumptions-v1",
+        "training-configuration-v1"
+      ],
+      "chunkIds": [
+        "guide-26685612fe33bd2b0da752fb6fd73db5042a160a21a82e8b9ff714f68efc837b",
+        "guide-64fa09195505940b67f83bfdfb1de9a35f6b90e5a16ef52cd2f6f1bac7f08614"
+      ],
+      "positive": true,
+      "recallAt5": 1,
+      "reciprocalRankAt5": 1,
+      "emptyCorrect": null,
+      "sourcesVerified": true
+    },
+    {
+      "caseId": "S3-R04",
+      "expected": [
+        "reference-vs-rules-v1"
+      ],
+      "retrieved": [
+        "reference-vs-rules-v1",
+        "team-roles-v1",
+        "damage-assumptions-v1"
+      ],
+      "chunkIds": [
+        "guide-77695e0482127ba91a61a9866202330c25fbdb78c571a8c51e502983f841acdd",
+        "guide-1f006f2c31a0ba1374981af3dad38a6a1d303786f83a6f43272a8c1a16cc7873",
+        "guide-26685612fe33bd2b0da752fb6fd73db5042a160a21a82e8b9ff714f68efc837b"
+      ],
+      "positive": true,
+      "recallAt5": 1,
+      "reciprocalRankAt5": 1,
+      "emptyCorrect": null,
+      "sourcesVerified": true
+    },
+    {
+      "caseId": "S3-R05",
+      "expected": [
+        "damage-assumptions-v1"
+      ],
+      "retrieved": [
+        "damage-assumptions-v1",
+        "reference-vs-rules-v1",
+        "team-roles-v1"
+      ],
+      "chunkIds": [
+        "guide-26685612fe33bd2b0da752fb6fd73db5042a160a21a82e8b9ff714f68efc837b",
+        "guide-77695e0482127ba91a61a9866202330c25fbdb78c571a8c51e502983f841acdd",
+        "guide-1f006f2c31a0ba1374981af3dad38a6a1d303786f83a6f43272a8c1a16cc7873"
+      ],
+      "positive": true,
+      "recallAt5": 1,
+      "reciprocalRankAt5": 1,
+      "emptyCorrect": null,
+      "sourcesVerified": true
+    },
+    {
+      "caseId": "S3-R06",
+      "expected": [
+        "team-roles-v1",
+        "training-configuration-v1"
+      ],
+      "retrieved": [
+        "training-configuration-v1",
+        "team-roles-v1",
+        "damage-assumptions-v1",
+        "reference-vs-rules-v1"
+      ],
+      "chunkIds": [
+        "guide-64fa09195505940b67f83bfdfb1de9a35f6b90e5a16ef52cd2f6f1bac7f08614",
+        "guide-1f006f2c31a0ba1374981af3dad38a6a1d303786f83a6f43272a8c1a16cc7873",
+        "guide-26685612fe33bd2b0da752fb6fd73db5042a160a21a82e8b9ff714f68efc837b",
+        "guide-77695e0482127ba91a61a9866202330c25fbdb78c571a8c51e502983f841acdd"
+      ],
+      "positive": true,
+      "recallAt5": 1,
+      "reciprocalRankAt5": 1,
+      "emptyCorrect": null,
+      "sourcesVerified": true
+    },
+    {
+      "caseId": "S3-R07",
+      "expected": [
+        "reference-vs-rules-v1",
+        "team-roles-v1"
+      ],
+      "retrieved": [
+        "reference-vs-rules-v1",
+        "team-roles-v1",
+        "damage-assumptions-v1"
+      ],
+      "chunkIds": [
+        "guide-77695e0482127ba91a61a9866202330c25fbdb78c571a8c51e502983f841acdd",
+        "guide-1f006f2c31a0ba1374981af3dad38a6a1d303786f83a6f43272a8c1a16cc7873",
+        "guide-26685612fe33bd2b0da752fb6fd73db5042a160a21a82e8b9ff714f68efc837b"
+      ],
+      "positive": true,
+      "recallAt5": 1,
+      "reciprocalRankAt5": 1,
+      "emptyCorrect": null,
+      "sourcesVerified": true
+    },
+    {
+      "caseId": "S3-R08",
+      "expected": [
+        "training-configuration-v1"
+      ],
+      "retrieved": [
+        "training-configuration-v1",
+        "team-roles-v1"
+      ],
+      "chunkIds": [
+        "guide-64fa09195505940b67f83bfdfb1de9a35f6b90e5a16ef52cd2f6f1bac7f08614",
+        "guide-1f006f2c31a0ba1374981af3dad38a6a1d303786f83a6f43272a8c1a16cc7873"
+      ],
+      "positive": true,
+      "recallAt5": 1,
+      "reciprocalRankAt5": 1,
+      "emptyCorrect": null,
+      "sourcesVerified": true
+    },
+    {
+      "caseId": "S3-N01",
+      "expected": [],
+      "retrieved": [],
+      "chunkIds": [],
+      "positive": false,
+      "recallAt5": null,
+      "reciprocalRankAt5": null,
+      "emptyCorrect": true,
+      "sourcesVerified": true
+    },
+    {
+      "caseId": "S3-N02",
+      "expected": [],
+      "retrieved": [],
+      "chunkIds": [],
+      "positive": false,
+      "recallAt5": null,
+      "reciprocalRankAt5": null,
+      "emptyCorrect": true,
+      "sourcesVerified": true
+    },
+    {
+      "caseId": "S3-N03",
+      "expected": [],
+      "retrieved": [],
+      "chunkIds": [],
+      "positive": false,
+      "recallAt5": null,
+      "reciprocalRankAt5": null,
+      "emptyCorrect": true,
+      "sourcesVerified": true
+    },
+    {
+      "caseId": "S3-N04",
+      "expected": [],
+      "retrieved": [],
+      "chunkIds": [],
+      "positive": false,
+      "recallAt5": null,
+      "reciprocalRankAt5": null,
+      "emptyCorrect": true,
+      "sourcesVerified": true
+    },
+    {
+      "caseId": "S3-N05",
+      "expected": [],
+      "retrieved": [],
+      "chunkIds": [],
+      "positive": false,
+      "recallAt5": null,
+      "reciprocalRankAt5": null,
+      "emptyCorrect": true,
+      "sourcesVerified": true
+    }
+  ],
+  "originalSha256": {
+    "first": "6cedb118c2ac8fb177852c175ee1ffd298838f2ae7becaea371c03edb1a8a84f",
+    "restart": "247e7bc2c92352fded852c0122d3bde0281bba53a4a7ac3ce59fc6f586f23137"
+  }
+}

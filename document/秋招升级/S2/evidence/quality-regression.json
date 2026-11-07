@@ -1,0 +1,214 @@
+{
+  "mode": "deterministic-source-and-snapshot-regression",
+  "scope": "Only fixed guide, incomplete-build and preview cases; not universal prose verification or human acceptance",
+  "datasetId": "campus-s2-seed-v1",
+  "runtime": {
+    "configuredProvider": "dashscope",
+    "providerReturnedModelId": "not-attested-by-this-endpoint",
+    "promptVersion": "campus-s2-source-projection-v3",
+    "configuredModelId": "qwen-plus",
+    "implementationSha256": {
+      "VioManus": "164508efe9e74fd9a464c9a9d98329179b4ca7211df54da42e7980fd2247a0e7",
+      "ToolCallAgent": "27d2a1fcd1c689d9b7e793f61661ee853b01a0e7f0a553de1358f36c2df97616",
+      "TeamAnswerEvidence": "bd4f6d2228a5b963620a69d352897d8f79896e5d2c127b59117849ce4e371688",
+      "DamageAnswerEvidence": "381161ab8f1e34506e9eae5b3102b3d8b507c853951f27d84fdfab2c24056e2a",
+      "GuideAnswerEvidence": "b3e80f59829946a7f32abb55f5583fe0f144da186b5183af0a6b647ee4a8f757",
+      "SavedTeamAnswerEvidence": "51d69d378cf7e95c2a0e33592faf3ce289862d62d5d1c797ce8102d1e10e6022",
+      "EvidenceText": "5a5df23e488f0cd60330d3b4170e0cbc602375620950329fb9cb5ea093eb8742",
+      "TeamReferenceTools": "7ab3609debdee4f7dae89c9b911279b24c11959ffa41dd4d4ea3e0cb95fa42ff",
+      "TeamWorkflowService": "528c20dbe0ee274e4d2d7a2025cf5325f84b60a61ed18f354eede219ee7142c0",
+      "RunMutationBoundary": "dc9dd79d80426b94edcee94eb86fd20c4f47d798d9e5d8b2dd3cce0ca5faeb92",
+      "DefaultRunExecutor": "8eb887792266e6e27bd3b941fd404224276ea407cffbfbf0fb80ba9d723fb040"
+    },
+    "profiles": [
+      "local"
+    ],
+    "tools": [
+      "calculateBattleDamage",
+      "checkTypeEffectiveness",
+      "doTerminate",
+      "getTypeChart",
+      "listCurrentTeams",
+      "lookupPokemonReference",
+      "lookupPokemonResource",
+      "lookupPokemonTeamReference",
+      "previewTeamChanges",
+      "readCurrentTeam",
+      "searchPokemonGuides",
+      "searchWeb"
+    ],
+    "features": {
+      "highRiskTools": false,
+      "answerStreaming": true,
+      "mcpClient": false,
+      "versionedGrounding": false
+    }
+  },
+  "planned": 9,
+  "pass": 9,
+  "failed": 0,
+  "humanAcceptance": "not performed",
+  "rows": [
+    {
+      "caseId": "S2-GUIDES-01",
+      "repetition": 1,
+      "pass": true,
+      "checks": {
+        "storageUnchanged": true,
+        "completed": true,
+        "historyMatches": true,
+        "actualSearch": true,
+        "quotesSupportedByCapturedSources": true,
+        "noKnownUnattributedExamples": true
+      }
+    },
+    {
+      "caseId": "S2-GUIDES-01",
+      "repetition": 2,
+      "pass": true,
+      "checks": {
+        "storageUnchanged": true,
+        "completed": true,
+        "historyMatches": true,
+        "actualSearch": true,
+        "quotesSupportedByCapturedSources": true,
+        "noKnownUnattributedExamples": true
+      }
+    },
+    {
+      "caseId": "S2-GUIDES-01",
+      "repetition": 3,
+      "pass": true,
+      "checks": {
+        "storageUnchanged": true,
+        "completed": true,
+        "historyMatches": true,
+        "actualSearch": true,
+        "quotesSupportedByCapturedSources": true,
+        "noKnownUnattributedExamples": true
+      }
+    },
+    {
+      "caseId": "S2-CLARIFICATION-01",
+      "repetition": 1,
+      "pass": true,
+      "checks": {
+        "storageUnchanged": true,
+        "completed": true,
+        "historyMatches": true,
+        "actualRead": true,
+        "storedHardyPreserved": true,
+        "baseStatsSeparatedFromLevel": true,
+        "missingFieldsAskedWithoutFabricatedExamples": true,
+        "noCalculationOrPreview": true
+      }
+    },
+    {
+      "caseId": "S2-CLARIFICATION-01",
+      "repetition": 2,
+      "pass": true,
+      "checks": {
+        "storageUnchanged": true,
+        "completed": true,
+        "historyMatches": true,
+        "actualRead": true,
+        "storedHardyPreserved": true,
+        "baseStatsSeparatedFromLevel": true,
+        "missingFieldsAskedWithoutFabricatedExamples": true,
+        "noCalculationOrPreview": true
+      }
+    },
+    {
+      "caseId": "S2-CLARIFICATION-01",
+      "repetition": 3,
+      "pass": true,
+      "checks": {
+        "storageUnchanged": true,
+        "completed": true,
+        "historyMatches": true,
+        "actualRead": true,
+        "storedHardyPreserved": true,
+        "baseStatsSeparatedFromLevel": true,
+        "missingFieldsAskedWithoutFabricatedExamples": true,
+        "noCalculationOrPreview": true
+      }
+    },
+    {
+      "caseId": "S2-TEAM-01",
+      "repetition": 1,
+      "pass": true,
+      "checks": {
+        "storageUnchanged": true,
+        "waitingApproval": true,
+        "actualRead": true,
+        "actualPreview": true,
+        "onlyExpectedChange": true,
+        "cancelledAfterCheck": true
+      }
+    },
+    {
+      "caseId": "S2-TEAM-01",
+      "repetition": 2,
+      "pass": true,
+      "checks": {
+        "storageUnchanged": true,
+        "waitingApproval": true,
+        "actualRead": true,
+        "actualPreview": true,
+        "onlyExpectedChange": true,
+        "cancelledAfterCheck": true
+      }
+    },
+    {
+      "caseId": "S2-TEAM-01",
+      "repetition": 3,
+      "pass": true,
+      "checks": {
+        "storageUnchanged": true,
+        "waitingApproval": true,
+        "actualRead": true,
+        "actualPreview": true,
+        "onlyExpectedChange": true,
+        "cancelledAfterCheck": true
+      }
+    }
+  ],
+  "streamChecks": [
+    {
+      "caseId": "S2-GUIDES-01",
+      "repetition": 1,
+      "chunks": 5,
+      "exactAnswerMatch": true
+    },
+    {
+      "caseId": "S2-GUIDES-01",
+      "repetition": 2,
+      "chunks": 5,
+      "exactAnswerMatch": true
+    },
+    {
+      "caseId": "S2-GUIDES-01",
+      "repetition": 3,
+      "chunks": 5,
+      "exactAnswerMatch": true
+    },
+    {
+      "caseId": "S2-CLARIFICATION-01",
+      "repetition": 1,
+      "chunks": 7,
+      "exactAnswerMatch": true
+    },
+    {
+      "caseId": "S2-CLARIFICATION-01",
+      "repetition": 2,
+      "chunks": 7,
+      "exactAnswerMatch": true
+    },
+    {
+      "caseId": "S2-CLARIFICATION-01",
+      "repetition": 3,
+      "chunks": 7,
+      "exactAnswerMatch": true
+    }
+  ]
+}

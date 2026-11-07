@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vio.invalid/schemas/evaluation-run-v1.json",
+  "title": "VIO evaluation run",
+  "type": "object",
+  "required": [
+    "evaluationRunId",
+    "suiteVersion",
+    "codeCommit",
+    "modelVersion",
+    "promptVersion",
+    "dataReleaseId",
+    "knowledgeReleaseId",
+    "indexReleaseId",
+    "environment",
+    "sampleCount",
+    "results"
+  ],
+  "properties": {
+    "evaluationRunId": {"type": "string", "minLength": 1},
+    "suiteVersion": {"type": "string", "minLength": 1},
+    "codeCommit": {"type": "string", "minLength": 1},
+    "modelVersion": {"type": "string", "minLength": 1},
+    "promptVersion": {"type": "string", "minLength": 1},
+    "dataReleaseId": {"type": "string", "minLength": 1},
+    "knowledgeReleaseId": {"type": "string", "minLength": 1},
+    "indexReleaseId": {"type": "string", "minLength": 1},
+    "environment": {"type": "string", "minLength": 1},
+    "sampleCount": {"type": "integer", "minimum": 0},
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["metricId", "value", "sampleCount", "passed"],
+        "properties": {
+          "metricId": {"type": "string"},
+          "value": {"type": "number"},
+          "sampleCount": {"type": "integer", "minimum": 0},
+          "passed": {"type": "boolean"},
+          "notes": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

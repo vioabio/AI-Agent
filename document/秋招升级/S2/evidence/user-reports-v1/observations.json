@@ -1,0 +1,1304 @@
+[
+  {
+    "stage": "model",
+    "captureSha256": "505afdc60dbf9813e8e8a64aded97b33fe7f2aeb1ba6e7b32d1a1b2afc4e4ab7",
+    "collectorVersion": "campus-s2-collector-v3",
+    "collectorSha256": {
+      "s2-evaluate.mjs": "b9e65a0bf65323a5e6af29fb08542da425d49d9d51b5eb7074618096cb5a9359",
+      "evaluation.mjs": "d16a3dc03016240e3fa5732725aca69707c082a006d89661debb2e23952d73b5",
+      "reference-case.mjs": "d0c390047e600fc10b283510a7f6baf46c1f2cdec40db50a3b1324d8dec97c91",
+      "tool-inputs.mjs": "bab6b8b5c445ccd450cb33bfbe5b01c8286223cf1c800745923c936350b14311",
+      "answer-quality.mjs": "fd044636b409860e29df7e9f40f97917e783060b7e3bf1dbeaed8a84a7d26644"
+    },
+    "runtime": {
+      "configuredProvider": "dashscope",
+      "configuredModelId": "qwen-plus",
+      "generationDefaults": {
+        "temperature": 0,
+        "topP": 1,
+        "maxTokens": null,
+        "scope": "CONFIGURED_DEFAULTS_NOT_PROVIDER_REQUEST_ATTESTATION"
+      },
+      "guideReferencePolicy": null,
+      "guideOverviewPolicy": null
+    },
+    "denominator": 4,
+    "completed": 4,
+    "structuralPass": 3,
+    "fail": 1,
+    "pending": 3,
+    "modelCalls": 22,
+    "records": [
+      {
+        "caseId": "S2-GUIDES-09",
+        "repetition": 1,
+        "status": "COMPLETED",
+        "input": "我想要了解杰尼龟和当前版本的对战策略以及强势阵容",
+        "answer": "### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n**围绕核心成员构建队伍**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 这是项目原创的通用策略笔记，不是当前热门阵容榜单。先确定游戏、单打或双打、允许的规则，再确定核心成员承担的角色。检查队伍是否过度集中在同一弱点，是否缺少速度控制、耐久支点或可靠输出。属性覆盖只是第一步，必须结合招式、特性、道具、努力值与轮转机会。双打还要考虑队友协同与范围招式。没有使用率或赛事证据时，不宣称某套阵容是当前最强。建议给出至少一个替换方向，并解释该替换改善了什么、牺牲了什么。\n\n### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n",
+        "checks": {
+          "storageUnchanged": true,
+          "historyMatches": true,
+          "referenceBeforeMatches": true,
+          "referenceAfterMatches": true,
+          "referenceInputVerified": true,
+          "publicAnswerFormat": true,
+          "requestedSpeciesPresent": false,
+          "storageUnchangedAfterCleanup": true
+        },
+        "observationSha256": "f28b0bea2543ccfec18e5efdbca42782396298529ee4e6514ba1645847b49796",
+        "eventsSha256": "8c9adf6c716c974a59de6706ebec49daa9017c07ecc6c43d5e50c00e3fd3093b",
+        "toolOutcomes": [
+          {
+            "tool": "lookupPokemonReference",
+            "status": "SUCCEEDED",
+            "durationMs": 29,
+            "cached": false,
+            "parameterDigest": "6c38742a686bfd1992ea11ef71329ef5616c4a736b46c0131c4c29b50ff4cbf0",
+            "callId": "743b6bb9-de8b-4b10-9dc6-bbd0247672ad"
+          },
+          {
+            "tool": "lookupPokemonReference",
+            "status": "FAILED",
+            "durationMs": 14,
+            "cached": false,
+            "parameterDigest": "1a0a9e33d450cbbb059240a5e8297b353923e24a6c39e5287d2ae83d0f0ef07f",
+            "callId": "0ad9ad9d-d9ec-4263-a431-b64545a1408d"
+          },
+          {
+            "tool": "searchPokemonGuides",
+            "status": "SUCCEEDED",
+            "durationMs": 12,
+            "cached": false,
+            "parameterDigest": "a13a67e4f8032050515383bd6f0145ce0fe14345a77a3113409c4b053685ed85",
+            "callId": "03f0f138-c671-4147-8cde-25ec0e04247a"
+          },
+          {
+            "tool": "getTypeChart",
+            "status": "SUCCEEDED",
+            "durationMs": 2,
+            "cached": false,
+            "parameterDigest": "f9fe7e048b8b1a8a3f0f86aa6dee8f345a0f154c026c7cb560424e3f87647d69",
+            "callId": "83a32fb4-9554-4b4b-af00-2b2390f365e2"
+          },
+          {
+            "tool": "checkTypeEffectiveness",
+            "status": "SUCCEEDED",
+            "durationMs": 1,
+            "cached": false,
+            "parameterDigest": "9d8e64154b3de4f9f180269b3ca4a32decfebaf1f57794632887728fa63c6495",
+            "callId": "7a3e6591-377b-441c-943f-3d3c9b35003d"
+          },
+          {
+            "tool": "checkTypeEffectiveness",
+            "status": "SUCCEEDED",
+            "durationMs": 1,
+            "cached": false,
+            "parameterDigest": "0167666a864759133d0b9d2b7f4cd90a5b3af2c316fdb66f068443e73b4b4a67",
+            "callId": "6d0b9f75-1bba-42e7-be4a-ffd216b6222b"
+          },
+          {
+            "tool": "checkTypeEffectiveness",
+            "status": "SUCCEEDED",
+            "durationMs": 2,
+            "cached": false,
+            "parameterDigest": "271beb71c25b9692c1b11eff6a7a58095ad473a2e062ae489c60eaee961c1aaf",
+            "callId": "7a182d25-281a-4b17-a335-65e0d1fe8410"
+          }
+        ],
+        "referenceAudit": {
+          "checks": {
+            "referenceBeforeMatches": true,
+            "referenceAfterMatches": true,
+            "referenceInputVerified": true,
+            "publicAnswerFormat": true,
+            "requestedSpeciesPresent": false
+          },
+          "lookup": {
+            "required": true,
+            "successfulCalls": 1,
+            "matchingCallIds": [
+              "743b6bb9-de8b-4b10-9dc6-bbd0247672ad"
+            ],
+            "scope": "Target identity and release in supplied arguments, not all output facts or advice"
+          },
+          "formatting": {
+            "pass": true,
+            "failures": [],
+            "characters": 418,
+            "items": 0,
+            "sentenceBoundaries": 11,
+            "scope": "Finite formatting/known-pattern checks; not proof of semantic correctness or complete fact checking"
+          },
+          "sourceIds": [
+            "pokemon-squirtle",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1"
+          ],
+          "scope": "Snapshot/API equality, bounded format and target-input checks; semantic advice, source relevance and current metagame still need review"
+        },
+        "modelCalls": 5
+      },
+      {
+        "caseId": "S2-GUIDES-09",
+        "repetition": 2,
+        "status": "COMPLETED",
+        "input": "我想要了解杰尼龟和当前版本的对战策略以及强势阵容",
+        "answer": "### 图鉴速览（资料事实）\n以下为本次实际读取的成员资料；种族值与等级无关。\n\n| 成员 | 属性 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| 杰尼龟 | 水 | 44 | 48 | 65 | 50 | 64 | 43 |\n\n来源：PokéAPI 本地参考；不代表排位合法性或当前热门程度。\n\n### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n**围绕核心成员构建队伍**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 这是项目原创的通用策略笔记，不是当前热门阵容榜单。先确定游戏、单打或双打、允许的规则，再确定核心成员承担的角色。检查队伍是否过度集中在同一弱点，是否缺少速度控制、耐久支点或可靠输出。属性覆盖只是第一步，必须结合招式、特性、道具、努力值与轮转机会。双打还要考虑队友协同与范围招式。没有使用率或赛事证据时，不宣称某套阵容是当前最强。建议给出至少一个替换方向，并解释该替换改善了什么、牺牲了什么。\n\n### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n",
+        "checks": {
+          "storageUnchanged": true,
+          "historyMatches": true,
+          "referenceBeforeMatches": true,
+          "referenceAfterMatches": true,
+          "referenceInputVerified": true,
+          "publicAnswerFormat": true,
+          "requestedSpeciesPresent": true,
+          "storageUnchangedAfterCleanup": true
+        },
+        "observationSha256": "21ad32c8bafc5d0384cebc886fa8e7540c1f15de6429af2c3d125a99a0660eb6",
+        "eventsSha256": "4d5f7e688fb22f8f014dc5f0a0d52f387497b1c702f007f05ab598b69cb78709",
+        "toolOutcomes": [
+          {
+            "tool": "lookupPokemonReference",
+            "status": "SUCCEEDED",
+            "durationMs": 20,
+            "cached": false,
+            "parameterDigest": "6c38742a686bfd1992ea11ef71329ef5616c4a736b46c0131c4c29b50ff4cbf0",
+            "callId": "50546a5c-5528-4cca-ba48-772271d12c11"
+          },
+          {
+            "tool": "searchPokemonGuides",
+            "status": "SUCCEEDED",
+            "durationMs": 6,
+            "cached": false,
+            "parameterDigest": "4ac0a2bc23e56bf359ebcb1bfde43572ce19a0c04cceea5af200938d59f89d1c",
+            "callId": "7b0d6e07-7c87-4901-8e71-21153d67f006"
+          },
+          {
+            "tool": "searchPokemonGuides",
+            "status": "SUCCEEDED",
+            "durationMs": 5,
+            "cached": false,
+            "parameterDigest": "0852400a2e7129e2131d5a6c16542a82415ec0a99f66dd352c3f79e7e77f8fcf",
+            "callId": "027e5e27-3c17-44bd-8fd7-40ee57202479"
+          }
+        ],
+        "referenceAudit": {
+          "checks": {
+            "referenceBeforeMatches": true,
+            "referenceAfterMatches": true,
+            "referenceInputVerified": true,
+            "publicAnswerFormat": true,
+            "requestedSpeciesPresent": true
+          },
+          "lookup": {
+            "required": true,
+            "successfulCalls": 1,
+            "matchingCallIds": [
+              "50546a5c-5528-4cca-ba48-772271d12c11"
+            ],
+            "scope": "Target identity and release in supplied arguments, not all output facts or advice"
+          },
+          "formatting": {
+            "pass": true,
+            "failures": [],
+            "characters": 628,
+            "items": 0,
+            "sentenceBoundaries": 13,
+            "scope": "Finite formatting/known-pattern checks; not proof of semantic correctness or complete fact checking"
+          },
+          "sourceIds": [
+            "pokemon-squirtle",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1"
+          ],
+          "scope": "Snapshot/API equality, bounded format and target-input checks; semantic advice, source relevance and current metagame still need review"
+        },
+        "modelCalls": 4
+      },
+      {
+        "caseId": "S2-GUIDES-10",
+        "repetition": 1,
+        "status": "COMPLETED",
+        "input": "请介绍雪妖女，并结合所选赛制给出培养与搭配建议。请用中文区分资料事实和策略建议；资料不足时说明缺失，不编造当前热门阵容。\n图鉴属性：冰 / 幽灵。\n种族值：HP 70，攻击 80，防御 70，特攻 80，特防 70，速度 110。\n请查询当前数据版本下的特性与招式资料，不要把参考资料当作赛制合法性证明。",
+        "answer": "### 图鉴速览（资料事实）\n以下为本次实际读取的成员资料；种族值与等级无关。\n\n| 成员 | 属性 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| 雪妖女 | 冰 / 幽灵 | 70 | 80 | 70 | 80 | 70 | 110 |\n\n来源：PokéAPI 本地参考；不代表排位合法性或当前热门程度。\n\n### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n**特性与道具先查询，再核对计算回读**\n\n作者：VIO project · 更新：2026-10-23\n\n原文位置：第 2 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 本地计算桥接会验证非空的特性与道具名称，无法识别时拒绝计算。计算完成后应核对assumptions中实际使用的名称；缺省或未填写的配置不能被解读为某个道具已生效。队伍存储只验证名称输入边界，不提供特性、道具和物种的完整搭配合法性审查。推荐某个组合之前，还需要规则与机制支持，不能由保存成功推出组合合法或最优。\n\n**培养配置：性格、努力值与个体值**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 这是项目原创的配置填写说明。保存配置前先明确输出方式和目标对手，再选择性格、等级、个体值和努力值。项目验证努力值单项不超过252、总和不超过510，个体值为0到31。不能仅凭这些边界就断言某种配置最优。性格、特性、道具和招式需要配合；低攻击个体值或低速度个体值属于特定战术条件，不应未经询问自动代入。初次分析应列出哪些是用户提供的条件、哪些是工具的默认条件，并询问未明确的赛制或配置。\n\n**围绕核心成员构建队伍**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 这是项目原创的通用策略笔记，不是当前热门阵容榜单。先确定游戏、单打或双打、允许的规则，再确定核心成员承担的角色。检查队伍是否过度集中在同一弱点，是否缺少速度控制、耐久支点或可靠输出。属性覆盖只是第一步，必须结合招式、特性、道具、努力值与轮转机会。双打还要考虑队友协同与范围招式。没有使用率或赛事证据时，不宣称某套阵容是当前最强。建议给出至少一个替换方向，并解释该替换改善了什么、牺牲了什么。\n\n**从AI建议到队伍保存的确认流程**\n\n作者：VIO project · 更新：2026-10-23\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> AI的建议与实际保存分为两个步骤。当前本地工作流先读取当前账号的指定队伍，再对现有成员的培养配置生成变更预览。预览列出修改前后内容，用户确认之前不写入保存队伍。聊天中说同意不是绕过确认接口的授权；真正保存必须走该预览关联的确认操作。当前流程不能借培养配置修改来偷偷增删成员或切换物种。\n\n### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n",
+        "checks": {
+          "storageUnchanged": true,
+          "historyMatches": true,
+          "referenceBeforeMatches": true,
+          "referenceAfterMatches": true,
+          "referenceInputVerified": true,
+          "publicAnswerFormat": true,
+          "requestedSpeciesPresent": true,
+          "storageUnchangedAfterCleanup": true
+        },
+        "observationSha256": "9d364395201ae917b067f34d01ce1220b7bd20d634aa63eb3485bed64e26193b",
+        "eventsSha256": "f8bff5ca7e81f3aae969f46f18dd85069b19b3f7e1a34663f888acdcb1ccbb0c",
+        "toolOutcomes": [
+          {
+            "tool": "lookupPokemonReference",
+            "status": "SUCCEEDED",
+            "durationMs": 15,
+            "cached": false,
+            "parameterDigest": "df28ed05e6e041e8c494e368f56331fba907a1100abffeb2121d5a33a46b7895",
+            "callId": "a6809c6e-4c5a-4267-aa3b-f13b40c08a69"
+          },
+          {
+            "tool": "lookupPokemonResource",
+            "status": "FAILED",
+            "durationMs": 4,
+            "cached": false,
+            "parameterDigest": "6b572e9c3740180ac52fad3b8b63538c72ba70b7ad117f13049bfda93efb8466",
+            "callId": "e99ff557-f101-459d-b029-cd407b4f7617"
+          },
+          {
+            "tool": "lookupPokemonResource",
+            "status": "FAILED",
+            "durationMs": 4,
+            "cached": false,
+            "parameterDigest": "d4b0cf72ea563fadd99dc44527dc44558ddf3970dca24b4965d9c2f78f35ff21",
+            "callId": "c4918cbc-b52a-484e-854a-98056e6743fe"
+          },
+          {
+            "tool": "lookupPokemonResource",
+            "status": "FAILED",
+            "durationMs": 5,
+            "cached": false,
+            "parameterDigest": "4724c646193ba6a33dc775714480f1180fc5f3445752ff679bc82382f324f146",
+            "callId": "466fe866-5ad9-4ad3-8f8d-c1041d6597b0"
+          },
+          {
+            "tool": "searchPokemonGuides",
+            "status": "SUCCEEDED",
+            "durationMs": 8,
+            "cached": false,
+            "parameterDigest": "210722337e5e7f2d66211c9bc5d47eafed7d4cc158b6e73d1c7352b2b361af7e",
+            "callId": "e7411c92-5f81-4d87-8223-4a2bc6e50845"
+          }
+        ],
+        "referenceAudit": {
+          "checks": {
+            "referenceBeforeMatches": true,
+            "referenceAfterMatches": true,
+            "referenceInputVerified": true,
+            "publicAnswerFormat": true,
+            "requestedSpeciesPresent": true
+          },
+          "lookup": {
+            "required": false,
+            "successfulCalls": 1,
+            "matchingCallIds": [
+              "a6809c6e-4c5a-4267-aa3b-f13b40c08a69"
+            ],
+            "scope": "Current UI fact card validated against the pinned snapshot; lookup not mandatory"
+          },
+          "formatting": {
+            "pass": true,
+            "failures": [],
+            "characters": 1429,
+            "items": 0,
+            "sentenceBoundaries": 31,
+            "scope": "Finite formatting/known-pattern checks; not proof of semantic correctness or complete fact checking"
+          },
+          "sourceIds": [
+            "pokemon-froslass",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1"
+          ],
+          "scope": "Snapshot/API equality, bounded format and target-input checks; semantic advice, source relevance and current metagame still need review"
+        },
+        "modelCalls": 6
+      },
+      {
+        "caseId": "S2-GUIDES-10",
+        "repetition": 2,
+        "status": "COMPLETED",
+        "input": "请介绍雪妖女，并结合所选赛制给出培养与搭配建议。请用中文区分资料事实和策略建议；资料不足时说明缺失，不编造当前热门阵容。\n图鉴属性：冰 / 幽灵。\n种族值：HP 70，攻击 80，防御 70，特攻 80，特防 70，速度 110。\n请查询当前数据版本下的特性与招式资料，不要把参考资料当作赛制合法性证明。",
+        "answer": "### 图鉴速览（资料事实）\n以下为本次实际读取的成员资料；种族值与等级无关。\n\n| 成员 | 属性 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| 雪妖女 | 冰 / 幽灵 | 70 | 80 | 70 | 80 | 70 | 110 |\n\n来源：PokéAPI 本地参考；不代表排位合法性或当前热门程度。\n\n### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n**围绕核心成员构建队伍**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 这是项目原创的通用策略笔记，不是当前热门阵容榜单。先确定游戏、单打或双打、允许的规则，再确定核心成员承担的角色。检查队伍是否过度集中在同一弱点，是否缺少速度控制、耐久支点或可靠输出。属性覆盖只是第一步，必须结合招式、特性、道具、努力值与轮转机会。双打还要考虑队友协同与范围招式。没有使用率或赛事证据时，不宣称某套阵容是当前最强。建议给出至少一个替换方向，并解释该替换改善了什么、牺牲了什么。\n\n**特性与道具先查询，再核对计算回读**\n\n作者：VIO project · 更新：2026-10-23\n\n原文位置：第 2 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 本地计算桥接会验证非空的特性与道具名称，无法识别时拒绝计算。计算完成后应核对assumptions中实际使用的名称；缺省或未填写的配置不能被解读为某个道具已生效。队伍存储只验证名称输入边界，不提供特性、道具和物种的完整搭配合法性审查。推荐某个组合之前，还需要规则与机制支持，不能由保存成功推出组合合法或最优。\n\n**图鉴资料、版本与比赛规则的区别**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 本说明由项目编写，资料接口字段参考所列文档。PokéAPI提供宝可梦、物种、招式和其他结构化资源。本地参考快照保留来源URL、抓取时间和摘要，缓存可以复用，但它不是官方赛事规则公告。不能根据物种存在或图鉴有数据，就判断其能参加当前排位。朱紫招式列表按接口中scarlet-violet的版本组过滤；这不能代替特定补丁、赛事或配招组合的完整合法性检查。回答当前强势阵容时需要有日期和赛制相符的使用率、赛事等证据；没有这些证据，应明确限制。\n\n**发起伤害计算前要补齐什么**\n\n作者：VIO project · 更新：2026-10-23\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 请先把问题改写成一个明确的对局：谁使用哪个招式攻击谁，以及双方采用什么配置。本地伤害请求固定为第九世代与本地参考资料版本，攻击方和防守方都需要可识别的成员及培养配置；招式应使用引擎可识别的英文名称或slug。只给一支队伍、一个属性倍率或一句谁更强，不能确定实际伤害。\n\n### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n",
+        "checks": {
+          "storageUnchanged": true,
+          "historyMatches": true,
+          "referenceBeforeMatches": true,
+          "referenceAfterMatches": true,
+          "referenceInputVerified": true,
+          "publicAnswerFormat": true,
+          "requestedSpeciesPresent": true,
+          "storageUnchangedAfterCleanup": true
+        },
+        "observationSha256": "ba177b5e7cd465b9430de2361d158cd24e5459fdafeb4973e926024b9ffd9537",
+        "eventsSha256": "770d8bc9b69646ca016f54cb6bb3be3f6279f84e1e515cab3243f64a29beb1f8",
+        "toolOutcomes": [
+          {
+            "tool": "lookupPokemonReference",
+            "status": "SUCCEEDED",
+            "durationMs": 9,
+            "cached": false,
+            "parameterDigest": "df28ed05e6e041e8c494e368f56331fba907a1100abffeb2121d5a33a46b7895",
+            "callId": "e4a7245c-d7b0-4225-848a-51f37d3b2726"
+          },
+          {
+            "tool": "lookupPokemonResource",
+            "status": "FAILED",
+            "durationMs": 4,
+            "cached": false,
+            "parameterDigest": "6b572e9c3740180ac52fad3b8b63538c72ba70b7ad117f13049bfda93efb8466",
+            "callId": "49e6daf7-fdef-422e-b53a-b54c816954c2"
+          },
+          {
+            "tool": "getTypeChart",
+            "status": "SUCCEEDED",
+            "durationMs": 1,
+            "cached": false,
+            "parameterDigest": "0cad5ae81d35550d24448407386c5866c25e8bd0a91b071e6ab4e2baecb8328f",
+            "callId": "2500f973-9f47-417d-9cbf-4ec4342127d1"
+          },
+          {
+            "tool": "getTypeChart",
+            "status": "SUCCEEDED",
+            "durationMs": 0,
+            "cached": false,
+            "parameterDigest": "e54ccf12dd54cf8c550c6eed1b5f7a81ff69b8574cfcfdd6f4854b4e79860407",
+            "callId": "7dd0906f-bc5a-4e17-8bfa-4f6f7e2b8f91"
+          },
+          {
+            "tool": "searchPokemonGuides",
+            "status": "SUCCEEDED",
+            "durationMs": 7,
+            "cached": false,
+            "parameterDigest": "210722337e5e7f2d66211c9bc5d47eafed7d4cc158b6e73d1c7352b2b361af7e",
+            "callId": "0bc8e4d6-20b8-4657-93f2-14f328707df6"
+          },
+          {
+            "tool": "searchPokemonGuides",
+            "status": "SUCCEEDED",
+            "durationMs": 4,
+            "cached": false,
+            "parameterDigest": "a6ee9e5289d315c09d8ba10642a4a19e47db68b793d1a061d04596d1c8bb990a",
+            "callId": "ce43013d-64e7-4eb6-968b-ffcfa62cf4f3"
+          }
+        ],
+        "referenceAudit": {
+          "checks": {
+            "referenceBeforeMatches": true,
+            "referenceAfterMatches": true,
+            "referenceInputVerified": true,
+            "publicAnswerFormat": true,
+            "requestedSpeciesPresent": true
+          },
+          "lookup": {
+            "required": false,
+            "successfulCalls": 1,
+            "matchingCallIds": [
+              "e4a7245c-d7b0-4225-848a-51f37d3b2726"
+            ],
+            "scope": "Current UI fact card validated against the pinned snapshot; lookup not mandatory"
+          },
+          "formatting": {
+            "pass": true,
+            "failures": [],
+            "characters": 1443,
+            "items": 0,
+            "sentenceBoundaries": 29,
+            "scope": "Finite formatting/known-pattern checks; not proof of semantic correctness or complete fact checking"
+          },
+          "sourceIds": [
+            "pokemon-froslass",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1"
+          ],
+          "scope": "Snapshot/API equality, bounded format and target-input checks; semantic advice, source relevance and current metagame still need review"
+        },
+        "modelCalls": 7
+      }
+    ]
+  },
+  {
+    "stage": "model-fixed",
+    "captureSha256": "8da8b3df7e8121a39bd735b8eafef9d53ac8e7a1780ae8e60c89867ef0804478",
+    "collectorVersion": "campus-s2-collector-v4",
+    "collectorSha256": {
+      "s2-evaluate.mjs": "d3963dab4ee47b533c6864ab3bb872a673e501581751d77b7985fa9497fc49dd",
+      "evaluation.mjs": "a910909066bc7dc35b1194c0227fa7f8556684f06e236084f7321cd562d14770",
+      "reference-case.mjs": "d0c390047e600fc10b283510a7f6baf46c1f2cdec40db50a3b1324d8dec97c91",
+      "tool-inputs.mjs": "bab6b8b5c445ccd450cb33bfbe5b01c8286223cf1c800745923c936350b14311",
+      "answer-quality.mjs": "fd044636b409860e29df7e9f40f97917e783060b7e3bf1dbeaed8a84a7d26644"
+    },
+    "runtime": {
+      "configuredProvider": "dashscope",
+      "configuredModelId": "qwen-plus",
+      "generationDefaults": {
+        "temperature": 0,
+        "topP": 1,
+        "maxTokens": null,
+        "scope": "CONFIGURED_DEFAULTS_NOT_PROVIDER_REQUEST_ATTESTATION"
+      },
+      "guideReferencePolicy": {
+        "version": "verified-reference-retention-v1",
+        "scope": "KEEP_ONLY_BOUND_UNAFFECTED_MEMBER_READS_INVALIDATE_SAME_OR_UNKNOWN_TARGET_NOT_COMPLETE_TEAM_EVIDENCE"
+      },
+      "guideOverviewPolicy": null
+    },
+    "denominator": 4,
+    "completed": 3,
+    "structuralPass": 3,
+    "fail": 1,
+    "pending": 3,
+    "modelCalls": 26,
+    "records": [
+      {
+        "caseId": "S2-GUIDES-09",
+        "repetition": 1,
+        "status": "COMPLETED",
+        "input": "我想要了解杰尼龟和当前版本的对战策略以及强势阵容",
+        "answer": "### 图鉴速览（资料事实）\n以下为本次实际读取的成员资料；种族值与等级无关。\n\n| 成员 | 属性 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| 杰尼龟 | 水 | 44 | 48 | 65 | 50 | 64 | 43 |\n\n来源：PokéAPI 本地参考；不代表排位合法性或当前热门程度。\n\n### 资料读取提醒\n本次有资料调用失败或未通过校验；以下仅展示已核对的结果，未取得的机制信息不作确认。\n\n### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n**围绕核心成员构建队伍**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 这是项目原创的通用策略笔记，不是当前热门阵容榜单。先确定游戏、单打或双打、允许的规则，再确定核心成员承担的角色。检查队伍是否过度集中在同一弱点，是否缺少速度控制、耐久支点或可靠输出。属性覆盖只是第一步，必须结合招式、特性、道具、努力值与轮转机会。双打还要考虑队友协同与范围招式。没有使用率或赛事证据时，不宣称某套阵容是当前最强。建议给出至少一个替换方向，并解释该替换改善了什么、牺牲了什么。\n\n### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n",
+        "checks": {
+          "storageUnchanged": true,
+          "historyMatches": true,
+          "referenceBeforeMatches": true,
+          "referenceAfterMatches": true,
+          "referenceInputVerified": true,
+          "publicAnswerFormat": true,
+          "requestedSpeciesPresent": true,
+          "storageUnchangedAfterCleanup": true
+        },
+        "observationSha256": "23b64f4f662c4c04838fe05dbad261606adc7f99a8dd5273189f2db0198d7cf0",
+        "eventsSha256": "0bfef9946889fb01182098e73851602deca1d6971c1be3e04180dd3f7fb4f223",
+        "toolOutcomes": [
+          {
+            "tool": "lookupPokemonReference",
+            "status": "SUCCEEDED",
+            "durationMs": 23,
+            "cached": false,
+            "parameterDigest": "6c38742a686bfd1992ea11ef71329ef5616c4a736b46c0131c4c29b50ff4cbf0",
+            "callId": "3135037d-607b-4696-9dfa-41d75378883e"
+          },
+          {
+            "tool": "lookupPokemonReference",
+            "status": "FAILED",
+            "durationMs": 23,
+            "cached": false,
+            "parameterDigest": "1a0a9e33d450cbbb059240a5e8297b353923e24a6c39e5287d2ae83d0f0ef07f",
+            "callId": "5a35926f-e795-40d5-8522-2503cb0e77ed"
+          },
+          {
+            "tool": "searchPokemonGuides",
+            "status": "SUCCEEDED",
+            "durationMs": 16,
+            "cached": false,
+            "parameterDigest": "a13a67e4f8032050515383bd6f0145ce0fe14345a77a3113409c4b053685ed85",
+            "callId": "3160c59e-0f24-4360-9825-a35f8f547f9d"
+          },
+          {
+            "tool": "searchPokemonGuides",
+            "status": "SUCCEEDED",
+            "durationMs": 6,
+            "cached": false,
+            "parameterDigest": "2c93ed2b09762b941fb8c9d9f7e1c1264e0d4d93484f820b855a5acedacae19a",
+            "callId": "332c9e43-7998-40b0-9980-100c795e9c1c"
+          }
+        ],
+        "referenceAudit": {
+          "checks": {
+            "referenceBeforeMatches": true,
+            "referenceAfterMatches": true,
+            "referenceInputVerified": true,
+            "publicAnswerFormat": true,
+            "requestedSpeciesPresent": true
+          },
+          "lookup": {
+            "required": true,
+            "successfulCalls": 1,
+            "matchingCallIds": [
+              "3135037d-607b-4696-9dfa-41d75378883e"
+            ],
+            "scope": "Target identity and release in supplied arguments, not all output facts or advice"
+          },
+          "formatting": {
+            "pass": true,
+            "failures": [],
+            "characters": 682,
+            "items": 0,
+            "sentenceBoundaries": 14,
+            "scope": "Finite formatting/known-pattern checks; not proof of semantic correctness or complete fact checking"
+          },
+          "sourceIds": [
+            "pokemon-squirtle",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1"
+          ],
+          "scope": "Snapshot/API equality, bounded format and target-input checks; semantic advice, source relevance and current metagame still need review"
+        },
+        "modelCalls": 5
+      },
+      {
+        "caseId": "S2-GUIDES-09",
+        "repetition": 2,
+        "status": "COMPLETED",
+        "input": "我想要了解杰尼龟和当前版本的对战策略以及强势阵容",
+        "answer": "### 图鉴速览（资料事实）\n以下为本次实际读取的成员资料；种族值与等级无关。\n\n| 成员 | 属性 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| 杰尼龟 | 水 | 44 | 48 | 65 | 50 | 64 | 43 |\n\n来源：PokéAPI 本地参考；不代表排位合法性或当前热门程度。\n\n### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n**围绕核心成员构建队伍**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 这是项目原创的通用策略笔记，不是当前热门阵容榜单。先确定游戏、单打或双打、允许的规则，再确定核心成员承担的角色。检查队伍是否过度集中在同一弱点，是否缺少速度控制、耐久支点或可靠输出。属性覆盖只是第一步，必须结合招式、特性、道具、努力值与轮转机会。双打还要考虑队友协同与范围招式。没有使用率或赛事证据时，不宣称某套阵容是当前最强。建议给出至少一个替换方向，并解释该替换改善了什么、牺牲了什么。\n\n**图鉴资料、版本与比赛规则的区别**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 本说明由项目编写，资料接口字段参考所列文档。PokéAPI提供宝可梦、物种、招式和其他结构化资源。本地参考快照保留来源URL、抓取时间和摘要，缓存可以复用，但它不是官方赛事规则公告。不能根据物种存在或图鉴有数据，就判断其能参加当前排位。朱紫招式列表按接口中scarlet-violet的版本组过滤；这不能代替特定补丁、赛事或配招组合的完整合法性检查。回答当前强势阵容时需要有日期和赛制相符的使用率、赛事等证据；没有这些证据，应明确限制。\n\n### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n",
+        "checks": {
+          "storageUnchanged": true,
+          "historyMatches": true,
+          "referenceBeforeMatches": true,
+          "referenceAfterMatches": true,
+          "referenceInputVerified": true,
+          "publicAnswerFormat": true,
+          "requestedSpeciesPresent": true,
+          "storageUnchangedAfterCleanup": true
+        },
+        "observationSha256": "0e759123177a172e3d127ad83c02586fdcb5c7e45f4addf7c31527ae7e263f0b",
+        "eventsSha256": "4865aefa6920c1c25b2f6e047aaeea49c7c4e7df43a4e31292d2a791ee3a3416",
+        "toolOutcomes": [
+          {
+            "tool": "lookupPokemonReference",
+            "status": "SUCCEEDED",
+            "durationMs": 22,
+            "cached": false,
+            "parameterDigest": "6c38742a686bfd1992ea11ef71329ef5616c4a736b46c0131c4c29b50ff4cbf0",
+            "callId": "f2274c4a-d7d5-4952-82ed-d061134d7394"
+          },
+          {
+            "tool": "searchPokemonGuides",
+            "status": "SUCCEEDED",
+            "durationMs": 16,
+            "cached": false,
+            "parameterDigest": "a13a67e4f8032050515383bd6f0145ce0fe14345a77a3113409c4b053685ed85",
+            "callId": "2d1bce18-95af-447b-866f-d592b86b2d50"
+          },
+          {
+            "tool": "searchPokemonGuides",
+            "status": "SUCCEEDED",
+            "durationMs": 5,
+            "cached": false,
+            "parameterDigest": "c549f930d27fa57c125a974fb3c87e6554e3f5abc66736ebd7d240ecce06859c",
+            "callId": "35568b05-447e-498f-8b51-f39da0ba3367"
+          },
+          {
+            "tool": "lookupPokemonTeamReference",
+            "status": "FAILED",
+            "durationMs": 10,
+            "cached": false,
+            "parameterDigest": "4acce0776230cdf3fd78a444d54d3fdc102ab0861117ba1ff59fe261c809f04b",
+            "callId": "2451ba8d-eefb-4e68-998e-2203ca16a9d0"
+          }
+        ],
+        "referenceAudit": {
+          "checks": {
+            "referenceBeforeMatches": true,
+            "referenceAfterMatches": true,
+            "referenceInputVerified": true,
+            "publicAnswerFormat": true,
+            "requestedSpeciesPresent": true
+          },
+          "lookup": {
+            "required": true,
+            "successfulCalls": 1,
+            "matchingCallIds": [
+              "f2274c4a-d7d5-4952-82ed-d061134d7394"
+            ],
+            "scope": "Target identity and release in supplied arguments, not all output facts or advice"
+          },
+          "formatting": {
+            "pass": true,
+            "failures": [],
+            "characters": 948,
+            "items": 0,
+            "sentenceBoundaries": 20,
+            "scope": "Finite formatting/known-pattern checks; not proof of semantic correctness or complete fact checking"
+          },
+          "sourceIds": [
+            "pokemon-squirtle",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1"
+          ],
+          "scope": "Snapshot/API equality, bounded format and target-input checks; semantic advice, source relevance and current metagame still need review"
+        },
+        "modelCalls": 5
+      },
+      {
+        "caseId": "S2-GUIDES-10",
+        "repetition": 1,
+        "status": "COMPLETED",
+        "input": "请介绍雪妖女，并结合所选赛制给出培养与搭配建议。请用中文区分资料事实和策略建议；资料不足时说明缺失，不编造当前热门阵容。\n图鉴属性：冰 / 幽灵。\n种族值：HP 70，攻击 80，防御 70，特攻 80，特防 70，速度 110。\n请查询当前数据版本下的特性与招式资料，不要把参考资料当作赛制合法性证明。",
+        "answer": "### 图鉴速览（资料事实）\n以下为本次实际读取的成员资料；种族值与等级无关。\n\n| 成员 | 属性 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| 雪妖女 | 冰 / 幽灵 | 70 | 80 | 70 | 80 | 70 | 110 |\n\n来源：PokéAPI 本地参考；不代表排位合法性或当前热门程度。\n\n### 资料读取提醒\n本次有资料调用失败或未通过校验；以下仅展示已核对的结果，未取得的机制信息不作确认。\n\n### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n**特性与道具先查询，再核对计算回读**\n\n作者：VIO project · 更新：2026-10-23\n\n原文位置：第 2 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 本地计算桥接会验证非空的特性与道具名称，无法识别时拒绝计算。计算完成后应核对assumptions中实际使用的名称；缺省或未填写的配置不能被解读为某个道具已生效。队伍存储只验证名称输入边界，不提供特性、道具和物种的完整搭配合法性审查。推荐某个组合之前，还需要规则与机制支持，不能由保存成功推出组合合法或最优。\n\n**培养配置：性格、努力值与个体值**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 这是项目原创的配置填写说明。保存配置前先明确输出方式和目标对手，再选择性格、等级、个体值和努力值。项目验证努力值单项不超过252、总和不超过510，个体值为0到31。不能仅凭这些边界就断言某种配置最优。性格、特性、道具和招式需要配合；低攻击个体值或低速度个体值属于特定战术条件，不应未经询问自动代入。初次分析应列出哪些是用户提供的条件、哪些是工具的默认条件，并询问未明确的赛制或配置。\n\n**围绕核心成员构建队伍**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 这是项目原创的通用策略笔记，不是当前热门阵容榜单。先确定游戏、单打或双打、允许的规则，再确定核心成员承担的角色。检查队伍是否过度集中在同一弱点，是否缺少速度控制、耐久支点或可靠输出。属性覆盖只是第一步，必须结合招式、特性、道具、努力值与轮转机会。双打还要考虑队友协同与范围招式。没有使用率或赛事证据时，不宣称某套阵容是当前最强。建议给出至少一个替换方向，并解释该替换改善了什么、牺牲了什么。\n\n**从AI建议到队伍保存的确认流程**\n\n作者：VIO project · 更新：2026-10-23\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> AI的建议与实际保存分为两个步骤。当前本地工作流先读取当前账号的指定队伍，再对现有成员的培养配置生成变更预览。预览列出修改前后内容，用户确认之前不写入保存队伍。聊天中说同意不是绕过确认接口的授权；真正保存必须走该预览关联的确认操作。当前流程不能借培养配置修改来偷偷增删成员或切换物种。\n\n### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n",
+        "checks": {
+          "storageUnchanged": true,
+          "historyMatches": true,
+          "referenceBeforeMatches": true,
+          "referenceAfterMatches": true,
+          "referenceInputVerified": true,
+          "publicAnswerFormat": true,
+          "requestedSpeciesPresent": true,
+          "storageUnchangedAfterCleanup": true
+        },
+        "observationSha256": "a85808abd17d0a080b138bcafe81f2bc553d4f414ea47e7ce8e61847c3f9d6e3",
+        "eventsSha256": "63d71c4cd7f79b1c8389fcb81b1d67048a5eeef491f6483180268a5a559b5be8",
+        "toolOutcomes": [
+          {
+            "tool": "lookupPokemonReference",
+            "status": "SUCCEEDED",
+            "durationMs": 20,
+            "cached": false,
+            "parameterDigest": "df28ed05e6e041e8c494e368f56331fba907a1100abffeb2121d5a33a46b7895",
+            "callId": "5e73aa8d-1172-4f14-aa07-42c9440e22a5"
+          },
+          {
+            "tool": "lookupPokemonResource",
+            "status": "FAILED",
+            "durationMs": 12,
+            "cached": false,
+            "parameterDigest": "6b572e9c3740180ac52fad3b8b63538c72ba70b7ad117f13049bfda93efb8466",
+            "callId": "4b9bbed7-09d1-4f06-9114-bea4b622f4ae"
+          },
+          {
+            "tool": "lookupPokemonResource",
+            "status": "FAILED",
+            "durationMs": 14,
+            "cached": false,
+            "parameterDigest": "4002eb769983ce3a6a404f7760bdf0c72f576e73ed1d6cd278b5fe148f5c2243",
+            "callId": "c4e9625a-ef66-46e0-86eb-85eb4ae6a16c"
+          },
+          {
+            "tool": "searchPokemonGuides",
+            "status": "SUCCEEDED",
+            "durationMs": 11,
+            "cached": false,
+            "parameterDigest": "210722337e5e7f2d66211c9bc5d47eafed7d4cc158b6e73d1c7352b2b361af7e",
+            "callId": "d34b0a8e-a3bc-4010-babe-90ee5a781a7f"
+          }
+        ],
+        "referenceAudit": {
+          "checks": {
+            "referenceBeforeMatches": true,
+            "referenceAfterMatches": true,
+            "referenceInputVerified": true,
+            "publicAnswerFormat": true,
+            "requestedSpeciesPresent": true
+          },
+          "lookup": {
+            "required": false,
+            "successfulCalls": 1,
+            "matchingCallIds": [
+              "5e73aa8d-1172-4f14-aa07-42c9440e22a5"
+            ],
+            "scope": "Current UI fact card validated against the pinned snapshot; lookup not mandatory"
+          },
+          "formatting": {
+            "pass": true,
+            "failures": [],
+            "characters": 1483,
+            "items": 0,
+            "sentenceBoundaries": 32,
+            "scope": "Finite formatting/known-pattern checks; not proof of semantic correctness or complete fact checking"
+          },
+          "sourceIds": [
+            "pokemon-froslass",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1"
+          ],
+          "scope": "Snapshot/API equality, bounded format and target-input checks; semantic advice, source relevance and current metagame still need review"
+        },
+        "modelCalls": 5
+      },
+      {
+        "caseId": "S2-GUIDES-10",
+        "repetition": 2,
+        "status": "FAILED",
+        "input": "请介绍雪妖女，并结合所选赛制给出培养与搭配建议。请用中文区分资料事实和策略建议；资料不足时说明缺失，不编造当前热门阵容。\n图鉴属性：冰 / 幽灵。\n种族值：HP 70，攻击 80，防御 70，特攻 80，特防 70，速度 110。\n请查询当前数据版本下的特性与招式资料，不要把参考资料当作赛制合法性证明。",
+        "answer": "",
+        "checks": {
+          "storageUnchanged": true,
+          "referenceBeforeMatches": true,
+          "referenceAfterMatches": true,
+          "referenceInputVerified": true,
+          "publicAnswerFormat": false,
+          "requestedSpeciesPresent": false,
+          "storageUnchangedAfterCleanup": true
+        },
+        "observationSha256": "16cd39ffa2700bee64605099e93c4b937c5b8e888158000706e06e4d0d697cb8",
+        "eventsSha256": "339b5f161cb6b090257fa80e95779e5d81c93a5c706b3c7da8f166c276f0d249",
+        "toolOutcomes": [
+          {
+            "tool": "lookupPokemonReference",
+            "status": "SUCCEEDED",
+            "durationMs": 9,
+            "cached": false,
+            "parameterDigest": "df28ed05e6e041e8c494e368f56331fba907a1100abffeb2121d5a33a46b7895",
+            "callId": "ce66c9b7-92bb-4080-bb3b-4e49df9ad31b"
+          },
+          {
+            "tool": "lookupPokemonResource",
+            "status": "FAILED",
+            "durationMs": 15,
+            "cached": false,
+            "parameterDigest": "6b572e9c3740180ac52fad3b8b63538c72ba70b7ad117f13049bfda93efb8466",
+            "callId": "5df78ea1-489f-4bf7-9aab-27e2aa054fb7"
+          },
+          {
+            "tool": "lookupPokemonResource",
+            "status": "FAILED",
+            "durationMs": 6,
+            "cached": false,
+            "parameterDigest": "d4b0cf72ea563fadd99dc44527dc44558ddf3970dca24b4965d9c2f78f35ff21",
+            "callId": "41e897e8-1ec7-4dbb-9dd4-90f0a72301e9"
+          },
+          {
+            "tool": "searchPokemonGuides",
+            "status": "SUCCEEDED",
+            "durationMs": 15,
+            "cached": false,
+            "parameterDigest": "210722337e5e7f2d66211c9bc5d47eafed7d4cc158b6e73d1c7352b2b361af7e",
+            "callId": "039dfa15-07a4-41c9-98d4-02167b113b12"
+          },
+          {
+            "tool": "getTypeChart",
+            "status": "SUCCEEDED",
+            "durationMs": 2,
+            "cached": false,
+            "parameterDigest": "0cad5ae81d35550d24448407386c5866c25e8bd0a91b071e6ab4e2baecb8328f",
+            "callId": "a2d767ec-f290-4d50-b645-6fba6a30153e"
+          },
+          {
+            "tool": "getTypeChart",
+            "status": "SUCCEEDED",
+            "durationMs": 0,
+            "cached": false,
+            "parameterDigest": "e54ccf12dd54cf8c550c6eed1b5f7a81ff69b8574cfcfdd6f4854b4e79860407",
+            "callId": "2f670ab6-1a30-4588-94a9-c2947b68715c"
+          },
+          {
+            "tool": "checkTypeEffectiveness",
+            "status": "SUCCEEDED",
+            "durationMs": 2,
+            "cached": false,
+            "parameterDigest": "1154d9d5094d8f6d21b0a66128ef6209de9a7756ddf6238a688b8407d2cfb5fe",
+            "callId": "be27373e-f399-4d21-96c8-875028a12516"
+          },
+          {
+            "tool": "checkTypeEffectiveness",
+            "status": "SUCCEEDED",
+            "durationMs": 2,
+            "cached": false,
+            "parameterDigest": "3ab84ab1992e52e87931cbe945ae76b2e11cfd05573dd55c5ddf950a8c39c32b",
+            "callId": "d2ca3e0f-6156-438f-bbca-f9fa42ada499"
+          },
+          {
+            "tool": "checkTypeEffectiveness",
+            "status": "SUCCEEDED",
+            "durationMs": 0,
+            "cached": false,
+            "parameterDigest": "b7ed9baecd964c71bc587501c4f97863255c93341913a1aaffade48e7f00000e",
+            "callId": "8371848c-00a4-4c13-9ebe-1fa5af9bfad6"
+          },
+          {
+            "tool": "checkTypeEffectiveness",
+            "status": "SUCCEEDED",
+            "durationMs": 1,
+            "cached": false,
+            "parameterDigest": "d39dcf3ba10067390acf0d2cfac8adba7d02455384823e7367365c7ef41fc2b2",
+            "callId": "a2cbdf7b-e33f-4636-9014-150b7e655000"
+          },
+          {
+            "tool": "checkTypeEffectiveness",
+            "status": "SUCCEEDED",
+            "durationMs": 0,
+            "cached": false,
+            "parameterDigest": "5a66d4b1a454f2e34fe940927410a3ac42f0fed83a51e90153e0e8d24a214d5d",
+            "callId": "0577fcf5-ae9e-4997-bef7-ea7c8988215c"
+          }
+        ],
+        "referenceAudit": {
+          "checks": {
+            "referenceBeforeMatches": true,
+            "referenceAfterMatches": true,
+            "referenceInputVerified": true,
+            "publicAnswerFormat": false,
+            "requestedSpeciesPresent": false
+          },
+          "lookup": {
+            "required": false,
+            "successfulCalls": 1,
+            "matchingCallIds": [
+              "ce66c9b7-92bb-4080-bb3b-4e49df9ad31b"
+            ],
+            "scope": "Current UI fact card validated against the pinned snapshot; lookup not mandatory"
+          },
+          "formatting": {
+            "pass": false,
+            "failures": [
+              "EMPTY_ANSWER"
+            ],
+            "characters": 0,
+            "items": 0,
+            "sentenceBoundaries": 0,
+            "scope": "Finite formatting/known-pattern checks; not proof of semantic correctness or complete fact checking"
+          },
+          "sourceIds": [
+            "pokemon-froslass",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1"
+          ],
+          "scope": "Snapshot/API equality, bounded format and target-input checks; semantic advice, source relevance and current metagame still need review"
+        },
+        "modelCalls": 11
+      }
+    ]
+  },
+  {
+    "stage": "model-final",
+    "captureSha256": "241c3f33d524e9a730dff63acc9542aa73cac8918835135670eaa4df3a1af529",
+    "collectorVersion": "campus-s2-collector-v4",
+    "collectorSha256": {
+      "s2-evaluate.mjs": "d3963dab4ee47b533c6864ab3bb872a673e501581751d77b7985fa9497fc49dd",
+      "evaluation.mjs": "a910909066bc7dc35b1194c0227fa7f8556684f06e236084f7321cd562d14770",
+      "reference-case.mjs": "d0c390047e600fc10b283510a7f6baf46c1f2cdec40db50a3b1324d8dec97c91",
+      "tool-inputs.mjs": "bab6b8b5c445ccd450cb33bfbe5b01c8286223cf1c800745923c936350b14311",
+      "answer-quality.mjs": "fd044636b409860e29df7e9f40f97917e783060b7e3bf1dbeaed8a84a7d26644"
+    },
+    "runtime": {
+      "configuredProvider": "dashscope",
+      "configuredModelId": "qwen-plus",
+      "generationDefaults": {
+        "temperature": 0,
+        "topP": 1,
+        "maxTokens": null,
+        "scope": "CONFIGURED_DEFAULTS_NOT_PROVIDER_REQUEST_ATTESTATION"
+      },
+      "guideReferencePolicy": {
+        "scope": "KEEP_ONLY_BOUND_UNAFFECTED_MEMBER_READS_INVALIDATE_SAME_OR_UNKNOWN_TARGET_NOT_COMPLETE_TEAM_EVIDENCE",
+        "version": "verified-reference-retention-v1"
+      },
+      "guideOverviewPolicy": {
+        "scope": "PROGRAM_VERIFIED_REFERENCE_AND_GENERAL_GUIDE_ONLY_EXCLUDES_CALCULATION_TEAM_AND_WRITES",
+        "version": "bounded-reference-overview-ready-v1"
+      }
+    },
+    "denominator": 4,
+    "completed": 4,
+    "structuralPass": 4,
+    "fail": 0,
+    "pending": 4,
+    "modelCalls": 9,
+    "records": [
+      {
+        "caseId": "S2-GUIDES-09",
+        "repetition": 1,
+        "status": "COMPLETED",
+        "input": "我想要了解杰尼龟和当前版本的对战策略以及强势阵容",
+        "answer": "### 图鉴速览（资料事实）\n以下为本次实际读取的成员资料；种族值与等级无关。\n\n| 成员 | 属性 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| 杰尼龟 | 水 | 44 | 48 | 65 | 50 | 64 | 43 |\n\n来源：PokéAPI 本地参考；不代表排位合法性或当前热门程度。\n\n### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n**围绕核心成员构建队伍**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 这是项目原创的通用策略笔记，不是当前热门阵容榜单。先确定游戏、单打或双打、允许的规则，再确定核心成员承担的角色。检查队伍是否过度集中在同一弱点，是否缺少速度控制、耐久支点或可靠输出。属性覆盖只是第一步，必须结合招式、特性、道具、努力值与轮转机会。双打还要考虑队友协同与范围招式。没有使用率或赛事证据时，不宣称某套阵容是当前最强。建议给出至少一个替换方向，并解释该替换改善了什么、牺牲了什么。\n\n### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n\n### 本次范围\n本次提供已核验的图鉴事实和通用培养参考。现有资料不足以确认物种专属的完整配招、实时强势阵容或赛事合法性；这些部分仍需可靠来源和具体对局条件。\n",
+        "checks": {
+          "storageUnchanged": true,
+          "historyMatches": true,
+          "referenceBeforeMatches": true,
+          "referenceAfterMatches": true,
+          "referenceInputVerified": true,
+          "publicAnswerFormat": true,
+          "requestedSpeciesPresent": true,
+          "storageUnchangedAfterCleanup": true
+        },
+        "observationSha256": "efa6a747df7b9765fc9c350c7345857574226b8258d3b2fa101668ffa12a72e3",
+        "eventsSha256": "be19f18e5c4986601bfd4c751b3d7fe04520562cc51ac94040cfc5172e7995a5",
+        "toolOutcomes": [
+          {
+            "tool": "lookupPokemonReference",
+            "status": "SUCCEEDED",
+            "durationMs": 42,
+            "cached": false,
+            "parameterDigest": "6c38742a686bfd1992ea11ef71329ef5616c4a736b46c0131c4c29b50ff4cbf0",
+            "callId": "48ddd38f-85f1-49c8-8524-f930a3471fc0"
+          },
+          {
+            "tool": "searchPokemonGuides",
+            "status": "SUCCEEDED",
+            "durationMs": 20,
+            "cached": false,
+            "parameterDigest": "4ac0a2bc23e56bf359ebcb1bfde43572ce19a0c04cceea5af200938d59f89d1c",
+            "callId": "7c66d855-7353-4b51-a763-0d93b1315e59"
+          }
+        ],
+        "referenceAudit": {
+          "checks": {
+            "referenceBeforeMatches": true,
+            "referenceAfterMatches": true,
+            "referenceInputVerified": true,
+            "publicAnswerFormat": true,
+            "requestedSpeciesPresent": true
+          },
+          "lookup": {
+            "required": true,
+            "successfulCalls": 1,
+            "matchingCallIds": [
+              "48ddd38f-85f1-49c8-8524-f930a3471fc0"
+            ],
+            "scope": "Target identity and release in supplied arguments, not all output facts or advice"
+          },
+          "formatting": {
+            "pass": true,
+            "failures": [],
+            "characters": 709,
+            "items": 0,
+            "sentenceBoundaries": 15,
+            "scope": "Finite formatting/known-pattern checks; not proof of semantic correctness or complete fact checking"
+          },
+          "sourceIds": [
+            "pokemon-squirtle",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1"
+          ],
+          "scope": "Snapshot/API equality, bounded format and target-input checks; semantic advice, source relevance and current metagame still need review"
+        },
+        "modelCalls": 2
+      },
+      {
+        "caseId": "S2-GUIDES-09",
+        "repetition": 2,
+        "status": "COMPLETED",
+        "input": "我想要了解杰尼龟和当前版本的对战策略以及强势阵容",
+        "answer": "### 图鉴速览（资料事实）\n以下为本次实际读取的成员资料；种族值与等级无关。\n\n| 成员 | 属性 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| 杰尼龟 | 水 | 44 | 48 | 65 | 50 | 64 | 43 |\n\n来源：PokéAPI 本地参考；不代表排位合法性或当前热门程度。\n\n### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n**围绕核心成员构建队伍**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 这是项目原创的通用策略笔记，不是当前热门阵容榜单。先确定游戏、单打或双打、允许的规则，再确定核心成员承担的角色。检查队伍是否过度集中在同一弱点，是否缺少速度控制、耐久支点或可靠输出。属性覆盖只是第一步，必须结合招式、特性、道具、努力值与轮转机会。双打还要考虑队友协同与范围招式。没有使用率或赛事证据时，不宣称某套阵容是当前最强。建议给出至少一个替换方向，并解释该替换改善了什么、牺牲了什么。\n\n### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n\n### 本次范围\n本次提供已核验的图鉴事实和通用培养参考。现有资料不足以确认物种专属的完整配招、实时强势阵容或赛事合法性；这些部分仍需可靠来源和具体对局条件。\n",
+        "checks": {
+          "storageUnchanged": true,
+          "historyMatches": true,
+          "referenceBeforeMatches": true,
+          "referenceAfterMatches": true,
+          "referenceInputVerified": true,
+          "publicAnswerFormat": true,
+          "requestedSpeciesPresent": true,
+          "storageUnchangedAfterCleanup": true
+        },
+        "observationSha256": "7768e1500c3e148e0c5aa5af989f22586fa01ca2a52c1ca4a55338a22512c7e4",
+        "eventsSha256": "bf89fc649f157f06fda9f28a4d11506ec41f04fafd1eb8bb62486da0a30597a7",
+        "toolOutcomes": [
+          {
+            "tool": "lookupPokemonReference",
+            "status": "SUCCEEDED",
+            "durationMs": 22,
+            "cached": false,
+            "parameterDigest": "6c38742a686bfd1992ea11ef71329ef5616c4a736b46c0131c4c29b50ff4cbf0",
+            "callId": "b7dd0a83-f8e6-44f1-9b75-e7a809887a25"
+          },
+          {
+            "tool": "searchPokemonGuides",
+            "status": "SUCCEEDED",
+            "durationMs": 6,
+            "cached": false,
+            "parameterDigest": "a13a67e4f8032050515383bd6f0145ce0fe14345a77a3113409c4b053685ed85",
+            "callId": "38ca6df8-b2a3-4156-b4e5-b670ff98736e"
+          }
+        ],
+        "referenceAudit": {
+          "checks": {
+            "referenceBeforeMatches": true,
+            "referenceAfterMatches": true,
+            "referenceInputVerified": true,
+            "publicAnswerFormat": true,
+            "requestedSpeciesPresent": true
+          },
+          "lookup": {
+            "required": true,
+            "successfulCalls": 1,
+            "matchingCallIds": [
+              "b7dd0a83-f8e6-44f1-9b75-e7a809887a25"
+            ],
+            "scope": "Target identity and release in supplied arguments, not all output facts or advice"
+          },
+          "formatting": {
+            "pass": true,
+            "failures": [],
+            "characters": 709,
+            "items": 0,
+            "sentenceBoundaries": 15,
+            "scope": "Finite formatting/known-pattern checks; not proof of semantic correctness or complete fact checking"
+          },
+          "sourceIds": [
+            "pokemon-squirtle",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1"
+          ],
+          "scope": "Snapshot/API equality, bounded format and target-input checks; semantic advice, source relevance and current metagame still need review"
+        },
+        "modelCalls": 2
+      },
+      {
+        "caseId": "S2-GUIDES-10",
+        "repetition": 1,
+        "status": "COMPLETED",
+        "input": "请介绍雪妖女，并结合所选赛制给出培养与搭配建议。请用中文区分资料事实和策略建议；资料不足时说明缺失，不编造当前热门阵容。\n图鉴属性：冰 / 幽灵。\n种族值：HP 70，攻击 80，防御 70，特攻 80，特防 70，速度 110。\n请查询当前数据版本下的特性与招式资料，不要把参考资料当作赛制合法性证明。",
+        "answer": "### 图鉴速览（资料事实）\n以下为本次实际读取的成员资料；种族值与等级无关。\n\n| 成员 | 属性 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| 雪妖女 | 冰 / 幽灵 | 70 | 80 | 70 | 80 | 70 | 110 |\n\n来源：PokéAPI 本地参考；不代表排位合法性或当前热门程度。\n\n### 资料读取提醒\n本次有资料调用失败或未通过校验；以下仅展示已核对的结果，未取得的机制信息不作确认。\n\n### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n**围绕核心成员构建队伍**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 这是项目原创的通用策略笔记，不是当前热门阵容榜单。先确定游戏、单打或双打、允许的规则，再确定核心成员承担的角色。检查队伍是否过度集中在同一弱点，是否缺少速度控制、耐久支点或可靠输出。属性覆盖只是第一步，必须结合招式、特性、道具、努力值与轮转机会。双打还要考虑队友协同与范围招式。没有使用率或赛事证据时，不宣称某套阵容是当前最强。建议给出至少一个替换方向，并解释该替换改善了什么、牺牲了什么。\n\n**如何解读伤害区间**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 本说明由项目编写，计算引擎的接口能力参考所列仓库。伤害区间依赖攻防双方的种族、等级、实际培养配置、招式、道具、特性与场地条件。应调用伤害工具并引用返回的引擎版本、最小最大伤害、目标HP、百分比和假设条件。只有属性倍率不能推导实际伤害。当前本地桥接只表达基础配置、单打或双打、天气和场地；未表达的强化、异常状态、墙、入场伤害、太晶等不能当作已经计算。区间计算不是胜率预测，也不能证明招式组合在某赛制合法。\n\n**特性与道具先查询，再核对计算回读**\n\n作者：VIO project · 更新：2026-10-23\n\n原文位置：第 2 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 本地计算桥接会验证非空的特性与道具名称，无法识别时拒绝计算。计算完成后应核对assumptions中实际使用的名称；缺省或未填写的配置不能被解读为某个道具已生效。队伍存储只验证名称输入边界，不提供特性、道具和物种的完整搭配合法性审查。推荐某个组合之前，还需要规则与机制支持，不能由保存成功推出组合合法或最优。\n\n**培养配置：性格、努力值与个体值**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 这是项目原创的配置填写说明。保存配置前先明确输出方式和目标对手，再选择性格、等级、个体值和努力值。项目验证努力值单项不超过252、总和不超过510，个体值为0到31。不能仅凭这些边界就断言某种配置最优。性格、特性、道具和招式需要配合；低攻击个体值或低速度个体值属于特定战术条件，不应未经询问自动代入。初次分析应列出哪些是用户提供的条件、哪些是工具的默认条件，并询问未明确的赛制或配置。\n\n### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n\n### 本次范围\n本次提供已核验的图鉴事实和通用培养参考。现有资料不足以确认物种专属的完整配招、实时强势阵容或赛事合法性；这些部分仍需可靠来源和具体对局条件。\n",
+        "checks": {
+          "storageUnchanged": true,
+          "historyMatches": true,
+          "referenceBeforeMatches": true,
+          "referenceAfterMatches": true,
+          "referenceInputVerified": true,
+          "publicAnswerFormat": true,
+          "requestedSpeciesPresent": true,
+          "storageUnchangedAfterCleanup": true
+        },
+        "observationSha256": "65fbc435f4fafe27ae14d59328faf9acbf804968d62aecc7cd5665bcfacb139d",
+        "eventsSha256": "f0ec973cf3410ac9f6dbfbc37319e6846731e310612ea35266bf04f434bcbf72",
+        "toolOutcomes": [
+          {
+            "tool": "lookupPokemonReference",
+            "status": "SUCCEEDED",
+            "durationMs": 9,
+            "cached": false,
+            "parameterDigest": "df28ed05e6e041e8c494e368f56331fba907a1100abffeb2121d5a33a46b7895",
+            "callId": "46c57dc2-ba38-4480-bcc4-5919e84da83e"
+          },
+          {
+            "tool": "lookupPokemonResource",
+            "status": "FAILED",
+            "durationMs": 23,
+            "cached": false,
+            "parameterDigest": "6b572e9c3740180ac52fad3b8b63538c72ba70b7ad117f13049bfda93efb8466",
+            "callId": "969021e5-364b-4dd9-bff5-654951c17f11"
+          },
+          {
+            "tool": "lookupPokemonResource",
+            "status": "FAILED",
+            "durationMs": 8,
+            "cached": false,
+            "parameterDigest": "d4b0cf72ea563fadd99dc44527dc44558ddf3970dca24b4965d9c2f78f35ff21",
+            "callId": "8218276d-1808-42bb-a800-11d28cb4aa05"
+          },
+          {
+            "tool": "searchPokemonGuides",
+            "status": "SUCCEEDED",
+            "durationMs": 6,
+            "cached": false,
+            "parameterDigest": "335a2e721aea25427a3e8afa0961a77cf30c5d1e688149d5b31e375a3e8b110b",
+            "callId": "9e71eaf6-e7a3-4072-bb36-8daf9c318fa8"
+          }
+        ],
+        "referenceAudit": {
+          "checks": {
+            "referenceBeforeMatches": true,
+            "referenceAfterMatches": true,
+            "referenceInputVerified": true,
+            "publicAnswerFormat": true,
+            "requestedSpeciesPresent": true
+          },
+          "lookup": {
+            "required": false,
+            "successfulCalls": 1,
+            "matchingCallIds": [
+              "46c57dc2-ba38-4480-bcc4-5919e84da83e"
+            ],
+            "scope": "Current UI fact card validated against the pinned snapshot; lookup not mandatory"
+          },
+          "formatting": {
+            "pass": true,
+            "failures": [],
+            "characters": 1616,
+            "items": 0,
+            "sentenceBoundaries": 35,
+            "scope": "Finite formatting/known-pattern checks; not proof of semantic correctness or complete fact checking"
+          },
+          "sourceIds": [
+            "pokemon-froslass",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1"
+          ],
+          "scope": "Snapshot/API equality, bounded format and target-input checks; semantic advice, source relevance and current metagame still need review"
+        },
+        "modelCalls": 2
+      },
+      {
+        "caseId": "S2-GUIDES-10",
+        "repetition": 2,
+        "status": "COMPLETED",
+        "input": "请介绍雪妖女，并结合所选赛制给出培养与搭配建议。请用中文区分资料事实和策略建议；资料不足时说明缺失，不编造当前热门阵容。\n图鉴属性：冰 / 幽灵。\n种族值：HP 70，攻击 80，防御 70，特攻 80，特防 70，速度 110。\n请查询当前数据版本下的特性与招式资料，不要把参考资料当作赛制合法性证明。",
+        "answer": "### 图鉴速览（资料事实）\n以下为本次实际读取的成员资料；种族值与等级无关。\n\n| 成员 | 属性 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| 雪妖女 | 冰 / 幽灵 | 70 | 80 | 70 | 80 | 70 | 110 |\n\n来源：PokéAPI 本地参考；不代表排位合法性或当前热门程度。\n\n### 资料读取提醒\n本次有资料调用失败或未通过校验；以下仅展示已核对的结果，未取得的机制信息不作确认。\n\n### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n**特性与道具先查询，再核对计算回读**\n\n作者：VIO project · 更新：2026-10-23\n\n原文位置：第 2 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 本地计算桥接会验证非空的特性与道具名称，无法识别时拒绝计算。计算完成后应核对assumptions中实际使用的名称；缺省或未填写的配置不能被解读为某个道具已生效。队伍存储只验证名称输入边界，不提供特性、道具和物种的完整搭配合法性审查。推荐某个组合之前，还需要规则与机制支持，不能由保存成功推出组合合法或最优。\n\n**培养配置：性格、努力值与个体值**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 这是项目原创的配置填写说明。保存配置前先明确输出方式和目标对手，再选择性格、等级、个体值和努力值。项目验证努力值单项不超过252、总和不超过510，个体值为0到31。不能仅凭这些边界就断言某种配置最优。性格、特性、道具和招式需要配合；低攻击个体值或低速度个体值属于特定战术条件，不应未经询问自动代入。初次分析应列出哪些是用户提供的条件、哪些是工具的默认条件，并询问未明确的赛制或配置。\n\n**围绕核心成员构建队伍**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> 这是项目原创的通用策略笔记，不是当前热门阵容榜单。先确定游戏、单打或双打、允许的规则，再确定核心成员承担的角色。检查队伍是否过度集中在同一弱点，是否缺少速度控制、耐久支点或可靠输出。属性覆盖只是第一步，必须结合招式、特性、道具、努力值与轮转机会。双打还要考虑队友协同与范围招式。没有使用率或赛事证据时，不宣称某套阵容是当前最强。建议给出至少一个替换方向，并解释该替换改善了什么、牺牲了什么。\n\n**从AI建议到队伍保存的确认流程**\n\n作者：VIO project · 更新：2026-10-23\n\n原文位置：第 1 个片段\n\n资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n> AI的建议与实际保存分为两个步骤。当前本地工作流先读取当前账号的指定队伍，再对现有成员的培养配置生成变更预览。预览列出修改前后内容，用户确认之前不写入保存队伍。聊天中说同意不是绕过确认接口的授权；真正保存必须走该预览关联的确认操作。当前流程不能借培养配置修改来偷偷增删成员或切换物种。\n\n### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n\n### 本次范围\n本次提供已核验的图鉴事实和通用培养参考。现有资料不足以确认物种专属的完整配招、实时强势阵容或赛事合法性；这些部分仍需可靠来源和具体对局条件。\n",
+        "checks": {
+          "storageUnchanged": true,
+          "historyMatches": true,
+          "referenceBeforeMatches": true,
+          "referenceAfterMatches": true,
+          "referenceInputVerified": true,
+          "publicAnswerFormat": true,
+          "requestedSpeciesPresent": true,
+          "storageUnchangedAfterCleanup": true
+        },
+        "observationSha256": "6d41e7a56e6335bf0b8cb1c1f1ba6cbaaed526e24c99b656ca5830e480c45f02",
+        "eventsSha256": "89c8dba50be0f3197b1e47bdf3ccbf35618987f1d07aa028818b1f9c473c7db4",
+        "toolOutcomes": [
+          {
+            "tool": "lookupPokemonReference",
+            "status": "SUCCEEDED",
+            "durationMs": 17,
+            "cached": false,
+            "parameterDigest": "df28ed05e6e041e8c494e368f56331fba907a1100abffeb2121d5a33a46b7895",
+            "callId": "fc6bcf3d-1d27-45e2-ae3e-f867378fcf0b"
+          },
+          {
+            "tool": "lookupPokemonResource",
+            "status": "FAILED",
+            "durationMs": 10,
+            "cached": false,
+            "parameterDigest": "6b572e9c3740180ac52fad3b8b63538c72ba70b7ad117f13049bfda93efb8466",
+            "callId": "54736814-2ea4-4cd6-8cae-6272998e2f5c"
+          },
+          {
+            "tool": "searchPokemonGuides",
+            "status": "SUCCEEDED",
+            "durationMs": 5,
+            "cached": false,
+            "parameterDigest": "210722337e5e7f2d66211c9bc5d47eafed7d4cc158b6e73d1c7352b2b361af7e",
+            "callId": "e4e54793-aece-4dcd-9817-a06440825f36"
+          }
+        ],
+        "referenceAudit": {
+          "checks": {
+            "referenceBeforeMatches": true,
+            "referenceAfterMatches": true,
+            "referenceInputVerified": true,
+            "publicAnswerFormat": true,
+            "requestedSpeciesPresent": true
+          },
+          "lookup": {
+            "required": false,
+            "successfulCalls": 1,
+            "matchingCallIds": [
+              "fc6bcf3d-1d27-45e2-ae3e-f867378fcf0b"
+            ],
+            "scope": "Current UI fact card validated against the pinned snapshot; lookup not mandatory"
+          },
+          "formatting": {
+            "pass": true,
+            "failures": [],
+            "characters": 1564,
+            "items": 0,
+            "sentenceBoundaries": 34,
+            "scope": "Finite formatting/known-pattern checks; not proof of semantic correctness or complete fact checking"
+          },
+          "sourceIds": [
+            "pokemon-froslass",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1"
+          ],
+          "scope": "Snapshot/API equality, bounded format and target-input checks; semantic advice, source relevance and current metagame still need review"
+        },
+        "modelCalls": 3
+      }
+    ]
+  }
+]

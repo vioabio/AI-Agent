@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "team-natural-development-cases-v1",
+  "scope": "Development only. No formal admission or live model result. Report hashes must come from the actual reference HTTP endpoint before execution.",
+  "repetitions": 1,
+  "automaticRetries": 0,
+  "humanReviewed": 0,
+  "formalAdmissions": 0,
+  "cases": [
+    {
+      "id": "two-members-missing-build",
+      "prompt": "请核对整队配置：第1位杰尼龟，第2位雪妖女。所有培养字段都还没填写，请保持未填写，不要代填或保存。",
+      "expectedRequest": {
+        "dataReleaseId": "pokeapi-reference-v1",
+        "gameReleaseId": "pokemon-scarlet-violet",
+        "members": [
+          {
+            "slot": 1,
+            "pokemonId": 7,
+            "build": null
+          },
+          {
+            "slot": 2,
+            "pokemonId": 478,
+            "build": null
+          }
+        ]
+      },
+      "executionMode": "MODEL_TOOL_SELECTION",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "sparse-original-order",
+      "prompt": "请核对整队配置。按我给的顺序：第6位雪妖女，第2位杰尼龟，第4位杰尼龟。三位的招式、特性、道具、性格、等级、努力值和个体值均未填写，只核对，不补全、不保存。",
+      "expectedRequest": {
+        "dataReleaseId": "pokeapi-reference-v1",
+        "gameReleaseId": "pokemon-scarlet-violet",
+        "members": [
+          {
+            "slot": 6,
+            "pokemonId": 478,
+            "build": null
+          },
+          {
+            "slot": 2,
+            "pokemonId": 7,
+            "build": null
+          },
+          {
+            "slot": 4,
+            "pokemonId": 7,
+            "build": null
+          }
+        ]
+      },
+      "executionMode": "MODEL_TOOL_SELECTION",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "six-members-no-build",
+      "prompt": "请核对整队配置：第1、3、5位是杰尼龟，第2、4、6位是雪妖女，请按位置1到6返回；所有培养配置均未填写。不要猜测或自动补齐，不保存队伍。",
+      "expectedRequest": {
+        "dataReleaseId": "pokeapi-reference-v1",
+        "gameReleaseId": "pokemon-scarlet-violet",
+        "members": [
+          {
+            "slot": 1,
+            "pokemonId": 7,
+            "build": null
+          },
+          {
+            "slot": 2,
+            "pokemonId": 478,
+            "build": null
+          },
+          {
+            "slot": 3,
+            "pokemonId": 7,
+            "build": null
+          },
+          {
+            "slot": 4,
+            "pokemonId": 478,
+            "build": null
+          },
+          {
+            "slot": 5,
+            "pokemonId": 7,
+            "build": null
+          },
+          {
+            "slot": 6,
+            "pokemonId": 478,
+            "build": null
+          }
+        ]
+      },
+      "executionMode": "MODEL_TOOL_SELECTION",
+      "status": "NOT_RUN"
+    }
+  ]
+}

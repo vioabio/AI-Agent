@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "team-route-matrix-verification-v1",
+  "date": "2026-10-27",
+  "scope": "Duplicate JSON rejection and size-boundary consistency; deterministic governed route matrix",
+  "backend": {
+    "tests": 1280,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3,
+    "build": "SUCCESS"
+  },
+  "targeted": {
+    "tests": 26,
+    "failures": 0,
+    "errors": 0,
+    "matrixCases": 13
+  },
+  "liveModelRuns": 0,
+  "browserRuns": 0,
+  "frontendChanges": false,
+  "humanReviewed": 0,
+  "formalAdmissions": 0,
+  "formalSuiteCases": 36,
+  "originalCorpusSha256": "b0a1204403f6aaf610543399afdb11c4b37bc9614ce376c47befa843319b8b8f",
+  "firstAttempt": {
+    "tests": 26,
+    "failures": 10,
+    "errors": 0,
+    "reason": "Assertions counted framework option access as inference and ignored existing single read-only retry; test assertions corrected; original failure log preserved"
+  },
+  "limits": [
+    "Synthetic reference fixtures; not factual or model quality verification",
+    "Malformed explicit input falls back to original processing, not global HTTP rejection",
+    "General natural-language planning and joint legality remain unverified",
+    "Existing Surefire fork exit warning retained"
+  ],
+  "sourceSha256": {
+    "src/main/java/com/vio/vioaiagent/agent/TeamBuildRequestRoute.java": "b4cadd602b61fe7bcdefae946c645585266256fa03c27cab670f17b227cd8fdf",
+    "src/main/java/com/vio/vioaiagent/agent/TeamBuildAnswerEvidence.java": "8d2bab18625f068d75e9dbd2f6941239446e80e25c437e1d55bd4e2f54d96719",
+    "src/test/java/com/vio/vioaiagent/agent/TeamBuildRouteMatrixTest.java": "1f89179a85344a655214c49682d385743bf886ae2654367a99299381fc77617d",
+    "document/秋招升级/S3/整队核对多成员与失败边界_2026-10-27.md": "4fa227c8a5ec158dd30109f72c37d95ef64860baf64a6efa83330c01c4eb5443",
+    "README.md": "7bd69f357ed2b94c940f98efba25d914215a9fc3e93693bc5af07deb5807119e",
+    "document/秋招升级/S3/README.md": "eeef1272fc7c6a16a0558efc7a45c17b6de5f6b7570c50ef47b1c2e9d7c7b98e",
+    "document/秋招智能体项目完整升级方案_2026-10-22.md": "bd5fa7db4475e26ddd3379feb6a2d35306c9d187a553e7c214bd118b42a8797b"
+  },
+  "logSha256": {
+    "artifacts/team-route-matrix-backend-full-2026-10-27.log": "3fed223281134776fe5e724737f0dfd3c34740719c40573c98b8a649a6aacbd5",
+    "artifacts/team-route-matrix-targeted-final-2026-10-27.log": "568dd6b4ffdd6a895d741472f9dc7eb21ebcc70c2d31f502bf6e4b3c14881678",
+    "artifacts/team-route-matrix-targeted-2026-10-27.log": "1f8685901fc617a85b791903914a401a0a93eea2a601295c5d0dc5ce1ec24533"
+  },
+  "evidenceSha256": {
+    "cases.json": "a8b53086748ac748a8fda50924a10d27f74bfb2cd7b76cba00d34bf7152c034c",
+    "TeamBuildRouteMatrixTest.java": "1f89179a85344a655214c49682d385743bf886ae2654367a99299381fc77617d"
+  }
+}

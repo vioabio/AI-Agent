@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vio.invalid/schemas/evaluation-case-result-v1.1.json",
+  "title": "VIO v1.1 evaluator case result",
+  "type": "object",
+  "required": ["caseId", "passed"],
+  "properties": {
+    "caseId": {"type": "string", "minLength": 1},
+    "suiteId": {"type": "string", "minLength": 1},
+    "suite": {"type": "string", "minLength": 1},
+    "passed": {"type": "boolean"},
+    "blocked": {"type": "boolean"},
+    "metrics": {"type": "object", "additionalProperties": {"type": ["number", "boolean"]}},
+    "metricValues": {"type": "object", "additionalProperties": {"type": ["number", "boolean"]}},
+    "traceId": {"type": "string", "minLength": 1},
+    "lineage": {"type": "object"},
+    "evidence": {"type": "object"},
+    "ttftMs": {"type": "number", "minimum": 0},
+    "durationMs": {"type": "number", "minimum": 0},
+    "inputTokens": {"type": "number", "minimum": 0},
+    "outputTokens": {"type": "number", "minimum": 0},
+    "costUsd": {"type": "number", "minimum": 0},
+    "notes": {"type": "string", "maxLength": 500}
+  },
+  "additionalProperties": true
+}

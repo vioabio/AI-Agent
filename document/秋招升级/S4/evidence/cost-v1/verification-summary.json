@@ -1,0 +1,91 @@
+{
+  "stage": "S4 fourth batch: versioned reference-cost observation",
+  "date": "2026-10-24",
+  "engineering": {
+    "backend": {
+      "tests": 1004,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3,
+      "runtime": "Temurin 21.0.12.1",
+      "release": 21,
+      "existingSurefireShutdownWarning": true
+    },
+    "frontendContracts": 127,
+    "nodeTools": 49,
+    "edgeBrowserTests": 7,
+    "lintTypecheckBuild": "PASS"
+  },
+  "initialFailure": {
+    "logs": [
+      "artifacts/s4-cost-targeted-initial-2026-10-24.log",
+      "artifacts/s4-cost-protocol-diagnostic-2026-10-24.log"
+    ],
+    "reason": "SDK 1.0 SSE path bypassed the configured Jackson decoder and dropped top-level cache fields; local SSE string reader adapter fixed the actual protocol path. Original failed logs retained."
+  },
+  "developmentRegression": {
+    "configuredProvider": "dashscope",
+    "configuredModelId": "qwen-plus",
+    "promptVersion": "campus-s3-provenance-v2",
+    "cases": [
+      "S2-GUIDES-01",
+      "S2-CLARIFICATION-01",
+      "S2-TEAM-01"
+    ],
+    "repetitions": 1,
+    "plannedRuns": 3,
+    "sourceSnapshotPass": 3,
+    "usageSnapshotPass": 3,
+    "requestAndTaskBudgetPass": 3,
+    "costConsistencyPass": 3,
+    "modelCalls": 6,
+    "providerTokenSubtotal": 30226,
+    "pricingEnabled": false,
+    "referenceCost": "UNKNOWN",
+    "realInvoice": "NOT_PERFORMED",
+    "humanAcceptance": "3 pending",
+    "heldout": "not run",
+    "mutation": "New isolated accounts, no approval submitted; preview checked then cancelled; snapshots unchanged"
+  },
+  "pricedPathVerification": {
+    "provider": "DeepSeek-compatible local HTTP fixture only",
+    "protocolVariants": [
+      "HTTP valid cache",
+      "HTTP inconsistent cache",
+      "SSE valid cache",
+      "SSE inconsistent cache"
+    ],
+    "service": "Completed Run, owner-scoped SQLite reopen, approval confirmation without duplicate model fee",
+    "browser": "1440 and 390px controlled API fixtures, not real vendor billing"
+  },
+  "sourceFiles": 467,
+  "loadedClasses": 39,
+  "remaining": [
+    "Current DashScope SDK does not expose cache partitions for split-cache pricing",
+    "Explicit price scope/region/contract/calendar configuration and invoice verification",
+    "Tool queue/execution timing and public first-answer latency separation",
+    "Structured long-term restrictions and estimator calibration",
+    "Known answer intent/conciseness issues, independent S2/S3 review and heldout comparison",
+    "S5 delivery materials",
+    "Existing Surefire shutdown wait warning"
+  ],
+  "artifactsSha256": {
+    "artifacts/s4-cost-targeted-initial-2026-10-24.log": "9484b05a9052abedef9ce41907ba6fc9fe7290e674ee2df069e01db1199e494b",
+    "artifacts/s4-cost-protocol-diagnostic-2026-10-24.log": "e3063fa012e61c7151dc57163759db9560c98088545f21cdd02426d5931d633d",
+    "artifacts/s4-cost-protocol-ready-2026-10-24.log": "6549d4b5695e99d9d885d816ce7cd774a9713e266cdf67274dc7f0d720c93c2b",
+    "artifacts/s4-cost-targeted-ready-2026-10-24.log": "07fe4d16f8502229a9500e253f364d2d296983df742222bf357c440b9d9b1e0f",
+    "artifacts/s4-cost-backend-full-2026-10-24.log": "7ce5d2b6303c829ab8331fbd1ff9d74f0e933f9b7e38c2f36e78f6f004aa75d9",
+    "artifacts/s4-cost-frontend-final-2026-10-24.log": "a96d2ae5fc6057a3536e03d2f2dba01978cf8c29ca6a4a798ca1c12b3b0b5c87",
+    "artifacts/s4-cost-frontend-quality-final-2026-10-24.log": "9ef3c1843636bee3154b9a84bee7fe6eb23af05b665b6802daa481f85ec96f58",
+    "artifacts/s4-cost-browser-2026-10-24.log": "f8a11b723cd139d71acf85540b4d999163eb851b41fd1ea448bfd992b273e6cf",
+    "artifacts/s4-cost-campus-final-2026-10-24.log": "d80e8efda4616d7de8adaffc6659cb3a033002ecb08aed9334f3f518992787c6",
+    "artifacts/campus/s4-cost/model-2026-10-24/observations.json": "f41e7c8450d7109528ff8fffacb6561af405611fd13e018ade3d6eb40b152f3e",
+    "artifacts/campus/s4-cost/sources-2026-10-24/source-regression.json": "fd14f969385f6bcbea85fdb23d9040806d4dcdbb65204a5d0e66f4787a4330a5",
+    "artifacts/campus/s4-cost/usage-2026-10-24/usage-verification.json": "71107f8083f1338b1de1e4d461d95ec26252fe0281ad3bf4d788a9f2d624dc30",
+    "artifacts/campus/s4-cost/budget-2026-10-24/budget-audit.json": "6c48812d12837e7c6ee1740c2e820e6255e44633419f9c0854297dd8c18b110a",
+    "artifacts/campus/s4-cost/cost-2026-10-24/cost-audit.json": "2935f7844eb6c087a0e829fd306b5f8e9b585ea961f565a8de31a099cf725c2d",
+    "config/pricing/deepseek-offpeak-2026-10-24.example.json": "b7562a1ce54e329d6459f15ad20f9b0db0345c5129823302a9a7f5e0b2c1f6de",
+    "src/test/resources/pricing/fixture-prices.json": "6745b5fc506e8ca8db9bd958dc2986739151662efeb1d255226cd155c6585402",
+    "vio-ai-agent-frontend/e2e/fixtures/model-cost.json": "41177d0d0746334f0277d4a77976ca0e850561cedeb60d35b1a6a8f6fcdd4e24"
+  }
+}

@@ -1,0 +1,13 @@
+package com.vio.vioaiagent;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class VioAiAgentApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(VioAiAgentApplication.class, args);
+    }
+
+}

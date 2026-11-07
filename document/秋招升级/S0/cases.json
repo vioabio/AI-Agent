@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "purpose": "S0 reproducible demo baseline, not a scored evaluation dataset",
+  "context": {
+    "gameReleaseId": "pokemon-scarlet-violet",
+    "battleFormat": "casual-singles",
+    "rulesetVersionId": "casual-v1",
+    "dataReleaseId": "pokeapi-reference-v1",
+    "language": "zh-CN"
+  },
+  "cases": [
+    {
+      "id": "S0-01-reference",
+      "title": "杰尼龟图鉴介绍",
+      "prompt": "请调用图鉴工具查询 squirtle（杰尼龟），用中文说明属性、种族值及来源边界。只介绍已查到的事实，不判断当前热门程度。",
+      "expectedTools": ["lookupPokemonReference"],
+      "expected": ["名称与属性同真实图鉴一致", "种族值同接口一致", "说明本地参考资料不证明排位合法性或当前排名"]
+    },
+    {
+      "id": "S0-02-team",
+      "title": "保存配置并分析队伍",
+      "prompt": "请分析这份已保存的休闲单打练习队伍，区分事实与建议。成员为杰尼龟与小火龙，等级50，杰尼龟为 modest、torrent、leftovers，招式 surf/protect/ice-beam/rain-dance，努力值HP4/特攻252/速度252，其余0，个体值均31；小火龙为 timid、blaze、leftovers，招式 flamethrower/protect/dragon-pulse/will-o-wisp，努力值HP4/特攻252/速度252，其余0，个体值均31。请按当前版本读取两只图鉴后讨论角色与缺口，不编造热门阵容、胜率或合法性。本轮只给建议，不自动修改队伍。",
+      "expectedTools": ["lookupPokemonReference"],
+      "expected": ["界面/API保存与回读配置一致", "模型能读取两名成员资料", "明确仅为练习队伍，不声称强势或合法", "无自动队伍写入"]
+    },
+    {
+      "id": "S0-03-damage",
+      "title": "完整条件的确定性伤害",
+      "prompt": "请调用 calculateBattleDamage 计算第九世代杰尼龟 squirtle 使用 surf 攻击小火龙 charmander 的伤害。数据版本使用当前上下文；双方50级、满HP、个体值均31，努力值均为HP4/特攻252/速度252，其余0。攻击方 modest/torrent/leftovers，防御方 timid/blaze/leftovers。单打，无天气、地形、强化、异常状态、墙、场地伤害或太晶。用中文解释工具返回的伤害范围、百分比和假设，不推断胜率。",
+      "expectedTools": ["calculateBattleDamage"],
+      "expected": ["实际执行本地固定版本计算引擎", "保留伤害范围、百分比和条件", "明确没有胜率或合法性结论"]
+    }
+  ],
+  "team": {
+    "name": "S0 休闲练习队伍",
+    "rulesetId": "casual-v1",
+    "dataReleaseId": "pokeapi-reference-v1",
+    "members": [
+      {"formId": 7, "slot": 1, "build": {"moves": ["surf", "protect", "ice-beam", "rain-dance"], "ability": "torrent", "item": "leftovers", "nature": "modest", "level": 50, "evs": {"hp": 4, "atk": 0, "def": 0, "spa": 252, "spd": 0, "spe": 252}, "ivs": {"hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31}}},
+      {"formId": 4, "slot": 2, "build": {"moves": ["flamethrower", "protect", "dragon-pulse", "will-o-wisp"], "ability": "blaze", "item": "leftovers", "nature": "timid", "level": 50, "evs": {"hp": 4, "atk": 0, "def": 0, "spa": 252, "spd": 0, "spe": 252}, "ivs": {"hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31}}}
+    ]
+  },
+  "damage": {
+    "generation": 9,
+    "dataReleaseId": "pokeapi-reference-v1",
+    "move": "surf",
+    "field": {"gameType": "Singles", "weather": null, "terrain": null}
+  }
+}

@@ -1,0 +1,161 @@
+{
+  "scope": "Only selected, preallocated case repetitions; not a 100-case benchmark",
+  "denominator": 6,
+  "pass": 0,
+  "fail": 0,
+  "pendingReview": 6,
+  "structuralPass": 6,
+  "verifiedSuccessRate": 0,
+  "assistedReviewed": 0,
+  "humanReviewed": 0,
+  "byCategory": {
+    "facts": {
+      "denominator": 2,
+      "pass": 0,
+      "fail": 0,
+      "pendingReview": 2,
+      "structuralPass": 2,
+      "verifiedSuccessRate": 0
+    },
+    "guides": {
+      "denominator": 0,
+      "pass": 0,
+      "fail": 0,
+      "pendingReview": 0,
+      "structuralPass": 0,
+      "verifiedSuccessRate": null
+    },
+    "team": {
+      "denominator": 2,
+      "pass": 0,
+      "fail": 0,
+      "pendingReview": 2,
+      "structuralPass": 2,
+      "verifiedSuccessRate": 0
+    },
+    "damage": {
+      "denominator": 0,
+      "pass": 0,
+      "fail": 0,
+      "pendingReview": 0,
+      "structuralPass": 0,
+      "verifiedSuccessRate": null
+    },
+    "clarification": {
+      "denominator": 0,
+      "pass": 0,
+      "fail": 0,
+      "pendingReview": 0,
+      "structuralPass": 0,
+      "verifiedSuccessRate": null
+    },
+    "safety": {
+      "denominator": 2,
+      "pass": 0,
+      "fail": 0,
+      "pendingReview": 2,
+      "structuralPass": 2,
+      "verifiedSuccessRate": 0
+    }
+  },
+  "tools": {
+    "required": 6,
+    "successful": 6,
+    "caseDenominator": 4,
+    "casesAllRequiredSucceeded": 4
+  },
+  "latencyMs": {
+    "p50": 2450,
+    "p95": 6615,
+    "samples": 6
+  },
+  "ttftMs": {
+    "p50": 722,
+    "p95": 5196,
+    "source": "Polling observation upper bound, includes buffering; not provider TTFT"
+  },
+  "usage": "unknown",
+  "cost": "unknown",
+  "citationCorrectness": "pending human source/claim review",
+  "retrievalRecallAt5": "not measured: no instrumented chunk ranking",
+  "rows": [
+    {
+      "caseId": "S2-FACTS-01",
+      "repetition": 1,
+      "category": "facts",
+      "split": "dev",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 1,
+      "successfulRequiredTools": 1,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-FACTS-01",
+      "repetition": 2,
+      "category": "facts",
+      "split": "dev",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 1,
+      "successfulRequiredTools": 1,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-TEAM-01",
+      "repetition": 1,
+      "category": "team",
+      "split": "dev",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 2,
+      "successfulRequiredTools": 2,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-TEAM-01",
+      "repetition": 2,
+      "category": "team",
+      "split": "dev",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 2,
+      "successfulRequiredTools": 2,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-SAFETY-01",
+      "repetition": 1,
+      "category": "safety",
+      "split": "dev",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 0,
+      "successfulRequiredTools": 0,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-SAFETY-01",
+      "repetition": 2,
+      "category": "safety",
+      "split": "dev",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 0,
+      "successfulRequiredTools": 0,
+      "reviewState": "PENDING",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    }
+  ]
+}

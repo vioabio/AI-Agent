@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "damage-claims-verification-v1",
+  "policyVersion": "bounded-damage-conditional-claims-v1",
+  "backendTests": {
+    "tests": 56,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "archivedCandidate": {
+    "originReportHashMatches": true,
+    "originObservationHashMatches": true,
+    "draftHashMatches": true,
+    "oldEvidenceUnchanged": true
+  },
+  "collections": [
+    {
+      "collection": "collection-v1",
+      "rows": 8,
+      "states": {
+        "COMPLETED": 1,
+        "FAILED": 7
+      },
+      "structuralPass": 1,
+      "fail": 7,
+      "pendingReview": 1,
+      "modelCalls": 11,
+      "callsWithUsage": 4,
+      "outcomes": {
+        "RETURNED": 4,
+        "FAILED": 7
+      },
+      "knownTokens": {
+        "inputTokens": 23980,
+        "outputTokens": 1313,
+        "totalTokens": 25293
+      },
+      "sourcesUnchanged": true,
+      "suiteUnchanged": true
+    },
+    {
+      "collection": "collection-v2",
+      "rows": 8,
+      "states": {
+        "COMPLETED": 7,
+        "FAILED": 1
+      },
+      "structuralPass": 7,
+      "fail": 1,
+      "pendingReview": 7,
+      "modelCalls": 20,
+      "callsWithUsage": 19,
+      "outcomes": {
+        "RETURNED": 19,
+        "FAILED": 1
+      },
+      "knownTokens": {
+        "inputTokens": 117732,
+        "outputTokens": 6817,
+        "totalTokens": 124549
+      },
+      "sourcesUnchanged": true,
+      "suiteUnchanged": true
+    }
+  ],
+  "combined": {
+    "plannedRows": 16,
+    "structuralPass": 8,
+    "fail": 8,
+    "humanReviewed": 0
+  },
+  "latestDamage": {
+    "tasks": 4,
+    "completed": 4,
+    "programReplacements": 4,
+    "engineInputsAndResultsMatch": true
+  },
+  "sourceEntries": 530,
+  "currentSourceMismatches": [],
+  "diagnosticModelRequests": 2,
+  "diagnosticScope": "one minimal HTTP request and one all-tools Java request; both succeeded; excluded from collection token totals",
+  "billing": "Known token subtotals only; failed-call usage and invoice unknown",
+  "limitations": [
+    "Finite clause patterns only, not a general semantic verifier",
+    "Pure damage advice only; existing team/saved/guide boundaries preserved",
+    "No independent heldout or human quality acceptance",
+    "TransientAiException logged for failures; actual HTTP status not retained; do not infer quota or service cause",
+    "Two fixed batches only; first failures retained; no third batch"
+  ]
+}

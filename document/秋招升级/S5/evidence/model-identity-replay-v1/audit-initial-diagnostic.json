@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "team-identity-replay-audit-v1",
+  "pass": false,
+  "checks": {
+    "capturedPass": true,
+    "completed": true,
+    "allAggregateCallsBound": true,
+    "literalNamesBeforeAggregate": false,
+    "noWriteDuringReadOnly": true,
+    "boundStoredHistory": true,
+    "sameConversation": true,
+    "sameAccount": true,
+    "ownRunEvidence": true,
+    "realUsage": true,
+    "runtimeStable": true,
+    "previewScope": true,
+    "originalLevel": true,
+    "noWriteBeforeConfirmation": true,
+    "exactSavedTeam": true,
+    "applied": true,
+    "receipt": true,
+    "savedReadBack": true,
+    "requiredChangeTools": false,
+    "cleanup": true,
+    "automatedActor": true
+  },
+  "literalReads": [
+    {
+      "tool": "lookupPokemonReference",
+      "pass": false,
+      "observed": 2,
+      "successful": 2,
+      "checks": [
+        {
+          "callId": "93e770f9-9aa4-4588-9073-8fac17265c4d",
+          "pass": true,
+          "cached": false,
+          "failures": []
+        },
+        {
+          "callId": "2578fa64-0f5b-4b64-9ddf-f24c37787dfc",
+          "pass": false,
+          "cached": false,
+          "failures": [
+            "FIELD_MISMATCH:/query",
+            "EXACT_ARGUMENTS_MISMATCH"
+          ]
+        }
+      ],
+      "failure": "",
+      "scope": "Supplied arguments only; no claim about resolved defaults, tool outputs or general answer correctness"
+    },
+    {
+      "tool": "lookupPokemonReference",
+      "pass": false,
+      "observed": 2,
+      "successful": 2,
+      "checks": [
+        {
+          "callId": "93e770f9-9aa4-4588-9073-8fac17265c4d",
+          "pass": false,
+          "cached": false,
+          "failures": [
+            "FIELD_MISMATCH:/query",
+            "EXACT_ARGUMENTS_MISMATCH"
+          ]
+        },
+        {
+          "callId": "2578fa64-0f5b-4b64-9ddf-f24c37787dfc",
+          "pass": true,
+          "cached": false,
+          "failures": []
+        }
+      ],
+      "failure": "",
+      "scope": "Supplied arguments only; no claim about resolved defaults, tool outputs or general answer correctness"
+    }
+  ],
+  "protocolResults": {
+    "originalV1Pass": false,
+    "scopedReferencesV2Pass": true
+  },
+  "actualModelCalls": 5,
+  "distinctToolCalls": [
+    3,
+    2
+  ],
+  "answerDeltaCounts": [
+    1,
+    1
+  ],
+  "newHumanReviews": 0,
+  "formalAdmissions": 0,
+  "tokenByTokenStreamingVerified": false,
+  "fullRecruitingVideoComplete": false,
+  "scope": "One continuous dedicated test session; engineering checks only. Historical failure retained; no general planning or semantic quality score."
+}

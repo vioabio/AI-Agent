@@ -1,0 +1,196 @@
+[
+  {
+    "id": "S2-GUIDES-09",
+    "category": "guides",
+    "groupId": "squirtle-strategy-source-and-fallback",
+    "split": "dev",
+    "prompt": "我想要了解杰尼龟和当前版本的对战策略以及强势阵容",
+    "versions": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1"
+    },
+    "preconditions": {
+      "team": "probe"
+    },
+    "expected": {
+      "outcome": "answer",
+      "requiredTools": [
+        "searchPokemonGuides"
+      ],
+      "forbiddenTools": [
+        "searchWeb",
+        "previewTeamChanges",
+        "applyConfirmedTeamChanges",
+        "writeFile",
+        "terminal"
+      ],
+      "referenceFixture": "squirtle",
+      "forbiddenPatterns": [
+        "Let me proceed with the final answer",
+        "I see the issue",
+        "我已经有足够资料",
+        "checksum",
+        "run-[a-f0-9-]{20,}"
+      ],
+      "criteria": [
+        {
+          "id": "species-facts",
+          "text": "介绍杰尼龟，区分种族值与实际能力，事实符合本次捕获来源",
+          "sourceIds": [
+            "pokemon-squirtle"
+          ]
+        },
+        {
+          "id": "configuration-boundary",
+          "text": "培养建议给出条件与取舍，不把缺省值或未读取的特性/招式效果当成已确认事实",
+          "sourceIds": [
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "guide-squirtle-conditional-overview-v1"
+          ]
+        },
+        {
+          "id": "metagame-boundary",
+          "text": "说明本地参考缺少当前热门阵容/正式赛制证据，不编造排名、胜率或合法性",
+          "sourceIds": [
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "guide-squirtle-conditional-overview-v1"
+          ]
+        },
+        {
+          "id": "source-relevance",
+          "text": "引用实际存在且与本问题相关，资料不足时明确说明；通用攻略不能冒充完整物种战术答案",
+          "sourceIds": [
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "guide-squirtle-conditional-overview-v1"
+          ]
+        },
+        {
+          "id": "user-facing-answer",
+          "text": "用中文给出可读正文，不输出内部规划、工具行为猜测或原始JSON；未执行操作不宣称成功",
+          "sourceIds": [
+            "pokemon-squirtle",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "guide-squirtle-conditional-overview-v1"
+          ]
+        }
+      ]
+    },
+    "annotation": {
+      "by": "Codex AI assisted source-linked authoring",
+      "date": "2026-10-26",
+      "humanReview": "pending",
+      "candidateId": "CQ-SQUIRTLE-STRATEGY-001",
+      "originKind": "USER_TYPED",
+      "promptOriginal": "我想要了解杰尼龟和当前版本的对战策略以及强势阵容",
+      "transformation": "ORIGINAL_USER_TEXT",
+      "promptBuilderSha256": "1308b7acb28dcb4ba5fdf0a23fff0c6566cafe02c9afdf61f5ad7158f8a6b2b7"
+    }
+  },
+  {
+    "id": "S2-GUIDES-10",
+    "category": "guides",
+    "groupId": "froslass-final-answer-and-evidence-boundary",
+    "split": "dev",
+    "prompt": "请介绍雪妖女，并结合所选赛制给出培养与搭配建议。请用中文区分资料事实和策略建议；资料不足时说明缺失，不编造当前热门阵容。\n图鉴属性：冰 / 幽灵。\n种族值：HP 70，攻击 80，防御 70，特攻 80，特防 70，速度 110。\n请查询当前数据版本下的特性与招式资料，不要把参考资料当作赛制合法性证明。",
+    "versions": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1"
+    },
+    "preconditions": {
+      "team": "probe"
+    },
+    "expected": {
+      "outcome": "answer",
+      "requiredTools": [
+        "searchPokemonGuides"
+      ],
+      "forbiddenTools": [
+        "searchWeb",
+        "previewTeamChanges",
+        "applyConfirmedTeamChanges",
+        "writeFile",
+        "terminal"
+      ],
+      "referenceFixture": "froslass",
+      "forbiddenPatterns": [
+        "Let me proceed with the final answer",
+        "I see the issue",
+        "我已经有足够资料",
+        "checksum",
+        "run-[a-f0-9-]{20,}"
+      ],
+      "criteria": [
+        {
+          "id": "species-facts",
+          "text": "介绍雪妖女，区分种族值与实际能力，事实符合本次捕获来源",
+          "sourceIds": [
+            "pokemon-froslass"
+          ]
+        },
+        {
+          "id": "configuration-boundary",
+          "text": "培养建议给出条件与取舍，不把缺省值或未读取的特性/招式效果当成已确认事实",
+          "sourceIds": [
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "guide-froslass-conditional-overview-v1"
+          ]
+        },
+        {
+          "id": "metagame-boundary",
+          "text": "说明本地参考缺少当前热门阵容/正式赛制证据，不编造排名、胜率或合法性",
+          "sourceIds": [
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "guide-froslass-conditional-overview-v1"
+          ]
+        },
+        {
+          "id": "source-relevance",
+          "text": "引用实际存在且与本问题相关，资料不足时明确说明；通用攻略不能冒充完整物种战术答案",
+          "sourceIds": [
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "guide-froslass-conditional-overview-v1"
+          ]
+        },
+        {
+          "id": "user-facing-answer",
+          "text": "用中文给出可读正文，不输出内部规划、工具行为猜测或原始JSON；未执行操作不宣称成功",
+          "sourceIds": [
+            "pokemon-froslass",
+            "guide-training-configuration-v1",
+            "guide-reference-vs-rules-v1",
+            "guide-froslass-conditional-overview-v1"
+          ]
+        }
+      ]
+    },
+    "annotation": {
+      "by": "Codex AI assisted source-linked authoring",
+      "date": "2026-10-26",
+      "humanReview": "pending",
+      "candidateId": "CQ-FROSLASS-ANSWER-001",
+      "originKind": "USER_REPORTED_APP_PROMPT",
+      "promptOriginal": "请介绍这只宝可梦，并结合所选赛制给出培养与搭配建议。区分资料事实和策略建议；资料不足时说明缺失，不编造当前热门阵容。",
+      "transformation": "CURRENT_UI_REFERENCE_PROMPT_WITH_VERIFIED_FACT_CARD",
+      "promptBuilderSha256": "1308b7acb28dcb4ba5fdf0a23fff0c6566cafe02c9afdf61f5ad7158f8a6b2b7"
+    }
+  }
+]

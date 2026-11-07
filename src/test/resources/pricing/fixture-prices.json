@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "version": "test-fixture-v1",
+  "prices": [
+    { "id": "fixture-usd", "provider": "deepseek", "model": "fixture-model", "scope": "offline-test", "currency": "USD",
+      "validFrom": "2020-01-01T00:00:00Z", "validUntil": "2100-01-01T00:00:00Z", "sourceType": "TEST_FIXTURE", "sourceUrl": "https://example.invalid/prices",
+      "inputAccounting": "SPLIT_CACHE", "maxInputTokens": 1000000, "inputPerMillion": "1", "cachedInputPerMillion": "0.1", "outputPerMillion": "3" },
+    { "id": "fixture-cny", "provider": "deepseek", "model": "fixture-cny", "scope": "offline-test", "currency": "CNY",
+      "validFrom": "2020-01-01T00:00:00Z", "validUntil": "2100-01-01T00:00:00Z", "sourceType": "TEST_FIXTURE", "sourceUrl": "https://example.invalid/prices",
+      "inputAccounting": "ALL_INPUT", "maxInputTokens": 1000000, "inputPerMillion": "2", "cachedInputPerMillion": null, "outputPerMillion": "4" }
+  ]
+}

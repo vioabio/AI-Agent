@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "model-failure-diagnostics-verification-v1",
+  "backendTests": {
+    "tests": 37,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "compatibilityTests": {
+    "toolUsage": 4,
+    "frontendUsage": 8,
+    "failures": 0
+  },
+  "controlledHttp": {
+    "scenarios": 6,
+    "statuses": [
+      401,
+      429,
+      503
+    ],
+    "modes": [
+      "CALL",
+      "STREAM"
+    ],
+    "requestsPerScenario": 1,
+    "externalProviderRequests": 0
+  },
+  "live": {
+    "caseCount": 4,
+    "repetitions": 2,
+    "rows": 8,
+    "structuralPass": 8,
+    "fail": 0,
+    "pendingReview": 8,
+    "humanReviewed": 0,
+    "modelCalls": 20,
+    "callsWithUsage": 20,
+    "recordedFailures": 0,
+    "failureFieldsAllowlisted": null,
+    "usageSnapshotsVerified": 8,
+    "knownTokens": {
+      "inputTokens": 125085,
+      "outputTokens": 7918,
+      "totalTokens": 133003
+    },
+    "extraExternalDiagnosticRequests": 0,
+    "independentHeldout": false,
+    "liveFailureSchemaVerification": "NOT_OBSERVED_NO_LIVE_FAILURES"
+  },
+  "sources": {
+    "entries": 531,
+    "sourceMatchesCurrent": true,
+    "sourcesUnchanged": true,
+    "suiteUnchanged": true
+  },
+  "limits": [
+    "No live failures reproduced; historical failures retain unknown HTTP status",
+    "Diagnostics classify visible causes, not an independently verified root cause",
+    "Pre-call budget blocks and outer cancellation/timeouts retain existing lifecycle semantics",
+    "No new retry, raw messages, body, headers, endpoint URL, exception class or stack stored in diagnostic field",
+    "Frontend usage summaries remain compatible; no new diagnostics UI",
+    "No whole-backend or browser rerun, no human quality review, no invoice reconciliation"
+  ]
+}

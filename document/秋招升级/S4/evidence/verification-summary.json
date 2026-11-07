@@ -1,0 +1,52 @@
+{
+  "stage": "S4 first batch; incomplete",
+  "recordedAt": "2026-10-23T09:15:16.751Z",
+  "scope": "Local engineering and usage observation, not heldout or human quality acceptance",
+  "engineering": {
+    "backend": {
+      "tests": 955,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3,
+      "surefireShutdownWarning": true
+    },
+    "frontendContract": 115,
+    "nodeCampusTools": 43,
+    "browserEdge": 5,
+    "frontendLintTypecheckBuild": "passed"
+  },
+  "realModel": {
+    "configuredProvider": "dashscope",
+    "configuredModelId": "qwen-plus",
+    "promptVersion": "campus-s3-provenance-v2",
+    "plannedRuns": 4,
+    "usageSnapshotPass": 4,
+    "completeUsageRuns": 4,
+    "appModelCalls": 10,
+    "httpRequestCount": "UNKNOWN",
+    "cost": "UNKNOWN",
+    "s2HumanReview": "4 pending",
+    "s3FixedCheckPassed": 2,
+    "s3FixedCheckPlanned": 3,
+    "s3KnownFailure": "S2-GUIDES-01 repeated search rejection clears guide evidence; safe fallback, no citations",
+    "streamIdentity": "One real SDK streaming call; program chunks are not SDK calls",
+    "sideEffects": "No approvals submitted; dedicated test data only"
+  },
+  "pending": [
+    "Guide repeated-search fallback",
+    "Token-aware context budget and trimming",
+    "Call and token budget enforcement",
+    "Price-versioned billing and cache breakdown",
+    "Independent S2/S3 human review and heldout comparison"
+  ],
+  "artifactsSha256": {
+    "artifacts/s4-backend-full.log": "f1331dac7bb29b483f4724ef29f13d431505c2d5b2556dfc5948cb02e6e85249",
+    "artifacts/s4-frontend-contract-final.log": "eaca8c991b1953ab089df566f640e7b7ddf76e89bbbc39529613904f07f2c0ce",
+    "artifacts/s4-frontend-quality-final.log": "c8748da3419d36a663eaa41d1165f8c47eba4901593edf4f535cfdeeec22c549",
+    "artifacts/s4-campus-tools-final.log": "b7af538ef8157b612ca236c9eb19948c56ad621a3458365d19cea3cded96231d",
+    "artifacts/s4-frontend-e2e-verified.log": "f204eb7eab3ba2e1247e175f8d495c1900d9bf9a6daeecb0d42ec9df17088e76",
+    "artifacts/campus/s4/model-ready/observations.json": "c44d31617be5377eb046e69b3c3043d069ff62109308a386ec680fb5abf33927",
+    "artifacts/campus/s4/usage-ready/usage-verification.json": "440aa94fed0aee184dfb5cfd3dd86837c8012ac376f2eb6f401f3d1b8a1ea394",
+    "artifacts/campus/s4/sources-observed/source-regression.json": "1982e8aed8f7eb61c69fa09dbd8133e7ee62d4809d228b440c9d2ea6c92067b4"
+  }
+}

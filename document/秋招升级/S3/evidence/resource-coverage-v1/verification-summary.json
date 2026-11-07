@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "resource-category-coverage-verification-v1",
+  "verifiedAt": "2026-10-26T14:27:50.327Z",
+  "backend": {
+    "tests": 1138,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3,
+    "newTests": 10
+  },
+  "node": {
+    "tests": 129,
+    "passed": 129,
+    "newTests": 4
+  },
+  "frontendContract": {
+    "tests": 139,
+    "passed": 139
+  },
+  "targeted": {
+    "tests": 45,
+    "overlapsFull": true
+  },
+  "http": {
+    "beforeMatches": 12,
+    "afterMatches": 12
+  },
+  "model": {
+    "planned": 4,
+    "completed": 4,
+    "structuralPass": 4,
+    "explicitCategoryRequests": 2,
+    "requiredCategoryChecks": 4,
+    "missingCategories": 0,
+    "matchedReferenceReads": 4,
+    "actualCalls": 4,
+    "programResourceReads": 4
+  },
+  "retrospective": {
+    "oldCategoryChecks": 4,
+    "oldMissingCategories": 2,
+    "scope": "Current rule applied to preserved older observations; no replacement of original scores, new capture or same-code ablation"
+  },
+  "provenance": {
+    "sourceCount": 494,
+    "runtimeClasses": 72,
+    "sourceIdentitySha256": "0e63e73d68b20dd6d22c9f1f621ecc7213107919e80f722e195748502158d040",
+    "runtimeIdentitySha256": "afd442c55d3beb86ff0edf9e7806d96093ad574a4f336589e3fb868ec2ad0d8b"
+  },
+  "review": {
+    "assisted": 4,
+    "human": 0,
+    "pending": 4,
+    "taskPass": 0
+  },
+  "formalAdmission": {
+    "baseCases": 36,
+    "provisionalUniqueQuestions": 2,
+    "newFormalAdmissions": 0,
+    "heldoutRun": false
+  },
+  "limits": [
+    "Finite explicit Chinese single-member overview, not all phrasings or general multi-intent planning",
+    "At most one candidate example per requested ability/move category; not all abilities, a four-move set, exact mechanics or legality",
+    "Only fixed local/evaluation READ_ONLY_TOOLS and public snapshots, not all daily tool paths",
+    "Program source selection is separate from autonomous model planning; configured identity does not attest deployed weights",
+    "No global cost, billing, remote CI, PostgreSQL or multi-instance acceptance; existing validation/SLF4J/Surefire warnings retained"
+  ],
+  "logs": [
+    {
+      "file": "artifacts/resource-coverage-targeted-2026-10-26.log",
+      "sha256": "17932424091df2413901c0f37ee592c8ca911381e5cd1effc3716e08bfd9bef6"
+    },
+    {
+      "file": "artifacts/resource-coverage-backend-full-2026-10-26.log",
+      "sha256": "d38be6d745ad23c63f9a06d05010c4d798edd4fd27bb5c7576a2d2ba0a2f5ef5"
+    },
+    {
+      "file": "artifacts/resource-coverage-backend-final-2026-10-26.log",
+      "sha256": "e001afab4e1d00bd65902226ffd3968c1a31f07fd512e7e77bbba6ffb8bc5f36"
+    },
+    {
+      "file": "artifacts/resource-coverage-tools-final-2026-10-26.log",
+      "sha256": "444058a55bf7bcf0465bf3aec0a9cca32b3f08d5ad334807c65f4b733407f8fd"
+    },
+    {
+      "file": "artifacts/resource-coverage-frontend-contract-2026-10-26.log",
+      "sha256": "83ca565b0d27c256aec05598a09aa7d8bd6886689a4c8c462987e0ad1101136e"
+    },
+    {
+      "file": "artifacts/resource-coverage-http-before-2026-10-26.log",
+      "sha256": "d68d40227b2c62ef185a8f486e0cbc4c964d2123d20f8fd6cf5f035275387eca"
+    },
+    {
+      "file": "artifacts/resource-coverage-http-after-2026-10-26.log",
+      "sha256": "8a67f768ebe161bcac7683b02d8d1ce6b0852ea980d390f275b9ab9a0d41da4e"
+    },
+    {
+      "file": "artifacts/resource-coverage-real-2026-10-26.log",
+      "sha256": "4c107c8260fc15ec85d604c22351b9098ee3ad8f83f60a84378128925d2cbeff"
+    }
+  ],
+  "frozen": {
+    "originalFiveCodeReferencesUnchanged": true,
+    "s2AndS3DatasetUnchanged": true,
+    "originalGuideAndMechanicSourcesUnchanged": true,
+    "oldUserReportVersionsPreserved": true
+  },
+  "cleanup": {
+    "isolatedPortClosed": 18164,
+    "daily8123Untouched": true,
+    "daily3000Untouched": true,
+    "privateModelConfigInspected": false,
+    "committed": false,
+    "pushed": false,
+    "deployed": false
+  }
+}

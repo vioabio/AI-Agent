@@ -1,0 +1,141 @@
+{
+  "schemaVersion": "machine-acquisition-verification-v1",
+  "generatedAt": "2026-10-27T06:38:25.369Z",
+  "stage": "S3 limited shared acquisition regions",
+  "backend": {
+    "tests": 1246,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3,
+    "newTests": 8,
+    "status": "BUILD SUCCESS",
+    "knownWarning": "Existing Surefire fork exit wait warning remains"
+  },
+  "node": {
+    "tests": 168,
+    "failed": 0,
+    "newTests": 6
+  },
+  "frontend": {
+    "contracts": 175,
+    "newContracts": 5,
+    "lint": "passed",
+    "typecheck": "passed",
+    "build": "passed",
+    "browserCases": 2,
+    "viewports": [
+      1440,
+      390
+    ],
+    "browserMode": "Controlled API with Chrome",
+    "observedTeamWrites": 0,
+    "horizontalOverflow": false,
+    "temporaryPort": 31999,
+    "temporaryPortStopped": true
+  },
+  "references": {
+    "records": 4,
+    "commonRegionReferences": 3,
+    "incompleteSource": 1,
+    "registeredRegionPairs": 4,
+    "sourcePages": 2,
+    "sourceIndependence": "not established",
+    "intersectionMeaning": "Explicitly paired broad location paths only, not equality or completeness of source lists",
+    "unmergedExample": "Great Crater is not automatically mapped to Area Zero",
+    "unlockStatus": "NOT_CROSS_CHECKED",
+    "singleSourceUnlockNotes": "Preserved in observations but not published as HTTP or Agent conditions",
+    "recipeDisagreement": "water-pulse recipe remains withheld independently of its shared region reference"
+  },
+  "agent": {
+    "sdkTests": 4,
+    "newAcquisitionQuestionTest": 1,
+    "provider": "mock",
+    "realProviderRequests": 0,
+    "regionPresentationOrigin": "PINNED_LOCAL_CATALOG_AFTER_BOUND_MATCHED_MACHINE",
+    "realProviderSelectionOrClarificationAccuracy": "not measured"
+  },
+  "http": {
+    "mode": "MockMvc controller tests",
+    "realAuthenticatedBackendRuns": 0,
+    "memberOrNetworkReadsDuringAcquisitionControllerTests": 0
+  },
+  "independentHumanReviews": 0,
+  "inGameVerifications": 0,
+  "formalCases": 36,
+  "formalNewCases": 0,
+  "originalS3CorpusSha256": "b0a1204403f6aaf610543399afdb11c4b37bc9614ce376c47befa843319b8b8f",
+  "frozenPaths": "git diff HEAD unchanged",
+  "dailyServers": "8123/3000 not operated or restarted; restart backend to load endpoint",
+  "committed": false,
+  "pushed": false,
+  "deployed": false,
+  "logs": [
+    {
+      "path": "artifacts/machine-acquisition-backend-full-2026-10-27.log",
+      "bytes": 1221075,
+      "sha256": "sha256:caa9825fc69c36e43c0e1f0535882524daf235eb2c37cc008e1425401dd24aa3"
+    },
+    {
+      "path": "artifacts/machine-acquisition-node-2026-10-27.log",
+      "bytes": 15915,
+      "sha256": "sha256:19a42138b5ca723297b549210d0764c19287a612573037d62d8ff55e78332710"
+    },
+    {
+      "path": "artifacts/machine-acquisition-source-audit-2026-10-27.json",
+      "bytes": 802,
+      "sha256": "sha256:dd5eb95de7f95e758faa48d1d87cdb78bcc3ade16693b90f1ae61012bacde0bd"
+    },
+    {
+      "path": "artifacts/machine-acquisition-frontend-contract-2026-10-27.log",
+      "bytes": 15781,
+      "sha256": "sha256:10f55802c777de878d93ec10a855345afd007a27f6123d02cbac11d4d7e1c00f"
+    },
+    {
+      "path": "artifacts/machine-acquisition-lint-2026-10-27.log",
+      "bytes": 150,
+      "sha256": "sha256:c773794da748981e10f240ba4b7f859891d64b56ee3a7ecd4cbb3fb4c1b97dde"
+    },
+    {
+      "path": "artifacts/machine-acquisition-lint-report-2026-10-27.json",
+      "bytes": 856,
+      "sha256": "sha256:1fc828d7fa1ed749f2598eec2d4f84161b26cea43f51c805cb76c8bd230a56b0"
+    },
+    {
+      "path": "artifacts/machine-acquisition-typecheck-2026-10-27.log",
+      "bytes": 165,
+      "sha256": "sha256:d431da541b0c4f2c8232c42d662ff8f596220ef7f44a9072d88a1c899f786845"
+    },
+    {
+      "path": "artifacts/machine-acquisition-typecheck-report-2026-10-27.json",
+      "bytes": 809,
+      "sha256": "sha256:1dde891d18010b4dcb103c0cc41bec29cd43d5bf2569b9a0ea5707b8083049c6"
+    },
+    {
+      "path": "artifacts/machine-acquisition-build-2026-10-27.log",
+      "bytes": 689,
+      "sha256": "sha256:3af04aa2a1df04f3cdf760c98196850e6ff982dbf18a9d06879c7eb87db6fc6a"
+    },
+    {
+      "path": "artifacts/machine-acquisition-browser-2026-10-27.log",
+      "bytes": 651,
+      "sha256": "sha256:e1152e9b2e58b3550190ff90e24deb2a64bd5026435b72f8a3f7cf8ad53aba7b"
+    },
+    {
+      "path": "artifacts/machine-acquisition-browser-2026-10-27.json",
+      "bytes": 5898,
+      "sha256": "sha256:745839467060ed418841e906368c07b3b3a796ded11c914773c96c70ad8787f4"
+    },
+    {
+      "path": "artifacts/machine-acquisition-diff-check-2026-10-27.log",
+      "bytes": 8806,
+      "sha256": "sha256:2ace209bdd25f270da04648b779d7a76c1ae85a881013f6c035091abe8f00d91"
+    }
+  ],
+  "limitations": [
+    "No exact coordinates, NPC requirement, unlock condition or route confirmation",
+    "No complete acquisition list or independent-source guarantee",
+    "No resolution of recipe spelling discrepancy",
+    "No joint four-move, inventory, formal legality, independent human or in-game acceptance",
+    "No real-provider tool selection, clarification or semantic quality measurement"
+  ]
+}

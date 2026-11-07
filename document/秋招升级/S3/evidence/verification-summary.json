@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-23",
+  "backend": {
+    "tests": 932,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3,
+    "log": "artifacts/s3-backend-final.log",
+    "logSha256": "b538d00c0766c7a9abc086847480483a4e9cd9948e6e08873bf0d6927653e7b1",
+    "knownForkShutdownWarning": true
+  },
+  "node": {
+    "tests": 33,
+    "failures": 0,
+    "log": "artifacts/s3-node-final.log",
+    "logSha256": "46e1924367401984a1df7be46ce778f947324ec9c4cd3c967b36dc6cdc6019e1"
+  },
+  "retrieval": {
+    "planned": 13,
+    "positive": 8,
+    "negative": 5,
+    "documentRecallWithinTop5Chunks": 1,
+    "mrrAt5": 1,
+    "negativeEmptyAccuracy": 1,
+    "sourcesVerified": 13,
+    "scope": "Tiny four-document development regression. Not heldout quality, chunk-labelled recall, or an S2 ablation result."
+  },
+  "modelFixedDevelopmentChecks": {
+    "planned": 3,
+    "pass": 3,
+    "failed": 0
+  },
+  "restartVerified": true,
+  "corpusSha256": "b03a376daf16104f092cc25cf72994b76812728c7f322282334837df74119f98",
+  "humanAcceptance": "pending",
+  "heldoutComparison": "not performed"
+}

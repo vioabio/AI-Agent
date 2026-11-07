@@ -1,0 +1,54 @@
+groups:
+  - name: vio-ai-agent-slo
+    rules:
+      # 终态失败率是产品/运行质量信号，不把 HTTP 200 当成成功。
+      - alert: AgentRunFailureRateHigh
+        expr: >-
+          sum(rate(vio_agent_run_total{status=~"failed|timed_out"}[5m]))
+          / clamp_min(sum(rate(vio_agent_run_total[5m])), 1) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Agent Run 失败率超过 5%"
+          description: "过去 5 分钟失败/超时 Run 占比超过错误预算。"
+
+      - alert: ToolCallSuccessRateLow
+        expr: >-
+          sum(rate(vio_tool_call_failure_total[5m]))
+          / clamp_min(sum(rate(vio_tool_call_total[5m])), 1) > 0.20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "工具调用失败率超过 20%"
+          description: "请按 tool gateway、MCP 连接和下游依赖定位。"
+
+      - alert: ActiveAgentsNearLimit
+        expr: vio_agent_active > 8
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "活跃 Agent 接近并发上限"
+          description: "当前活跃 Agent 数：{{ $value }}。"
+
+      - alert: AgentRunP95LatencyHigh
+        expr: >-
+          histogram_quantile(0.95,
+            sum(rate(vio_agent_run_duration_seconds_bucket[10m])) by (le)) > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Agent Run P95 超过 30 秒"
+          description: "请检查模型、检索、工具和重试耗时。"
+
+      - alert: VioAgentTargetDown
+        expr: up{job="vio-ai-agent"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "VIO Agent Prometheus target 不可用"
+          description: "Prometheus 无法采集 /api/actuator/prometheus。"

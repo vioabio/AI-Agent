@@ -1,45 +1,85 @@
-.venv/
-.wheelhouse/
-.env
-__pycache__/
-.pytest_cache/
-.pytest-tmp/
-artifacts/
-tools/recruiting/node_modules/
-logs/
-work/
-tmp/
-/pip-build-env-*/
-/pip-build-tracker-*/
-*.egg-info/
-*.pyc
-*.pyo
-*.pyd
-.DS_Store
-*_猎聘简历.txt
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
 
-outputs/*
-!outputs/navigation_signatures/
-outputs/navigation_signatures/*
-!outputs/navigation_signatures/01_current_page/
-outputs/navigation_signatures/01_current_page/*
-!outputs/navigation_signatures/01_current_page/hierarchy.xml
-!outputs/navigation_signatures/02_search_entry/
-outputs/navigation_signatures/02_search_entry/*
-!outputs/navigation_signatures/02_search_entry/hierarchy.xml
-!outputs/navigation_signatures/03_result_list/
-outputs/navigation_signatures/03_result_list/*
-!outputs/navigation_signatures/03_result_list/hierarchy.xml
-!outputs/navigation_signatures/04_candidate_profile/
-outputs/navigation_signatures/04_candidate_profile/*
-!outputs/navigation_signatures/04_candidate_profile/hierarchy.xml
-!outputs/control_explorer/
-outputs/control_explorer/*
-!outputs/control_explorer/page_04_empty_result/
-outputs/control_explorer/page_04_empty_result/*
-!outputs/control_explorer/page_04_empty_result/hierarchy.xml
-!outputs/profile_collection/
-outputs/profile_collection/*
-!outputs/profile_collection/live_current_profile/
-outputs/profile_collection/live_current_profile/*
-!outputs/profile_collection/live_current_profile/report.json
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+.run/
+# Keep local verification databases out of archived evidence and Git.
+/document/秋招升级/**/evidence/**/*.sqlite
+/document/秋招升级/**/evidence/**/*.sqlite-*
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### 敏感配置文件（包含 API Key 等密钥）###
+# 本地开发配置 — 可能包含个人 API Key，不应提交
+**/application-local.yml
+**/application-local.yaml
+**/application-local.properties
+**/application-local.yml.*
+**/application-local.yaml.*
+**/application-local.properties.*
+
+# MCP Server 配置 — 可能包含第三方 API Key
+# 如需提交模板，请使用 mcp-servers.example.json
+**/mcp-servers.json
+**/mcp-servers.json.*
+# 任意子目录的 dotenv 文件可能包含本地凭据，统一禁止进入 Git。
+**/.env.*
+**/.env
+.local-data/
+/tools/pokemon-engine/node_modules/
+# 测试使用的空 MCP fixture 不含凭据，必须随源码进入干净 checkout。
+!src/test/resources/mcp-servers.json
+
+# 本地工具链（S0 补齐）：缺失 JDK 时按需下载到工作区的 Temurin 运行时。
+# 体积约 190MB 且与平台绑定，必须忽略；同时避免 git stash -u 把整个 JDK 卷进 stash。
+.tools/
+
+# ============================================================
+# 生成物与运行期数据（S0/R00 补齐）
+# ============================================================
+# 说明：仓库此前为方便提交源码与文档，把忽略规则收得很紧，只保留密钥文件；
+# 这导致下列**生成物**反复出现在未跟踪列表里，容易被 git add -A 误入库。
+# 它们都不是源码，且会持续增长，因此恢复忽略。
+
+# 构建与测试临时文件（历史上曾累积大量 n6/n8 临时目录）。
+tmp/
+
+# 审计日志：append-only 的**运行期**数据，只应进入受控日志系统。
+# 源码仓库保留写入逻辑与脱敏规则，不保留审计原文。
+logs/audit/*.jsonl
+
+# 评测与发布证据产物。生产证据按升级方案归档到外部制品库，
+# 由 manifest 的 artifactRoot 引用；仓库内只保留 producer 脚本与契约。
+artifacts/
+vio-ai-agent-frontend/artifacts/
+
+# 契约校验产生的越界故障报告（由测试重写，非手工维护）。
+outside-fault-report.json
+outside-image-secret-scan.json
+

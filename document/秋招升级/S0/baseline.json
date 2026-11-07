@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baselineId": "campus-s0-2026-10-23",
+  "scope": "Local Pokemon reference, saved team analysis and deterministic damage explanation",
+  "profiles": ["local", "deepseek"],
+  "model": {"provider": "deepseek", "id": "deepseek-flash", "thinking": "disabled", "override": "DEEPSEEK_MODEL", "key": "DEEPSEEK_API_KEY", "runtimeIdentityMustBeConfirmed": true},
+  "promptSources": ["src/main/java/com/vio/vioaiagent/agent/VioManus.java", "src/main/java/com/vio/vioaiagent/agent/ToolCallAgent.java"],
+  "promptVersion": "campus-s0-trainer-notes-v1",
+  "dataReleaseId": "pokeapi-reference-v1",
+  "gameReleaseId": "pokemon-scarlet-violet",
+  "battleFormat": "casual-singles",
+  "rulesetVersionId": "casual-v1",
+  "language": "zh-CN",
+  "damageEngine": "@smogon/calc@0.12.0",
+  "runTimeoutSeconds": 120,
+  "history": {"messages": 20, "characters": 12000},
+  "tools": ["lookupPokemonReference", "lookupPokemonResource", "calculateBattleDamage", "searchPokemonGuides", "checkTypeEffectiveness", "getTypeChart", "doTerminate"],
+  "disabledForDemo": ["searchWeb", "MCP clients", "high risk administrative tools", "versioned knowledge facade", "model cache", "automatic side-effect replay"],
+  "dependencies": {"java": "21", "nodeTested": "24.19.0", "npmTested": "11.17.0", "mavenWrapper": "3.9.16", "database": "SQLite"},
+  "nonGoals": ["Agent-confirmed team mutation (S1)", "100-case quality evaluation (S2)", "vector retrieval rollout (S3)", "usage cost accounting (S4)", "production multi-instance acceptance"],
+  "evidencePolicy": "Record failures as failures. Real model, fixture and API-only evidence must never be combined into one quality score. Source model ID is not proof of an existing runtime model ID."
+}

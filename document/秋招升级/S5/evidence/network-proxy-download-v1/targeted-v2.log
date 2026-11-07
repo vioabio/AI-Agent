@@ -1,0 +1,35 @@
+✔ fixed public download creates a six-file bundle accepted by the existing importer (158.3324ms)
+✔ wrong resource identity fails before creating the destination (8.9961ms)
+✔ redirects and non-JSON responses never create usable reference data (16.6199ms)
+✔ declared and streamed oversized bodies are bounded without writing partial bundles (34.5613ms)
+✔ network failures retain a sanitized error and have no automatic retries (7.3992ms)
+✔ existing and outside destinations are rejected before fetching (16.4225ms)
+✔ manifest traversal and changed snapshot bytes cannot pass readiness (33.929ms)
+✔ symlinked output ancestors cannot escape the public workspace (13.2251ms)
+✔ readiness inspects public inputs without claiming build or model success (77.1484ms)
+✔ wrong Node or JDK versions and changed dependency versions fail readiness (101.2961ms)
+✔ missing packages, wrappers or reference bundles are reported without executing installers (3.5072ms)
+✔ private model configuration is never selected for readiness reads (72.948ms)
+✔ CLI refuses an existing report before any environment inspection (231.3758ms)
+✔ public build source selection includes only the named public demo config (1.1244ms)
+✔ readiness CLI selects an explicit public workspace without probing a model (292.5098ms)
+✔ allowlisted nested TLS codes are reported for each fixed route without secrets or partial output (13.1122ms)
+✔ unknown all-caps messages and cause codes cannot enter public failure reports (9.0959ms)
+✔ aborts have a bounded timeout code without exposing transport messages (11.0535ms)
+✔ explicit serial mode sends each fixed request once with at most one active download (62.028ms)
+✔ invalid download modes fail before any transport or destination writes (3.796ms)
+✔ invalid request budgets fail before networking and cannot remove the timeout bound (3.8447ms)
+✔ configured deadline covers stalled body reads and reports only phase and byte count (71.6822ms)
+✔ CLI rejects duplicate unknown and unbounded budget flags without creating a destination (1292.3678ms)
+✔ proxy child receives only explicit public transport settings and no inherited secret or TLS bypass (2.6517ms)
+✔ remote credential-bearing or malformed proxies are rejected before child execution (1.8337ms)
+✔ unsupported Node or invalid budgets fail without a network subprocess (0.4838ms)
+✔ child failures retain sanitized fixed-route diagnostics and never expose stderr text (0.8937ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1859.5806

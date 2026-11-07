@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "local-public-workspace-smoke-v1",
+  "date": "2026-10-29",
+  "scope": "Fresh public working-tree copy including uncommitted sources, cache-assisted build. Not remote clone or empty-machine installation.",
+  "pass": true,
+  "sourceFiles": 672,
+  "buildInputsMatchCurrentWorktree": true,
+  "privateConfigCopied": false,
+  "existingDatabasesCopied": false,
+  "existingBuildOutputsCopied": false,
+  "backend": {
+    "offlinePackage": "PASS",
+    "testsSkipped": true,
+    "publicExamplePresent": true,
+    "excludedJarEntries": [],
+    "jarSha256": "3b486024f240cada4fb73a6cb59fd21743d7a29fa464bf107fa0c998df0e9a7c"
+  },
+  "frontend": {
+    "offlineNpmInstall": "PASS",
+    "viteBuild": "PASS",
+    "browserFlowTested": false,
+    "indexSha256": "a30eb1e9d10b9da28c4579dedaf3885a920c502bb8d1b0d1027cea09ae16bf95"
+  },
+  "engine": {
+    "offlineNpmInstall": "PASS",
+    "bridgeSmoke": "PASS",
+    "independentAlgorithmVerification": false
+  },
+  "authProbe": {
+    "localMode": true,
+    "registration": true,
+    "loginProfile": true,
+    "runtimeAvailable": true,
+    "teamListAvailable": true,
+    "relogin": true,
+    "logout": true
+  },
+  "modelRequestsIssued": 0,
+  "realModelKeyUsed": false,
+  "referenceNetworkRequestsIssued": 0,
+  "foregroundStopped": true,
+  "cacheAssisted": true,
+  "emptyMachineInstallationVerified": false,
+  "videoRecorded": false,
+  "s5Complete": false,
+  "nodeTests": 224,
+  "newTests": 6,
+  "firstAttempt": "Probe omitted CSRF refresh after logout; HTTP403 retained; probe corrected, no application auth change",
+  "sourceSha256": {
+    "tools/campus/local-smoke-workspace.mjs": "cbe0f4997c6d65e92c1fb80d78860f6b68319a8e906b8826d14fb426cdd42933",
+    "tools/campus/local-smoke-workspace.test.mjs": "44b071f90af2d1af823aa9e64881f02c9a42e7eb10ec7a9fa02075aeb0a611db",
+    "tools/campus/local-smoke-probe.mjs": "b278581dffd1e7e836d155968d2c3a8bcb4f9f04cbfd15779a6e9d8f045e6c75"
+  },
+  "artifactSha256": {
+    "engine-smoke.json": "53762d41202b36348c8f869d2f4822d181d14b50ae553b1683a5482afd9c4007",
+    "local-smoke-probe.mjs": "b278581dffd1e7e836d155968d2c3a8bcb4f9f04cbfd15779a6e9d8f045e6c75",
+    "local-smoke-workspace.mjs": "cbe0f4997c6d65e92c1fb80d78860f6b68319a8e906b8826d14fb426cdd42933",
+    "local-smoke-workspace.test.mjs": "44b071f90af2d1af823aa9e64881f02c9a42e7eb10ec7a9fa02075aeb0a611db",
+    "previous-material-acceptance.json": "5ba0ddb7218b872d8de8b100adce8bed758f024533913814d46a22b7ba09a5b6",
+    "probe-final.json": "a42706ddac81ddf9cd4d2b3a7e8a1338ecad88230fcd36f5d26eb2c134a1bfa8",
+    "probe-first-failed.json": "390462c26ebcd8c4ef0314008cd977714ade0b0b9db6f8845ca5ddab69856b06",
+    "source-manifest.json": "2092085c5561ad6b5a900ed664e6bba54e89e0e59459d83609f30b344a00f3dd"
+  },
+  "logSha256": {
+    "artifacts/campus/local-smoke/workspace-v1/backend-package.log": "97b489273fd28237409eac1816435f8e102b105cfeacc7d44d9e1f994492d122",
+    "artifacts/campus/local-smoke/workspace-v1/vio-ai-agent-frontend/npm-install.log": "4ab60025709f940dce3c7afdd99d8cc39b86fc463614bffbb27c1b3e6ff7f3ce",
+    "artifacts/campus/local-smoke/workspace-v1/vio-ai-agent-frontend/npm-build.log": "0d04ea70cf0bfd130806d3d65e371daef6f0a599275df9c2e244d2a3f333ecf3",
+    "artifacts/campus/local-smoke/workspace-v1/tools/pokemon-engine/npm-install.log": "92be811125ad1c6a9746df4af97a1db60dd568c1417065d65faf61c4381c649b",
+    "artifacts/local-smoke-node-final-2026-10-29.log": "3d0bdfe84f780a749c494cbafa41939064cd736072de53fec873b6ba11e6f94b"
+  }
+}

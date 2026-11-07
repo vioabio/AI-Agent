@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "team-agent-route-development-plan-v1",
+  "scope": "Explicit draft uses governed program execution; saved-team task uses model planning. Results are not model-accuracy improvement or formal admission.",
+  "cases": [
+    {"id": "draft-with-missing-member-build", "mode": "draft", "executionMode": "PROGRAM_SUPPLIED_TEAM_REQUEST", "requiredTools": ["checkPokemonTeamBuild"]},
+    {"id": "read-saved-team-then-check", "mode": "saved", "executionMode": "MODEL_TOOL_SELECTION", "requiredTools": ["readCurrentTeam", "checkPokemonTeamBuild"]}
+  ],
+  "repetitions": 1,
+  "sourceBundleManifestSha256": "46e8d9080f671d371b5ae31584b8cca5e548542bfc9bf7f5ae18fe8e3caf5a72",
+  "timeoutSeconds": 120,
+  "automaticRetries": 0
+}

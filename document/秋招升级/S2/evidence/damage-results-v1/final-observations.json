@@ -1,0 +1,3086 @@
+[
+  {
+    "caseId": "DR-EXPLICIT",
+    "repetition": 1,
+    "runId": "run-7c771604-b26a-4f73-bcd8-bba4466dac75",
+    "status": "COMPLETED",
+    "prompt": "请调用 calculateBattleDamage，按以下JSON原样提供request参数，不展开null、不更换攻防、招式或配置；只解释实际计算条件、范围与限制，不读取或修改保存队伍：\n{\"generation\":9,\"dataReleaseId\":\"pokeapi-reference-v1\",\"move\":\"surf\",\"field\":{\"gameType\":\"Singles\",\"weather\":null,\"terrain\":null},\"attacker\":{\"species\":\"squirtle\",\"build\":{\"moves\":[\"surf\",\"protect\",\"ice-beam\",\"rain-dance\"],\"ability\":\"torrent\",\"item\":\"leftovers\",\"nature\":\"modest\",\"level\":50,\"evs\":{\"hp\":4,\"atk\":0,\"def\":0,\"spa\":252,\"spd\":0,\"spe\":252},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}},\"defender\":{\"species\":\"charmander\",\"build\":{\"moves\":[\"flamethrower\",\"protect\",\"dragon-pulse\",\"will-o-wisp\"],\"ability\":\"blaze\",\"item\":\"leftovers\",\"nature\":\"timid\",\"level\":50,\"evs\":{\"hp\":4,\"atk\":0,\"def\":0,\"spa\":252,\"spd\":0,\"spe\":252},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}}}",
+    "answer": "### 伤害结果（计算事实）\n| 项目 | 实际计算结果 |\n| --- | --- |\n| 伤害范围 | 164～194 HP |\n| 防御方最大HP | 115 |\n| 伤害百分比 | 142.61%～168.70% |\n\n攻击方：Squirtle，Lv.50，性格 Modest，特性 Torrent，道具 Leftovers；EV HP4/攻0/防0/特攻252/特防0/速252；IV HP31/攻31/防31/特攻31/特防31/速31。\n防御方：Charmander，Lv.50，性格 Timid，特性 Blaze，道具 Leftovers；EV HP4/攻0/防0/特攻252/特防0/速252；IV HP31/攻31/防31/特攻31/特防31/速31。\n招式：Surf；场地：Singles；天气：无；地形：无。\n来源：本地 @smogon/calc 0.12.0。假设满HP；未模拟未提供的强化、异常状态、墙、场地伤害和太晶。伤害范围不是胜率或赛制合法性证明，也不单独保证击倒结果。\n\n### 训练家提醒\n本次建议包含尚未核对的机制或数值描述，暂未展示。可以先依据上面已核对的资料或计算结果，明确各成员的角色、配置和目标对局，随后用资料与计算工具逐项验证。当前不提供热门程度、胜率或招式合法性结论。",
+    "modelCalls": 3,
+    "eventsSha256": "af0c5017f17898b34a752cb9d8da49ad1a6c6b73559b06e183701465f0dd678e",
+    "historySha256": "acabd2c91ea37b529351b9450111ab8ee36c1f4a5793bce6619861ed4635d723",
+    "tools": [
+      {
+        "tool": "calculateBattleDamage",
+        "callId": "8a884275-fc09-4a0d-8102-6fb45b7c102c",
+        "status": "SUCCEEDED",
+        "inputEvidence": {
+          "parameterDigest": "cd2220735100f1228fd9ed00044e3bcf9633046a048dec16ce5f98309932be25",
+          "schemaVersion": "tool-input-evidence-v1",
+          "toolVersion": "1.0.0",
+          "scope": "SUPPLIED_ARGUMENTS_ONLY",
+          "fields": {
+            "/request/generation": {
+              "kind": "LITERAL",
+              "value": 9
+            },
+            "/request/dataReleaseId": {
+              "kind": "LITERAL",
+              "value": "pokeapi-reference-v1"
+            },
+            "/request/move": {
+              "sha256": "4a0a0ca857887531c9098f6407f8ebf03c9ffc5e1698106952abd172067cc16f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/field/gameType": {
+              "kind": "LITERAL",
+              "value": "Singles"
+            },
+            "/request/field/weather": {
+              "kind": "LITERAL",
+              "value": null
+            },
+            "/request/field/terrain": {
+              "kind": "LITERAL",
+              "value": null
+            },
+            "/request/attacker/species": {
+              "sha256": "868c57fcaf7a4eefb15f85819552ebb7ff6c8be387bba9f4c29e897e5e1d9a4f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/length": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/moves/0": {
+              "sha256": "4a0a0ca857887531c9098f6407f8ebf03c9ffc5e1698106952abd172067cc16f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/1": {
+              "sha256": "79b354696815b1239272be96e392712f095b8944768f5065bde1ce2e137260c5",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/2": {
+              "sha256": "af1b9a286abd7c075bd718d8db25f9dc1ec9b12fba1d8d4ae6e5a0a41c878c5b",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/3": {
+              "sha256": "a04582945b751da09d9a89153125193f1bc0264d9274220d4639edbd6dd7132b",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/ability": {
+              "sha256": "ea14b41e5e4621d327ade8f955d6a77231729b4e681b0cba9c50b6a64bfdb904",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/item": {
+              "sha256": "876998813251f83d77e7b03c6a6c3b739d82ad3f3a572aeb48083e4419ef6ccf",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/nature": {
+              "sha256": "1b95a9211b0b56dd87741dfa7e5dda180b6a48045419a51676c85ce847475e89",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/attacker/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/species": {
+              "sha256": "5ece572cec6ed517ee867fb7a3f92565f491c69ad4a492000832fe4f93cc3470",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/length": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/defender/build/moves/0": {
+              "sha256": "9107cd727c0f7ce1547b641cd6973400627695ddf1f04dbbd476e1257f35ae2e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/1": {
+              "sha256": "79b354696815b1239272be96e392712f095b8944768f5065bde1ce2e137260c5",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/2": {
+              "sha256": "b76d0c404a87a8046da520dafd1b3ab066b360f86061862e4e317fe723364688",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/3": {
+              "sha256": "ed195c249606024189b9db95ac58e02afa3812260a77ba084766be7ad622868e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/ability": {
+              "sha256": "d8d6b467441f7e64d4678e68a17dfe4ce8a1d02b930c280815ca68227952a79e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/item": {
+              "sha256": "876998813251f83d77e7b03c6a6c3b739d82ad3f3a572aeb48083e4419ef6ccf",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/nature": {
+              "sha256": "0a7982e99961bfb801299550f90813f6f4f3c65fcffeb2b325f729ed3ac4c92c",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/defender/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/defender/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            }
+          },
+          "coverage": "COMPLETE",
+          "typedRequestDigest": "1d7dbd6238baa57c3c6e2750e0d1143f5ae4b87426797108fd42e75b1599b076"
+        },
+        "terminal": {
+          "status": "SUCCEEDED",
+          "toolVersion": "1.0.0",
+          "parameterDigest": "cd2220735100f1228fd9ed00044e3bcf9633046a048dec16ce5f98309932be25",
+          "cached": false
+        },
+        "outputEvidence": {
+          "schemaVersion": "damage-result-evidence-v1",
+          "status": "VERIFIED",
+          "scope": "SUPPORTED_CONDITIONS_AND_RANGE_ONLY",
+          "parameterDigest": "cd2220735100f1228fd9ed00044e3bcf9633046a048dec16ce5f98309932be25",
+          "toolVersion": "1.0.0",
+          "typedRequestDigest": "1d7dbd6238baa57c3c6e2750e0d1143f5ae4b87426797108fd42e75b1599b076",
+          "outputDigest": "dd8fc1412e84db59304f8a9094673c90ebef30048e932bcc9e504b1a6dd452af",
+          "resolvedFields": {
+            "/request/generation": {
+              "kind": "LITERAL",
+              "value": 9
+            },
+            "/request/dataReleaseId": {
+              "kind": "LITERAL",
+              "value": "pokeapi-reference-v1"
+            },
+            "/request/attacker/species": {
+              "sha256": "4913f387c81f37d3be0be2d89426db7382dd4658cc6ba4f0139b4aa709e873fe",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/attacker/build/nature": {
+              "sha256": "fc0262a456aebc57710069dedac5e2091b058b4f4a2b9eea810b64be1b177d80",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/ability": {
+              "sha256": "1d614d8c6ba018f423c140ced04e48048acfdd06a0a53e0f9a0b59b89a8448dc",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/item": {
+              "sha256": "a26e5e9230210f6d7bc811105ecd443013928166660fce67b9669c7019824d04",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/species": {
+              "sha256": "3d29b4a53b1e2a6116ea81b3b45101ba13a6a41ad1b068aa066d98428220a678",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/defender/build/nature": {
+              "sha256": "22f5772b66e220a2a726211c54f4e39d51a5d09963b12ef5673ee1eed687ec0d",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/ability": {
+              "sha256": "78a29ab6f16a3649a61e59f877b03952c0781b20e67fa2f64e0667e703ca3f92",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/item": {
+              "sha256": "a26e5e9230210f6d7bc811105ecd443013928166660fce67b9669c7019824d04",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/defender/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/move": {
+              "sha256": "62078571b3749e44be8af051fedfceb6ad401816772877fc6d15cf4fa1a9a5ec",
+              "kind": "SHA256_JSON"
+            },
+            "/request/field/gameType": {
+              "kind": "LITERAL",
+              "value": "Singles"
+            },
+            "/request/field/weather": {
+              "kind": "LITERAL",
+              "value": null
+            },
+            "/request/field/terrain": {
+              "kind": "LITERAL",
+              "value": null
+            }
+          },
+          "omittedFields": [],
+          "explicitNullFields": [
+            "/request/field/weather",
+            "/request/field/terrain"
+          ],
+          "engineDefaultAbilityFields": [],
+          "range": {
+            "minimum": 164,
+            "maximum": 194
+          },
+          "percent": {
+            "minimum": 142.6086956521739,
+            "maximum": 168.69565217391303
+          },
+          "defenderHp": 115
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "DR-EXPLICIT",
+    "repetition": 2,
+    "runId": "run-7cd94e18-fd99-497b-8537-83dc2a51cc36",
+    "status": "COMPLETED",
+    "prompt": "请调用 calculateBattleDamage，按以下JSON原样提供request参数，不展开null、不更换攻防、招式或配置；只解释实际计算条件、范围与限制，不读取或修改保存队伍：\n{\"generation\":9,\"dataReleaseId\":\"pokeapi-reference-v1\",\"move\":\"surf\",\"field\":{\"gameType\":\"Singles\",\"weather\":null,\"terrain\":null},\"attacker\":{\"species\":\"squirtle\",\"build\":{\"moves\":[\"surf\",\"protect\",\"ice-beam\",\"rain-dance\"],\"ability\":\"torrent\",\"item\":\"leftovers\",\"nature\":\"modest\",\"level\":50,\"evs\":{\"hp\":4,\"atk\":0,\"def\":0,\"spa\":252,\"spd\":0,\"spe\":252},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}},\"defender\":{\"species\":\"charmander\",\"build\":{\"moves\":[\"flamethrower\",\"protect\",\"dragon-pulse\",\"will-o-wisp\"],\"ability\":\"blaze\",\"item\":\"leftovers\",\"nature\":\"timid\",\"level\":50,\"evs\":{\"hp\":4,\"atk\":0,\"def\":0,\"spa\":252,\"spd\":0,\"spe\":252},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}}}",
+    "answer": "### 伤害结果（计算事实）\n| 项目 | 实际计算结果 |\n| --- | --- |\n| 伤害范围 | 164～194 HP |\n| 防御方最大HP | 115 |\n| 伤害百分比 | 142.61%～168.70% |\n\n攻击方：Squirtle，Lv.50，性格 Modest，特性 Torrent，道具 Leftovers；EV HP4/攻0/防0/特攻252/特防0/速252；IV HP31/攻31/防31/特攻31/特防31/速31。\n防御方：Charmander，Lv.50，性格 Timid，特性 Blaze，道具 Leftovers；EV HP4/攻0/防0/特攻252/特防0/速252；IV HP31/攻31/防31/特攻31/特防31/速31。\n招式：Surf；场地：Singles；天气：无；地形：无。\n来源：本地 @smogon/calc 0.12.0。假设满HP；未模拟未提供的强化、异常状态、墙、场地伤害和太晶。伤害范围不是胜率或赛制合法性证明，也不单独保证击倒结果。\n\n### 训练家提醒\n本次建议包含尚未核对的机制或数值描述，暂未展示。可以先依据上面已核对的资料或计算结果，明确各成员的角色、配置和目标对局，随后用资料与计算工具逐项验证。当前不提供热门程度、胜率或招式合法性结论。",
+    "modelCalls": 3,
+    "eventsSha256": "358a5950144ad013874d192aef2f48f1f4226690ebe3018c65e75c64a45a0975",
+    "historySha256": "c917742821cecd28f2e9a3150b06fc6efb1dfcc3bb112999a13d2dafe6fe7fc2",
+    "tools": [
+      {
+        "tool": "calculateBattleDamage",
+        "callId": "110e3f60-7f7c-41a4-b3af-0f0f363670c2",
+        "status": "SUCCEEDED",
+        "inputEvidence": {
+          "parameterDigest": "cd2220735100f1228fd9ed00044e3bcf9633046a048dec16ce5f98309932be25",
+          "schemaVersion": "tool-input-evidence-v1",
+          "toolVersion": "1.0.0",
+          "scope": "SUPPLIED_ARGUMENTS_ONLY",
+          "fields": {
+            "/request/generation": {
+              "kind": "LITERAL",
+              "value": 9
+            },
+            "/request/dataReleaseId": {
+              "kind": "LITERAL",
+              "value": "pokeapi-reference-v1"
+            },
+            "/request/move": {
+              "sha256": "4a0a0ca857887531c9098f6407f8ebf03c9ffc5e1698106952abd172067cc16f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/field/gameType": {
+              "kind": "LITERAL",
+              "value": "Singles"
+            },
+            "/request/field/weather": {
+              "kind": "LITERAL",
+              "value": null
+            },
+            "/request/field/terrain": {
+              "kind": "LITERAL",
+              "value": null
+            },
+            "/request/attacker/species": {
+              "sha256": "868c57fcaf7a4eefb15f85819552ebb7ff6c8be387bba9f4c29e897e5e1d9a4f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/length": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/moves/0": {
+              "sha256": "4a0a0ca857887531c9098f6407f8ebf03c9ffc5e1698106952abd172067cc16f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/1": {
+              "sha256": "79b354696815b1239272be96e392712f095b8944768f5065bde1ce2e137260c5",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/2": {
+              "sha256": "af1b9a286abd7c075bd718d8db25f9dc1ec9b12fba1d8d4ae6e5a0a41c878c5b",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/3": {
+              "sha256": "a04582945b751da09d9a89153125193f1bc0264d9274220d4639edbd6dd7132b",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/ability": {
+              "sha256": "ea14b41e5e4621d327ade8f955d6a77231729b4e681b0cba9c50b6a64bfdb904",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/item": {
+              "sha256": "876998813251f83d77e7b03c6a6c3b739d82ad3f3a572aeb48083e4419ef6ccf",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/nature": {
+              "sha256": "1b95a9211b0b56dd87741dfa7e5dda180b6a48045419a51676c85ce847475e89",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/attacker/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/species": {
+              "sha256": "5ece572cec6ed517ee867fb7a3f92565f491c69ad4a492000832fe4f93cc3470",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/length": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/defender/build/moves/0": {
+              "sha256": "9107cd727c0f7ce1547b641cd6973400627695ddf1f04dbbd476e1257f35ae2e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/1": {
+              "sha256": "79b354696815b1239272be96e392712f095b8944768f5065bde1ce2e137260c5",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/2": {
+              "sha256": "b76d0c404a87a8046da520dafd1b3ab066b360f86061862e4e317fe723364688",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/3": {
+              "sha256": "ed195c249606024189b9db95ac58e02afa3812260a77ba084766be7ad622868e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/ability": {
+              "sha256": "d8d6b467441f7e64d4678e68a17dfe4ce8a1d02b930c280815ca68227952a79e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/item": {
+              "sha256": "876998813251f83d77e7b03c6a6c3b739d82ad3f3a572aeb48083e4419ef6ccf",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/nature": {
+              "sha256": "0a7982e99961bfb801299550f90813f6f4f3c65fcffeb2b325f729ed3ac4c92c",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/defender/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/defender/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            }
+          },
+          "coverage": "COMPLETE",
+          "typedRequestDigest": "1d7dbd6238baa57c3c6e2750e0d1143f5ae4b87426797108fd42e75b1599b076"
+        },
+        "terminal": {
+          "status": "SUCCEEDED",
+          "toolVersion": "1.0.0",
+          "parameterDigest": "cd2220735100f1228fd9ed00044e3bcf9633046a048dec16ce5f98309932be25",
+          "cached": false
+        },
+        "outputEvidence": {
+          "schemaVersion": "damage-result-evidence-v1",
+          "status": "VERIFIED",
+          "scope": "SUPPORTED_CONDITIONS_AND_RANGE_ONLY",
+          "parameterDigest": "cd2220735100f1228fd9ed00044e3bcf9633046a048dec16ce5f98309932be25",
+          "toolVersion": "1.0.0",
+          "typedRequestDigest": "1d7dbd6238baa57c3c6e2750e0d1143f5ae4b87426797108fd42e75b1599b076",
+          "outputDigest": "dd8fc1412e84db59304f8a9094673c90ebef30048e932bcc9e504b1a6dd452af",
+          "resolvedFields": {
+            "/request/generation": {
+              "kind": "LITERAL",
+              "value": 9
+            },
+            "/request/dataReleaseId": {
+              "kind": "LITERAL",
+              "value": "pokeapi-reference-v1"
+            },
+            "/request/attacker/species": {
+              "sha256": "4913f387c81f37d3be0be2d89426db7382dd4658cc6ba4f0139b4aa709e873fe",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/attacker/build/nature": {
+              "sha256": "fc0262a456aebc57710069dedac5e2091b058b4f4a2b9eea810b64be1b177d80",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/ability": {
+              "sha256": "1d614d8c6ba018f423c140ced04e48048acfdd06a0a53e0f9a0b59b89a8448dc",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/item": {
+              "sha256": "a26e5e9230210f6d7bc811105ecd443013928166660fce67b9669c7019824d04",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/species": {
+              "sha256": "3d29b4a53b1e2a6116ea81b3b45101ba13a6a41ad1b068aa066d98428220a678",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/defender/build/nature": {
+              "sha256": "22f5772b66e220a2a726211c54f4e39d51a5d09963b12ef5673ee1eed687ec0d",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/ability": {
+              "sha256": "78a29ab6f16a3649a61e59f877b03952c0781b20e67fa2f64e0667e703ca3f92",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/item": {
+              "sha256": "a26e5e9230210f6d7bc811105ecd443013928166660fce67b9669c7019824d04",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/defender/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/move": {
+              "sha256": "62078571b3749e44be8af051fedfceb6ad401816772877fc6d15cf4fa1a9a5ec",
+              "kind": "SHA256_JSON"
+            },
+            "/request/field/gameType": {
+              "kind": "LITERAL",
+              "value": "Singles"
+            },
+            "/request/field/weather": {
+              "kind": "LITERAL",
+              "value": null
+            },
+            "/request/field/terrain": {
+              "kind": "LITERAL",
+              "value": null
+            }
+          },
+          "omittedFields": [],
+          "explicitNullFields": [
+            "/request/field/weather",
+            "/request/field/terrain"
+          ],
+          "engineDefaultAbilityFields": [],
+          "range": {
+            "minimum": 164,
+            "maximum": 194
+          },
+          "percent": {
+            "minimum": 142.6086956521739,
+            "maximum": 168.69565217391303
+          },
+          "defenderHp": 115
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "DR-DEFAULTS",
+    "repetition": 1,
+    "runId": "run-b786cd79-1e04-4d84-a7e3-391927b3eff2",
+    "status": "COMPLETED",
+    "prompt": "请调用 calculateBattleDamage，按以下JSON原样提供request参数，不展开null、不更换攻防、招式或配置；只解释实际计算条件、范围与限制，不读取或修改保存队伍：\n{\"generation\":9,\"dataReleaseId\":\"pokeapi-reference-v1\",\"attacker\":{\"species\":\"squirtle\",\"build\":null},\"defender\":{\"species\":\"charmander\",\"build\":null},\"move\":\"surf\",\"field\":null}",
+    "answer": "### 伤害结果（计算事实）\n| 项目 | 实际计算结果 |\n| --- | --- |\n| 伤害范围 | 102～122 HP |\n| 防御方最大HP | 114 |\n| 伤害百分比 | 89.47%～107.02% |\n\n攻击方：Squirtle，Lv.50，性格 Hardy，特性 Torrent，道具 无；EV HP0/攻0/防0/特攻0/特防0/速0；IV HP31/攻31/防31/特攻31/特防31/速31。\n防御方：Charmander，Lv.50，性格 Hardy，特性 Blaze，道具 无；EV HP0/攻0/防0/特攻0/特防0/速0；IV HP31/攻31/防31/特攻31/特防31/速31。\n注意：未指定的特性采用了引擎默认特性（见上方实际条件），请确认该假设；这不表示用户已经选择了该特性。\n招式：Surf；场地：Singles；天气：无；地形：无。\n来源：本地 @smogon/calc 0.12.0。假设满HP；未模拟未提供的强化、异常状态、墙、场地伤害和太晶。伤害范围不是胜率或赛制合法性证明，也不单独保证击倒结果。\n\n### 训练家提醒\n本次建议包含尚未核对的机制或数值描述，暂未展示。可以先依据上面已核对的资料或计算结果，明确各成员的角色、配置和目标对局，随后用资料与计算工具逐项验证。当前不提供热门程度、胜率或招式合法性结论。",
+    "modelCalls": 3,
+    "eventsSha256": "edb355c8fc5093716af4a8b0168595e9181528a34bf3a679016f5552af6cbcd8",
+    "historySha256": "c84dd7e89831bc03d0407ed0d3a6c15de062b35d959333cb01ce2d3d8d8e9df2",
+    "tools": [
+      {
+        "tool": "calculateBattleDamage",
+        "callId": "df683d03-994c-4a41-89f2-71cefa616127",
+        "status": "SUCCEEDED",
+        "inputEvidence": {
+          "parameterDigest": "d78f7c8167a68546cd14406a1492a19b6a1af57f4ff158e9e99b544aedbe0c6d",
+          "schemaVersion": "tool-input-evidence-v1",
+          "toolVersion": "1.0.0",
+          "scope": "SUPPLIED_ARGUMENTS_ONLY",
+          "fields": {
+            "/request/generation": {
+              "kind": "LITERAL",
+              "value": 9
+            },
+            "/request/dataReleaseId": {
+              "kind": "LITERAL",
+              "value": "pokeapi-reference-v1"
+            },
+            "/request/attacker/species": {
+              "sha256": "868c57fcaf7a4eefb15f85819552ebb7ff6c8be387bba9f4c29e897e5e1d9a4f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build": {
+              "kind": "LITERAL",
+              "value": null
+            },
+            "/request/defender/species": {
+              "sha256": "5ece572cec6ed517ee867fb7a3f92565f491c69ad4a492000832fe4f93cc3470",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build": {
+              "kind": "LITERAL",
+              "value": null
+            },
+            "/request/move": {
+              "sha256": "4a0a0ca857887531c9098f6407f8ebf03c9ffc5e1698106952abd172067cc16f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/field": {
+              "kind": "LITERAL",
+              "value": null
+            }
+          },
+          "coverage": "COMPLETE",
+          "typedRequestDigest": "85672c66b30e9bc87dc9483bd6c411ee961c1b459bba6b949d5fb4123eae900b"
+        },
+        "terminal": {
+          "status": "SUCCEEDED",
+          "toolVersion": "1.0.0",
+          "parameterDigest": "d78f7c8167a68546cd14406a1492a19b6a1af57f4ff158e9e99b544aedbe0c6d",
+          "cached": false
+        },
+        "outputEvidence": {
+          "schemaVersion": "damage-result-evidence-v1",
+          "status": "VERIFIED",
+          "scope": "SUPPORTED_CONDITIONS_AND_RANGE_ONLY",
+          "parameterDigest": "d78f7c8167a68546cd14406a1492a19b6a1af57f4ff158e9e99b544aedbe0c6d",
+          "toolVersion": "1.0.0",
+          "typedRequestDigest": "85672c66b30e9bc87dc9483bd6c411ee961c1b459bba6b949d5fb4123eae900b",
+          "outputDigest": "d1a6c4977875730704944edeb88c94e8760f4b4ee56c83ac1f88441e5eafffa0",
+          "resolvedFields": {
+            "/request/generation": {
+              "kind": "LITERAL",
+              "value": 9
+            },
+            "/request/dataReleaseId": {
+              "kind": "LITERAL",
+              "value": "pokeapi-reference-v1"
+            },
+            "/request/attacker/species": {
+              "sha256": "4913f387c81f37d3be0be2d89426db7382dd4658cc6ba4f0139b4aa709e873fe",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/attacker/build/nature": {
+              "sha256": "e27e39002f36d51ede3d1f6717bd70262f87b65109471283bd39cd4ac09abb38",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/ability": {
+              "sha256": "1d614d8c6ba018f423c140ced04e48048acfdd06a0a53e0f9a0b59b89a8448dc",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/item": {
+              "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/species": {
+              "sha256": "3d29b4a53b1e2a6116ea81b3b45101ba13a6a41ad1b068aa066d98428220a678",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/defender/build/nature": {
+              "sha256": "e27e39002f36d51ede3d1f6717bd70262f87b65109471283bd39cd4ac09abb38",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/ability": {
+              "sha256": "78a29ab6f16a3649a61e59f877b03952c0781b20e67fa2f64e0667e703ca3f92",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/item": {
+              "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/move": {
+              "sha256": "62078571b3749e44be8af051fedfceb6ad401816772877fc6d15cf4fa1a9a5ec",
+              "kind": "SHA256_JSON"
+            },
+            "/request/field/gameType": {
+              "kind": "LITERAL",
+              "value": "Singles"
+            },
+            "/request/field/weather": {
+              "kind": "LITERAL",
+              "value": null
+            },
+            "/request/field/terrain": {
+              "kind": "LITERAL",
+              "value": null
+            }
+          },
+          "omittedFields": [
+            "/request/attacker/build/level",
+            "/request/attacker/build/nature",
+            "/request/attacker/build/ability",
+            "/request/attacker/build/item",
+            "/request/attacker/build/evs/hp",
+            "/request/attacker/build/evs/atk",
+            "/request/attacker/build/evs/def",
+            "/request/attacker/build/evs/spa",
+            "/request/attacker/build/evs/spd",
+            "/request/attacker/build/evs/spe",
+            "/request/attacker/build/ivs/hp",
+            "/request/attacker/build/ivs/atk",
+            "/request/attacker/build/ivs/def",
+            "/request/attacker/build/ivs/spa",
+            "/request/attacker/build/ivs/spd",
+            "/request/attacker/build/ivs/spe",
+            "/request/defender/build/level",
+            "/request/defender/build/nature",
+            "/request/defender/build/ability",
+            "/request/defender/build/item",
+            "/request/defender/build/evs/hp",
+            "/request/defender/build/evs/atk",
+            "/request/defender/build/evs/def",
+            "/request/defender/build/evs/spa",
+            "/request/defender/build/evs/spd",
+            "/request/defender/build/evs/spe",
+            "/request/defender/build/ivs/hp",
+            "/request/defender/build/ivs/atk",
+            "/request/defender/build/ivs/def",
+            "/request/defender/build/ivs/spa",
+            "/request/defender/build/ivs/spd",
+            "/request/defender/build/ivs/spe",
+            "/request/field/gameType",
+            "/request/field/weather",
+            "/request/field/terrain"
+          ],
+          "explicitNullFields": [],
+          "engineDefaultAbilityFields": [
+            "/request/attacker/build/ability",
+            "/request/defender/build/ability"
+          ],
+          "range": {
+            "minimum": 102,
+            "maximum": 122
+          },
+          "percent": {
+            "minimum": 89.47368421052632,
+            "maximum": 107.01754385964912
+          },
+          "defenderHp": 114
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "DR-DEFAULTS",
+    "repetition": 2,
+    "runId": "run-feb8318c-b483-482f-a90c-ea0297eb306f",
+    "status": "COMPLETED",
+    "prompt": "请调用 calculateBattleDamage，按以下JSON原样提供request参数，不展开null、不更换攻防、招式或配置；只解释实际计算条件、范围与限制，不读取或修改保存队伍：\n{\"generation\":9,\"dataReleaseId\":\"pokeapi-reference-v1\",\"attacker\":{\"species\":\"squirtle\",\"build\":null},\"defender\":{\"species\":\"charmander\",\"build\":null},\"move\":\"surf\",\"field\":null}",
+    "answer": "### 伤害结果（计算事实）\n| 项目 | 实际计算结果 |\n| --- | --- |\n| 伤害范围 | 102～122 HP |\n| 防御方最大HP | 114 |\n| 伤害百分比 | 89.47%～107.02% |\n\n攻击方：Squirtle，Lv.50，性格 Hardy，特性 Torrent，道具 无；EV HP0/攻0/防0/特攻0/特防0/速0；IV HP31/攻31/防31/特攻31/特防31/速31。\n防御方：Charmander，Lv.50，性格 Hardy，特性 Blaze，道具 无；EV HP0/攻0/防0/特攻0/特防0/速0；IV HP31/攻31/防31/特攻31/特防31/速31。\n注意：未指定的特性采用了引擎默认特性（见上方实际条件），请确认该假设；这不表示用户已经选择了该特性。\n招式：Surf；场地：Singles；天气：无；地形：无。\n来源：本地 @smogon/calc 0.12.0。假设满HP；未模拟未提供的强化、异常状态、墙、场地伤害和太晶。伤害范围不是胜率或赛制合法性证明，也不单独保证击倒结果。\n\n### 训练家提醒\n本次建议包含尚未核对的机制或数值描述，暂未展示。可以先依据上面已核对的资料或计算结果，明确各成员的角色、配置和目标对局，随后用资料与计算工具逐项验证。当前不提供热门程度、胜率或招式合法性结论。",
+    "modelCalls": 3,
+    "eventsSha256": "b3a98a61bc7ba7b6618d5cbfbc71fdf37dc3b8717223cdb4a242dd57b714d8e1",
+    "historySha256": "0ae4ac59ce8f1d59cf3843329c1e206387f0e6aaf238299a59b1b7a9ea0b1f6b",
+    "tools": [
+      {
+        "tool": "calculateBattleDamage",
+        "callId": "3205145b-6fdf-4458-bcd3-153859416b3a",
+        "status": "SUCCEEDED",
+        "inputEvidence": {
+          "parameterDigest": "d78f7c8167a68546cd14406a1492a19b6a1af57f4ff158e9e99b544aedbe0c6d",
+          "schemaVersion": "tool-input-evidence-v1",
+          "toolVersion": "1.0.0",
+          "scope": "SUPPLIED_ARGUMENTS_ONLY",
+          "fields": {
+            "/request/generation": {
+              "kind": "LITERAL",
+              "value": 9
+            },
+            "/request/dataReleaseId": {
+              "kind": "LITERAL",
+              "value": "pokeapi-reference-v1"
+            },
+            "/request/attacker/species": {
+              "sha256": "868c57fcaf7a4eefb15f85819552ebb7ff6c8be387bba9f4c29e897e5e1d9a4f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build": {
+              "kind": "LITERAL",
+              "value": null
+            },
+            "/request/defender/species": {
+              "sha256": "5ece572cec6ed517ee867fb7a3f92565f491c69ad4a492000832fe4f93cc3470",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build": {
+              "kind": "LITERAL",
+              "value": null
+            },
+            "/request/move": {
+              "sha256": "4a0a0ca857887531c9098f6407f8ebf03c9ffc5e1698106952abd172067cc16f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/field": {
+              "kind": "LITERAL",
+              "value": null
+            }
+          },
+          "coverage": "COMPLETE",
+          "typedRequestDigest": "85672c66b30e9bc87dc9483bd6c411ee961c1b459bba6b949d5fb4123eae900b"
+        },
+        "terminal": {
+          "status": "SUCCEEDED",
+          "toolVersion": "1.0.0",
+          "parameterDigest": "d78f7c8167a68546cd14406a1492a19b6a1af57f4ff158e9e99b544aedbe0c6d",
+          "cached": false
+        },
+        "outputEvidence": {
+          "schemaVersion": "damage-result-evidence-v1",
+          "status": "VERIFIED",
+          "scope": "SUPPORTED_CONDITIONS_AND_RANGE_ONLY",
+          "parameterDigest": "d78f7c8167a68546cd14406a1492a19b6a1af57f4ff158e9e99b544aedbe0c6d",
+          "toolVersion": "1.0.0",
+          "typedRequestDigest": "85672c66b30e9bc87dc9483bd6c411ee961c1b459bba6b949d5fb4123eae900b",
+          "outputDigest": "d1a6c4977875730704944edeb88c94e8760f4b4ee56c83ac1f88441e5eafffa0",
+          "resolvedFields": {
+            "/request/generation": {
+              "kind": "LITERAL",
+              "value": 9
+            },
+            "/request/dataReleaseId": {
+              "kind": "LITERAL",
+              "value": "pokeapi-reference-v1"
+            },
+            "/request/attacker/species": {
+              "sha256": "4913f387c81f37d3be0be2d89426db7382dd4658cc6ba4f0139b4aa709e873fe",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/attacker/build/nature": {
+              "sha256": "e27e39002f36d51ede3d1f6717bd70262f87b65109471283bd39cd4ac09abb38",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/ability": {
+              "sha256": "1d614d8c6ba018f423c140ced04e48048acfdd06a0a53e0f9a0b59b89a8448dc",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/item": {
+              "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/species": {
+              "sha256": "3d29b4a53b1e2a6116ea81b3b45101ba13a6a41ad1b068aa066d98428220a678",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/defender/build/nature": {
+              "sha256": "e27e39002f36d51ede3d1f6717bd70262f87b65109471283bd39cd4ac09abb38",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/ability": {
+              "sha256": "78a29ab6f16a3649a61e59f877b03952c0781b20e67fa2f64e0667e703ca3f92",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/item": {
+              "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/move": {
+              "sha256": "62078571b3749e44be8af051fedfceb6ad401816772877fc6d15cf4fa1a9a5ec",
+              "kind": "SHA256_JSON"
+            },
+            "/request/field/gameType": {
+              "kind": "LITERAL",
+              "value": "Singles"
+            },
+            "/request/field/weather": {
+              "kind": "LITERAL",
+              "value": null
+            },
+            "/request/field/terrain": {
+              "kind": "LITERAL",
+              "value": null
+            }
+          },
+          "omittedFields": [
+            "/request/attacker/build/level",
+            "/request/attacker/build/nature",
+            "/request/attacker/build/ability",
+            "/request/attacker/build/item",
+            "/request/attacker/build/evs/hp",
+            "/request/attacker/build/evs/atk",
+            "/request/attacker/build/evs/def",
+            "/request/attacker/build/evs/spa",
+            "/request/attacker/build/evs/spd",
+            "/request/attacker/build/evs/spe",
+            "/request/attacker/build/ivs/hp",
+            "/request/attacker/build/ivs/atk",
+            "/request/attacker/build/ivs/def",
+            "/request/attacker/build/ivs/spa",
+            "/request/attacker/build/ivs/spd",
+            "/request/attacker/build/ivs/spe",
+            "/request/defender/build/level",
+            "/request/defender/build/nature",
+            "/request/defender/build/ability",
+            "/request/defender/build/item",
+            "/request/defender/build/evs/hp",
+            "/request/defender/build/evs/atk",
+            "/request/defender/build/evs/def",
+            "/request/defender/build/evs/spa",
+            "/request/defender/build/evs/spd",
+            "/request/defender/build/evs/spe",
+            "/request/defender/build/ivs/hp",
+            "/request/defender/build/ivs/atk",
+            "/request/defender/build/ivs/def",
+            "/request/defender/build/ivs/spa",
+            "/request/defender/build/ivs/spd",
+            "/request/defender/build/ivs/spe",
+            "/request/field/gameType",
+            "/request/field/weather",
+            "/request/field/terrain"
+          ],
+          "explicitNullFields": [],
+          "engineDefaultAbilityFields": [
+            "/request/attacker/build/ability",
+            "/request/defender/build/ability"
+          ],
+          "range": {
+            "minimum": 102,
+            "maximum": 122
+          },
+          "percent": {
+            "minimum": 89.47368421052632,
+            "maximum": 107.01754385964912
+          },
+          "defenderHp": 114
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "DR-WEATHER",
+    "repetition": 1,
+    "runId": "run-2c761e0d-7173-4c4d-b099-cf3626805c75",
+    "status": "COMPLETED",
+    "prompt": "请调用 calculateBattleDamage，按以下JSON原样提供request参数，不展开null、不更换攻防、招式或配置；只解释实际计算条件、范围与限制，不读取或修改保存队伍：\n{\"generation\":9,\"dataReleaseId\":\"pokeapi-reference-v1\",\"move\":\"surf\",\"field\":{\"gameType\":\"Doubles\",\"weather\":\"Rain\",\"terrain\":\"Grassy\"},\"attacker\":{\"species\":\"squirtle\",\"build\":{\"moves\":[\"surf\",\"protect\",\"ice-beam\",\"rain-dance\"],\"ability\":\"torrent\",\"item\":\"leftovers\",\"nature\":\"modest\",\"level\":75,\"evs\":{\"hp\":4,\"atk\":0,\"def\":0,\"spa\":252,\"spd\":0,\"spe\":252},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}},\"defender\":{\"species\":\"charmander\",\"build\":{\"moves\":[\"flamethrower\",\"protect\",\"dragon-pulse\",\"will-o-wisp\"],\"ability\":\"blaze\",\"item\":\"leftovers\",\"nature\":\"timid\",\"level\":60,\"evs\":{\"hp\":252,\"atk\":0,\"def\":0,\"spa\":0,\"spd\":0,\"spe\":0},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}}}",
+    "answer": "### 伤害结果（计算事实）\n| 项目 | 实际计算结果 |\n| --- | --- |\n| 伤害范围 | 330～390 HP |\n| 防御方最大HP | 173 |\n| 伤害百分比 | 190.75%～225.43% |\n\n攻击方：Squirtle，Lv.75，性格 Modest，特性 Torrent，道具 Leftovers；EV HP4/攻0/防0/特攻252/特防0/速252；IV HP31/攻31/防31/特攻31/特防31/速31。\n防御方：Charmander，Lv.60，性格 Timid，特性 Blaze，道具 Leftovers；EV HP252/攻0/防0/特攻0/特防0/速0；IV HP31/攻31/防31/特攻31/特防31/速31。\n招式：Surf；场地：Doubles；天气：Rain；地形：Grassy。\n来源：本地 @smogon/calc 0.12.0。假设满HP；未模拟未提供的强化、异常状态、墙、场地伤害和太晶。伤害范围不是胜率或赛制合法性证明，也不单独保证击倒结果。\n\n### 训练家提醒\n本次建议包含尚未核对的机制或数值描述，暂未展示。可以先依据上面已核对的资料或计算结果，明确各成员的角色、配置和目标对局，随后用资料与计算工具逐项验证。当前不提供热门程度、胜率或招式合法性结论。",
+    "modelCalls": 3,
+    "eventsSha256": "a908a757cf6e430d660d8ddd2fa13c979c28416a114933dd6234d8160c1fc30c",
+    "historySha256": "b0fc0886e85c48ba770ef5e12f73bec6c5e1cb1b984e9358469444bab3501fd7",
+    "tools": [
+      {
+        "tool": "calculateBattleDamage",
+        "callId": "9aa4d358-14c3-4d28-af87-c5aaea993d2d",
+        "status": "SUCCEEDED",
+        "inputEvidence": {
+          "parameterDigest": "672aad224574ffa8d432f6eec0fc1fc8be6ae5238dc8ade84d47d92d71c6e179",
+          "schemaVersion": "tool-input-evidence-v1",
+          "toolVersion": "1.0.0",
+          "scope": "SUPPLIED_ARGUMENTS_ONLY",
+          "fields": {
+            "/request/generation": {
+              "kind": "LITERAL",
+              "value": 9
+            },
+            "/request/dataReleaseId": {
+              "kind": "LITERAL",
+              "value": "pokeapi-reference-v1"
+            },
+            "/request/move": {
+              "sha256": "4a0a0ca857887531c9098f6407f8ebf03c9ffc5e1698106952abd172067cc16f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/field/gameType": {
+              "kind": "LITERAL",
+              "value": "Doubles"
+            },
+            "/request/field/weather": {
+              "kind": "LITERAL",
+              "value": "Rain"
+            },
+            "/request/field/terrain": {
+              "kind": "LITERAL",
+              "value": "Grassy"
+            },
+            "/request/attacker/species": {
+              "sha256": "868c57fcaf7a4eefb15f85819552ebb7ff6c8be387bba9f4c29e897e5e1d9a4f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/length": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/moves/0": {
+              "sha256": "4a0a0ca857887531c9098f6407f8ebf03c9ffc5e1698106952abd172067cc16f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/1": {
+              "sha256": "79b354696815b1239272be96e392712f095b8944768f5065bde1ce2e137260c5",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/2": {
+              "sha256": "af1b9a286abd7c075bd718d8db25f9dc1ec9b12fba1d8d4ae6e5a0a41c878c5b",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/3": {
+              "sha256": "a04582945b751da09d9a89153125193f1bc0264d9274220d4639edbd6dd7132b",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/ability": {
+              "sha256": "ea14b41e5e4621d327ade8f955d6a77231729b4e681b0cba9c50b6a64bfdb904",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/item": {
+              "sha256": "876998813251f83d77e7b03c6a6c3b739d82ad3f3a572aeb48083e4419ef6ccf",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/nature": {
+              "sha256": "1b95a9211b0b56dd87741dfa7e5dda180b6a48045419a51676c85ce847475e89",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/level": {
+              "kind": "LITERAL",
+              "value": 75
+            },
+            "/request/attacker/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/species": {
+              "sha256": "5ece572cec6ed517ee867fb7a3f92565f491c69ad4a492000832fe4f93cc3470",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/length": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/defender/build/moves/0": {
+              "sha256": "9107cd727c0f7ce1547b641cd6973400627695ddf1f04dbbd476e1257f35ae2e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/1": {
+              "sha256": "79b354696815b1239272be96e392712f095b8944768f5065bde1ce2e137260c5",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/2": {
+              "sha256": "b76d0c404a87a8046da520dafd1b3ab066b360f86061862e4e317fe723364688",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/3": {
+              "sha256": "ed195c249606024189b9db95ac58e02afa3812260a77ba084766be7ad622868e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/ability": {
+              "sha256": "d8d6b467441f7e64d4678e68a17dfe4ce8a1d02b930c280815ca68227952a79e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/item": {
+              "sha256": "876998813251f83d77e7b03c6a6c3b739d82ad3f3a572aeb48083e4419ef6ccf",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/nature": {
+              "sha256": "0a7982e99961bfb801299550f90813f6f4f3c65fcffeb2b325f729ed3ac4c92c",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/level": {
+              "kind": "LITERAL",
+              "value": 60
+            },
+            "/request/defender/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            }
+          },
+          "coverage": "COMPLETE",
+          "typedRequestDigest": "9a498ef08bb1340f689eb3ce0aded2013f89557356553fc956fdb449902dc36e"
+        },
+        "terminal": {
+          "status": "SUCCEEDED",
+          "toolVersion": "1.0.0",
+          "parameterDigest": "672aad224574ffa8d432f6eec0fc1fc8be6ae5238dc8ade84d47d92d71c6e179",
+          "cached": false
+        },
+        "outputEvidence": {
+          "schemaVersion": "damage-result-evidence-v1",
+          "status": "VERIFIED",
+          "scope": "SUPPORTED_CONDITIONS_AND_RANGE_ONLY",
+          "parameterDigest": "672aad224574ffa8d432f6eec0fc1fc8be6ae5238dc8ade84d47d92d71c6e179",
+          "toolVersion": "1.0.0",
+          "typedRequestDigest": "9a498ef08bb1340f689eb3ce0aded2013f89557356553fc956fdb449902dc36e",
+          "outputDigest": "6d0e41792fcac173e8386193ecb98697e1ca33645c786900f00d1b8c2bdd31a5",
+          "resolvedFields": {
+            "/request/generation": {
+              "kind": "LITERAL",
+              "value": 9
+            },
+            "/request/dataReleaseId": {
+              "kind": "LITERAL",
+              "value": "pokeapi-reference-v1"
+            },
+            "/request/attacker/species": {
+              "sha256": "4913f387c81f37d3be0be2d89426db7382dd4658cc6ba4f0139b4aa709e873fe",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/level": {
+              "kind": "LITERAL",
+              "value": 75
+            },
+            "/request/attacker/build/nature": {
+              "sha256": "fc0262a456aebc57710069dedac5e2091b058b4f4a2b9eea810b64be1b177d80",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/ability": {
+              "sha256": "1d614d8c6ba018f423c140ced04e48048acfdd06a0a53e0f9a0b59b89a8448dc",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/item": {
+              "sha256": "a26e5e9230210f6d7bc811105ecd443013928166660fce67b9669c7019824d04",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/species": {
+              "sha256": "3d29b4a53b1e2a6116ea81b3b45101ba13a6a41ad1b068aa066d98428220a678",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/level": {
+              "kind": "LITERAL",
+              "value": 60
+            },
+            "/request/defender/build/nature": {
+              "sha256": "22f5772b66e220a2a726211c54f4e39d51a5d09963b12ef5673ee1eed687ec0d",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/ability": {
+              "sha256": "78a29ab6f16a3649a61e59f877b03952c0781b20e67fa2f64e0667e703ca3f92",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/item": {
+              "sha256": "a26e5e9230210f6d7bc811105ecd443013928166660fce67b9669c7019824d04",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/move": {
+              "sha256": "62078571b3749e44be8af051fedfceb6ad401816772877fc6d15cf4fa1a9a5ec",
+              "kind": "SHA256_JSON"
+            },
+            "/request/field/gameType": {
+              "kind": "LITERAL",
+              "value": "Doubles"
+            },
+            "/request/field/weather": {
+              "kind": "LITERAL",
+              "value": "Rain"
+            },
+            "/request/field/terrain": {
+              "kind": "LITERAL",
+              "value": "Grassy"
+            }
+          },
+          "omittedFields": [],
+          "explicitNullFields": [],
+          "engineDefaultAbilityFields": [],
+          "range": {
+            "minimum": 330,
+            "maximum": 390
+          },
+          "percent": {
+            "minimum": 190.7514450867052,
+            "maximum": 225.4335260115607
+          },
+          "defenderHp": 173
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "DR-WEATHER",
+    "repetition": 2,
+    "runId": "run-ec98bb60-abb4-435a-9ee9-e7a81e735494",
+    "status": "COMPLETED",
+    "prompt": "请调用 calculateBattleDamage，按以下JSON原样提供request参数，不展开null、不更换攻防、招式或配置；只解释实际计算条件、范围与限制，不读取或修改保存队伍：\n{\"generation\":9,\"dataReleaseId\":\"pokeapi-reference-v1\",\"move\":\"surf\",\"field\":{\"gameType\":\"Doubles\",\"weather\":\"Rain\",\"terrain\":\"Grassy\"},\"attacker\":{\"species\":\"squirtle\",\"build\":{\"moves\":[\"surf\",\"protect\",\"ice-beam\",\"rain-dance\"],\"ability\":\"torrent\",\"item\":\"leftovers\",\"nature\":\"modest\",\"level\":75,\"evs\":{\"hp\":4,\"atk\":0,\"def\":0,\"spa\":252,\"spd\":0,\"spe\":252},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}},\"defender\":{\"species\":\"charmander\",\"build\":{\"moves\":[\"flamethrower\",\"protect\",\"dragon-pulse\",\"will-o-wisp\"],\"ability\":\"blaze\",\"item\":\"leftovers\",\"nature\":\"timid\",\"level\":60,\"evs\":{\"hp\":252,\"atk\":0,\"def\":0,\"spa\":0,\"spd\":0,\"spe\":0},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}}}",
+    "answer": "### 伤害结果（计算事实）\n| 项目 | 实际计算结果 |\n| --- | --- |\n| 伤害范围 | 330～390 HP |\n| 防御方最大HP | 173 |\n| 伤害百分比 | 190.75%～225.43% |\n\n攻击方：Squirtle，Lv.75，性格 Modest，特性 Torrent，道具 Leftovers；EV HP4/攻0/防0/特攻252/特防0/速252；IV HP31/攻31/防31/特攻31/特防31/速31。\n防御方：Charmander，Lv.60，性格 Timid，特性 Blaze，道具 Leftovers；EV HP252/攻0/防0/特攻0/特防0/速0；IV HP31/攻31/防31/特攻31/特防31/速31。\n招式：Surf；场地：Doubles；天气：Rain；地形：Grassy。\n来源：本地 @smogon/calc 0.12.0。假设满HP；未模拟未提供的强化、异常状态、墙、场地伤害和太晶。伤害范围不是胜率或赛制合法性证明，也不单独保证击倒结果。\n\n### 训练家提醒\n本次建议包含尚未核对的机制或数值描述，暂未展示。可以先依据上面已核对的资料或计算结果，明确各成员的角色、配置和目标对局，随后用资料与计算工具逐项验证。当前不提供热门程度、胜率或招式合法性结论。",
+    "modelCalls": 3,
+    "eventsSha256": "016ba5262f20008f7afcfa2d899b25aa1e7d79c0b25cbd3b83ba259e473d2dd5",
+    "historySha256": "74ee7084d0a8e04c84b040c3abf0fce27f94b1889d68cd52c8cbd53fd780b537",
+    "tools": [
+      {
+        "tool": "calculateBattleDamage",
+        "callId": "9b827c9e-9ffb-433b-b4f1-d3eeac460111",
+        "status": "SUCCEEDED",
+        "inputEvidence": {
+          "parameterDigest": "672aad224574ffa8d432f6eec0fc1fc8be6ae5238dc8ade84d47d92d71c6e179",
+          "schemaVersion": "tool-input-evidence-v1",
+          "toolVersion": "1.0.0",
+          "scope": "SUPPLIED_ARGUMENTS_ONLY",
+          "fields": {
+            "/request/generation": {
+              "kind": "LITERAL",
+              "value": 9
+            },
+            "/request/dataReleaseId": {
+              "kind": "LITERAL",
+              "value": "pokeapi-reference-v1"
+            },
+            "/request/move": {
+              "sha256": "4a0a0ca857887531c9098f6407f8ebf03c9ffc5e1698106952abd172067cc16f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/field/gameType": {
+              "kind": "LITERAL",
+              "value": "Doubles"
+            },
+            "/request/field/weather": {
+              "kind": "LITERAL",
+              "value": "Rain"
+            },
+            "/request/field/terrain": {
+              "kind": "LITERAL",
+              "value": "Grassy"
+            },
+            "/request/attacker/species": {
+              "sha256": "868c57fcaf7a4eefb15f85819552ebb7ff6c8be387bba9f4c29e897e5e1d9a4f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/length": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/moves/0": {
+              "sha256": "4a0a0ca857887531c9098f6407f8ebf03c9ffc5e1698106952abd172067cc16f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/1": {
+              "sha256": "79b354696815b1239272be96e392712f095b8944768f5065bde1ce2e137260c5",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/2": {
+              "sha256": "af1b9a286abd7c075bd718d8db25f9dc1ec9b12fba1d8d4ae6e5a0a41c878c5b",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/3": {
+              "sha256": "a04582945b751da09d9a89153125193f1bc0264d9274220d4639edbd6dd7132b",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/ability": {
+              "sha256": "ea14b41e5e4621d327ade8f955d6a77231729b4e681b0cba9c50b6a64bfdb904",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/item": {
+              "sha256": "876998813251f83d77e7b03c6a6c3b739d82ad3f3a572aeb48083e4419ef6ccf",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/nature": {
+              "sha256": "1b95a9211b0b56dd87741dfa7e5dda180b6a48045419a51676c85ce847475e89",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/level": {
+              "kind": "LITERAL",
+              "value": 75
+            },
+            "/request/attacker/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/species": {
+              "sha256": "5ece572cec6ed517ee867fb7a3f92565f491c69ad4a492000832fe4f93cc3470",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/length": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/defender/build/moves/0": {
+              "sha256": "9107cd727c0f7ce1547b641cd6973400627695ddf1f04dbbd476e1257f35ae2e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/1": {
+              "sha256": "79b354696815b1239272be96e392712f095b8944768f5065bde1ce2e137260c5",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/2": {
+              "sha256": "b76d0c404a87a8046da520dafd1b3ab066b360f86061862e4e317fe723364688",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/3": {
+              "sha256": "ed195c249606024189b9db95ac58e02afa3812260a77ba084766be7ad622868e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/ability": {
+              "sha256": "d8d6b467441f7e64d4678e68a17dfe4ce8a1d02b930c280815ca68227952a79e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/item": {
+              "sha256": "876998813251f83d77e7b03c6a6c3b739d82ad3f3a572aeb48083e4419ef6ccf",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/nature": {
+              "sha256": "0a7982e99961bfb801299550f90813f6f4f3c65fcffeb2b325f729ed3ac4c92c",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/level": {
+              "kind": "LITERAL",
+              "value": 60
+            },
+            "/request/defender/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            }
+          },
+          "coverage": "COMPLETE",
+          "typedRequestDigest": "9a498ef08bb1340f689eb3ce0aded2013f89557356553fc956fdb449902dc36e"
+        },
+        "terminal": {
+          "status": "SUCCEEDED",
+          "toolVersion": "1.0.0",
+          "parameterDigest": "672aad224574ffa8d432f6eec0fc1fc8be6ae5238dc8ade84d47d92d71c6e179",
+          "cached": false
+        },
+        "outputEvidence": {
+          "schemaVersion": "damage-result-evidence-v1",
+          "status": "VERIFIED",
+          "scope": "SUPPORTED_CONDITIONS_AND_RANGE_ONLY",
+          "parameterDigest": "672aad224574ffa8d432f6eec0fc1fc8be6ae5238dc8ade84d47d92d71c6e179",
+          "toolVersion": "1.0.0",
+          "typedRequestDigest": "9a498ef08bb1340f689eb3ce0aded2013f89557356553fc956fdb449902dc36e",
+          "outputDigest": "6d0e41792fcac173e8386193ecb98697e1ca33645c786900f00d1b8c2bdd31a5",
+          "resolvedFields": {
+            "/request/generation": {
+              "kind": "LITERAL",
+              "value": 9
+            },
+            "/request/dataReleaseId": {
+              "kind": "LITERAL",
+              "value": "pokeapi-reference-v1"
+            },
+            "/request/attacker/species": {
+              "sha256": "4913f387c81f37d3be0be2d89426db7382dd4658cc6ba4f0139b4aa709e873fe",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/level": {
+              "kind": "LITERAL",
+              "value": 75
+            },
+            "/request/attacker/build/nature": {
+              "sha256": "fc0262a456aebc57710069dedac5e2091b058b4f4a2b9eea810b64be1b177d80",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/ability": {
+              "sha256": "1d614d8c6ba018f423c140ced04e48048acfdd06a0a53e0f9a0b59b89a8448dc",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/item": {
+              "sha256": "a26e5e9230210f6d7bc811105ecd443013928166660fce67b9669c7019824d04",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/species": {
+              "sha256": "3d29b4a53b1e2a6116ea81b3b45101ba13a6a41ad1b068aa066d98428220a678",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/level": {
+              "kind": "LITERAL",
+              "value": 60
+            },
+            "/request/defender/build/nature": {
+              "sha256": "22f5772b66e220a2a726211c54f4e39d51a5d09963b12ef5673ee1eed687ec0d",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/ability": {
+              "sha256": "78a29ab6f16a3649a61e59f877b03952c0781b20e67fa2f64e0667e703ca3f92",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/item": {
+              "sha256": "a26e5e9230210f6d7bc811105ecd443013928166660fce67b9669c7019824d04",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/move": {
+              "sha256": "62078571b3749e44be8af051fedfceb6ad401816772877fc6d15cf4fa1a9a5ec",
+              "kind": "SHA256_JSON"
+            },
+            "/request/field/gameType": {
+              "kind": "LITERAL",
+              "value": "Doubles"
+            },
+            "/request/field/weather": {
+              "kind": "LITERAL",
+              "value": "Rain"
+            },
+            "/request/field/terrain": {
+              "kind": "LITERAL",
+              "value": "Grassy"
+            }
+          },
+          "omittedFields": [],
+          "explicitNullFields": [],
+          "engineDefaultAbilityFields": [],
+          "range": {
+            "minimum": 330,
+            "maximum": 390
+          },
+          "percent": {
+            "minimum": 190.7514450867052,
+            "maximum": 225.4335260115607
+          },
+          "defenderHp": 173
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "DR-ALIASES",
+    "repetition": 1,
+    "runId": "run-eee043e1-541e-4b62-a8c1-bd2856d5257c",
+    "status": "COMPLETED",
+    "prompt": "请调用 calculateBattleDamage，按以下JSON原样提供request参数，不展开null、不更换攻防、招式或配置；只解释实际计算条件、范围与限制，不读取或修改保存队伍：\n{\"generation\":9,\"dataReleaseId\":\"pokeapi-reference-v1\",\"move\":\"SuRf\",\"field\":{\"gameType\":\" Singles \",\"weather\":\"none\",\"terrain\":\"无\"},\"attacker\":{\"species\":\"7\",\"build\":{\"moves\":[\"surf\",\"protect\",\"ice-beam\",\"rain-dance\"],\"ability\":\"torrent\",\"item\":\"leftovers\",\"nature\":\"modest\",\"level\":50,\"evs\":{\"hp\":4,\"atk\":0,\"def\":0,\"spa\":252,\"spd\":0,\"spe\":252},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}},\"defender\":{\"species\":\"4\",\"build\":{\"moves\":[\"flamethrower\",\"protect\",\"dragon-pulse\",\"will-o-wisp\"],\"ability\":\"blaze\",\"item\":\"leftovers\",\"nature\":\"timid\",\"level\":50,\"evs\":{\"hp\":4,\"atk\":0,\"def\":0,\"spa\":252,\"spd\":0,\"spe\":252},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}}}",
+    "answer": "### 伤害结果（计算事实）\n| 项目 | 实际计算结果 |\n| --- | --- |\n| 伤害范围 | 164～194 HP |\n| 防御方最大HP | 115 |\n| 伤害百分比 | 142.61%～168.70% |\n\n攻击方：Squirtle，Lv.50，性格 Modest，特性 Torrent，道具 Leftovers；EV HP4/攻0/防0/特攻252/特防0/速252；IV HP31/攻31/防31/特攻31/特防31/速31。\n防御方：Charmander，Lv.50，性格 Timid，特性 Blaze，道具 Leftovers；EV HP4/攻0/防0/特攻252/特防0/速252；IV HP31/攻31/防31/特攻31/特防31/速31。\n招式：Surf；场地：Singles；天气：无；地形：无。\n来源：本地 @smogon/calc 0.12.0。假设满HP；未模拟未提供的强化、异常状态、墙、场地伤害和太晶。伤害范围不是胜率或赛制合法性证明，也不单独保证击倒结果。\n\n### 训练家提醒\n本次建议包含尚未核对的机制或数值描述，暂未展示。可以先依据上面已核对的资料或计算结果，明确各成员的角色、配置和目标对局，随后用资料与计算工具逐项验证。当前不提供热门程度、胜率或招式合法性结论。",
+    "modelCalls": 3,
+    "eventsSha256": "91aee262d85dfdba5287351566b27594718c91a3cabf5616228e4a9a2f2a129e",
+    "historySha256": "0db951cfbeb42a53f44285993bbf55c7d6700e225e247315139c3eaf1ed7af40",
+    "tools": [
+      {
+        "tool": "calculateBattleDamage",
+        "callId": "725b6b56-5abb-4f4a-93e0-cde9a101dab5",
+        "status": "SUCCEEDED",
+        "inputEvidence": {
+          "parameterDigest": "eaf37aa7399ea5bd6550ad32486023f6a83c63b8be9c69e220b0b0725b3ddc7f",
+          "schemaVersion": "tool-input-evidence-v1",
+          "toolVersion": "1.0.0",
+          "scope": "SUPPLIED_ARGUMENTS_ONLY",
+          "fields": {
+            "/request/generation": {
+              "kind": "LITERAL",
+              "value": 9
+            },
+            "/request/dataReleaseId": {
+              "kind": "LITERAL",
+              "value": "pokeapi-reference-v1"
+            },
+            "/request/move": {
+              "sha256": "2ca7e338ce8670ad6836b10c6814954f6061be5ae176eb43110546ac41f58439",
+              "kind": "SHA256_JSON"
+            },
+            "/request/field/gameType": {
+              "kind": "LITERAL",
+              "value": "Singles"
+            },
+            "/request/field/weather": {
+              "kind": "LITERAL",
+              "value": "none"
+            },
+            "/request/field/terrain": {
+              "kind": "LITERAL",
+              "value": "无"
+            },
+            "/request/attacker/species": {
+              "sha256": "266aa5886067fbbc1a3a39fe432fc5bbf561abc90e4b8a322215ac17df6ce012",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/length": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/moves/0": {
+              "sha256": "4a0a0ca857887531c9098f6407f8ebf03c9ffc5e1698106952abd172067cc16f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/1": {
+              "sha256": "79b354696815b1239272be96e392712f095b8944768f5065bde1ce2e137260c5",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/2": {
+              "sha256": "af1b9a286abd7c075bd718d8db25f9dc1ec9b12fba1d8d4ae6e5a0a41c878c5b",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/3": {
+              "sha256": "a04582945b751da09d9a89153125193f1bc0264d9274220d4639edbd6dd7132b",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/ability": {
+              "sha256": "ea14b41e5e4621d327ade8f955d6a77231729b4e681b0cba9c50b6a64bfdb904",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/item": {
+              "sha256": "876998813251f83d77e7b03c6a6c3b739d82ad3f3a572aeb48083e4419ef6ccf",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/nature": {
+              "sha256": "1b95a9211b0b56dd87741dfa7e5dda180b6a48045419a51676c85ce847475e89",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/attacker/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/species": {
+              "sha256": "2bf175f9655e7bb7357b9f0a7c6051465a5ae701104ffe741b98e852c0e4d460",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/length": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/defender/build/moves/0": {
+              "sha256": "9107cd727c0f7ce1547b641cd6973400627695ddf1f04dbbd476e1257f35ae2e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/1": {
+              "sha256": "79b354696815b1239272be96e392712f095b8944768f5065bde1ce2e137260c5",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/2": {
+              "sha256": "b76d0c404a87a8046da520dafd1b3ab066b360f86061862e4e317fe723364688",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/3": {
+              "sha256": "ed195c249606024189b9db95ac58e02afa3812260a77ba084766be7ad622868e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/ability": {
+              "sha256": "d8d6b467441f7e64d4678e68a17dfe4ce8a1d02b930c280815ca68227952a79e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/item": {
+              "sha256": "876998813251f83d77e7b03c6a6c3b739d82ad3f3a572aeb48083e4419ef6ccf",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/nature": {
+              "sha256": "0a7982e99961bfb801299550f90813f6f4f3c65fcffeb2b325f729ed3ac4c92c",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/defender/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/defender/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            }
+          },
+          "coverage": "COMPLETE",
+          "typedRequestDigest": "405ae92582edb091ea00856f9fd034d02bdd6e7cfc95491691705f1ae6d6c3da"
+        },
+        "terminal": {
+          "status": "SUCCEEDED",
+          "toolVersion": "1.0.0",
+          "parameterDigest": "eaf37aa7399ea5bd6550ad32486023f6a83c63b8be9c69e220b0b0725b3ddc7f",
+          "cached": false
+        },
+        "outputEvidence": {
+          "schemaVersion": "damage-result-evidence-v1",
+          "status": "VERIFIED",
+          "scope": "SUPPORTED_CONDITIONS_AND_RANGE_ONLY",
+          "parameterDigest": "eaf37aa7399ea5bd6550ad32486023f6a83c63b8be9c69e220b0b0725b3ddc7f",
+          "toolVersion": "1.0.0",
+          "typedRequestDigest": "405ae92582edb091ea00856f9fd034d02bdd6e7cfc95491691705f1ae6d6c3da",
+          "outputDigest": "8a35ee9ef64157a2ccecf0cdb5e89d7283ceef301bb5c3ff3b35845ddb4f0bd1",
+          "resolvedFields": {
+            "/request/generation": {
+              "kind": "LITERAL",
+              "value": 9
+            },
+            "/request/dataReleaseId": {
+              "kind": "LITERAL",
+              "value": "pokeapi-reference-v1"
+            },
+            "/request/attacker/species": {
+              "sha256": "4913f387c81f37d3be0be2d89426db7382dd4658cc6ba4f0139b4aa709e873fe",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/attacker/build/nature": {
+              "sha256": "fc0262a456aebc57710069dedac5e2091b058b4f4a2b9eea810b64be1b177d80",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/ability": {
+              "sha256": "1d614d8c6ba018f423c140ced04e48048acfdd06a0a53e0f9a0b59b89a8448dc",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/item": {
+              "sha256": "a26e5e9230210f6d7bc811105ecd443013928166660fce67b9669c7019824d04",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/species": {
+              "sha256": "3d29b4a53b1e2a6116ea81b3b45101ba13a6a41ad1b068aa066d98428220a678",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/defender/build/nature": {
+              "sha256": "22f5772b66e220a2a726211c54f4e39d51a5d09963b12ef5673ee1eed687ec0d",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/ability": {
+              "sha256": "78a29ab6f16a3649a61e59f877b03952c0781b20e67fa2f64e0667e703ca3f92",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/item": {
+              "sha256": "a26e5e9230210f6d7bc811105ecd443013928166660fce67b9669c7019824d04",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/defender/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/move": {
+              "sha256": "62078571b3749e44be8af051fedfceb6ad401816772877fc6d15cf4fa1a9a5ec",
+              "kind": "SHA256_JSON"
+            },
+            "/request/field/gameType": {
+              "kind": "LITERAL",
+              "value": "Singles"
+            },
+            "/request/field/weather": {
+              "kind": "LITERAL",
+              "value": null
+            },
+            "/request/field/terrain": {
+              "kind": "LITERAL",
+              "value": null
+            }
+          },
+          "omittedFields": [],
+          "explicitNullFields": [],
+          "engineDefaultAbilityFields": [],
+          "range": {
+            "minimum": 164,
+            "maximum": 194
+          },
+          "percent": {
+            "minimum": 142.6086956521739,
+            "maximum": 168.69565217391303
+          },
+          "defenderHp": 115
+        }
+      }
+    ]
+  },
+  {
+    "caseId": "DR-ALIASES",
+    "repetition": 2,
+    "runId": "run-ddb860a4-d3f3-4c9f-98ab-e7e5c38f2278",
+    "status": "COMPLETED",
+    "prompt": "请调用 calculateBattleDamage，按以下JSON原样提供request参数，不展开null、不更换攻防、招式或配置；只解释实际计算条件、范围与限制，不读取或修改保存队伍：\n{\"generation\":9,\"dataReleaseId\":\"pokeapi-reference-v1\",\"move\":\"SuRf\",\"field\":{\"gameType\":\" Singles \",\"weather\":\"none\",\"terrain\":\"无\"},\"attacker\":{\"species\":\"7\",\"build\":{\"moves\":[\"surf\",\"protect\",\"ice-beam\",\"rain-dance\"],\"ability\":\"torrent\",\"item\":\"leftovers\",\"nature\":\"modest\",\"level\":50,\"evs\":{\"hp\":4,\"atk\":0,\"def\":0,\"spa\":252,\"spd\":0,\"spe\":252},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}},\"defender\":{\"species\":\"4\",\"build\":{\"moves\":[\"flamethrower\",\"protect\",\"dragon-pulse\",\"will-o-wisp\"],\"ability\":\"blaze\",\"item\":\"leftovers\",\"nature\":\"timid\",\"level\":50,\"evs\":{\"hp\":4,\"atk\":0,\"def\":0,\"spa\":252,\"spd\":0,\"spe\":252},\"ivs\":{\"hp\":31,\"atk\":31,\"def\":31,\"spa\":31,\"spd\":31,\"spe\":31}}}}",
+    "answer": "### 伤害结果（计算事实）\n| 项目 | 实际计算结果 |\n| --- | --- |\n| 伤害范围 | 164～194 HP |\n| 防御方最大HP | 115 |\n| 伤害百分比 | 142.61%～168.70% |\n\n攻击方：Squirtle，Lv.50，性格 Modest，特性 Torrent，道具 Leftovers；EV HP4/攻0/防0/特攻252/特防0/速252；IV HP31/攻31/防31/特攻31/特防31/速31。\n防御方：Charmander，Lv.50，性格 Timid，特性 Blaze，道具 Leftovers；EV HP4/攻0/防0/特攻252/特防0/速252；IV HP31/攻31/防31/特攻31/特防31/速31。\n招式：Surf；场地：Singles；天气：无；地形：无。\n来源：本地 @smogon/calc 0.12.0。假设满HP；未模拟未提供的强化、异常状态、墙、场地伤害和太晶。伤害范围不是胜率或赛制合法性证明，也不单独保证击倒结果。\n\n### 训练家提醒\n本次建议包含尚未核对的机制或数值描述，暂未展示。可以先依据上面已核对的资料或计算结果，明确各成员的角色、配置和目标对局，随后用资料与计算工具逐项验证。当前不提供热门程度、胜率或招式合法性结论。",
+    "modelCalls": 3,
+    "eventsSha256": "ad35b90600a327a06f4872964c392e392c87dffa7d3707b4d0134ce9e1a484da",
+    "historySha256": "7cac6c41d174d94726547c09459bc2a6bfcff80f9889654828b4c1548163d61f",
+    "tools": [
+      {
+        "tool": "calculateBattleDamage",
+        "callId": "95e922fc-4c46-400b-9e0f-d4c557aebfe0",
+        "status": "SUCCEEDED",
+        "inputEvidence": {
+          "parameterDigest": "0ca9bdb998a6534e2f311d2cada37a7cd93e940db49250c8b45e57fedcfb07f3",
+          "schemaVersion": "tool-input-evidence-v1",
+          "toolVersion": "1.0.0",
+          "scope": "SUPPLIED_ARGUMENTS_ONLY",
+          "fields": {
+            "/request/generation": {
+              "kind": "LITERAL",
+              "value": 9
+            },
+            "/request/dataReleaseId": {
+              "kind": "LITERAL",
+              "value": "pokeapi-reference-v1"
+            },
+            "/request/move": {
+              "sha256": "4a0a0ca857887531c9098f6407f8ebf03c9ffc5e1698106952abd172067cc16f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/field/gameType": {
+              "kind": "LITERAL",
+              "value": "Singles"
+            },
+            "/request/field/weather": {
+              "kind": "LITERAL",
+              "value": "none"
+            },
+            "/request/field/terrain": {
+              "kind": "LITERAL",
+              "value": "无"
+            },
+            "/request/attacker/species": {
+              "sha256": "266aa5886067fbbc1a3a39fe432fc5bbf561abc90e4b8a322215ac17df6ce012",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/length": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/moves/0": {
+              "sha256": "4a0a0ca857887531c9098f6407f8ebf03c9ffc5e1698106952abd172067cc16f",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/1": {
+              "sha256": "79b354696815b1239272be96e392712f095b8944768f5065bde1ce2e137260c5",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/2": {
+              "sha256": "af1b9a286abd7c075bd718d8db25f9dc1ec9b12fba1d8d4ae6e5a0a41c878c5b",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/moves/3": {
+              "sha256": "a04582945b751da09d9a89153125193f1bc0264d9274220d4639edbd6dd7132b",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/ability": {
+              "sha256": "ea14b41e5e4621d327ade8f955d6a77231729b4e681b0cba9c50b6a64bfdb904",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/item": {
+              "sha256": "876998813251f83d77e7b03c6a6c3b739d82ad3f3a572aeb48083e4419ef6ccf",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/nature": {
+              "sha256": "1b95a9211b0b56dd87741dfa7e5dda180b6a48045419a51676c85ce847475e89",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/attacker/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/species": {
+              "sha256": "2bf175f9655e7bb7357b9f0a7c6051465a5ae701104ffe741b98e852c0e4d460",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/length": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/defender/build/moves/0": {
+              "sha256": "9107cd727c0f7ce1547b641cd6973400627695ddf1f04dbbd476e1257f35ae2e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/1": {
+              "sha256": "79b354696815b1239272be96e392712f095b8944768f5065bde1ce2e137260c5",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/2": {
+              "sha256": "b76d0c404a87a8046da520dafd1b3ab066b360f86061862e4e317fe723364688",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/moves/3": {
+              "sha256": "ed195c249606024189b9db95ac58e02afa3812260a77ba084766be7ad622868e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/ability": {
+              "sha256": "d8d6b467441f7e64d4678e68a17dfe4ce8a1d02b930c280815ca68227952a79e",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/item": {
+              "sha256": "876998813251f83d77e7b03c6a6c3b739d82ad3f3a572aeb48083e4419ef6ccf",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/nature": {
+              "sha256": "0a7982e99961bfb801299550f90813f6f4f3c65fcffeb2b325f729ed3ac4c92c",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/defender/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/defender/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            }
+          },
+          "coverage": "COMPLETE",
+          "typedRequestDigest": "70cb73150295eec99ac7e1bfacd91d1cc367925f4fffe04048cf0bd84cc6fd7d"
+        },
+        "terminal": {
+          "status": "SUCCEEDED",
+          "toolVersion": "1.0.0",
+          "parameterDigest": "0ca9bdb998a6534e2f311d2cada37a7cd93e940db49250c8b45e57fedcfb07f3",
+          "cached": false
+        },
+        "outputEvidence": {
+          "schemaVersion": "damage-result-evidence-v1",
+          "status": "VERIFIED",
+          "scope": "SUPPORTED_CONDITIONS_AND_RANGE_ONLY",
+          "parameterDigest": "0ca9bdb998a6534e2f311d2cada37a7cd93e940db49250c8b45e57fedcfb07f3",
+          "toolVersion": "1.0.0",
+          "typedRequestDigest": "70cb73150295eec99ac7e1bfacd91d1cc367925f4fffe04048cf0bd84cc6fd7d",
+          "outputDigest": "f155da9e8d483b3827234ee8a7c8c69993861f83e72e41bf8e4f81bae684ec54",
+          "resolvedFields": {
+            "/request/generation": {
+              "kind": "LITERAL",
+              "value": 9
+            },
+            "/request/dataReleaseId": {
+              "kind": "LITERAL",
+              "value": "pokeapi-reference-v1"
+            },
+            "/request/attacker/species": {
+              "sha256": "4913f387c81f37d3be0be2d89426db7382dd4658cc6ba4f0139b4aa709e873fe",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/attacker/build/nature": {
+              "sha256": "fc0262a456aebc57710069dedac5e2091b058b4f4a2b9eea810b64be1b177d80",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/ability": {
+              "sha256": "1d614d8c6ba018f423c140ced04e48048acfdd06a0a53e0f9a0b59b89a8448dc",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/item": {
+              "sha256": "a26e5e9230210f6d7bc811105ecd443013928166660fce67b9669c7019824d04",
+              "kind": "SHA256_JSON"
+            },
+            "/request/attacker/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/attacker/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/attacker/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/attacker/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/attacker/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/species": {
+              "sha256": "3d29b4a53b1e2a6116ea81b3b45101ba13a6a41ad1b068aa066d98428220a678",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/level": {
+              "kind": "LITERAL",
+              "value": 50
+            },
+            "/request/defender/build/nature": {
+              "sha256": "22f5772b66e220a2a726211c54f4e39d51a5d09963b12ef5673ee1eed687ec0d",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/ability": {
+              "sha256": "78a29ab6f16a3649a61e59f877b03952c0781b20e67fa2f64e0667e703ca3f92",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/item": {
+              "sha256": "a26e5e9230210f6d7bc811105ecd443013928166660fce67b9669c7019824d04",
+              "kind": "SHA256_JSON"
+            },
+            "/request/defender/build/evs/hp": {
+              "kind": "LITERAL",
+              "value": 4
+            },
+            "/request/defender/build/evs/atk": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/def": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spa": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/evs/spd": {
+              "kind": "LITERAL",
+              "value": 0
+            },
+            "/request/defender/build/evs/spe": {
+              "kind": "LITERAL",
+              "value": 252
+            },
+            "/request/defender/build/ivs/hp": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/atk": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/def": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spa": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spd": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/defender/build/ivs/spe": {
+              "kind": "LITERAL",
+              "value": 31
+            },
+            "/request/move": {
+              "sha256": "62078571b3749e44be8af051fedfceb6ad401816772877fc6d15cf4fa1a9a5ec",
+              "kind": "SHA256_JSON"
+            },
+            "/request/field/gameType": {
+              "kind": "LITERAL",
+              "value": "Singles"
+            },
+            "/request/field/weather": {
+              "kind": "LITERAL",
+              "value": null
+            },
+            "/request/field/terrain": {
+              "kind": "LITERAL",
+              "value": null
+            }
+          },
+          "omittedFields": [],
+          "explicitNullFields": [],
+          "engineDefaultAbilityFields": [],
+          "range": {
+            "minimum": 164,
+            "maximum": 194
+          },
+          "percent": {
+            "minimum": 142.6086956521739,
+            "maximum": 168.69565217391303
+          },
+          "defenderHp": 115
+        }
+      }
+    ]
+  }
+]

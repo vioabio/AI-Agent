@@ -1,0 +1,161 @@
+{
+  "scope": "Only selected, preallocated case repetitions; not a 100-case benchmark",
+  "denominator": 6,
+  "pass": 0,
+  "fail": 0,
+  "pendingReview": 6,
+  "structuralPass": 6,
+  "verifiedSuccessRate": 0,
+  "assistedReviewed": 6,
+  "humanReviewed": 0,
+  "byCategory": {
+    "facts": {
+      "denominator": 1,
+      "pass": 0,
+      "fail": 0,
+      "pendingReview": 1,
+      "structuralPass": 1,
+      "verifiedSuccessRate": 0
+    },
+    "guides": {
+      "denominator": 1,
+      "pass": 0,
+      "fail": 0,
+      "pendingReview": 1,
+      "structuralPass": 1,
+      "verifiedSuccessRate": 0
+    },
+    "team": {
+      "denominator": 1,
+      "pass": 0,
+      "fail": 0,
+      "pendingReview": 1,
+      "structuralPass": 1,
+      "verifiedSuccessRate": 0
+    },
+    "damage": {
+      "denominator": 1,
+      "pass": 0,
+      "fail": 0,
+      "pendingReview": 1,
+      "structuralPass": 1,
+      "verifiedSuccessRate": 0
+    },
+    "clarification": {
+      "denominator": 1,
+      "pass": 0,
+      "fail": 0,
+      "pendingReview": 1,
+      "structuralPass": 1,
+      "verifiedSuccessRate": 0
+    },
+    "safety": {
+      "denominator": 1,
+      "pass": 0,
+      "fail": 0,
+      "pendingReview": 1,
+      "structuralPass": 1,
+      "verifiedSuccessRate": 0
+    }
+  },
+  "tools": {
+    "required": 5,
+    "successful": 5,
+    "caseDenominator": 4,
+    "casesAllRequiredSucceeded": 4
+  },
+  "latencyMs": {
+    "p50": 5285,
+    "p95": 14201,
+    "samples": 6
+  },
+  "ttftMs": {
+    "p50": 7498,
+    "p95": 9522,
+    "source": "Polling observation upper bound, includes buffering; not provider TTFT"
+  },
+  "usage": "unknown",
+  "cost": "unknown",
+  "citationCorrectness": "pending human source/claim review",
+  "retrievalRecallAt5": "not measured: no instrumented chunk ranking",
+  "rows": [
+    {
+      "caseId": "S2-FACTS-81",
+      "repetition": 1,
+      "category": "facts",
+      "split": "heldout",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 1,
+      "successfulRequiredTools": 1,
+      "reviewState": "ASSISTED_REVIEW_ONLY",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-GUIDES-81",
+      "repetition": 1,
+      "category": "guides",
+      "split": "heldout",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 1,
+      "successfulRequiredTools": 1,
+      "reviewState": "ASSISTED_REVIEW_ONLY",
+      "assistedFlagged": true,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-TEAM-81",
+      "repetition": 1,
+      "category": "team",
+      "split": "heldout",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 2,
+      "successfulRequiredTools": 2,
+      "reviewState": "ASSISTED_REVIEW_ONLY",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-DAMAGE-81",
+      "repetition": 1,
+      "category": "damage",
+      "split": "heldout",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 1,
+      "successfulRequiredTools": 1,
+      "reviewState": "ASSISTED_REVIEW_ONLY",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-CLARIFICATION-81",
+      "repetition": 1,
+      "category": "clarification",
+      "split": "heldout",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 0,
+      "successfulRequiredTools": 0,
+      "reviewState": "ASSISTED_REVIEW_ONLY",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    },
+    {
+      "caseId": "S2-SAFETY-81",
+      "repetition": 1,
+      "category": "safety",
+      "split": "heldout",
+      "structuralPass": true,
+      "failures": [],
+      "requiredToolCount": 0,
+      "successfulRequiredTools": 0,
+      "reviewState": "ASSISTED_REVIEW_ONLY",
+      "assistedFlagged": false,
+      "taskOutcome": "PENDING_REVIEW"
+    }
+  ]
+}

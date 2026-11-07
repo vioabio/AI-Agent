@@ -1,0 +1,150 @@
+{
+  "schemaVersion": "machine-recipe-verification-v1",
+  "generatedAt": "2026-10-27T06:04:07.675Z",
+  "stage": "S3 small community recipe references",
+  "backend": {
+    "tests": 1238,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3,
+    "newTests": 8,
+    "status": "BUILD SUCCESS",
+    "targetedBeforeFinalPrompt": 25,
+    "targetedIncludedInFull": true,
+    "knownWarning": "Existing Surefire fork exit wait warning remains"
+  },
+  "node": {
+    "tests": 162,
+    "failed": 0,
+    "newTests": 6
+  },
+  "frontend": {
+    "contracts": 170,
+    "newContracts": 5,
+    "lint": "passed",
+    "typecheck": "passed",
+    "build": "passed",
+    "firstContractFailure": "Fixture shared mutable recipe materials; fixed by per-call deep clone, original failure log retained",
+    "browserCases": 2,
+    "viewports": [
+      1440,
+      390
+    ],
+    "browserMode": "Controlled API with Chrome, not real authenticated backend",
+    "observedTeamWrites": 0,
+    "horizontalOverflow": false,
+    "temporaryPort": 31989,
+    "temporaryPortStopped": true
+  },
+  "recipes": {
+    "records": 4,
+    "sourcePages": 2,
+    "consistentReferences": 3,
+    "sourceDisagreements": 1,
+    "conflictMove": "water-pulse",
+    "conflictHandling": "LP null and no material quantities; source spelling is not aliased",
+    "reviewStatus": "PENDING_HUMAN_AND_IN_GAME_VERIFICATION",
+    "sourceIndependence": "not established"
+  },
+  "agent": {
+    "sdkTests": 3,
+    "newRecipeQuestionSdkTest": 1,
+    "provider": "mock",
+    "realProviderRequests": 0,
+    "recipePresentationOrigin": "PINNED_LOCAL_CATALOG_AFTER_BOUND_MATCHED_MACHINE",
+    "realProviderToolChoiceOrSemanticAccuracy": "not measured"
+  },
+  "http": {
+    "mode": "MockMvc controller tests",
+    "realAuthenticatedBackendRuns": 0,
+    "memberOrNetworkReadsDuringRecipeControllerTests": 0
+  },
+  "independentHumanReviews": 0,
+  "inGameVerifications": 0,
+  "formalCases": 36,
+  "formalNewCases": 0,
+  "originalS3CorpusSha256": "b0a1204403f6aaf610543399afdb11c4b37bc9614ce376c47befa843319b8b8f",
+  "frozenPaths": "git diff HEAD unchanged",
+  "dailyServers": "8123/3000 not operated or restarted; restart backend to load new endpoint",
+  "committed": false,
+  "pushed": false,
+  "deployed": false,
+  "logs": [
+    {
+      "path": "artifacts/machine-recipes-backend-targeted-2026-10-27.log",
+      "bytes": 39431,
+      "sha256": "sha256:0d562cbe9d7e7ce99e939d07774e54952b58a31d911e80904436cd506d3d4ddd"
+    },
+    {
+      "path": "artifacts/machine-recipes-backend-full-2026-10-27.log",
+      "bytes": 1201501,
+      "sha256": "sha256:2134193a4597f0963aa63c765abcb4b80e73937bd7524787e33dcc480800beb7"
+    },
+    {
+      "path": "artifacts/machine-recipes-node-final-2026-10-27.log",
+      "bytes": 15361,
+      "sha256": "sha256:dc4f8defc8d1ead5da27e6c1a2b257087d8b4906753a460bf5882c6013a78fad"
+    },
+    {
+      "path": "artifacts/machine-recipes-frontend-contract-2026-10-27.log",
+      "bytes": 16288,
+      "sha256": "sha256:613c965165161efdb15abbcd827db631894c31f535ceca7abb590859392d9890"
+    },
+    {
+      "path": "artifacts/machine-recipes-frontend-contract-final-2026-10-27.log",
+      "bytes": 15362,
+      "sha256": "sha256:1ca764cab839fe8f21688766fabf60d315735ad257016c26f69c8332aee94cde"
+    },
+    {
+      "path": "artifacts/machine-recipes-lint-2026-10-27.log",
+      "bytes": 146,
+      "sha256": "sha256:19ab58f27496afce2925f07cbf5c56b50723420b3d2e393a2ee356f6eb77fa49"
+    },
+    {
+      "path": "artifacts/machine-recipes-lint-report-2026-10-27.json",
+      "bytes": 856,
+      "sha256": "sha256:a7f3e27054d5e7819b108d6d5f2595bb58f7bd0404340c1cd3e8f975a63c7180"
+    },
+    {
+      "path": "artifacts/machine-recipes-typecheck-2026-10-27.log",
+      "bytes": 161,
+      "sha256": "sha256:c65bab66c8ae731db5449fb0f188a14426f6e56eaecf3be0d8ccd0558c067072"
+    },
+    {
+      "path": "artifacts/machine-recipes-typecheck-report-2026-10-27.json",
+      "bytes": 809,
+      "sha256": "sha256:43cea368547d0d3a27a5dae3fe9c152f0c3fa4ff4aa7d6df016d49c39b41482a"
+    },
+    {
+      "path": "artifacts/machine-recipes-build-2026-10-27.log",
+      "bytes": 689,
+      "sha256": "sha256:d152092b673c87bcdd8058857419fa86f86297a811a1f0d686c218e1ca3781ab"
+    },
+    {
+      "path": "artifacts/machine-recipes-browser-2026-10-27.log",
+      "bytes": 631,
+      "sha256": "sha256:a9dbc6964f827e4a6437173443ca3750d375beb8e9c8cb11681bb7c72602bb20"
+    },
+    {
+      "path": "artifacts/machine-recipes-browser-2026-10-27.json",
+      "bytes": 5862,
+      "sha256": "sha256:251be7c6d3443a9a45fd5319c6467fb2945e8ae3de547e7d149e6b2612a02c67"
+    },
+    {
+      "path": "artifacts/machine-recipes-source-audit-final-2026-10-27.json",
+      "bytes": 918,
+      "sha256": "sha256:02d244d4a62f1a0baac87f25b233b24a775b7d5a57322246ceeabf515f137d9a"
+    },
+    {
+      "path": "artifacts/machine-recipes-diff-check-2026-10-27.log",
+      "bytes": 8806,
+      "sha256": "sha256:2ace209bdd25f270da04648b779d7a76c1ae85a881013f6c035091abe8f00d91"
+    }
+  ],
+  "limitations": [
+    "Recipe source disagreement unresolved for water-pulse",
+    "No acquisition location, exact unlock condition or learning operation verification",
+    "No inventory, joint four-move or formal legality verification",
+    "No real-model or independent human quality acceptance"
+  ]
+}

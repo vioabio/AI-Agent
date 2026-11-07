@@ -1,0 +1,28 @@
+✔ fixed public download creates a six-file bundle accepted by the existing importer (93.0233ms)
+✔ wrong resource identity fails before creating the destination (5.7181ms)
+✔ redirects and non-JSON responses never create usable reference data (9.5983ms)
+✔ declared and streamed oversized bodies are bounded without writing partial bundles (20.6593ms)
+✔ network failures retain a sanitized error and have no automatic retries (4.8326ms)
+✔ existing and outside destinations are rejected before fetching (9.7424ms)
+✔ manifest traversal and changed snapshot bytes cannot pass readiness (18.7571ms)
+✔ symlinked output ancestors cannot escape the public workspace (7.2331ms)
+✔ readiness inspects public inputs without claiming build or model success (40.0833ms)
+✔ wrong Node or JDK versions and changed dependency versions fail readiness (48.4678ms)
+✔ missing packages, wrappers or reference bundles are reported without executing installers (2.0888ms)
+✔ private model configuration is never selected for readiness reads (39.5925ms)
+✔ CLI refuses an existing report before any environment inspection (144.4163ms)
+✔ public build source selection includes only the named public demo config (0.7203ms)
+✔ readiness CLI selects an explicit public workspace without probing a model (196.008ms)
+✔ allowlisted nested TLS codes are reported for each fixed route without secrets or partial output (7.264ms)
+✔ unknown all-caps messages and cause codes cannot enter public failure reports (4.7579ms)
+✔ aborts have a bounded timeout code without exposing transport messages (4.9613ms)
+✔ explicit serial mode sends each fixed request once with at most one active download (56.8425ms)
+✔ invalid download modes fail before any transport or destination writes (2.211ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 830.63

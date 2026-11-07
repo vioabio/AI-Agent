@@ -1,0 +1,165 @@
+{
+  "schemaVersion": "reference-cache-evidence-v1",
+  "scope": "Cache readability, direct HTTP calculation and one expected failure-recovery answer; not a successful model calculation or semantic accuracy benchmark",
+  "humanAcceptance": "NOT_PERFORMED",
+  "startedAt": "2026-10-26T05:29:01.894Z",
+  "finishedAt": "2026-10-26T05:29:34.275Z",
+  "pass": true,
+  "checks": {
+    "cachedNamesIdsAndChinese": true,
+    "importedCacheCalculation": true,
+    "uncachedReferenceFailsSafely": true,
+    "historyAndUsageMatch": true,
+    "referenceFailureRecovery": true
+  },
+  "configuredProvider": "dashscope",
+  "configuredModelId": "qwen-plus",
+  "facts": [
+    {
+      "query": "squirtle",
+      "slug": "squirtle",
+      "checksum": "sha256:76ff8f6eb45c11aea20e83d62d1a334af3487f26e0d54e9289d3df077699c5af",
+      "retrievedAt": "2026-10-21T01:35:57.170328800Z"
+    },
+    {
+      "query": "7",
+      "slug": "squirtle",
+      "checksum": "sha256:76ff8f6eb45c11aea20e83d62d1a334af3487f26e0d54e9289d3df077699c5af",
+      "retrievedAt": "2026-10-21T01:35:57.170328800Z"
+    },
+    {
+      "query": "杰尼龟",
+      "slug": "squirtle",
+      "checksum": "sha256:76ff8f6eb45c11aea20e83d62d1a334af3487f26e0d54e9289d3df077699c5af",
+      "retrievedAt": "2026-10-21T01:35:57.170328800Z"
+    },
+    {
+      "query": "charmander",
+      "slug": "charmander",
+      "checksum": "sha256:270795ccded3e9182c0cc05ff4edf08d86805c4e2142f96eb4afee3cd44a1aba",
+      "retrievedAt": "2026-10-23T03:04:17.432962700Z"
+    },
+    {
+      "query": "4",
+      "slug": "charmander",
+      "checksum": "sha256:270795ccded3e9182c0cc05ff4edf08d86805c4e2142f96eb4afee3cd44a1aba",
+      "retrievedAt": "2026-10-23T03:04:17.432962700Z"
+    }
+  ],
+  "calculation": {
+    "engine": "@smogon/calc",
+    "engineVersion": "0.12.0",
+    "generation": 9,
+    "dataReleaseId": "pokeapi-reference-v1",
+    "range": {
+      "minimum": 102,
+      "maximum": 122
+    },
+    "defenderHp": 114,
+    "percent": {
+      "minimum": 89.47368421052632,
+      "maximum": 107.01754385964912
+    },
+    "description": "0 SpA Squirtle Surf vs. 0 HP / 0 SpD Charmander: 102-122 (89.4 - 107%) -- 50% chance to OHKO",
+    "attackerBaseStats": {
+      "hp": 44,
+      "atk": 48,
+      "def": 65,
+      "spa": 50,
+      "spd": 64,
+      "spe": 43
+    },
+    "defenderBaseStats": {
+      "hp": 39,
+      "atk": 52,
+      "def": 43,
+      "spa": 60,
+      "spd": 50,
+      "spe": 65
+    },
+    "assumptions": {
+      "attacker": {
+        "species": "Squirtle",
+        "level": 50,
+        "nature": "Hardy",
+        "ability": "Torrent",
+        "evs": {
+          "hp": 0,
+          "atk": 0,
+          "def": 0,
+          "spa": 0,
+          "spd": 0,
+          "spe": 0
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "item": ""
+      },
+      "defender": {
+        "species": "Charmander",
+        "level": 50,
+        "nature": "Hardy",
+        "ability": "Blaze",
+        "evs": {
+          "hp": 0,
+          "atk": 0,
+          "def": 0,
+          "spa": 0,
+          "spd": 0,
+          "spe": 0
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "item": ""
+      },
+      "move": "Surf",
+      "field": {
+        "gameType": "Singles",
+        "weather": null,
+        "terrain": null
+      }
+    },
+    "limitation": "Assumes full HP, no stat boosts, screens, hazards, status, Tera or other unprovided field effects. This is not a legality or win-rate result.",
+    "attackerSource": "https://pokeapi.co/api/v2/pokemon/squirtle/",
+    "defenderSource": "https://pokeapi.co/api/v2/pokemon/charmander/",
+    "attackerChecksum": "sha256:76ff8f6eb45c11aea20e83d62d1a334af3487f26e0d54e9289d3df077699c5af",
+    "defenderChecksum": "sha256:270795ccded3e9182c0cc05ff4edf08d86805c4e2142f96eb4afee3cd44a1aba",
+    "conditionValidation": {
+      "schemaVersion": "damage-condition-validation-v1",
+      "status": "VERIFIED",
+      "scope": "SUPPORTED_CONDITIONS_NOT_DAMAGE_FORMULA",
+      "typedRequestDigest": "85672c66b30e9bc87dc9483bd6c411ee961c1b459bba6b949d5fb4123eae900b",
+      "validatedProjectionDigest": "ed731086210ef0f49acdfbbc2c50c43927e52585cfcc77169e168fb44caae20f",
+      "engineDefaultAbilitySides": [
+        "attacker",
+        "defender"
+      ]
+    }
+  },
+  "runId": "run-a3736f09-938c-4a81-bc13-9cf34366494a",
+  "terminal": "run.completed",
+  "answer": "宝可梦参考资料暂时无法读取，本次未能生成伤害范围。请检查资料连接，或导入所需本地资料后重试。",
+  "modelCalls": 3,
+  "collectorSha256": "227333b4271aec94faf3918660a2824746b21ac7b150877f5e80c4bb47a1fbb8",
+  "eventsSha256": "284aded6f65b9fa0669fdcf341d04d26807af6d80322a9a34dae42a13c2d1e54",
+  "fullReportSha256": "5ec016c0f0f5e15121bf644d7e521d757079eea15a59a329c209228e7998a1ba",
+  "provenance": {
+    "sourceCount": 480,
+    "runtimeClassCount": 60,
+    "eventsMatch": true,
+    "manifestMatch": true,
+    "fullProvenanceSha256": "32f82bfc5d3c6526b1398767166c2104d06bfff457997948499eec487e5a5791"
+  }
+}

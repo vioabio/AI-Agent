@@ -1,0 +1,1338 @@
+{
+  "mode": "real-model-and-http",
+  "approvalActor": "automated dedicated test account; not a claim of human approval",
+  "status": "PASSED",
+  "runtime": {
+    "configuredProvider": "dashscope",
+    "providerReturnedModelId": "not-attested-by-this-endpoint",
+    "promptVersion": "campus-s2-source-projection-v3",
+    "configuredModelId": "qwen-plus",
+    "implementationSha256": {
+      "VioManus": "164508efe9e74fd9a464c9a9d98329179b4ca7211df54da42e7980fd2247a0e7",
+      "ToolCallAgent": "27d2a1fcd1c689d9b7e793f61661ee853b01a0e7f0a553de1358f36c2df97616",
+      "TeamAnswerEvidence": "bd4f6d2228a5b963620a69d352897d8f79896e5d2c127b59117849ce4e371688",
+      "DamageAnswerEvidence": "381161ab8f1e34506e9eae5b3102b3d8b507c853951f27d84fdfab2c24056e2a",
+      "GuideAnswerEvidence": "b3e80f59829946a7f32abb55f5583fe0f144da186b5183af0a6b647ee4a8f757",
+      "SavedTeamAnswerEvidence": "51d69d378cf7e95c2a0e33592faf3ce289862d62d5d1c797ce8102d1e10e6022",
+      "EvidenceText": "5a5df23e488f0cd60330d3b4170e0cbc602375620950329fb9cb5ea093eb8742",
+      "TeamReferenceTools": "7ab3609debdee4f7dae89c9b911279b24c11959ffa41dd4d4ea3e0cb95fa42ff",
+      "TeamWorkflowService": "528c20dbe0ee274e4d2d7a2025cf5325f84b60a61ed18f354eede219ee7142c0",
+      "RunMutationBoundary": "dc9dd79d80426b94edcee94eb86fd20c4f47d798d9e5d8b2dd3cce0ca5faeb92",
+      "DefaultRunExecutor": "8eb887792266e6e27bd3b941fd404224276ea407cffbfbf0fb80ba9d723fb040"
+    },
+    "profiles": [
+      "local"
+    ],
+    "tools": [
+      "calculateBattleDamage",
+      "checkTypeEffectiveness",
+      "doTerminate",
+      "getTypeChart",
+      "listCurrentTeams",
+      "lookupPokemonReference",
+      "lookupPokemonResource",
+      "lookupPokemonTeamReference",
+      "previewTeamChanges",
+      "readCurrentTeam",
+      "searchPokemonGuides",
+      "searchWeb"
+    ],
+    "features": {
+      "highRiskTools": false,
+      "answerStreaming": true,
+      "mcpClient": false,
+      "versionedGrounding": false
+    }
+  },
+  "startedAt": "2026-10-23T07:32:00.794Z",
+  "finishedAt": "2026-10-23T07:32:46.653Z",
+  "originalEvidenceRoot": "artifacts/campus/s2-quality/s1-stream",
+  "originalReportSha256": "06ddd6c524c137e2454b472c302a6f80732895523f2ab8842267ca76b5fb5dfc",
+  "checks": [
+    {
+      "method": "GET",
+      "path": "/auth/session",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/local/register",
+      "status": 201
+    },
+    {
+      "method": "POST",
+      "path": "/auth/local/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/session",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/session",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/local/register",
+      "status": 201
+    },
+    {
+      "method": "POST",
+      "path": "/auth/local/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/auth/session",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runtime",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/pokemon/reference/pokemon/squirtle?dataReleaseId=pokeapi-reference-v1",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/pokemon/reference/pokemon/charmander?dataReleaseId=pokeapi-reference-v1",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/teams",
+      "status": 201
+    },
+    {
+      "method": "POST",
+      "path": "/chat/runs",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=11",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=11",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=11",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=11",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=11",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=11",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=11",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=11",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=11",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=11",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=11",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=11",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=11",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=11",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/teams/1",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/team-change",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/teams/1",
+      "status": 404
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/team-change",
+      "status": 404
+    },
+    {
+      "method": "POST",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/team-change/decision",
+      "status": 404
+    },
+    {
+      "method": "POST",
+      "path": "/hitl/approvals/ff870ca1-1de1-4381-ab10-e5ad71725bc7?runId=run-0379135c-8f55-44e0-a637-295f4f587fbc&approved=true",
+      "status": 403
+    },
+    {
+      "method": "POST",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/team-change/decision",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/events?afterEventId=20",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/team-change",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/teams/1",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/chat/runs/run-0379135c-8f55-44e0-a637-295f4f587fbc/team-change/decision",
+      "status": 409
+    },
+    {
+      "method": "GET",
+      "path": "/chat/conversations/s1-5b745d2d89d2ab80/messages",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/chat/runs",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0/events?afterEventId=0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "path": "/teams/1",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0/team-change/decision",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0/events?afterEventId=0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0/team-change",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/teams/1",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/teams",
+      "status": 201
+    },
+    {
+      "method": "POST",
+      "path": "/chat/runs",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=0",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=5",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/events?afterEventId=8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/conversations/s1-203634496cb73114/messages",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/chat/runs/run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422/team-change",
+      "status": 404
+    },
+    {
+      "method": "GET",
+      "path": "/teams/5",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/logout",
+      "status": 204
+    },
+    {
+      "method": "POST",
+      "path": "/logout",
+      "status": 204
+    }
+  ],
+  "cases": [
+    {
+      "name": "read-calculate-preview-confirm-readback",
+      "runId": "run-0379135c-8f55-44e0-a637-295f4f587fbc",
+      "status": "COMPLETED",
+      "outcome": {
+        "preview": {
+          "proposalId": "ff870ca1-1de1-4381-ab10-e5ad71725bc7",
+          "teamId": 1,
+          "teamName": "S0 休闲练习队伍",
+          "changes": [
+            {
+              "slot": 1,
+              "member": "杰尼龟",
+              "field": "等级",
+              "before": "50",
+              "after": "51"
+            }
+          ],
+          "rationale": "仅提升杰尼龟等级至51以微调战力，其余配置（特性、道具、性格、EV/IV分配、招式）全部保持原样。",
+          "expiresAt": "2026-10-23T07:34:04.433922600Z",
+          "calculationEvidence": "### 伤害结果（计算事实）\n| 项目 | 实际计算结果 |\n| --- | --- |\n| 伤害范围 | 164～194 HP |\n| 防御方最大HP | 115 |\n| 伤害百分比 | 142.61%～168.70% |\n\n攻击方：Squirtle，Lv.50，性格 Modest，特性 Torrent，道具 Leftovers；EV HP4/攻0/防0/特攻252/特防0/速252；IV HP31/攻31/防31/特攻31/特防31/速31。\n防御方：Charmander，Lv.50，性格 Timid，特性 Blaze，道具 Leftovers；EV HP4/攻0/防0/特攻252/特防0/速252；IV HP31/攻31/防31/特攻31/特防31/速31。\n招式：Surf；场地：Singles；天气：无；地形：无。\n来源：本地 @smogon/calc 0.12.0。假设满HP；未模拟未提供的强化、异常状态、墙、场地伤害和太晶。伤害范围不是胜率或赛制合法性证明，也不单独保证击倒结果。\n",
+          "limitations": [
+            "仅保存预览列出的培养配置；理由是策略建议",
+            "图鉴存在与参数通过不代表招式合法或当前环境强势"
+          ]
+        },
+        "status": "APPLIED",
+        "savedTeam": {
+          "id": 1,
+          "ownerId": "local-89ac3677-4041-4782-8b94-a47d7139a75b",
+          "name": "S0 休闲练习队伍",
+          "rulesetId": "casual-v1",
+          "dataReleaseId": "pokeapi-reference-v1",
+          "members": [
+            {
+              "id": 0,
+              "formId": 7,
+              "slot": 1,
+              "build": {
+                "moves": [
+                  "surf",
+                  "protect",
+                  "ice-beam",
+                  "rain-dance"
+                ],
+                "ability": "torrent",
+                "item": "leftovers",
+                "nature": "modest",
+                "level": 51,
+                "evs": {
+                  "hp": 4,
+                  "atk": 0,
+                  "def": 0,
+                  "spa": 252,
+                  "spd": 0,
+                  "spe": 252
+                },
+                "ivs": {
+                  "hp": 31,
+                  "atk": 31,
+                  "def": 31,
+                  "spa": 31,
+                  "spd": 31,
+                  "spe": 31
+                }
+              }
+            },
+            {
+              "id": 0,
+              "formId": 4,
+              "slot": 2,
+              "build": {
+                "moves": [
+                  "flamethrower",
+                  "protect",
+                  "dragon-pulse",
+                  "will-o-wisp"
+                ],
+                "ability": "blaze",
+                "item": "leftovers",
+                "nature": "timid",
+                "level": 50,
+                "evs": {
+                  "hp": 4,
+                  "atk": 0,
+                  "def": 0,
+                  "spa": 252,
+                  "spd": 0,
+                  "spe": 252
+                },
+                "ivs": {
+                  "hp": 31,
+                  "atk": 31,
+                  "def": 31,
+                  "spa": 31,
+                  "spd": 31,
+                  "spe": 31
+                }
+              }
+            }
+          ]
+        },
+        "message": "### 队伍修改已保存\n已保存并回读队伍「S0 休闲练习队伍」，仅应用你确认的以下变更：\n\n| 成员 | 配置 | 修改前 | 修改后 |\n| --- | --- | --- | --- |\n| 杰尼龟 | 等级 | 50 | 51 |\n\n这些是培养配置记录，不代表招式合法性、最优搭配或胜率证明。"
+      },
+      "historyReadBackMatches": true
+    },
+    {
+      "name": "concurrent-edit-rejects-old-preview",
+      "runId": "run-f46f30d9-af6f-4674-96f4-6f0e7cdae8a0",
+      "status": "COMPLETED",
+      "outcome": {
+        "preview": {
+          "proposalId": "cb8e2a57-ca5e-4fb0-a039-6c1ad5f6c595",
+          "teamId": 1,
+          "teamName": "S0 休闲练习队伍",
+          "changes": [
+            {
+              "slot": 1,
+              "member": "杰尼龟",
+              "field": "等级",
+              "before": "51",
+              "after": "52"
+            }
+          ],
+          "rationale": "仅按要求将第一位宝可梦等级调整为52，其他所有配置保持不变",
+          "expiresAt": "2026-10-23T07:34:29.404620700Z",
+          "calculationEvidence": "未获得本 Run 的有效伤害计算。不能据此给出伤害、胜率或最优配置结论。",
+          "limitations": [
+            "仅保存预览列出的培养配置；理由是策略建议",
+            "图鉴存在与参数通过不代表招式合法或当前环境强势"
+          ]
+        },
+        "status": "CONFLICT",
+        "savedTeam": null,
+        "message": "队伍已被修改或删除，本次预览未保存。请重新读取队伍并生成新预览。"
+      }
+    },
+    {
+      "name": "missing-conditions-clarify-without-write",
+      "runId": "run-2b1f2395-d443-4d8b-87d7-f3b9dbc1c422",
+      "status": "COMPLETED"
+    }
+  ],
+  "qualityNote": "Workflow verification only; does not establish strategy accuracy."
+}

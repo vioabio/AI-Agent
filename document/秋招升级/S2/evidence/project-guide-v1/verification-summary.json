@@ -1,0 +1,233 @@
+{
+  "schemaVersion": "project-guide-verification-v1",
+  "verifiedAt": "2026-10-26T08:08:48.408Z",
+  "backend": {
+    "tests": 1090,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3,
+    "result": "BUILD SUCCESS"
+  },
+  "targeted": {
+    "tests": 31,
+    "failures": 0,
+    "errors": 0,
+    "overlapsFull": true,
+    "newTests": 10
+  },
+  "nodeTools": {
+    "tests": 88,
+    "passed": 88
+  },
+  "frontendContract": {
+    "tests": 139,
+    "passed": 139,
+    "uiChanged": false,
+    "browserRerun": false
+  },
+  "runtime": {
+    "fixedCases": 2,
+    "modes": 3,
+    "denominator": 6,
+    "engineeringPass": 6,
+    "programTriggerChecks": 6,
+    "enabledArmSearches": 4,
+    "modelCalls": 8,
+    "humanSemanticAcceptance": "PENDING",
+    "configuredProvider": "dashscope",
+    "configuredModelId": "qwen-plus",
+    "generationDefaults": {
+      "temperature": 0,
+      "topP": 1,
+      "maxTokens": null,
+      "scope": "CONFIGURED_DEFAULTS_NOT_PROVIDER_REQUEST_ATTESTATION"
+    },
+    "applicationOutputReserve": 1024
+  },
+  "provenance": {
+    "schemaVersion": "project-guide-provenance-v1",
+    "pass": true,
+    "sourceCount": 484,
+    "runtimeClasses": 64,
+    "sourceIdentitySha256": "c16a5dcfc59195e34a8147995cc10de419c55204465305172d49b5b5792f7f19",
+    "runtimeIdentitySha256": "fbd31f3c329720185b9c8cb14bd35500e3e778d5ae30591bb85e6dcfe1341bc0",
+    "captureSha256": [
+      "bcf0df96a987feb53b72bc6de1d2acaeb5e53441d87d5e3c7eaae1d91513a362",
+      "f2544a1c3eacba8e73523a70bf54f0b2ff2d6843e37e7bb9850a3c924e453d81",
+      "b6e6b70f88a2d9386863df168bf96f17ad73b1ebd2498b69d716e79fce41dee7"
+    ],
+    "planSha256": "5ee36d15d3d2f92210484ba724458ec1e2d189f6ec16f019498224399c3d7a0f",
+    "corpusSha256": "b0a1204403f6aaf610543399afdb11c4b37bc9614ce376c47befa843319b8b8f",
+    "projectGuidePolicy": {
+      "scope": "BOUNDED_EXPLICIT_PROJECT_EXPLANATIONS_ONLY",
+      "selectionOrigin": "PROGRAM_PROJECT_SOURCE",
+      "version": "project-source-request-v1"
+    }
+  },
+  "sourceTriggerChecks": [
+    {
+      "mode": "MODEL_ONLY",
+      "caseId": "ABLATION-DEFAULTS",
+      "programSelections": 0,
+      "expectedProgramSelections": 0,
+      "targetSourcePresent": false,
+      "pass": true,
+      "eventsSha256": "ab82b9b3a07c5bdfbe5be3dc411d7218fee1a975fed141ca6bae0ad9b2c3afa6"
+    },
+    {
+      "mode": "MODEL_ONLY",
+      "caseId": "ABLATION-CONFIRMATION",
+      "programSelections": 0,
+      "expectedProgramSelections": 0,
+      "targetSourcePresent": false,
+      "pass": true,
+      "eventsSha256": "d61a8a7460dab288a9f6747b79c5ebe48ccf08443537a19211328fb88dd06dca"
+    },
+    {
+      "mode": "GUIDES_ONLY",
+      "caseId": "ABLATION-DEFAULTS",
+      "programSelections": 1,
+      "expectedProgramSelections": 1,
+      "targetSourcePresent": true,
+      "pass": true,
+      "eventsSha256": "f2e1f48e462c84c5373a02a4a38d024fd2e822e4a2e6acc48c3893ff57e2c1c9"
+    },
+    {
+      "mode": "GUIDES_ONLY",
+      "caseId": "ABLATION-CONFIRMATION",
+      "programSelections": 1,
+      "expectedProgramSelections": 1,
+      "targetSourcePresent": true,
+      "pass": true,
+      "eventsSha256": "e79dad7c3ea9f950505be9abc4087606052d1c939a37877b3ddadd1613491391"
+    },
+    {
+      "mode": "READ_ONLY_TOOLS",
+      "caseId": "ABLATION-DEFAULTS",
+      "programSelections": 1,
+      "expectedProgramSelections": 1,
+      "targetSourcePresent": true,
+      "pass": true,
+      "eventsSha256": "732a34615ef038632682b95b52d649f91f13c720f43c61b952f771c4741b4aeb"
+    },
+    {
+      "mode": "READ_ONLY_TOOLS",
+      "caseId": "ABLATION-CONFIRMATION",
+      "programSelections": 1,
+      "expectedProgramSelections": 1,
+      "targetSourcePresent": true,
+      "pass": true,
+      "eventsSha256": "3d69c754c383485e59810a6a68afdd8a8d0ce848504403c52061d69743d901e8"
+    }
+  ],
+  "cleanup": {
+    "isolatedPortsClosed": [
+      18151,
+      18152,
+      18153
+    ],
+    "daily8123Untouched": true,
+    "daily3000Untouched": true,
+    "privateModelConfigInspectedOrCopied": false,
+    "committed": false,
+    "pushed": false,
+    "deployed": false
+  },
+  "preservedFailures": {
+    "firstTargeted": {
+      "tests": 31,
+      "failures": 1,
+      "errors": 0,
+      "cause": "Test assumed one callback on error; existing governed low-risk retry correctly invokes twice. Assertion corrected; retry policy unchanged."
+    },
+    "firstComparison": "Object key order was incorrectly treated as budget configuration identity. Comparator canonicalizes object keys only; old observation hashes and array order stay unchanged. Original captures retained; six fresh cases collected after the Node-only fix."
+  },
+  "frozenSources": {
+    "s2DatasetHeldoutUnchanged": true,
+    "s3CorpusAndLabelsUnchanged": true,
+    "originalCodeReferencesUnchanged": true,
+    "ablationPromptsAndLabelsUnchanged": true
+  },
+  "limitations": [
+    "Bounded Chinese project explanations only",
+    "Program-triggered retrieval is not model-selected retrieval",
+    "Literal matching is not semantic acceptance; returned extra documents may not be relevant",
+    "No independent heldout or human quality acceptance",
+    "No bill reconciliation, PostgreSQL, multi-instance or remote CI verification"
+  ],
+  "knownWarnings": [
+    "Surefire fork exit wait",
+    "Bean Validation provider unavailable",
+    "Multiple SLF4J providers"
+  ],
+  "sourceSha256": {
+    "src/main/java/com/vio/vioaiagent/agent/ProjectGuideRequest.java": "dbb76a45bfbc4278e525ce63d65eea40cd5df67987254357557acdecb50f03c1",
+    "src/main/java/com/vio/vioaiagent/agent/GuideAnswerEvidence.java": "f3da0a51ccb5b19e3d0d55447e23c25dc6ab71f9da042dcaa0e53a76684dea46",
+    "src/main/java/com/vio/vioaiagent/agent/ToolCallAgent.java": "6660312198823348352157e182ae75e741c01363a7bdfa4d40dec5d35d09b947",
+    "src/main/java/com/vio/vioaiagent/run/DefaultRunExecutor.java": "567e9fe9756e13f66832e4514aa351db7a28768df10e76e6fcae1489e274acd0",
+    "src/main/java/com/vio/vioaiagent/controller/LocalRuntimeController.java": "e56518b44d5785443b83d157ad114e90f2ddff0ab65631c8366c22b5cb1224cc",
+    "src/test/java/com/vio/vioaiagent/agent/ProjectGuideRequestTest.java": "4d52ed3e32a0179e2fc62f75dc5ae93cb4515a349aacc2d596b64a426bfe9f6b",
+    "src/test/java/com/vio/vioaiagent/agent/ProjectGuidePreflightTest.java": "a8601fc373bf217288324d810a029889cff275e033fa8a8ee8a6c9fa75165fe6",
+    "evaluation/campus/ablation/manifest.json": "5ee36d15d3d2f92210484ba724458ec1e2d189f6ec16f019498224399c3d7a0f",
+    "tools/campus/ablation.mjs": "449a8b224636ca99bb98df134e96a26f199ce8f9f7338f86ed4f9b5e83327d95",
+    "tools/campus/ablation.test.mjs": "97e97a4d102d9a2e7cf71bcd4d88a689a546eb5bc847e8afbe8b444b616bceae"
+  },
+  "logs": [
+    {
+      "file": "artifacts/project-guide-targeted-2026-10-26.log",
+      "sha256": "a77d98e07096792dbf54624a6f714150171bacb06b90af259a0d2d018e2635bf"
+    },
+    {
+      "file": "artifacts/project-guide-targeted-verified-2026-10-26.log",
+      "sha256": "8e435be97ab4a48c1156a55aedcc0e8cdecdf7ecf569889fd127e0ca231f0c67"
+    },
+    {
+      "file": "artifacts/project-guide-backend-full-2026-10-26.log",
+      "sha256": "8590a857cc7dd5e38eae6b9714d80183318830e38e492695a97fbe035fb94159"
+    },
+    {
+      "file": "artifacts/project-guide-frontend-contract-2026-10-26.log",
+      "sha256": "e97d88a97df785ab87763ef31a0181110c799e7b2654bc7e856d753781119d60"
+    },
+    {
+      "file": "artifacts/project-guide-tools-2026-10-26.log",
+      "sha256": "acb8c722d35b810cd9df656b7a7c8527f7a4715fdaa078be4d916073d16c411b"
+    },
+    {
+      "file": "artifacts/project-guide-tools-verified-2026-10-26.log",
+      "sha256": "040182b133b1c208e070f4a0015a2308ebb5720638c809e69a58e677a4e7449b"
+    },
+    {
+      "file": "artifacts/project-guide-model-real-2026-10-26.log",
+      "sha256": "02966e238f2edc388652a692bd0da233ae373083720ab71e4de65027ef094a53"
+    },
+    {
+      "file": "artifacts/project-guide-guides-real-2026-10-26.log",
+      "sha256": "293f39c3da493424f1704a25fc654358a657f668fe01a363f2aaf5dbaae1f592"
+    },
+    {
+      "file": "artifacts/project-guide-tools-real-2026-10-26.log",
+      "sha256": "0a68d13ee679b783a7e97d81f05f9cd12c3d1ea408fed46eb992c5db653b4ebf"
+    },
+    {
+      "file": "artifacts/project-guide-model-real-verified-2026-10-26.log",
+      "sha256": "02966e238f2edc388652a692bd0da233ae373083720ab71e4de65027ef094a53"
+    },
+    {
+      "file": "artifacts/project-guide-guides-real-verified-2026-10-26.log",
+      "sha256": "293f39c3da493424f1704a25fc654358a657f668fe01a363f2aaf5dbaae1f592"
+    },
+    {
+      "file": "artifacts/project-guide-tools-real-verified-2026-10-26.log",
+      "sha256": "0a68d13ee679b783a7e97d81f05f9cd12c3d1ea408fed46eb992c5db653b4ebf"
+    },
+    {
+      "file": "artifacts/project-guide-comparison-first-2026-10-26.log",
+      "sha256": "772fe4a1c5f0dffa6ac215e136deb5f1807b1ba7e672566aa74b53a4f1987d8c"
+    },
+    {
+      "file": "artifacts/project-guide-comparison-verified-2026-10-26.log",
+      "sha256": "e1763f969c297bc630c3f6f93fb7d87b0aaf0b3e741704a6af1312bb2d34d0c8"
+    }
+  ]
+}

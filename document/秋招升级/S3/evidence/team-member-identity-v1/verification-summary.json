@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "campus-team-member-identity-verification-v1",
+  "recordedAt": "2026-10-30T09:25:31.6359141+08:00",
+  "baseCommit": "ebad8442b444e7f4893ead333f3e24aa438eb459",
+  "version": "resolved-draft-member-identity-v1",
+  "backend": {
+    "build": "SUCCESS",
+    "errors": 0,
+    "logSha256": "486a772fde52d8a70a4f4f3cd5de9031d63748d24f6ab63f7531c7a0914ce90a",
+    "tests": 1301,
+    "log": "artifacts/team-identity-backend-final-2026-10-30.log",
+    "skipped": 3,
+    "failures": 0
+  },
+  "addedIdentityTests": 9,
+  "node": {
+    "campus": 224,
+    "referenceCache": 5,
+    "logs": [
+      "artifacts/team-identity-node-2026-10-30.log",
+      "artifacts/team-identity-reference-cache-2026-10-30.log"
+    ],
+    "failures": 0
+  },
+  "intermediateBackend": {
+    "errors": 0,
+    "cause": "Existing public HTTP fixture timed out; preserved, replaced with real local HTTP fixtures",
+    "tests": 1300,
+    "log": "artifacts/team-identity-backend-full-2026-10-30.log",
+    "skipped": 3,
+    "failures": 1
+  },
+  "sourceNormalization": "UTF-8 text with CRLF replaced by LF",
+  "sourceSha256": {
+    "src/main/java/com/vio/vioaiagent/agent/TeamDraftIdentityEvidence.java": "01e127f107ef9a69859c8f7960cff06e3bff03708c8cee37eb37d509d79488ae",
+    "src/main/java/com/vio/vioaiagent/agent/ToolCallAgent.java": "04f40187a7e618b44064f188b884956c31a5c91a52363d16fb63127f91e7b893",
+    "src/main/java/com/vio/vioaiagent/agent/TeamBuildAnswerEvidence.java": "0fce82d2b2848203ff4479110567dd5c35944de2166ad2092102a1d7601cc2bf",
+    "src/main/java/com/vio/vioaiagent/tools/governance/ToolExecutionContext.java": "6b1dac22dca7b9b1093ea2d6784f04d78dd11afe92247ad600d3f1568a38cb2d",
+    "src/main/java/com/vio/vioaiagent/tools/governance/ToolExecutionGateway.java": "b9df23c2c3c83e0df4225bcf591a486e1d189a4ecde42afaf983e8eed2f00cde",
+    "src/test/java/com/vio/vioaiagent/agent/TeamDraftIdentityEvidenceTest.java": "465b524953db289ef06bfdc4e69b259644b419c15d34ad2cd3c1c641696bbba1",
+    "src/test/java/com/vio/vioaiagent/tools/ToolOutputTest.java": "74cdebedbce5a9ee4ea9ac26edb990aa4ee95fd5690abad8b8e156266e3c2834"
+  },
+  "compiledClassSha256": {
+    "target/classes/com/vio/vioaiagent/agent/TeamDraftIdentityEvidence.class": "e3ec44edcfea1facbb314f75c05c1846609fad77a381b2a8d4d18bd98471e17e",
+    "target/classes/com/vio/vioaiagent/agent/TeamDraftIdentityEvidence$Identity.class": "062bcf2283aa99ff9c17d736bf5f6814e61e776dc6ba86f85f42d7ee10ddc45b",
+    "target/classes/com/vio/vioaiagent/agent/ToolCallAgent.class": "f59744f291eaa5d9e92434b9870f2d6495cfe987114bfd89419761780eab65d5",
+    "target/classes/com/vio/vioaiagent/tools/governance/ToolExecutionContext.class": "9be5d00229cf32bf4b0cfedac6735811b17453b5893b0ccaecfebc9223d7f3e4",
+    "target/classes/com/vio/vioaiagent/tools/governance/ToolExecutionGateway.class": "871fcf464102fae6d6f1f91437ba55da360c210fa5a2b39964588d528b7a2591"
+  },
+  "frozenPathsUnchanged": true,
+  "liveModelReplays": 0,
+  "newHumanAnswerReviews": 0,
+  "formalAdmissions": 0,
+  "s5Complete": false,
+  "issueStatus": "IMPLEMENTED_PENDING_LIVE_REPLAY",
+  "knownWarnings": [
+    "Existing Surefire fork JVM exit wait exceeded 30 seconds; final Maven exit/build successful"
+  ]
+}

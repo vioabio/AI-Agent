@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "team-agent-development-plan-v1",
+  "scope": "Two fixed local development tasks; not formal admission, human strategy acceptance or a success-rate estimate",
+  "cases": [
+    {"id": "draft-with-missing-member-build", "mode": "draft", "requiredTools": ["checkPokemonTeamBuild"]},
+    {"id": "read-saved-team-then-check", "mode": "saved", "requiredTools": ["readCurrentTeam", "checkPokemonTeamBuild"]}
+  ],
+  "repetitions": 1,
+  "sourceBundleManifestSha256": "46e8d9080f671d371b5ae31584b8cca5e548542bfc9bf7f5ae18fe8e3caf5a72",
+  "timeoutSeconds": 120,
+  "automaticRetries": 0
+}

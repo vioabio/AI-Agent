@@ -1,0 +1,1098 @@
+{
+  "initial": {
+    "mode": "real-local-http-lexical-retrieval-no-model",
+    "startedAt": "2026-10-23T08:31:53.995Z",
+    "finishedAt": "2026-10-23T08:31:56.972Z",
+    "datasetId": "campus-s3-expanded-dev-v1",
+    "datasetSha256": "31a11593b4e0371df6763d075cf2ba29d6c8ae2f0ec2eb99df64f8d994e1e699",
+    "corpusSha256": "b0a1204403f6aaf610543399afdb11c4b37bc9614ce376c47befa843319b8b8f",
+    "index": {
+      "algorithm": "local-guide-bm25-cjk2-v1",
+      "fingerprint": "sha256:a3bdc514a9bcfa833479ef12ef8bdc2405e709bebec9ac3022c9baa344c4dbce",
+      "builtAt": "2026-10-23T08:31:41.631713100Z",
+      "reused": false,
+      "documentCount": 12,
+      "chunkCount": 20,
+      "duplicateCount": 0,
+      "embeddingModel": "none"
+    },
+    "catalog": {
+      "catalogId": "local-guides-expanded-v1",
+      "schemaVersion": 2,
+      "corpusSha256": "b0a1204403f6aaf610543399afdb11c4b37bc9614ce376c47befa843319b8b8f",
+      "documentCount": 12
+    },
+    "summary": {
+      "planned": 24,
+      "positive": 16,
+      "negative": 8,
+      "documentRecallWithinTop5Chunks": 1,
+      "mrrAt5": 0.9375,
+      "negativeEmptyAccuracy": 0.875,
+      "sourcesVerified": 24,
+      "seedEvidenceCoverageAt5": 1,
+      "scope": "Source-linked development seeds, not exhaustive relevance judgments, human acceptance, heldout quality, or an S2 ablation result."
+    },
+    "rows": [
+      {
+        "caseId": "S3X-R01",
+        "expected": [
+          "species-form-identity-v1"
+        ],
+        "retrieved": [
+          "species-form-identity-v1",
+          "build-values-and-defaults-v1",
+          "status-moves-and-output-v1",
+          "damage-request-checklist-v1"
+        ],
+        "chunkIds": [
+          "guide-1641163426a40f76f56a410c4c1683f9f6acd4445d9d5f871e2aa911c6a3d867",
+          "guide-759f43e34ed7f614afad8b041953390c6ee27f1db9fec4d3e6190f1ad7527082",
+          "guide-34ef50288aea55d8bd72e48720ea41ac0a4fbed5a8f27b2d3bc3eb90865faebe",
+          "guide-0916742e5e773f173d6d911973bb101c10d2427a3320b760430c7ea9ac8e0856",
+          "guide-8699e7bb4ffd694e3838d944717c924ce40a0e0de8bc84dfaedac753f3cd9e67"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R02",
+        "expected": [
+          "species-form-identity-v1"
+        ],
+        "retrieved": [
+          "species-form-identity-v1",
+          "damage-request-checklist-v1",
+          "team-roles-v1"
+        ],
+        "chunkIds": [
+          "guide-34ef50288aea55d8bd72e48720ea41ac0a4fbed5a8f27b2d3bc3eb90865faebe",
+          "guide-8699e7bb4ffd694e3838d944717c924ce40a0e0de8bc84dfaedac753f3cd9e67",
+          "guide-1641163426a40f76f56a410c4c1683f9f6acd4445d9d5f871e2aa911c6a3d867",
+          "guide-92893510390f6b96c880c5f8dbc8102668b7c09b9691ae7055b786b3b28ccfe4",
+          "guide-b3310b53379fa8ffe626e3e6001027aabb8652baa2cebe86e5598ff2b668dcd8"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R03",
+        "expected": [
+          "move-version-and-identifiers-v1"
+        ],
+        "retrieved": [
+          "move-version-and-identifiers-v1",
+          "reference-vs-rules-v1",
+          "ability-item-traceability-v1",
+          "status-moves-and-output-v1"
+        ],
+        "chunkIds": [
+          "guide-f35361145ee90ebea55d0f48bc60e88584a6686f474572b4a61dab162e689d5d",
+          "guide-4eeaccf93e4ccafb2ddcc55f277a29968685cc5447da6471899c91e6df15eabc",
+          "guide-f46b118ffc7aa108ce11d5d4784270a5b6d2b3fec0738c56f6158a7cc3c78767",
+          "guide-6593120783bbd501ef52cab116d9652b9623ba17e2677f14f6e683349208f0fd",
+          "guide-0916742e5e773f173d6d911973bb101c10d2427a3320b760430c7ea9ac8e0856"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R04",
+        "expected": [
+          "move-version-and-identifiers-v1"
+        ],
+        "retrieved": [
+          "move-version-and-identifiers-v1",
+          "status-moves-and-output-v1",
+          "ability-item-traceability-v1",
+          "species-form-identity-v1",
+          "damage-request-checklist-v1"
+        ],
+        "chunkIds": [
+          "guide-4eeaccf93e4ccafb2ddcc55f277a29968685cc5447da6471899c91e6df15eabc",
+          "guide-4c4fc8ffc6771a74e99a8ff6404ba7665f3d6c9706551294fd5fe73e2d37df21",
+          "guide-8ce87e7c5be2377fd6a8084276e5a00cc5108c10a8afd271a52c916a26cfebce",
+          "guide-1641163426a40f76f56a410c4c1683f9f6acd4445d9d5f871e2aa911c6a3d867",
+          "guide-8699e7bb4ffd694e3838d944717c924ce40a0e0de8bc84dfaedac753f3cd9e67"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R05",
+        "expected": [
+          "build-values-and-defaults-v1"
+        ],
+        "retrieved": [
+          "build-values-and-defaults-v1",
+          "species-form-identity-v1",
+          "damage-assumptions-v1",
+          "damage-request-checklist-v1"
+        ],
+        "chunkIds": [
+          "guide-759f43e34ed7f614afad8b041953390c6ee27f1db9fec4d3e6190f1ad7527082",
+          "guide-d3be10baaa46e54d3c4dc8d536e301add1750bed16f175bc73d8cc4b161d1b3c",
+          "guide-34ef50288aea55d8bd72e48720ea41ac0a4fbed5a8f27b2d3bc3eb90865faebe",
+          "guide-21b5ec65c403c278af50bfd2e1f147af75eeb82ee444af75f8788292a12b5c15",
+          "guide-8699e7bb4ffd694e3838d944717c924ce40a0e0de8bc84dfaedac753f3cd9e67"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R06",
+        "expected": [
+          "build-values-and-defaults-v1"
+        ],
+        "retrieved": [
+          "build-values-and-defaults-v1",
+          "damage-request-checklist-v1",
+          "training-configuration-v1",
+          "team-roles-v1"
+        ],
+        "chunkIds": [
+          "guide-759f43e34ed7f614afad8b041953390c6ee27f1db9fec4d3e6190f1ad7527082",
+          "guide-b3310b53379fa8ffe626e3e6001027aabb8652baa2cebe86e5598ff2b668dcd8",
+          "guide-d3be10baaa46e54d3c4dc8d536e301add1750bed16f175bc73d8cc4b161d1b3c",
+          "guide-0912d7daf84860d1fd6d3b9a4c94bd991b8098688337c9b03eb5dcb9b2b97a42",
+          "guide-92893510390f6b96c880c5f8dbc8102668b7c09b9691ae7055b786b3b28ccfe4"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R07",
+        "expected": [
+          "damage-request-checklist-v1"
+        ],
+        "retrieved": [
+          "damage-request-checklist-v1",
+          "damage-assumptions-v1",
+          "species-form-identity-v1",
+          "team-roles-v1",
+          "field-settings-and-unsupported-v1"
+        ],
+        "chunkIds": [
+          "guide-8699e7bb4ffd694e3838d944717c924ce40a0e0de8bc84dfaedac753f3cd9e67",
+          "guide-21b5ec65c403c278af50bfd2e1f147af75eeb82ee444af75f8788292a12b5c15",
+          "guide-34ef50288aea55d8bd72e48720ea41ac0a4fbed5a8f27b2d3bc3eb90865faebe",
+          "guide-92893510390f6b96c880c5f8dbc8102668b7c09b9691ae7055b786b3b28ccfe4",
+          "guide-a69474bc330342ae2baeb323fe5f6ab2c07fb4cef10b6e0d991a44c283898b4c"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R08",
+        "expected": [
+          "damage-request-checklist-v1"
+        ],
+        "retrieved": [
+          "training-configuration-v1",
+          "damage-request-checklist-v1",
+          "damage-assumptions-v1",
+          "field-settings-and-unsupported-v1"
+        ],
+        "chunkIds": [
+          "guide-0912d7daf84860d1fd6d3b9a4c94bd991b8098688337c9b03eb5dcb9b2b97a42",
+          "guide-8699e7bb4ffd694e3838d944717c924ce40a0e0de8bc84dfaedac753f3cd9e67",
+          "guide-21b5ec65c403c278af50bfd2e1f147af75eeb82ee444af75f8788292a12b5c15",
+          "guide-a69474bc330342ae2baeb323fe5f6ab2c07fb4cef10b6e0d991a44c283898b4c",
+          "guide-b3310b53379fa8ffe626e3e6001027aabb8652baa2cebe86e5598ff2b668dcd8"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 0.5,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R09",
+        "expected": [
+          "field-settings-and-unsupported-v1"
+        ],
+        "retrieved": [
+          "damage-assumptions-v1",
+          "field-settings-and-unsupported-v1",
+          "damage-request-checklist-v1",
+          "status-moves-and-output-v1"
+        ],
+        "chunkIds": [
+          "guide-21b5ec65c403c278af50bfd2e1f147af75eeb82ee444af75f8788292a12b5c15",
+          "guide-3dc9aa1404b7be0bbfd6fc8d795e69431276f80b1785478e42fcfc80800ecb9d",
+          "guide-b3310b53379fa8ffe626e3e6001027aabb8652baa2cebe86e5598ff2b668dcd8",
+          "guide-a69474bc330342ae2baeb323fe5f6ab2c07fb4cef10b6e0d991a44c283898b4c",
+          "guide-0916742e5e773f173d6d911973bb101c10d2427a3320b760430c7ea9ac8e0856"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 0.5,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R10",
+        "expected": [
+          "field-settings-and-unsupported-v1"
+        ],
+        "retrieved": [
+          "field-settings-and-unsupported-v1",
+          "damage-assumptions-v1",
+          "damage-request-checklist-v1",
+          "team-roles-v1"
+        ],
+        "chunkIds": [
+          "guide-a69474bc330342ae2baeb323fe5f6ab2c07fb4cef10b6e0d991a44c283898b4c",
+          "guide-21b5ec65c403c278af50bfd2e1f147af75eeb82ee444af75f8788292a12b5c15",
+          "guide-3dc9aa1404b7be0bbfd6fc8d795e69431276f80b1785478e42fcfc80800ecb9d",
+          "guide-b3310b53379fa8ffe626e3e6001027aabb8652baa2cebe86e5598ff2b668dcd8",
+          "guide-92893510390f6b96c880c5f8dbc8102668b7c09b9691ae7055b786b3b28ccfe4"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R11",
+        "expected": [
+          "status-moves-and-output-v1"
+        ],
+        "retrieved": [
+          "status-moves-and-output-v1",
+          "damage-assumptions-v1",
+          "field-settings-and-unsupported-v1",
+          "damage-request-checklist-v1"
+        ],
+        "chunkIds": [
+          "guide-4c4fc8ffc6771a74e99a8ff6404ba7665f3d6c9706551294fd5fe73e2d37df21",
+          "guide-0916742e5e773f173d6d911973bb101c10d2427a3320b760430c7ea9ac8e0856",
+          "guide-21b5ec65c403c278af50bfd2e1f147af75eeb82ee444af75f8788292a12b5c15",
+          "guide-a69474bc330342ae2baeb323fe5f6ab2c07fb4cef10b6e0d991a44c283898b4c",
+          "guide-8699e7bb4ffd694e3838d944717c924ce40a0e0de8bc84dfaedac753f3cd9e67"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R12",
+        "expected": [
+          "status-moves-and-output-v1"
+        ],
+        "retrieved": [
+          "status-moves-and-output-v1",
+          "damage-assumptions-v1",
+          "move-version-and-identifiers-v1",
+          "damage-request-checklist-v1"
+        ],
+        "chunkIds": [
+          "guide-0916742e5e773f173d6d911973bb101c10d2427a3320b760430c7ea9ac8e0856",
+          "guide-4c4fc8ffc6771a74e99a8ff6404ba7665f3d6c9706551294fd5fe73e2d37df21",
+          "guide-21b5ec65c403c278af50bfd2e1f147af75eeb82ee444af75f8788292a12b5c15",
+          "guide-f35361145ee90ebea55d0f48bc60e88584a6686f474572b4a61dab162e689d5d",
+          "guide-8699e7bb4ffd694e3838d944717c924ce40a0e0de8bc84dfaedac753f3cd9e67"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R13",
+        "expected": [
+          "ability-item-traceability-v1"
+        ],
+        "retrieved": [
+          "ability-item-traceability-v1",
+          "move-version-and-identifiers-v1",
+          "damage-request-checklist-v1"
+        ],
+        "chunkIds": [
+          "guide-6593120783bbd501ef52cab116d9652b9623ba17e2677f14f6e683349208f0fd",
+          "guide-8ce87e7c5be2377fd6a8084276e5a00cc5108c10a8afd271a52c916a26cfebce",
+          "guide-4eeaccf93e4ccafb2ddcc55f277a29968685cc5447da6471899c91e6df15eabc",
+          "guide-f35361145ee90ebea55d0f48bc60e88584a6686f474572b4a61dab162e689d5d",
+          "guide-b3310b53379fa8ffe626e3e6001027aabb8652baa2cebe86e5598ff2b668dcd8"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R14",
+        "expected": [
+          "ability-item-traceability-v1"
+        ],
+        "retrieved": [
+          "ability-item-traceability-v1",
+          "move-version-and-identifiers-v1",
+          "field-settings-and-unsupported-v1",
+          "team-change-confirmation-v1"
+        ],
+        "chunkIds": [
+          "guide-8ce87e7c5be2377fd6a8084276e5a00cc5108c10a8afd271a52c916a26cfebce",
+          "guide-6593120783bbd501ef52cab116d9652b9623ba17e2677f14f6e683349208f0fd",
+          "guide-4eeaccf93e4ccafb2ddcc55f277a29968685cc5447da6471899c91e6df15eabc",
+          "guide-3dc9aa1404b7be0bbfd6fc8d795e69431276f80b1785478e42fcfc80800ecb9d",
+          "guide-32a15a98f8559063467addf6a6ab680fc4f632287936c58b7c99cd18bbc31f0d"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R15",
+        "expected": [
+          "team-change-confirmation-v1"
+        ],
+        "retrieved": [
+          "team-change-confirmation-v1",
+          "team-roles-v1",
+          "build-values-and-defaults-v1",
+          "field-settings-and-unsupported-v1"
+        ],
+        "chunkIds": [
+          "guide-32a15a98f8559063467addf6a6ab680fc4f632287936c58b7c99cd18bbc31f0d",
+          "guide-aba4d3b05611def3b6bbab49dbdf45846f2a7ad3dab27a1f95bbea6270017c90",
+          "guide-92893510390f6b96c880c5f8dbc8102668b7c09b9691ae7055b786b3b28ccfe4",
+          "guide-d3be10baaa46e54d3c4dc8d536e301add1750bed16f175bc73d8cc4b161d1b3c",
+          "guide-a69474bc330342ae2baeb323fe5f6ab2c07fb4cef10b6e0d991a44c283898b4c"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R16",
+        "expected": [
+          "team-change-confirmation-v1"
+        ],
+        "retrieved": [
+          "team-change-confirmation-v1",
+          "build-values-and-defaults-v1",
+          "team-roles-v1"
+        ],
+        "chunkIds": [
+          "guide-32a15a98f8559063467addf6a6ab680fc4f632287936c58b7c99cd18bbc31f0d",
+          "guide-aba4d3b05611def3b6bbab49dbdf45846f2a7ad3dab27a1f95bbea6270017c90",
+          "guide-d3be10baaa46e54d3c4dc8d536e301add1750bed16f175bc73d8cc4b161d1b3c",
+          "guide-92893510390f6b96c880c5f8dbc8102668b7c09b9691ae7055b786b3b28ccfe4",
+          "guide-759f43e34ed7f614afad8b041953390c6ee27f1db9fec4d3e6190f1ad7527082"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-N01",
+        "expected": [],
+        "retrieved": [
+          "damage-request-checklist-v1"
+        ],
+        "chunkIds": [
+          "guide-8699e7bb4ffd694e3838d944717c924ce40a0e0de8bc84dfaedac753f3cd9e67"
+        ],
+        "positive": false,
+        "recallAt5": null,
+        "reciprocalRankAt5": null,
+        "emptyCorrect": false,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": null
+      },
+      {
+        "caseId": "S3X-N02",
+        "expected": [],
+        "retrieved": [],
+        "chunkIds": [],
+        "positive": false,
+        "recallAt5": null,
+        "reciprocalRankAt5": null,
+        "emptyCorrect": true,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": null
+      },
+      {
+        "caseId": "S3X-N03",
+        "expected": [],
+        "retrieved": [],
+        "chunkIds": [],
+        "positive": false,
+        "recallAt5": null,
+        "reciprocalRankAt5": null,
+        "emptyCorrect": true,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": null
+      },
+      {
+        "caseId": "S3X-N04",
+        "expected": [],
+        "retrieved": [],
+        "chunkIds": [],
+        "positive": false,
+        "recallAt5": null,
+        "reciprocalRankAt5": null,
+        "emptyCorrect": true,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": null
+      },
+      {
+        "caseId": "S3X-N05",
+        "expected": [],
+        "retrieved": [],
+        "chunkIds": [],
+        "positive": false,
+        "recallAt5": null,
+        "reciprocalRankAt5": null,
+        "emptyCorrect": true,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": null
+      },
+      {
+        "caseId": "S3X-N06",
+        "expected": [],
+        "retrieved": [],
+        "chunkIds": [],
+        "positive": false,
+        "recallAt5": null,
+        "reciprocalRankAt5": null,
+        "emptyCorrect": true,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": null
+      },
+      {
+        "caseId": "S3X-N07",
+        "expected": [],
+        "retrieved": [],
+        "chunkIds": [],
+        "positive": false,
+        "recallAt5": null,
+        "reciprocalRankAt5": null,
+        "emptyCorrect": true,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": null
+      },
+      {
+        "caseId": "S3X-N08",
+        "expected": [],
+        "retrieved": [],
+        "chunkIds": [],
+        "positive": false,
+        "recallAt5": null,
+        "reciprocalRankAt5": null,
+        "emptyCorrect": true,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": null
+      }
+    ]
+  },
+  "accepted": {
+    "mode": "real-local-http-lexical-retrieval-no-model",
+    "startedAt": "2026-10-23T08:36:27.873Z",
+    "finishedAt": "2026-10-23T08:36:30.651Z",
+    "datasetId": "campus-s3-expanded-dev-v1",
+    "datasetSha256": "31a11593b4e0371df6763d075cf2ba29d6c8ae2f0ec2eb99df64f8d994e1e699",
+    "corpusSha256": "b0a1204403f6aaf610543399afdb11c4b37bc9614ce376c47befa843319b8b8f",
+    "index": {
+      "algorithm": "local-guide-bm25-cjk2-stop-v2",
+      "fingerprint": "sha256:6a86dabd48608508d83e1f0039919f9ed9f84979ec44f0a57b6c68b7ed462610",
+      "builtAt": "2026-10-23T08:35:55.300387700Z",
+      "reused": false,
+      "documentCount": 12,
+      "chunkCount": 20,
+      "duplicateCount": 0,
+      "embeddingModel": "none"
+    },
+    "catalog": {
+      "catalogId": "local-guides-expanded-v1",
+      "schemaVersion": 2,
+      "corpusSha256": "b0a1204403f6aaf610543399afdb11c4b37bc9614ce376c47befa843319b8b8f",
+      "documentCount": 12
+    },
+    "summary": {
+      "planned": 24,
+      "positive": 16,
+      "negative": 8,
+      "documentRecallWithinTop5Chunks": 1,
+      "mrrAt5": 0.96875,
+      "negativeEmptyAccuracy": 1,
+      "sourcesVerified": 24,
+      "seedEvidenceCoverageAt5": 1,
+      "scope": "Source-linked development seeds, not exhaustive relevance judgments, human acceptance, heldout quality, or an S2 ablation result."
+    },
+    "rows": [
+      {
+        "caseId": "S3X-R01",
+        "expected": [
+          "species-form-identity-v1"
+        ],
+        "retrieved": [
+          "species-form-identity-v1",
+          "build-values-and-defaults-v1",
+          "status-moves-and-output-v1",
+          "reference-vs-rules-v1"
+        ],
+        "chunkIds": [
+          "guide-1641163426a40f76f56a410c4c1683f9f6acd4445d9d5f871e2aa911c6a3d867",
+          "guide-759f43e34ed7f614afad8b041953390c6ee27f1db9fec4d3e6190f1ad7527082",
+          "guide-34ef50288aea55d8bd72e48720ea41ac0a4fbed5a8f27b2d3bc3eb90865faebe",
+          "guide-0916742e5e773f173d6d911973bb101c10d2427a3320b760430c7ea9ac8e0856",
+          "guide-f46b118ffc7aa108ce11d5d4784270a5b6d2b3fec0738c56f6158a7cc3c78767"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R02",
+        "expected": [
+          "species-form-identity-v1"
+        ],
+        "retrieved": [
+          "species-form-identity-v1",
+          "team-roles-v1",
+          "damage-request-checklist-v1",
+          "team-change-confirmation-v1"
+        ],
+        "chunkIds": [
+          "guide-34ef50288aea55d8bd72e48720ea41ac0a4fbed5a8f27b2d3bc3eb90865faebe",
+          "guide-1641163426a40f76f56a410c4c1683f9f6acd4445d9d5f871e2aa911c6a3d867",
+          "guide-92893510390f6b96c880c5f8dbc8102668b7c09b9691ae7055b786b3b28ccfe4",
+          "guide-8699e7bb4ffd694e3838d944717c924ce40a0e0de8bc84dfaedac753f3cd9e67",
+          "guide-aba4d3b05611def3b6bbab49dbdf45846f2a7ad3dab27a1f95bbea6270017c90"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R03",
+        "expected": [
+          "move-version-and-identifiers-v1"
+        ],
+        "retrieved": [
+          "move-version-and-identifiers-v1",
+          "reference-vs-rules-v1",
+          "ability-item-traceability-v1",
+          "status-moves-and-output-v1"
+        ],
+        "chunkIds": [
+          "guide-f35361145ee90ebea55d0f48bc60e88584a6686f474572b4a61dab162e689d5d",
+          "guide-4eeaccf93e4ccafb2ddcc55f277a29968685cc5447da6471899c91e6df15eabc",
+          "guide-f46b118ffc7aa108ce11d5d4784270a5b6d2b3fec0738c56f6158a7cc3c78767",
+          "guide-6593120783bbd501ef52cab116d9652b9623ba17e2677f14f6e683349208f0fd",
+          "guide-0916742e5e773f173d6d911973bb101c10d2427a3320b760430c7ea9ac8e0856"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R04",
+        "expected": [
+          "move-version-and-identifiers-v1"
+        ],
+        "retrieved": [
+          "move-version-and-identifiers-v1",
+          "status-moves-and-output-v1",
+          "ability-item-traceability-v1",
+          "species-form-identity-v1",
+          "damage-request-checklist-v1"
+        ],
+        "chunkIds": [
+          "guide-4eeaccf93e4ccafb2ddcc55f277a29968685cc5447da6471899c91e6df15eabc",
+          "guide-4c4fc8ffc6771a74e99a8ff6404ba7665f3d6c9706551294fd5fe73e2d37df21",
+          "guide-8ce87e7c5be2377fd6a8084276e5a00cc5108c10a8afd271a52c916a26cfebce",
+          "guide-1641163426a40f76f56a410c4c1683f9f6acd4445d9d5f871e2aa911c6a3d867",
+          "guide-8699e7bb4ffd694e3838d944717c924ce40a0e0de8bc84dfaedac753f3cd9e67"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R05",
+        "expected": [
+          "build-values-and-defaults-v1"
+        ],
+        "retrieved": [
+          "build-values-and-defaults-v1",
+          "species-form-identity-v1",
+          "damage-assumptions-v1",
+          "reference-vs-rules-v1"
+        ],
+        "chunkIds": [
+          "guide-759f43e34ed7f614afad8b041953390c6ee27f1db9fec4d3e6190f1ad7527082",
+          "guide-d3be10baaa46e54d3c4dc8d536e301add1750bed16f175bc73d8cc4b161d1b3c",
+          "guide-34ef50288aea55d8bd72e48720ea41ac0a4fbed5a8f27b2d3bc3eb90865faebe",
+          "guide-21b5ec65c403c278af50bfd2e1f147af75eeb82ee444af75f8788292a12b5c15",
+          "guide-f46b118ffc7aa108ce11d5d4784270a5b6d2b3fec0738c56f6158a7cc3c78767"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R06",
+        "expected": [
+          "build-values-and-defaults-v1"
+        ],
+        "retrieved": [
+          "build-values-and-defaults-v1",
+          "training-configuration-v1",
+          "damage-request-checklist-v1",
+          "team-roles-v1"
+        ],
+        "chunkIds": [
+          "guide-759f43e34ed7f614afad8b041953390c6ee27f1db9fec4d3e6190f1ad7527082",
+          "guide-d3be10baaa46e54d3c4dc8d536e301add1750bed16f175bc73d8cc4b161d1b3c",
+          "guide-0912d7daf84860d1fd6d3b9a4c94bd991b8098688337c9b03eb5dcb9b2b97a42",
+          "guide-b3310b53379fa8ffe626e3e6001027aabb8652baa2cebe86e5598ff2b668dcd8",
+          "guide-92893510390f6b96c880c5f8dbc8102668b7c09b9691ae7055b786b3b28ccfe4"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R07",
+        "expected": [
+          "damage-request-checklist-v1"
+        ],
+        "retrieved": [
+          "damage-request-checklist-v1",
+          "damage-assumptions-v1",
+          "species-form-identity-v1",
+          "team-roles-v1",
+          "field-settings-and-unsupported-v1"
+        ],
+        "chunkIds": [
+          "guide-8699e7bb4ffd694e3838d944717c924ce40a0e0de8bc84dfaedac753f3cd9e67",
+          "guide-21b5ec65c403c278af50bfd2e1f147af75eeb82ee444af75f8788292a12b5c15",
+          "guide-34ef50288aea55d8bd72e48720ea41ac0a4fbed5a8f27b2d3bc3eb90865faebe",
+          "guide-92893510390f6b96c880c5f8dbc8102668b7c09b9691ae7055b786b3b28ccfe4",
+          "guide-a69474bc330342ae2baeb323fe5f6ab2c07fb4cef10b6e0d991a44c283898b4c"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R08",
+        "expected": [
+          "damage-request-checklist-v1"
+        ],
+        "retrieved": [
+          "damage-request-checklist-v1",
+          "damage-assumptions-v1",
+          "training-configuration-v1",
+          "field-settings-and-unsupported-v1"
+        ],
+        "chunkIds": [
+          "guide-8699e7bb4ffd694e3838d944717c924ce40a0e0de8bc84dfaedac753f3cd9e67",
+          "guide-21b5ec65c403c278af50bfd2e1f147af75eeb82ee444af75f8788292a12b5c15",
+          "guide-0912d7daf84860d1fd6d3b9a4c94bd991b8098688337c9b03eb5dcb9b2b97a42",
+          "guide-a69474bc330342ae2baeb323fe5f6ab2c07fb4cef10b6e0d991a44c283898b4c",
+          "guide-b3310b53379fa8ffe626e3e6001027aabb8652baa2cebe86e5598ff2b668dcd8"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R09",
+        "expected": [
+          "field-settings-and-unsupported-v1"
+        ],
+        "retrieved": [
+          "damage-assumptions-v1",
+          "field-settings-and-unsupported-v1",
+          "damage-request-checklist-v1",
+          "status-moves-and-output-v1"
+        ],
+        "chunkIds": [
+          "guide-21b5ec65c403c278af50bfd2e1f147af75eeb82ee444af75f8788292a12b5c15",
+          "guide-3dc9aa1404b7be0bbfd6fc8d795e69431276f80b1785478e42fcfc80800ecb9d",
+          "guide-b3310b53379fa8ffe626e3e6001027aabb8652baa2cebe86e5598ff2b668dcd8",
+          "guide-a69474bc330342ae2baeb323fe5f6ab2c07fb4cef10b6e0d991a44c283898b4c",
+          "guide-0916742e5e773f173d6d911973bb101c10d2427a3320b760430c7ea9ac8e0856"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 0.5,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R10",
+        "expected": [
+          "field-settings-and-unsupported-v1"
+        ],
+        "retrieved": [
+          "field-settings-and-unsupported-v1",
+          "damage-assumptions-v1",
+          "damage-request-checklist-v1",
+          "status-moves-and-output-v1"
+        ],
+        "chunkIds": [
+          "guide-a69474bc330342ae2baeb323fe5f6ab2c07fb4cef10b6e0d991a44c283898b4c",
+          "guide-21b5ec65c403c278af50bfd2e1f147af75eeb82ee444af75f8788292a12b5c15",
+          "guide-3dc9aa1404b7be0bbfd6fc8d795e69431276f80b1785478e42fcfc80800ecb9d",
+          "guide-b3310b53379fa8ffe626e3e6001027aabb8652baa2cebe86e5598ff2b668dcd8",
+          "guide-4c4fc8ffc6771a74e99a8ff6404ba7665f3d6c9706551294fd5fe73e2d37df21"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R11",
+        "expected": [
+          "status-moves-and-output-v1"
+        ],
+        "retrieved": [
+          "status-moves-and-output-v1",
+          "damage-assumptions-v1",
+          "field-settings-and-unsupported-v1",
+          "damage-request-checklist-v1"
+        ],
+        "chunkIds": [
+          "guide-4c4fc8ffc6771a74e99a8ff6404ba7665f3d6c9706551294fd5fe73e2d37df21",
+          "guide-0916742e5e773f173d6d911973bb101c10d2427a3320b760430c7ea9ac8e0856",
+          "guide-21b5ec65c403c278af50bfd2e1f147af75eeb82ee444af75f8788292a12b5c15",
+          "guide-a69474bc330342ae2baeb323fe5f6ab2c07fb4cef10b6e0d991a44c283898b4c",
+          "guide-8699e7bb4ffd694e3838d944717c924ce40a0e0de8bc84dfaedac753f3cd9e67"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R12",
+        "expected": [
+          "status-moves-and-output-v1"
+        ],
+        "retrieved": [
+          "status-moves-and-output-v1",
+          "damage-assumptions-v1",
+          "move-version-and-identifiers-v1",
+          "damage-request-checklist-v1"
+        ],
+        "chunkIds": [
+          "guide-0916742e5e773f173d6d911973bb101c10d2427a3320b760430c7ea9ac8e0856",
+          "guide-4c4fc8ffc6771a74e99a8ff6404ba7665f3d6c9706551294fd5fe73e2d37df21",
+          "guide-21b5ec65c403c278af50bfd2e1f147af75eeb82ee444af75f8788292a12b5c15",
+          "guide-f35361145ee90ebea55d0f48bc60e88584a6686f474572b4a61dab162e689d5d",
+          "guide-8699e7bb4ffd694e3838d944717c924ce40a0e0de8bc84dfaedac753f3cd9e67"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R13",
+        "expected": [
+          "ability-item-traceability-v1"
+        ],
+        "retrieved": [
+          "ability-item-traceability-v1",
+          "move-version-and-identifiers-v1",
+          "damage-request-checklist-v1"
+        ],
+        "chunkIds": [
+          "guide-6593120783bbd501ef52cab116d9652b9623ba17e2677f14f6e683349208f0fd",
+          "guide-8ce87e7c5be2377fd6a8084276e5a00cc5108c10a8afd271a52c916a26cfebce",
+          "guide-4eeaccf93e4ccafb2ddcc55f277a29968685cc5447da6471899c91e6df15eabc",
+          "guide-f35361145ee90ebea55d0f48bc60e88584a6686f474572b4a61dab162e689d5d",
+          "guide-b3310b53379fa8ffe626e3e6001027aabb8652baa2cebe86e5598ff2b668dcd8"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R14",
+        "expected": [
+          "ability-item-traceability-v1"
+        ],
+        "retrieved": [
+          "ability-item-traceability-v1",
+          "move-version-and-identifiers-v1",
+          "field-settings-and-unsupported-v1",
+          "team-change-confirmation-v1"
+        ],
+        "chunkIds": [
+          "guide-8ce87e7c5be2377fd6a8084276e5a00cc5108c10a8afd271a52c916a26cfebce",
+          "guide-6593120783bbd501ef52cab116d9652b9623ba17e2677f14f6e683349208f0fd",
+          "guide-4eeaccf93e4ccafb2ddcc55f277a29968685cc5447da6471899c91e6df15eabc",
+          "guide-3dc9aa1404b7be0bbfd6fc8d795e69431276f80b1785478e42fcfc80800ecb9d",
+          "guide-32a15a98f8559063467addf6a6ab680fc4f632287936c58b7c99cd18bbc31f0d"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R15",
+        "expected": [
+          "team-change-confirmation-v1"
+        ],
+        "retrieved": [
+          "team-change-confirmation-v1",
+          "team-roles-v1",
+          "build-values-and-defaults-v1",
+          "field-settings-and-unsupported-v1"
+        ],
+        "chunkIds": [
+          "guide-32a15a98f8559063467addf6a6ab680fc4f632287936c58b7c99cd18bbc31f0d",
+          "guide-aba4d3b05611def3b6bbab49dbdf45846f2a7ad3dab27a1f95bbea6270017c90",
+          "guide-92893510390f6b96c880c5f8dbc8102668b7c09b9691ae7055b786b3b28ccfe4",
+          "guide-d3be10baaa46e54d3c4dc8d536e301add1750bed16f175bc73d8cc4b161d1b3c",
+          "guide-a69474bc330342ae2baeb323fe5f6ab2c07fb4cef10b6e0d991a44c283898b4c"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-R16",
+        "expected": [
+          "team-change-confirmation-v1"
+        ],
+        "retrieved": [
+          "team-change-confirmation-v1",
+          "build-values-and-defaults-v1",
+          "team-roles-v1"
+        ],
+        "chunkIds": [
+          "guide-32a15a98f8559063467addf6a6ab680fc4f632287936c58b7c99cd18bbc31f0d",
+          "guide-aba4d3b05611def3b6bbab49dbdf45846f2a7ad3dab27a1f95bbea6270017c90",
+          "guide-d3be10baaa46e54d3c4dc8d536e301add1750bed16f175bc73d8cc4b161d1b3c",
+          "guide-92893510390f6b96c880c5f8dbc8102668b7c09b9691ae7055b786b3b28ccfe4",
+          "guide-759f43e34ed7f614afad8b041953390c6ee27f1db9fec4d3e6190f1ad7527082"
+        ],
+        "positive": true,
+        "recallAt5": 1,
+        "reciprocalRankAt5": 1,
+        "emptyCorrect": null,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": 1
+      },
+      {
+        "caseId": "S3X-N01",
+        "expected": [],
+        "retrieved": [],
+        "chunkIds": [],
+        "positive": false,
+        "recallAt5": null,
+        "reciprocalRankAt5": null,
+        "emptyCorrect": true,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": null
+      },
+      {
+        "caseId": "S3X-N02",
+        "expected": [],
+        "retrieved": [],
+        "chunkIds": [],
+        "positive": false,
+        "recallAt5": null,
+        "reciprocalRankAt5": null,
+        "emptyCorrect": true,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": null
+      },
+      {
+        "caseId": "S3X-N03",
+        "expected": [],
+        "retrieved": [],
+        "chunkIds": [],
+        "positive": false,
+        "recallAt5": null,
+        "reciprocalRankAt5": null,
+        "emptyCorrect": true,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": null
+      },
+      {
+        "caseId": "S3X-N04",
+        "expected": [],
+        "retrieved": [],
+        "chunkIds": [],
+        "positive": false,
+        "recallAt5": null,
+        "reciprocalRankAt5": null,
+        "emptyCorrect": true,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": null
+      },
+      {
+        "caseId": "S3X-N05",
+        "expected": [],
+        "retrieved": [],
+        "chunkIds": [],
+        "positive": false,
+        "recallAt5": null,
+        "reciprocalRankAt5": null,
+        "emptyCorrect": true,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": null
+      },
+      {
+        "caseId": "S3X-N06",
+        "expected": [],
+        "retrieved": [],
+        "chunkIds": [],
+        "positive": false,
+        "recallAt5": null,
+        "reciprocalRankAt5": null,
+        "emptyCorrect": true,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": null
+      },
+      {
+        "caseId": "S3X-N07",
+        "expected": [],
+        "retrieved": [],
+        "chunkIds": [],
+        "positive": false,
+        "recallAt5": null,
+        "reciprocalRankAt5": null,
+        "emptyCorrect": true,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": null
+      },
+      {
+        "caseId": "S3X-N08",
+        "expected": [],
+        "retrieved": [],
+        "chunkIds": [],
+        "positive": false,
+        "recallAt5": null,
+        "reciprocalRankAt5": null,
+        "emptyCorrect": true,
+        "sourcesVerified": true,
+        "seedEvidenceCoverageAt5": null
+      }
+    ]
+  },
+  "restart": {
+    "index": {
+      "algorithm": "local-guide-bm25-cjk2-stop-v2",
+      "fingerprint": "sha256:6a86dabd48608508d83e1f0039919f9ed9f84979ec44f0a57b6c68b7ed462610",
+      "builtAt": "2026-10-23T08:35:55.300387700Z",
+      "reused": true,
+      "documentCount": 12,
+      "chunkCount": 20,
+      "duplicateCount": 0,
+      "embeddingModel": "none"
+    },
+    "catalog": {
+      "catalogId": "local-guides-expanded-v1",
+      "schemaVersion": 2,
+      "corpusSha256": "b0a1204403f6aaf610543399afdb11c4b37bc9614ce376c47befa843319b8b8f",
+      "documentCount": 12
+    },
+    "startedAt": "2026-10-23T08:38:35.339Z",
+    "finishedAt": "2026-10-23T08:38:38.046Z",
+    "sameRows": true
+  },
+  "originalSha256": {
+    "retrieval-initial": "8c6332f97d4bf69ac251d38db8c04a6f1a0145110bc0ec7468dbcde1753b7077",
+    "retrieval-ready": "31b4ef365498ba8f97cde4ac417a32a65b700234737b3b55f680e94e99cb2d8c",
+    "retrieval-restart": "6c696fb8766df87f280f7041a7563b5ee0f066bf64c456cebd98d4a1a3203635"
+  },
+  "scope": "Same frozen development cases and corpus, lexical v1 versus stopword v2; no heldout or model-quality uplift claim."
+}
