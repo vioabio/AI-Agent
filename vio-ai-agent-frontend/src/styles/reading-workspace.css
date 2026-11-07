@@ -67,10 +67,10 @@
 .reference-layout .reading-workspace .user-bubble { padding:11px 15px; font-size:15px; border-radius:13px 3px 13px 13px; }
 .reference-layout .reading-workspace .message-author { display:none; }
 .reference-layout .reading-workspace .message-time { color:#607268; font-size:12px; margin-top:6px; }
-.reference-layout .reading-workspace .message-actions { position:absolute; top:4px; right:5px; margin:0; gap:2px; padding:2px; border:1px solid #e3e9e4; border-radius:6px; background:#ffffffed; opacity:0; }
+.reference-layout .reading-workspace .message-actions { position:static; margin:6px 0 0; gap:8px; padding:0; border:0; background:transparent; opacity:1; justify-content:flex-end; }
 .reading-workspace .message-row:hover .message-actions,.reading-workspace .message-row:focus-within .message-actions { opacity:1; }
 .reference-layout .reading-workspace .message-actions button { padding:5px; color:#55695c; }
-.reading-workspace .message-actions button>span { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+.reading-workspace .message-actions button>span { font-size:12px; }
 .reference-layout .reading-workspace .message-actions .ui-icon { width:16px; height:16px; }
 .reference-layout .reading-workspace .response-actions { margin:13px 0 3px; gap:8px; }
 .reference-layout .reading-workspace .pokemon-message-card { display:flex; align-items:center; gap:10px; min-width:230px; max-width:100%; flex:0 1 360px; padding:7px 10px; text-align:left; background:#f6faf7; border:1px solid #bfcfc4; border-radius:8px; }
@@ -232,5 +232,5 @@
   .reference-layout .reading-workspace .team-advice-actions { display:flex; }
 }
 @media (hover:none) {
-  .reference-layout .reading-workspace .message-actions { opacity:1; top:-16px; }
+  .reference-layout .reading-workspace .message-actions { opacity:1; position:static; }
 }

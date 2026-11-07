@@ -5,10 +5,23 @@ const types = {
 }
 
 export function inlineParts(text) {
-  return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean).map(part => ({
-    text: part.startsWith('**') ? part.slice(2, -2) : part.startsWith('`') ? part.slice(1, -1) : part,
-    bold: part.startsWith('**'), code: part.startsWith('`')
-  }))
+  return text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]\n]+\]\([^\s<>]+?\)|https?:\/\/[^\s<>\u3002\uff1b\uff0c]+)/g).filter(Boolean).flatMap(part => {
+    if(part.startsWith('**')) return [{text:part.slice(2,-2),bold:true,code:false}]
+    if(part.startsWith('`')) return [{text:part.slice(1,-1),bold:false,code:true}]
+    const markdown=/^\[([^\]]+)\]\((https?:\/\/[^\s<>]+)\)$/.exec(part)
+    const address=markdown?markdown[2]:part.startsWith('http')?part.replace(/[.,;!?)]+$/,''):null
+    if(address) {
+      try {
+        const url=new URL(address)
+        if(['https:','http:'].includes(url.protocol)&&!url.username&&!url.password) {
+          const result=[{text:markdown?markdown[1]:address,href:url.href,bold:false,code:false}]
+          if(!markdown&&address.length<part.length)result.push({text:part.slice(address.length),bold:false,code:false})
+          return result
+        }
+      } catch { /* Invalid addresses remain literal Vue text nodes. */ }
+    }
+    return [{text:part,bold:false,code:false}]
+  })
 }
 
 function sectionStyle(title) {

@@ -1,6 +1,15 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { pokemonMessageSections } from '../src/api/message-format.js'
+import { pokemonMessageSections, inlineParts } from '../src/api/message-format.js'
+
+test('source markdown and bare web addresses become safe links, never executable HTML or javascript', () => {
+  const url='https://www.smogon.com/forums/threads/example.3712513/'
+  assert.equal(inlineParts(`[自行访问来源](${url})`)[0].href,url)
+  assert.equal(inlineParts(`来源：${url}。`)[1].href,url)
+  for(const text of ['[危险](javascript:alert(1))','[危险](data:text/html,test)','[凭据](https://user:password@example.com/)','`https://example.com/`']) {
+    assert.ok(inlineParts(text).every(part=>!part.href))
+  }
+})
 
 test('训练家笔记区分图鉴、培养、搭配与提醒，属性只从明确字段读取', () => {
   const sections = pokemonMessageSections('速度较快。\n### 图鉴速览（资料事实）\n属性：冰 / 幽灵\n### 培养方案（策略建议）\n- **速度**优先\n- 配置待确认\n### 队伍搭配\n组合待验证\n### 训练家提醒\n不能证明当前热门程度')
