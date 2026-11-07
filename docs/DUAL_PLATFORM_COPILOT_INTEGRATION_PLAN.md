@@ -148,31 +148,31 @@ SourcingAdapter
 
 ### 6.1 采集事件
 
-拟定桥接事件至少包含以下字段；不携带 Cookie、模型密钥或候选人的登录凭据：
+已实现的基础事件示例如下；不携带 Cookie、模型密钥或候选人的登录凭据。更完整的上游回执与事实证据封装留到适配器阶段：
 
 ```json
 {
   "schema_version": "sourcing-observation-v1",
+  "mode": "fixture",
   "event_id": "opaque-event-id",
   "run_id": "opaque-run-id",
   "platform": "liepin",
   "account_alias": "recruiter-a",
   "job_profile_id": "ai_development_engineer_v1",
-  "entrypoint": "search",
   "platform_candidate_id": null,
   "platform_resume_id": "source-id",
-  "source_url": null,
+  "requested_ref": "source-request-ref",
+  "candidate_name": "纯虚构示例候选人",
   "captured_at": "2026-11-06T00:00:00Z",
   "cli_version": "record-actual-version",
+  "adapter_version": "fixture-source-v1",
   "content_kind": "api_text",
   "completeness": "full",
-  "resume_text": "此处为格式占位，不是实际简历",
-  "facts": {},
-  "raw_payload_hash": "record-actual-sha256"
+  "resume_text": "此处为格式占位，不是实际简历"
 }
 ```
 
-示例值只是 schema 说明，不是已采集记录。事实字段保留原始值、来源位置、提取版本及未知项；缺少统招类型不能从“本科”推断为统招，搜索城市不能替代期望工作城市。
+示例值只是 schema 说明，不是已采集记录；实际落地契约见 `sourcing/contracts.py`。后续事实证据结构应保留原始值、来源位置、提取版本及未知项；缺少统招类型不能从“本科”推断为统招，搜索城市不能替代期望工作城市。
 
 若使用截图/OCR，保存图片 hash、OCR 版本与转写文本，前端明确标为“截图转写”。引用绑定被分析的转写快照，不能声称与平台原始文本逐码点一致。OCR/文本抽取失败时保留待复核，不自动补全。
 
