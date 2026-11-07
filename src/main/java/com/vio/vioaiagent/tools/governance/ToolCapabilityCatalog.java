@@ -39,6 +39,8 @@ public final class ToolCapabilityCatalog {
                     List.of("trainer", "operator"))),
             Map.entry("searchWeb", card("searchWeb", LOW, NETWORK, true, 16_000,
                     List.of("trainer", "operator"))),
+            Map.entry("lookupCompetitiveTeams", card("lookupCompetitiveTeams", LOW, NETWORK, true, 20_000,
+                    List.of("trainer", "operator"))),
             Map.entry("lookupCompetitiveTrends", card("lookupCompetitiveTrends", LOW, NETWORK, true, 20_000,
                     List.of("trainer", "operator"))),
             Map.entry("web_search", card("web_search", LOW, NETWORK, true, 5_000,

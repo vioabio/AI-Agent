@@ -7,7 +7,12 @@ import java.util.regex.Pattern;
 /** Narrow current-meta requests; never derives authorization or a format from reference documents. */
 public final class CompetitiveTrendsRequest {
     private CompetitiveTrendsRequest() { }
-    public record Plan(String format, boolean webSearch, String query) { }
+    public record Plan(String format, boolean webSearch, String query) {
+        public boolean completeTeams() {
+            return !webSearch && has(query,"队伍|阵容|配队|teams?")
+                    && (!has(query,"使用率|胜率|排名|榜单") || has(query,"详细配置|完整配置|六人"));
+        }
+    }
     private static boolean has(String q, String expression) { return Pattern.compile(expression, Pattern.CASE_INSENSITIVE).matcher(q).find(); }
     public static Optional<Plan> select(String request, List<Message> history) {
         if (request == null || request.length() > 800 || has(request, "[\\r\\n]|```|本地|文档|笔记|不要联网|不用联网|禁止联网|不联网|不需要联网|不必联网|不要搜索|不搜索|不用搜索|不必搜索|不要检索|不用查|不要查|别搜|别联网|离线|解释|定义|是什么意思|为什么|保存|修改|删除|预览|读取|计算|伤害|以下资料|引用文本|示例")) return Optional.empty();
@@ -38,7 +43,7 @@ public final class CompetitiveTrendsRequest {
     }
     public static String clarification() {
         return "### 先选一个统计范围\n热门队伍会随游戏、赛制和月份变化。你想看哪一种？\n\n"
-                + "- **朱／紫 Showdown OU 单打**：可联网查看最新已发布月份的使用率。\n"
+                + "- **朱／紫 Showdown OU 单打**：可查看公开样例及六人完整配置；使用率另查月度统计。\n"
                 + "- **朱／紫 Showdown Doubles OU 双打**：可查看独立的双打统计。\n"
                 + "- **官方 VGC／排位**：请补充游戏、规则（Regulation）、赛季或赛事日期，随后检索对应赛事队伍来源。\n\n"
                 + "例如直接回复：**当前朱紫 OU 单打有哪些热门队伍？**\n"

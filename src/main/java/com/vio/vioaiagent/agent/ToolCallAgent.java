@@ -249,7 +249,7 @@ public class ToolCallAgent extends ReActAgent {
             finalAnswer = publishVerified(CompetitiveTrendsRequest.clarification());
             setState(AgentState.FINISHED); return true;
         }
-        String toolName = selected.webSearch() ? "searchWeb" : "lookupCompetitiveTrends";
+        String toolName = selected.webSearch() ? "searchWeb" : selected.completeTeams() ? "lookupCompetitiveTeams" : "lookupCompetitiveTrends";
         var callback = Arrays.stream(availableTools).filter(t -> toolName.equals(t.getToolDefinition().name())).findFirst().orElse(null);
         if (selected.webSearch() && callback == null) {
             programOnlyTrends = true;
@@ -259,6 +259,11 @@ public class ToolCallAgent extends ReActAgent {
             setState(AgentState.FINISHED); return true;
         }
         var parent = ToolExecutionContextHolder.peek();
+        if (selected.completeTeams() && callback == null) {
+            programOnlyTrends = true;
+            finalAnswer = publishVerified("### 完整队伍检索尚未启用\n请启用队伍来源工具并重启后端。不会用单只使用率代替完整队伍。\n");
+            setState(AgentState.FINISHED); return true;
+        }
         if (callback == null || toolExecutionGateway == null || parent == null) return false;
         programOnlyTrends = true;
         var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
@@ -283,6 +288,18 @@ public class ToolCallAgent extends ReActAgent {
             if (selected.webSearch()) {
                 answer = "### 在线赛事资料检索\n检索日期：" + java.time.LocalDate.now(java.time.ZoneOffset.UTC)
                         + "\n以下为搜索服务实际返回的摘要，仅作为查阅入口；未读取完整队表，不能据此宣布当前最强队伍或胜率。\n\n" + output;
+            } else if (selected.completeTeams()) {
+                var snapshot = mapper.readValue(output, com.vio.vioaiagent.tools.CompetitiveTeamsTool.Snapshot.class);
+                StringBuilder text = new StringBuilder("### 朱／紫 OU 公开样例队伍与完整配置\n以下是公开样例，不是实时热门排名或胜率榜。\n\n")
+                        .append("赛制：**gen9ou** · 抓取时间：").append(snapshot.retrievedAt())
+                        .append("\n原帖更新时间：").append(snapshot.sourceUpdatedAt()).append("\n\n");
+                for (var team : snapshot.teams()) {
+                    text.append("#### ").append(team.title()).append("\n作者：").append(team.author())
+                            .append("\n六人成员：").append(String.join("、",team.members()))
+                            .append("\n\n完整配置（英文原始标识）：\n\n```text\n")
+                            .append(team.configuration()).append("\n```\n[查看原始配置](").append(team.sourceUrl()).append(")\n\n");
+                }
+                answer=text.append("[查看样例来源](").append(snapshot.sourceUrl()).append(")\n\n").append(snapshot.limitation()).toString();
             } else {
                 var snapshot = mapper.readValue(output, com.vio.vioaiagent.tools.CompetitiveTrendsTool.Snapshot.class);
                 StringBuilder text = new StringBuilder("### 最新已发布的使用率参考\n**赛制：").append(snapshot.format())
@@ -299,7 +316,9 @@ public class ToolCallAgent extends ReActAgent {
             }
         } catch (java.util.concurrent.CancellationException cancelled) { throw cancelled; }
         catch (Exception failure) {
-            answer = "### 在线资料暂未取得\n本次未取得可核验的在线统计，不能确认当前热门队伍。请稍后重试；若查询VGC，请同时提供游戏、规则与赛事日期。不会用本地旧攻略代替最新榜单。\n";
+            answer = selected.completeTeams()
+                    ? "### 完整队伍来源暂未取得\n本次未能读取完整六人配置，可能是来源拦截、超时或页面结构变化；不会用使用率榜替代或补造配置。\n可先查看 [Smogon OU 样例主帖](" + com.vio.vioaiagent.tools.CompetitiveTeamsTool.SOURCE + ")；完整样例检索目前仅支持 gen9ou。\n"
+                    : "### 在线资料暂未取得\n本次未取得可核验的在线统计，不能确认当前热门队伍。请稍后重试；若查询VGC，请同时提供游戏、规则与赛事日期。不会用本地旧攻略代替最新榜单。\n";
         }
         finalAnswer = publishVerified(answer); setState(AgentState.FINISHED); return true;
     }

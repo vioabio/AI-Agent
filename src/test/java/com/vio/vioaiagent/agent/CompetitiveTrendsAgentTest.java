@@ -25,7 +25,13 @@ class CompetitiveTrendsAgentTest {
         var events = new ArrayList<ToolGovernanceEvent>();
         ToolExecutionContextHolder.set(new ToolExecutionContext("test-user", "test-" + UUID.randomUUID(), Set.of(role), "test-trace", null, events::add));
         try {
-            var tools = Arrays.stream(ToolCallbacks.from(tool)).map(gateway::wrap).toArray(org.springframework.ai.tool.ToolCallback[]::new);
+            var teamTool = new com.vio.vioaiagent.tools.CompetitiveTeamsTool(url -> {
+                calls.incrementAndGet();
+                if(question.contains("来源失败")) return "<html>Checking your browser</html>";
+                return url.equals(com.vio.vioaiagent.tools.CompetitiveTeamsTool.SOURCE)
+                    ? com.vio.vioaiagent.tools.CompetitiveTeamsToolTest.index() : com.vio.vioaiagent.tools.CompetitiveTeamsToolTest.paste();
+            }, Clock.systemUTC());
+            var tools = Arrays.stream(ToolCallbacks.from(tool,teamTool)).map(gateway::wrap).toArray(org.springframework.ai.tool.ToolCallback[]::new);
             var model = mock(ChatModel.class);
             var agent = new ToolCallAgent(tools);
             agent.setChatClient(org.springframework.ai.chat.client.ChatClient.builder(model).build());
@@ -36,8 +42,9 @@ class CompetitiveTrendsAgentTest {
             assertTrue(agent.isProgramOnlyTrends()); verifyNoInteractions(model);
             assertTrue(agent.getFinalAnswer().contains(expected), agent.getFinalAnswer());
             assertEquals(networkExpected ? 2 : 0, calls.get());
+            if(question.contains("详细配置")) assertFalse(agent.getFinalAnswer().contains("| 排名 | 宝可梦 |"));
             assertEquals(agent.getFinalAnswer(), String.join("", chunks));
-            if (networkExpected) {
+            if (networkExpected && !question.contains("详细配置")) {
                 assertTrue(agent.getFinalAnswer().contains("2026-10"));
                 assertTrue(agent.getFinalAnswer().contains("不是胜率"));
                 assertFalse(events.isEmpty());
@@ -45,14 +52,23 @@ class CompetitiveTrendsAgentTest {
             }
         } finally { ToolExecutionContextHolder.clear(); gateway.shutdown(); hitl.shutdown(); }
     }
+    @Test void completeTeamsPublishAllSixSetsInsteadOfAUsageTable() {
+        exercise("当前朱紫 OU 单打有哪些热门队伍？显示队伍及其详细配置", "trainer", true, "Pokemon5 @ Leftovers");
+    }
+    @Test void completeTeamsCannotBypassRoles() {
+        exercise("当前朱紫OU热门队伍及详细配置", "unprivileged", false, "完整队伍来源暂未取得");
+    }
+    @Test void unavailableTeamSourcesNeverFallBackToIndividualRankings() {
+        exercise("当前朱紫OU热门队伍详细配置来源失败", "trainer", true, "完整队伍来源暂未取得");
+    }
     @Test void explicitOuFetchesThroughGovernanceAndPublishesActualNumbersWithoutModelInvention() {
-        exercise("当前朱紫OU单打有哪些热门队伍", "trainer", true, "28.31876%");
+        exercise("当前朱紫OU单打使用率排名", "trainer", true, "28.31876%");
     }
     @Test void ambiguousCasualRequestClarifiesWithoutNetworkOrModelCalls() {
         exercise("当前有哪些热门队伍", "trainer", false, "先选一个统计范围");
     }
     @Test void rolesCannotBeBypassedByProgramSelection() {
-        exercise("当前朱紫OU单打有哪些热门队伍", "unprivileged", false, "在线资料暂未取得");
+        exercise("当前朱紫OU单打使用率排名", "unprivileged", false, "在线资料暂未取得");
     }
     @Test void vgcWithoutSearchKeyDoesNotFabricateACompletedSearch() {
         exercise("当前朱紫VGC Regulation I热门队伍", "trainer", false, "本次没有执行赛事检索");

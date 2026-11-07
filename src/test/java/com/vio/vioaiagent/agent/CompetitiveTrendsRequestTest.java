@@ -6,6 +6,10 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CompetitiveTrendsRequestTest {
+    @Test void fullTeamRequestsDoNotSelectIndividualUsageRankings(){
+        assertTrue(CompetitiveTrendsRequest.select("当前朱紫 OU 单打有哪些热门队伍？显示队伍及其详细配置",List.of()).orElseThrow().completeTeams());
+        assertFalse(CompetitiveTrendsRequest.select("当前OU使用率排名",List.of()).orElseThrow().completeTeams());
+    }
     @Test void casualIsClarifiedAndExplicitFormatsStaySeparate() {
         assertEquals("", CompetitiveTrendsRequest.select("当前有哪些热门队伍", List.of()).orElseThrow().format());
         assertEquals("gen9ou", CompetitiveTrendsRequest.select("当前朱紫OU单打有哪些热门队伍", List.of()).orElseThrow().format());
