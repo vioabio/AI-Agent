@@ -1,6 +1,7 @@
 // Portable team files contain configuration only, never account/database identifiers.
 export const MAX_TEAM_FILE_BYTES = 1024 * 1024
 const stats = ['hp', 'atk', 'def', 'spa', 'spd', 'spe']
+export const TERA_LABELS = Object.freeze({normal:'一般',fire:'火',water:'水',electric:'电',grass:'草',ice:'冰',fighting:'格斗',poison:'毒',ground:'地面',flying:'飞行',psychic:'超能力',bug:'虫',rock:'岩石',ghost:'幽灵',dragon:'龙',dark:'恶',steel:'钢',fairy:'妖精',stellar:'星晶'})
 const natures = new Set('hardy lonely brave adamant naughty bold docile relaxed impish lax timid hasty serious jolly naive modest mild quiet bashful rash calm gentle sassy careful quirky'.split(' '))
 
 function object(value, label) {
@@ -22,6 +23,10 @@ function training(value, max, label) {
 }
 function build(value) {
   object(value, '成员配置')
+  const unsupported=Object.keys(value).filter(key=>!['moves','ability','item','nature','level','evs','ivs','teraType'].includes(key))
+  if(unsupported.length)throw new Error(`成员配置含暂不支持字段：${unsupported.join('、')}，不能静默丢弃`)
+  const teraType=value.teraType == null || value.teraType === '' ? null : value.teraType
+  if(teraType!==null&&!Object.hasOwn(TERA_LABELS,teraType)) throw new Error('未知太晶属性')
   if (!Array.isArray(value.moves) || value.moves.length > 4) throw new Error('招式最多四个')
   const moves = value.moves.map(move => text(move, '招式', 80))
   if (new Set(moves.map(move => move.toLowerCase().replaceAll('-', ' '))).size !== moves.length) throw new Error('招式不能重复')
@@ -30,7 +35,7 @@ function build(value) {
   const evs = training(value.evs, 252, '努力值')
   if (Object.values(evs).reduce((sum, n) => sum + n, 0) > 510) throw new Error('努力值总和不能超过 510')
   return { moves, ability: text(value.ability, '特性', 80, true), item: text(value.item, '道具', 80, true),
-    nature, level: integer(value.level, 1, 100, '等级'), evs, ivs: training(value.ivs, 31, '个体值') }
+    nature, level: integer(value.level, 1, 100, '等级'), evs, ivs: training(value.ivs, 31, '个体值'), ...(teraType?{teraType}:{}) }
 }
 export function normalizeTransferTeam(value) {
   object(value, '队伍')
@@ -46,7 +51,7 @@ export function normalizeTransferTeam(value) {
     dataReleaseId: text(value.dataReleaseId, '数据版本', 128), members }
 }
 export function createTeamExport(team, gameReleaseId) {
-  return JSON.stringify({ format: 'vio-pokemon-team', schemaVersion: 1,
+  return JSON.stringify({ format: 'vio-pokemon-team', schemaVersion: 2,
     gameReleaseId: text(gameReleaseId, '游戏版本', 128), team: normalizeTransferTeam(team) }, null, 2)
 }
 export function parseTeamImport(contents, gameReleaseId) {
@@ -54,7 +59,7 @@ export function parseTeamImport(contents, gameReleaseId) {
   let file
   try { file = JSON.parse(contents.replace(/^\uFEFF/, '')) } catch { throw new Error('无法解析 JSON 队伍文件') }
   object(file, '文件')
-  if (file.format !== 'vio-pokemon-team' || file.schemaVersion !== 1) throw new Error('不支持的队伍文件格式或版本，请选择本项目导出的 JSON 文件')
+  if (file.format !== 'vio-pokemon-team' || ![1,2].includes(file.schemaVersion)) throw new Error('不支持的队伍文件格式或版本，请选择本项目导出的 JSON 文件')
   if (file.gameReleaseId !== gameReleaseId) throw new Error('队伍游戏版本与当前工作区不一致，请切换版本后重试')
   return normalizeTransferTeam(file.team)
 }

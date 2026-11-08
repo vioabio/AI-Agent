@@ -234,6 +234,9 @@
 .reference-layout .advice-reference-toggle { display:flex; align-items:center; gap:9px; border:1px solid var(--line); border-radius:8px; padding:12px; font-size:13px; color:#657b6d; text-align:left; }
 .reference-layout .advice-reference-toggle>.ui-icon:last-child { margin-left:auto; }
 .reference-layout .team-mode .team-list { margin-top:16px; }
+.reference-layout .saved-team-icons { display:flex; flex-wrap:wrap; gap:10px; list-style:none; padding:0; margin:12px 0 0; }
+.reference-layout .saved-team-icons li { display:grid; place-items:center; width:58px; height:58px; border:1px solid #e0eae3; border-radius:10px; background:#f2f7f4; }
+.reference-layout .saved-team-icons .pokemon-portrait { width:50px; height:50px; }
 .reference-layout .team-mode .team-card h3 { font-size:15px; }
 .reference-layout .team-mode .team-card .muted { display:none; }
 .reference-layout .team-mode .member-list { font-size:12px; }
@@ -349,3 +352,5 @@
   .reference-layout .team-mode .conversation-pane-heading { display:none; }
   .reference-layout .team-advice-actions { display:none; }
 }
+
+@media(min-width:1400px){.reference-layout .member-profile-fields{grid-template-columns:repeat(3,minmax(0,1fr));}}

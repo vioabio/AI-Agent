@@ -1,0 +1,8 @@
+{
+  "suiteId":"gym-v2-final-target-acceptance-2026-11-08",
+  "purpose":"身份绑定代码冻结后新增的两个独立真实模型验收案例；只证明本题集覆盖的目标身份及计算链路，不宣称自由问答整体准确率。",
+  "cases":[
+    {"id":"GYM-N15","prompt":"紫，2枚徽章，奇树初战。现有烈咬陆鲨Lv24，粗糙皮肤、勤奋、无道具，地震/龙爪，六项0努力值31个体值。请用道馆伤害工具计算电肚蛙Lv23使用水枪对它的伤害，NPC按勤奋、六项0努力值31个体值作假设。双方满HP，无状态、强化、天气地形、墙、帮助或重力，双方未太晶。按实际馆主模式计算，不给胜率。","rubric":"calculateGymDamage成功iono/initial；实际攻击方Bellibolt23及Water Gun，防御方Garchomp24；Singles、双方未太晶、正伤害；说明NPC性格EVIV是计算假设。"},
+    {"id":"GYM-N16","prompt":"朱，0枚徽章，阿枫初战。我的杰尼龟Lv15，激流、勤奋、无道具，水枪/撞击，六项0努力值31个体值。请调用道馆伤害工具计算豆蟋蟀Lv14使用二连踢对它的伤害。NPC按勤奋/六项0努力值31个体值假设，双方满HP，无状态、强化、天气地形、墙或帮助，双方未太晶。请展示实际计算对象、模式和数字，不给胜率。","rubric":"calculateGymDamage成功katy/initial，实际攻击方Nymble14、Double Kick，防御方Squirtle15，Singles，双方未太晶、正伤害，NPC隐藏数值明确是假设。"}
+  ]
+}

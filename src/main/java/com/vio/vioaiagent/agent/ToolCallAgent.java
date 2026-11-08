@@ -76,6 +76,9 @@ public class ToolCallAgent extends ReActAgent {
     private final StringBuilder streamedAnswer = new StringBuilder();
     private TeamAnswerEvidence teamAnswerEvidence;
     private DamageAnswerEvidence damageAnswerEvidence;
+    private final GymAnswerEvidence gymAnswerEvidence=new GymAnswerEvidence();
+    private boolean gymMode;
+    private boolean programGymTargetBound;
     private GuideAnswerEvidence guideAnswerEvidence;
     private SavedTeamAnswerEvidence savedTeamAnswerEvidence;
     /** Supplied by the authenticated Run adapter, never parsed from source text or model arguments. */
@@ -133,6 +136,9 @@ public class ToolCallAgent extends ReActAgent {
     @Override
     public boolean think() {
         String currentQuestion = currentQuestion();
+        gymMode=GymQuestionPolicy.matches(currentQuestion);
+        if(gymMode){var catalog=GymCatalogAnswer.reply(currentQuestion,guideGameReleaseId);if(catalog.isPresent()){finalAnswer=publishVerified(catalog.get());setState(AgentState.FINISHED);return false;}}
+        if(gymMode){var clarification=GymQuestionPolicy.clarification(currentQuestion);if(clarification.isPresent()){finalAnswer=publishVerified(clarification.get());setState(AgentState.FINISHED);return false;}}
         var competition = CompetitionClarification.reply(currentQuestion).or(() -> SourceInstructionReply.reply(currentQuestion));
         if (competition.isPresent()) {
             finalAnswer = publishVerified(competition.get());
@@ -165,15 +171,17 @@ public class ToolCallAgent extends ReActAgent {
         List<Message> messageList = getMessageList();
         Prompt prompt = new Prompt(messageList, this.chatOptions);
         try {
-            if (planMovePreview(currentQuestion)) return getState() != AgentState.FINISHED;
-            if (checkSuppliedTeam(currentQuestion) || checkSuppliedBuild(currentQuestion)) return false;
-            ensureProjectGuideSource(currentQuestion);
+            if(!gymMode){
+                if (planMovePreview(currentQuestion)) return getState() != AgentState.FINISHED;
+                if (checkSuppliedTeam(currentQuestion) || checkSuppliedBuild(currentQuestion)) return false;
+                ensureProjectGuideSource(currentQuestion);
+            }
             prompt = new Prompt(getMessageList(), this.chatOptions);
             var request = getChatClient().prompt(prompt)
-                    .system(getSystemPrompt() + (teamAnswerEvidence == null ? "" : teamAnswerEvidence.planningInstruction())
+                    .system(getSystemPrompt() + (gymMode?GymQuestionPolicy.instruction(): (teamAnswerEvidence == null ? "" : teamAnswerEvidence.planningInstruction())
                             + (guideAnswerEvidence == null ? "" : guideAnswerEvidence.planningInstruction())
-                            + draftIdentity.instruction() + TeamMutationIntent.instruction(currentQuestion))
-                    .toolCallbacks(TeamMutationIntent.planningTools(currentQuestion,
+                            + draftIdentity.instruction() + TeamMutationIntent.instruction(currentQuestion)))
+                    .toolCallbacks(gymMode?GymQuestionPolicy.tools(getMergedTools()):TeamMutationIntent.planningTools(currentQuestion,
                             draftIdentity.planningTools(TeamBuildAnswerEvidence.planningTools(currentQuestion,getMergedTools()))));
             // Tool selection is private. A model can put planning text in content,
             // not only reasoning_content, so it must never share the answer stream.
@@ -458,6 +466,16 @@ public class ToolCallAgent extends ReActAgent {
 
     @Override
     public String act() {
+        if(gymMode){
+            try{
+                var generations=toolCallChatResponse.getResults().stream().map(generation->{var output=generation.getOutput();var calls=output.getToolCalls().stream().map(call->{
+                    if(!"calculateGymDamage".equals(call.name()))return call;
+                    String arguments=GymQuestionPolicy.bindDamageTarget(currentQuestion(),call.arguments());programGymTargetBound=true;
+                    return new AssistantMessage.ToolCall(call.id(),call.type(),call.name(),arguments);
+                }).toList();return new org.springframework.ai.chat.model.Generation(new AssistantMessage(output.getText(),output.getMetadata(),calls),generation.getMetadata());}).toList();
+                toolCallChatResponse=new ChatResponse(generations,toolCallChatResponse.getMetadata());
+            }catch(IllegalArgumentException missing){finalAnswer=publishVerified(missing.getMessage()+"。本次未发布伤害数值。");setState(AgentState.FINISHED);return finalAnswer;}
+        }
         if(TeamMutationIntent.requested(currentQuestion())) {
             var generations=toolCallChatResponse.getResults().stream().map(generation->{
                 var output=generation.getOutput();
@@ -510,6 +528,9 @@ public class ToolCallAgent extends ReActAgent {
                 event = new com.vio.vioaiagent.tools.governance.ToolGovernanceEvent(event.eventType(), event.runId(),
                         event.toolName(), event.eventId(), event.occurredAt(), attributes);
             }
+            if(programGymTargetBound&&"calculateGymDamage".equals(event.toolName())){
+                var attributes=new java.util.LinkedHashMap<String,Object>(event.attributes());attributes.put("selectionOrigin","PROGRAM_GYM_TARGET_IDENTITY");event=new com.vio.vioaiagent.tools.governance.ToolGovernanceEvent(event.eventType(),event.runId(),event.toolName(),event.eventId(),event.occurredAt(),attributes);
+            }
             if ("approval.required".equals(event.eventType())) {
                 approvalRequired.set(true);
             }
@@ -548,6 +569,11 @@ public class ToolCallAgent extends ReActAgent {
                 teamAnswerEvidence.observe(response.name(), response.responseData()));
         if (damageAnswerEvidence != null) toolResponseMessage.getResponses().forEach(response ->
                 damageAnswerEvidence.observe(response.name(), response.responseData()));
+        if(gymMode){
+            toolResponseMessage.getResponses().forEach(response->gymAnswerEvidence.observe(response.name(),response.responseData()));
+            boolean failedGymCall=toolResponseMessage.getResponses().stream().anyMatch(r->java.util.Set.of("planGymChallenge","calculateGymDamage").contains(r.name())&&r.responseData()!=null&&r.responseData().startsWith("[tool."));
+            if((gymAnswerEvidence.complete()&&!GymQuestionPolicy.wantsDamage(currentQuestion()))||(damageAnswerEvidence!=null&&damageAnswerEvidence.complete())||(gymAnswerEvidence.attempted()&&!gymAnswerEvidence.complete())||failedGymCall){finalAnswer=summarizeAnswer();setState(AgentState.FINISHED);return finalAnswer;}
+        }
         if (guideAnswerEvidence != null) toolResponseMessage.getResponses().forEach(response ->
                 guideAnswerEvidence.observe(response.name(), response.responseData(),
                         toolCallChatResponse.getResult().getOutput().getToolCalls().stream()
@@ -601,6 +627,11 @@ public class ToolCallAgent extends ReActAgent {
 
     /** No tools are registered for this final synthesis: it cannot perform another action. */
     protected String summarizeAnswer() {
+        if(gymMode){
+            if(damageAnswerEvidence!=null&&damageAnswerEvidence.complete())return publishVerified(damageAnswerEvidence.verifiedSummary()+damageAnswerEvidence.verifiedInterpretation());
+            if(GymQuestionPolicy.wantsDamage(currentQuestion()))return publishVerified(gymAnswerEvidence.answer()+"\n尚未获得有效的本次伤害结果，不能提供具体伤害数字。请核对道馆伤害面板中的真实配置及战斗状态。");
+            return publishVerified(gymAnswerEvidence.answer());
+        }
         if(!mainGuideTopicAttempted&&guideAnswerEvidence!=null&&guideAnswerEvidence.needsReferenceTopic()) {
             mainGuideTopicAttempted=true;
             executeGuideSource("图鉴资料 版本 比赛规则 来源日期","PROGRAM_MAIN_GUIDE_TOPIC","reference-topic");

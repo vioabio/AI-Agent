@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "reviewer": "ASSISTANT_SOURCE_AND_ENGINE_REVIEW",
+  "humanReview": false,
+  "scope": "GYM_ROUTING_SOURCED_FACTS_AND_SINGLE_ACTION_DAMAGE",
+  "stages": [
+    {
+      "id": "first-six",
+      "classification": "FIRST_INDEPENDENT_SUPERSEDED",
+      "denominator": 6,
+      "pass": 0,
+      "fail": 6
+    },
+    {
+      "id": "known-six",
+      "classification": "KNOWN_REGRESSION",
+      "denominator": 6,
+      "pass": 6,
+      "fail": 0
+    },
+    {
+      "id": "first-eight",
+      "classification": "INDEPENDENT_SUPERSEDED",
+      "denominator": 8,
+      "pass": 7,
+      "fail": 1
+    },
+    {
+      "id": "known-eight",
+      "classification": "KNOWN_REGRESSION",
+      "denominator": 8,
+      "pass": 8,
+      "fail": 0
+    },
+    {
+      "id": "first-four",
+      "classification": "INDEPENDENT_SUPERSEDED",
+      "denominator": 4,
+      "pass": 3,
+      "fail": 1
+    },
+    {
+      "id": "identity-four",
+      "classification": "KNOWN_REGRESSION",
+      "denominator": 4,
+      "pass": 4,
+      "fail": 0
+    },
+    {
+      "id": "identity-design",
+      "classification": "DEVELOPMENT_NOT_INDEPENDENT",
+      "denominator": 2,
+      "pass": 2,
+      "fail": 0
+    },
+    {
+      "id": "final-two",
+      "classification": "FINAL_FOCUSED_INDEPENDENT",
+      "denominator": 2,
+      "pass": 2,
+      "fail": 0
+    }
+  ],
+  "files": {
+    "first-six/GYM-H01-events.json": "8ca2b2df84d30cae8a70545fe45ca3bb2b7b2bf28cf31b3127e8eddd0823119e",
+    "first-six/GYM-H02-events.json": "9db869a81d37219acb7836acc6d43388fd123e8e050365acff131d2f5bb7888c",
+    "first-six/GYM-H03-events.json": "dc00f88d605ea728b99a897262c072bcd807dd2f6e7e45eb432e45c3b156ea8a",
+    "first-six/GYM-H04-events.json": "e50c22a889514b62d7fdc064a190e79d52b9872e56f0fa73d1ab7a92eb69c4bb",
+    "first-six/GYM-H05-events.json": "4a96b3e5d75cb55e61be0ec1f0587bcbe49e785bc298f5abdab68666cb083047",
+    "first-six/GYM-H06-events.json": "89a9e5adaad670e29b3c35f1d526115e7d991dc5cc951a8ff8e16707de0c5e73",
+    "first-six/observations.json": "adbf6aec33af91e712be53227a8a228baac15ade4a5904bf8407dd2c2c193311",
+    "known-six/GYM-H01-events.json": "2943fd736f731b411a1d60eb58977c9694bf68a8bc92a253322bd222953a8e7e",
+    "known-six/GYM-H02-events.json": "246b168a22e5a77c2c1a9c289eddfd5a318dae17f3004faf028366df3f17219b",
+    "known-six/GYM-H03-events.json": "8040ebb8606f118b451ac16d96f1996103ffaa602c2bfd509ea7c3245ca271dc",
+    "known-six/GYM-H04-events.json": "5e6c711bfefb295101df06b90e85f1bdfa089b185b886b9b51b906c7c889592f",
+    "known-six/GYM-H05-events.json": "ae0c89e5cdedc4dc221977088305264e36986e519eb5b2d01a642ee3d1586d99",
+    "known-six/GYM-H06-events.json": "341542f3dee3d837e0950d4bc157be4ac66ec6678756cfc713b7b5fb105c94ae",
+    "known-six/observations.json": "23ae47d0fd8cccc90aeebfa89501bec233c0e1aea9b5355f6e18a59e551fe9f2",
+    "first-eight/GYM-N01-events.json": "d24726745e64939c47e26daef75d33a19674deea6324918e708bb0e3e8f47378",
+    "first-eight/GYM-N02-events.json": "a959ab1527a2e15403a52b6f4e45b1f91178bc73d432cdc2a8a7c9c4ff67945c",
+    "first-eight/GYM-N03-events.json": "44b4eaf3dd107a23e4c7d3fdb8d608a302103a25bfccb6ae419fdcced02987aa",
+    "first-eight/GYM-N04-events.json": "1aff7bb5bc647f2cb5965b5aeef438ec2998513c8bca029d204fb7390b462854",
+    "first-eight/GYM-N05-events.json": "6dc475abcdbfb1601aaaee550e53b826a8f2f2e9db403d4a17ba174840b231f0",
+    "first-eight/GYM-N06-events.json": "fae03ee5c9e3f087fcedcd9287d5c7464954569fa8a46d60f2a6338a02ff8b4d",
+    "first-eight/GYM-N07-events.json": "98ec04183e447dd6de9f556e541305c88a478239d1d5c46711e992124161d1c6",
+    "first-eight/GYM-N08-events.json": "6c99498780af2d49d017f5f6aaad31a6bda466e977e6945002a5db489eb59b84",
+    "first-eight/observations.json": "66df9adee7173eb93793043910659070f8f9098d92b30e35c9d3d22827965eb4",
+    "known-eight/GYM-N01-events.json": "f81db8ce3c6e252f1980482a7b2dda8bb14d0bc2161f05b1066076855d885c9f",
+    "known-eight/GYM-N02-events.json": "9adf6c50cbd74a4e67244952857c96aef2d1adc2e7c90967b522e3b8e3704252",
+    "known-eight/GYM-N03-events.json": "7f666f53143ebc00d259d0ba3d2ccb6cc3d85d801262b7866cb259929b40ddef",
+    "known-eight/GYM-N04-events.json": "2261af35878f051850e90853b6915d623fdccd345cbd3ed020aa9d5efb747ac4",
+    "known-eight/GYM-N05-events.json": "b15224aec88682e74e4810d8cd88ec406c1c80e72d22cd1a12d3b9fe0a1cf971",
+    "known-eight/GYM-N06-events.json": "8e008d1ae6abe6cf76bab3d8f9806d27bcdbbeacba0397eb06dad2b7a80ea1c4",
+    "known-eight/GYM-N07-events.json": "c7b87b7a43766783cdee31904807bd16ab16780b33683507ac94a5d38ffbaf15",
+    "known-eight/GYM-N08-events.json": "0eb8b2739c4063cecf75ddcf7edf018f7489c49ffbe18773acce06cedf1efc86",
+    "known-eight/observations.json": "9b6835fa00f05fa454647d70243e0e72e906128df4e06e6c09f76d6d26d09815",
+    "first-four/GYM-N09-events.json": "24ef46647b577dc1181f37e7fc3bc8c9eef57c153d1a1b9fc5853fbe2e08a1c8",
+    "first-four/GYM-N10-events.json": "127b08fba22675a6da370953e96a57c4201c2cff8354285ee3fc65a1ea2b5b12",
+    "first-four/GYM-N11-events.json": "43abb9b2c69e6206309c59ef7d478c3ba410205ef142c284e1db375de3432eb4",
+    "first-four/GYM-N12-events.json": "0a87e4578fcb65065077d71d9047aacaa9c566c2dcabee66111d7862d1ac58a0",
+    "first-four/observations.json": "24f4666f7fcfa56b5861f3e0b9ef03b72ebdc662ba30c5c872a885f5a8480721",
+    "identity-four/GYM-N09-events.json": "a68f7c62343a9c45e72820d9b78d0cc93c90e36b82d710c17307a194d2390524",
+    "identity-four/GYM-N10-events.json": "73feadbf31f8e365e1b87f7e75f04a58fa8e3c0cc98306cc699956155d497b83",
+    "identity-four/GYM-N11-events.json": "2226cca71254ba5ba237c937aee9e79e94257c1ea1e465849649e28df16a9946",
+    "identity-four/GYM-N12-events.json": "2ce6c1cb0a13990651eaed42a3bf6aaa24fd1dbc6751baeb952fadae15df7a20",
+    "identity-four/observations.json": "1adfff9c3699df48fd307385cf9b41481d4375dfda45a8b08c557743e205358a",
+    "identity-design/GYM-N13-events.json": "0b756e13f0d6762f5833e4bb6bd0629892a4b32e973007f67f77528fcbb96534",
+    "identity-design/GYM-N14-events.json": "1ba0a98de4ecb1670776d3567cf0bb48df40f5fa86269ea9a46dfc9e342065c9",
+    "identity-design/observations.json": "61575bf616b5aee1c1b8ee28614b93983e7ab61fd2b7f8718b019183929c8cbf",
+    "final-two/GYM-N15-events.json": "a9dbcd2a27eb60c44f4a2e89c9cbe6395bc958e9577d433c7b474bf504751175",
+    "final-two/GYM-N16-events.json": "21579d0e99f81a81ffced55df56df0311695d9d107d1b8b693a89f4af6534d79",
+    "final-two/observations.json": "28e6383e6ee2d8a272bbab23b6780f6d47d8d454933178392d2cda2296ec637f",
+    "engine-replay.json": "741eb06884963e8c1060577ea18fd0f42c49cad28caba1017036620f39f13e80",
+    "final-two/review.json": "95e90483488afa772f26b18e4a78fee424b5b12f07d94dd1015d76554900dcae",
+    "first-eight/review.json": "8cb8ac9244639477fd2770084c6b2a95813db7cbf72ee4a90b4c1df9c3e1bacd",
+    "first-four/review.json": "432a7e1f512a556fbe6d6e5f2e4330ed8363d972ab1d66f4cf7f2c81a21456e8",
+    "first-six/review.json": "73c72569d528077144de39bb57c9a73134f7384f2bdc7a08faf1ff13e0697c72",
+    "identity-design/review.json": "09d2deac1b83e3aacc36c01996aafb3b2f460793d1211698010fc1c38b6a53de",
+    "identity-four/review.json": "0add9f7533bb7bf19867650ad9900d82bc0d1138e90b90ee84d9b4d2558e7751",
+    "known-eight/review.json": "ad72faa73aecb546dfb94e230cd434337b7e515434ff16aab8f260bd5bbbb1db",
+    "known-six/review.json": "f8f3848c619be80de5f0a8066ab7b663fe55f812a2a76bd2793af0774c0eeca2"
+  },
+  "datasetFilesSha256": {
+    "evaluation/gym-v2/acceptance-v2.json": "47807b5871e35033dd9cae3bbcc553489977cb459336c555d4dd601d1f3f45c4",
+    "evaluation/gym-v2/acceptance-v3.json": "7431fdb35c1edb532c4494616dc487a4bbbf79df69a261fa0b26e0406bbe4fb0",
+    "evaluation/gym-v2/acceptance-v4.json": "8d7e3c682edc9b4239f0010cacc5459321df6c91e18a5cd9f1d6cf82c6fc7e57",
+    "evaluation/gym-v2/acceptance-v5.json": "5fff410de3d254635e2b63d482bb21a288732b9e61cd7e914056fbc7ea7e3ca3",
+    "evaluation/gym-v2/heldout.json": "d70cbed0086f91ba5abd939282a5ab7f5bedb514ed3a3cc4a5ff564d724bcf81"
+  }
+}

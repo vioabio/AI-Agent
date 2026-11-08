@@ -61,7 +61,9 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-          cache-dependency-path: vio-ai-agent-frontend/package-lock.json
+          cache-dependency-path: |
+            vio-ai-agent-frontend/package-lock.json
+            tools/pokemon-engine/package-lock.json
 
       - name: Backend compile
         run: ./mvnw -B -ntp -DskipTests compile
@@ -73,6 +75,12 @@ jobs:
           node tools/campus/s2-evaluate.mjs validate
           node tools/campus/audit-s3-corpus.mjs
           node --test tools/campus/*.test.mjs
+
+      - name: Install and verify pinned local damage engine
+        working-directory: tools/pokemon-engine
+        run: |
+          npm ci --ignore-scripts
+          npm test
 
       - name: Backend tests
         run: ./mvnw -B -ntp test

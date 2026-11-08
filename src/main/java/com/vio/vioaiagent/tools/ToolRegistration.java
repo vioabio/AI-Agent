@@ -15,6 +15,8 @@ import com.vio.vioaiagent.config.ResourceDownloadProperties;
 public class ToolRegistration {
     private final CompetitiveTrendsTool trendsTool = new CompetitiveTrendsTool();
     private final CompetitiveTeamsTool teamsTool = new CompetitiveTeamsTool();
+    @Autowired(required=false)
+    private com.vio.vioaiagent.pokemon.gym.GymAgentTools gymAgentTools;
 
     /** 可选治理网关；未加载治理模块时保留旧工具注册行为。 */
     @Autowired(required = false)
@@ -96,6 +98,7 @@ public class ToolRegistration {
         java.util.List<ToolCallback> tools = new java.util.ArrayList<>(java.util.Arrays.asList(base));
         if (searchEnabled && trendsEnabled) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(trendsTool, teamsTool)));
         if (teamWorkflow != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(teamWorkflow)));
+        if (gymAgentTools != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(gymAgentTools)));
         if (referenceRepository != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.PokemonReferenceTools(referenceRepository,toolScope,resourceReferences))));
         if (learnsetReferences != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.PokemonLearnsetController.Tools(learnsetReferences,toolScope))));
         if (independentMechanics != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.PokemonMechanicsController.Tools(independentMechanics,toolScope))));

@@ -22,7 +22,7 @@ test('portable round trip preserves slots and complete builds but strips databas
 test('rejects broken JSON, unsupported schemas, different game and oversized files', () => {
   assert.throws(() => parseTeamImport('{', game), /JSON/)
   const file = JSON.parse(createTeamExport(team(), game))
-  for (const change of [value => value.schemaVersion = 2, value => value.format = 'other', value => value.gameReleaseId = 'other']) {
+  for (const change of [value => value.schemaVersion = 3, value => value.format = 'other', value => value.gameReleaseId = 'other']) {
     const value = structuredClone(file); change(value)
     assert.throws(() => parseTeamImport(JSON.stringify(value), game))
   }

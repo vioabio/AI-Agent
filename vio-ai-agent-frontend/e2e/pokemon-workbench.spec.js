@@ -44,6 +44,20 @@ async function installApiFixture(page, state) {
     const request = route.request()
     const url = new URL(request.url())
     const pathname = url.pathname
+    if(pathname==='/api/pokemon/gym-challenges') {
+      const fs=await import('node:fs');const phase=url.searchParams.get('phase')||'initial';const catalog=JSON.parse(fs.readFileSync(`../src/main/resources/pokemon-gym/sv-${phase}-v2.json`,'utf8'))
+      await route.fulfill({json:catalog});return
+    }
+    if(pathname==='/api/pokemon/gym-challenges/analyze') {
+      const payload=request.postDataJSON();state.gymRequest=payload
+      const fs=await import('node:fs');const catalog=JSON.parse(fs.readFileSync(`../src/main/resources/pokemon-gym/sv-${payload.phase}-v2.json`,'utf8'))
+      await route.fulfill({json:{gym:catalog.gyms.find(g=>g.id===payload.gymId),plan:['梦妖魔电太晶后仍有飘浮，地面攻击无效'],missing:['NPC隐藏数值待确认'],resourceChecks:[{id:'tm048',name:'伏特替换',reason:'已声明击败奇树，首胜奖励途径已满足'}],sourceVersion:'sv-test-fixture',matchups:[]}});return
+    }
+    if(pathname==='/api/pokemon/gym-challenges/resources'){await route.fulfill({json:[{id:'tm048',name:'伏特替换',requiredGym:'iono'}]});return}
+    if(pathname==='/api/pokemon/gym-challenges/damage'){state.gymDamage=request.postDataJSON();await route.fulfill({json:{engine:'@smogon/calc',engineVersion:'0.12.0',range:{minimum:20,maximum:24},percent:{minimum:10,maximum:12},assumptionsNotice:'NPC数值为假设，不代表实际隐藏数值',assumptions:{fixture:true}}});return}
+    if(pathname.startsWith('/api/pokemon/reference/pokemon/')) {
+      await route.fulfill({json:{fact:{...FACT,dataReleaseId:state.referenceEnabled?'pokeapi-reference-v1':FACT.dataReleaseId},abilities:['blaze'],moves:['flamethrower']}});return
+    }
     if (pathname === '/api/pokemon/reference/build-options') {
       if (state.optionsFailure) {
         await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'候选资料暂不可用'})});return
@@ -187,6 +201,66 @@ async function openWorkbench(page, state) {
 }
 
 test.describe('N5 宝可梦工作台关键交互', () => {
+  test('道馆重赛进度、资源检查和独立伤害条件可以提交，修改条件后旧伤害失效',async({page})=>{
+    const state=initialState();state.referenceEnabled=true;await openWorkbench(page,state)
+    await page.locator('.facts-panel button[type=submit]').click();await page.getByRole('button',{name:'加入队伍',exact:true}).click()
+    await page.getByLabel('第 1 位第 1 个招式',{exact:true}).fill('flamethrower')
+    await page.getByRole('button',{name:'道馆挑战',exact:true}).click()
+    await page.getByLabel('挑战阶段').selectOption('rematch');await expect(page.locator('.gym-opponents')).toContainText('Lv.66')
+    await page.getByLabel('已有道馆徽章').fill('8');await page.getByText('剧情进度与资源获取条件',{exact:true}).click()
+    await page.getByLabel('已通关主线（含归乡之路）').check();await page.getByLabel('已接到也慈的道馆视察任务').check();await page.getByLabel('已击败奇树',{exact:true}).check();await page.getByLabel('检查资源',{exact:true}).selectOption('tm048')
+    await page.getByRole('button',{name:'分析当前队伍',exact:true}).click();await expect(page.getByLabel('道馆分析结果')).toContainText('首胜奖励途径已满足')
+    expect(state.gymRequest.phase).toBe('rematch');expect(state.gymRequest.progress.mainStoryComplete).toBe(true)
+    await page.getByText('单次伤害计算 · 核对具体出招',{exact:true}).click();await page.getByLabel('计算招式').selectOption('flamethrower')
+    await page.getByRole('button',{name:'计算本次伤害',exact:true}).click();await expect(page.getByLabel('道馆伤害结果')).toContainText('20–24')
+    expect(state.gymDamage.playerState.teraActive).toBe(false);expect(state.gymDamage.npcStats.ivs.hp).toBe(31)
+    await page.locator('.gym-damage').getByLabel('天气').selectOption('Rain');await expect(page.getByLabel('道馆伤害结果')).toHaveCount(0)
+  })
+  test('道馆挑战携带当前队伍与进度，展示事实与限制并生成可确认的聊天草稿',async({page})=>{
+    const state=initialState();state.referenceEnabled=true
+    await openWorkbench(page,state)
+    await page.locator('.facts-panel button[type=submit]').click()
+    await page.getByRole('button',{name:'加入队伍',exact:true}).click()
+    await page.getByLabel('第 1 位第 1 个招式',{exact:true}).fill('flamethrower')
+    await page.getByRole('button',{name:'道馆挑战',exact:true}).click()
+    await expect(page.getByRole('heading',{name:'奇树 · 单打',exact:true})).toBeVisible()
+    await page.getByLabel('已有道馆徽章').fill('2')
+    await page.getByRole('button',{name:'分析当前队伍',exact:true}).click()
+    await expect(page.getByLabel('道馆分析结果')).toContainText('飘浮')
+    expect(state.gymRequest.members[0].build.moves).toEqual(['flamethrower'])
+    expect(state.gymRequest.badges).toBe(2);expect(state.gymRequest.phase).toBe('initial')
+    await page.getByRole('button',{name:'让助手解释打法',exact:true}).click()
+    await expect(page.getByRole('textbox',{name:'输入消息',exact:true})).toHaveValue(/道馆挑战资料/)
+    expect(state.runs).toHaveLength(0)
+    await page.getByLabel('目标馆主').selectOption('ryme')
+    await expect(page.getByLabel('道馆分析结果')).toHaveCount(0)
+    await expect(page.getByRole('heading',{name:'莱姆 · 双打',exact:true})).toBeVisible()
+    await page.getByRole('button',{name:'配置我的队伍',exact:true}).click()
+    await page.getByRole('button',{name:'道馆挑战',exact:true}).click()
+    await expect(page.getByLabel('已有道馆徽章')).toHaveValue('2')
+    await expect(page.getByLabel('目标馆主')).toHaveValue('ryme')
+  })
+
+  test('粘贴 Showdown 配置保留太晶属性，保存回读并导出 v2',async({page})=>{
+    const state=initialState();state.referenceEnabled=true
+    await openWorkbench(page,state)
+    await page.getByRole('button',{name:'队伍配置',exact:true}).click()
+    await page.getByRole('button',{name:'导入',exact:true}).click()
+    await page.getByLabel('粘贴队伍配置').fill('Charizard @ Leftovers\nAbility: Blaze\nTera Type: Fire\nModest Nature\nEVs: 252 HP / 4 Def / 252 SpA\nIVs: 0 Atk\n- Flamethrower\n- Protect')
+    page.once('dialog',dialog=>dialog.accept())
+    await page.getByRole('button',{name:'解析并导入',exact:true}).click()
+    await expect(page.getByLabel('第 1 位太晶属性')).toHaveValue('fire')
+    await expect(page.getByLabel('第 1 位等级',{exact:true})).toHaveValue('100')
+    await page.getByRole('button',{name:'保存队伍',exact:true}).click()
+    await expect(page.locator('.roster-save-state')).toHaveText('已保存')
+    expect(state.teams[0].members[0].build.teraType).toBe('fire')
+    expect(state.teams[0].members[0].build.ivs.atk).toBe(0)
+    const downloading=page.waitForEvent('download');await page.getByRole('button',{name:'导出',exact:true}).click()
+    const stream=await(await downloading).createReadStream(),chunks=[]
+    for await(const chunk of stream)chunks.push(chunk)
+    const file=JSON.parse(Buffer.concat(chunks).toString())
+    expect(file.schemaVersion).toBe(2);expect(file.team.members[0].build.teraType).toBe('fire')
+  })
   test('旧搜索响应不能覆盖新选择，道具加载更多保留已显示候选', async ({page}) => {
     const state=initialState();state.referenceEnabled=true;state.delayOptionsQuery='猛';state.paginateItems=true
     await openWorkbench(page,state)
@@ -291,6 +365,7 @@ test.describe('N5 宝可梦工作台关键交互', () => {
     page.once('dialog', dialog => dialog.accept())
     const choosing = page.waitForEvent('filechooser')
     await page.getByRole('button', {name:'导入', exact:true}).click()
+    await page.getByRole('button', {name:'选择文件', exact:true}).click()
     await (await choosing).setFiles({ name:'队伍.json', mimeType:'application/json', buffer:contents })
     await expect(page.locator('.roster-transfer-notice')).toContainText('已导入')
     await expect(page.getByLabel('第 1 位等级', {exact:true})).toHaveValue('60')
@@ -554,9 +629,9 @@ test.describe('N5 宝可梦工作台关键交互', () => {
     expect(state.teams[0].members[0].build.moves).toEqual(['flamethrower','protect'])
     expect(state.teams[0].members[0].build.evs.spa).toBe(252)
     await page.getByRole('button',{name:'编辑',exact:true}).click()
-    await expect(page.getByLabel('第 1 位第 1 个招式',{exact:true})).toHaveValue('flamethrower')
-    await expect(page.getByLabel('第 1 位第 2 个招式',{exact:true})).toHaveValue('protect')
-    await expect(page.getByLabel('第 1 位道具',{exact:true})).toHaveValue('leftovers')
+    await expect(page.getByLabel('第 1 位第 1 个招式',{exact:true})).toHaveValue(/^(flamethrower|喷射火焰)$/)
+    await expect(page.getByLabel('第 1 位第 2 个招式',{exact:true})).toHaveValue(/^(protect|守住)$/)
+    await expect(page.getByLabel('第 1 位道具',{exact:true})).toHaveValue(/^(leftovers|吃剩的东西)$/)
     await page.getByLabel('攻击方队伍成员',{exact:true}).selectOption('team-1:1')
     await expect(page.getByLabel('伤害攻击方',{exact:true})).toHaveValue('charizard')
     await page.getByLabel('伤害防御方',{exact:true}).fill('squirtle')
@@ -564,6 +639,7 @@ test.describe('N5 宝可梦工作台关键交互', () => {
     await page.getByRole('button',{name:'开始计算',exact:true}).click()
     await expect(page.getByText('80–96 HP · 50.0%–60.0%',{exact:true})).toBeVisible()
     expect(state.engineRequests[0].attacker.build.nature).toBe('modest')
+    expect(state.engineRequests[0].attacker.build.item).toBe('leftovers')
     expect(state.engineRequests[0].attacker.build.evs.spa).toBe(252)
     await page.getByRole('button',{name:'让 AI 解释结果',exact:true}).click()
     await expect(page.getByRole('textbox',{name:'输入消息',exact:true})).toHaveValue(/0.12.0/)
@@ -681,6 +757,9 @@ test.describe('N5 宝可梦工作台关键交互', () => {
     await page.getByLabel('第 1 个成员 formId').fill('6')
     await page.getByRole('button', { name: '保存队伍' }).click()
     await expect(page.getByRole('heading', { name: '朱紫休闲单打' })).toBeVisible()
+    await expect(page.locator('.team-card .saved-team-icons li')).toHaveCount(1)
+    await expect(page.locator('.team-card .saved-team-icons img')).toHaveAttribute('src','/pokemon/6.png')
+    await expect(page.locator('.team-card .member-list')).toHaveCount(0)
     await page.getByRole('button', { name: '编辑', exact: true }).click()
     await page.getByLabel('队伍名称').fill('朱紫休闲单打（更新）')
     await page.getByRole('button', { name: '更新队伍' }).click()

@@ -4759,6 +4759,166 @@
         ],
         "x-availability": "local profile only; optional module, no production auto-promotion"
       }
+    },
+    "/pokemon/reference/team-document": {
+      "post": {
+        "operationId": "extractTeamDocument",
+        "summary": "Extract bounded DOCX or text PDF for team import; does not save a team",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Extracted text",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "text"
+                  ],
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "maxLength": 20000
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unsupported, encrypted, oversized or malformed document"
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        }
+      }
+    },
+    "/pokemon/gym-challenges/analyze": {
+      "post": {
+        "tags": [
+          "gym-challenge-controller"
+        ],
+        "operationId": "analyzeGymChallenge",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GymChallengeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or unsupported conditions"
+          }
+        }
+      }
+    },
+    "/pokemon/gym-challenges/damage": {
+      "post": {
+        "tags": [
+          "gym-challenge-controller"
+        ],
+        "operationId": "calculateGymDamage",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GymBattleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or unsupported conditions"
+          }
+        }
+      }
+    },
+    "/pokemon/gym-challenges": {
+      "get": {
+        "tags": [
+          "gym-challenge-controller"
+        ],
+        "operationId": "gymChallengeCatalog",
+        "parameters": [
+          {
+            "name": "phase",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "initial",
+                "rematch"
+              ],
+              "default": "initial"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Phase-specific verified snapshot"
+          }
+        }
+      }
+    },
+    "/pokemon/gym-challenges/resources": {
+      "get": {
+        "tags": [
+          "gym-challenge-controller"
+        ],
+        "operationId": "gymResourceCatalog",
+        "responses": {
+          "200": {
+            "description": "Specific acquisition routes, not inventory or universal availability"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7750,6 +7910,32 @@
           },
           "ivs": {
             "$ref": "#/components/schemas/BattleIVs"
+          },
+          "teraType": {
+            "type": "string",
+            "nullable": true,
+            "description": "Planned Tera type, not an assertion that Terastallization is active.",
+            "enum": [
+              "normal",
+              "fire",
+              "water",
+              "electric",
+              "grass",
+              "ice",
+              "fighting",
+              "poison",
+              "ground",
+              "flying",
+              "psychic",
+              "bug",
+              "rock",
+              "ghost",
+              "dragon",
+              "dark",
+              "steel",
+              "fairy",
+              "stellar"
+            ]
           }
         },
         "description": "User configuration, not a competition legality assertion. Defaults remain backwards compatible."
@@ -8034,6 +8220,185 @@
           },
           "checksum": {
             "type": "string"
+          }
+        }
+      },
+      "GymProgress": {
+        "type": "object",
+        "properties": {
+          "completedGyms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8
+          },
+          "mainStoryComplete": {
+            "type": "boolean"
+          },
+          "inspectionAssigned": {
+            "type": "boolean"
+          },
+          "requestedResources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50
+          },
+          "ownedResources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50
+          }
+        }
+      },
+      "GymChallengeRequest": {
+        "type": "object",
+        "required": [
+          "gameEdition",
+          "gameReleaseId",
+          "phase",
+          "gymId",
+          "badges",
+          "members"
+        ],
+        "properties": {
+          "gameEdition": {
+            "type": "string",
+            "enum": [
+              "scarlet",
+              "violet"
+            ]
+          },
+          "gameReleaseId": {
+            "type": "string",
+            "enum": [
+              "pokemon-scarlet-violet"
+            ]
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "initial",
+              "rematch"
+            ]
+          },
+          "gymId": {
+            "type": "string"
+          },
+          "badges": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 8
+          },
+          "allowLeveling": {
+            "type": "boolean"
+          },
+          "availableResources": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "members": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 6,
+            "items": {
+              "type": "object",
+              "required": [
+                "formId",
+                "build"
+              ],
+              "properties": {
+                "formId": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "build": {
+                  "$ref": "#/components/schemas/TeamBuild"
+                }
+              }
+            }
+          },
+          "progress": {
+            "$ref": "#/components/schemas/GymProgress"
+          }
+        }
+      },
+      "GymBattleRequest": {
+        "type": "object",
+        "required": [
+          "challenge",
+          "memberSlot",
+          "opponentSlot",
+          "direction",
+          "move"
+        ],
+        "properties": {
+          "challenge": {
+            "$ref": "#/components/schemas/GymChallengeRequest"
+          },
+          "memberSlot": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "opponentSlot": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "player",
+              "npc"
+            ]
+          },
+          "move": {
+            "type": "string"
+          },
+          "npcStats": {
+            "type": "object",
+            "properties": {
+              "nature": {
+                "type": "string"
+              },
+              "evs": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                }
+              },
+              "ivs": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "playerState": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "npcState": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "field": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "critical": {
+            "type": "boolean"
+          },
+          "hits": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
           }
         }
       }

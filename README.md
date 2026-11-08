@@ -110,6 +110,12 @@ npm --prefix vio-ai-agent-frontend run dev
 
 对话阅读空间、统一资料入口及响应式布局见[工作区布局说明](document/秋招升级/最终交付/助手工作区阅读布局优化_2026-11-04.md)。登录页保持原样。
 
+## 阿里云单机部署
+
+需要公网展示时，可按[阿里云部署操作手册](ops/aliyun/README.md)逐步执行：Windows 隔离打包 → Ubuntu 24.04 → Nginx HTTPS → systemd → 登录与问答验收。提供外部配置、Nginx 和服务模板，模型 Key 只在服务器填写。
+
+此路径沿用 SQLite 与现有账号链，适合个人作品展示；不等同于企业生产、高可用或任务跨重启恢复。首次部署建议 2 核 4 GB，具体容量需实际验证。
+
 ## 数据与配置
 
 本地数据默认位于 `.local-data/`，包含账号、对话、队伍、攻略索引和图鉴缓存。它们保存在当前电脑，不提供跨设备同步；正在执行的 Run 不承诺跨重启自动续跑。具体可配置路径见公开模板，用户私有配置不应提交。
@@ -152,6 +158,10 @@ node tools/campus/s2-evaluate.mjs validate
 
 ## 面试与代码入口
 
+- [全栈与 AI 应用开发学习路线：Java 常用方法、Spring Boot、Vue/TS、SQL 基础教程，附十四周项目与岗位实战](document/学习与面试/项目系统学习路线_2026-11-05.md)
+- [双岗位秋招面试全书：360 题，覆盖 Vue 3/Spring Boot、Python/FastAPI、AI 应用、项目与 HR，含智美官网部署及供应商 SEO 接口专项，附回答要点、追问与动手示例](document/学习与面试/秋招双岗位全栈与AI应用开发面试全书_2026-11-05.md)
+- [大厂 JD 调研与覆盖矩阵：7 家公司、10 个有正文依据的岗位，区分校招、实习与社招](document/学习与面试/大厂JD调研与题库覆盖矩阵_2026-11-05.md)
+- [原 168 题项目题库：源码定位与模拟面试](document/学习与面试/秋招AI应用开发面试题库_2026-11-05.md)
 - [项目讲解、简历描述与常见追问](document/秋招升级/最终交付/面试与项目讲解.md)
 - [架构、数据流与设计取舍](document/秋招升级/最终交付/架构与设计取舍.md)
 - [后端 Run 生命周期](src/main/java/com/vio/vioaiagent/run/PokemonAgentRunService.java)

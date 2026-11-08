@@ -20,7 +20,7 @@ public final class DamageAnswerEvidence {
     public boolean active() { return requested || evidence != null; }
     public boolean complete() { return evidence != null; }
     public void observe(String tool, String output) {
-        if (!"calculateBattleDamage".equals(tool)) {
+        if (!Set.of("calculateBattleDamage","calculateGymDamage").contains(tool)) {
             if(requested&&evidence==null&&Set.of("lookupPokemonReference","lookupPokemonResource","lookupPokemonTeamReference").contains(tool)&&referenceFailure(output))failureMessage=REFERENCE_FAILURE;
             return;
         }
@@ -90,6 +90,12 @@ public final class DamageAnswerEvidence {
         }
         var defaults=evidence.path("conditionValidation").path("engineDefaultAbilitySides");
         if(defaults.isArray()&&!defaults.isEmpty())text.append("注意：未指定的特性采用了引擎默认特性（见上方实际条件），请确认该假设；这不表示用户已经选择了该特性。\n");
+        if(gym()){
+            text.append("招式：").append(safe(assumptions.path("move").asText())).append("；场地：").append(safe(assumptions.path("field").path("gameType").asText())).append("。\n");
+            for(String side:List.of("attacker","defender")){var state=assumptions.path(side).path("state");text.append(side.equals("attacker")?"攻击方状态：":"防御方状态：").append("剩余HP ").append(state.path("hpPercent").asInt()).append("%；太晶 ").append(state.path("teraActive").asBoolean()?safe(state.path("activeTeraType").asText()):"未激活").append("；异常状态 ").append(safe(state.path("status").asText().isEmpty()?"无":state.path("status").asText())).append("；能力变化 ").append(boosts(state.path("boosts"))).append("。\n");}
+            text.append("NPC性格、努力值与个体值是计算假设，不是已核实的隐藏数值。来源：本地 @smogon/calc 0.12.0；按已提供的HP、太晶、状态、能力变化与场地计算单次伤害，不包含多回合行动、命中率、回合末结算或胜率。\n");
+            return text.toString();
+        }
         text.append("招式：").append(safe(assumptions.path("move").asText())).append("；场地：")
                 .append(safe(assumptions.path("field").path("gameType").asText("未填"))).append("；天气：")
                 .append(safe(assumptions.path("field").path("weather").asText("无"))).append("；地形：")
@@ -110,6 +116,8 @@ public final class DamageAnswerEvidence {
         String comparison;
         if (max == 0) {
             comparison = "本次计算结果为零伤害；仅凭这个结果不能认定是属性、特性或其他机制导致。";
+            if(gym()&&"Ground".equals(evidence.path("moveType").asText())&&"Levitate".equals(evidence.path("assumptions").path("defender").path("ability").asText())&&!evidence.path("assumptions").path("field").path("isGravity").asBoolean()
+                    &&!Set.of("Mold Breaker","Teravolt","Turboblaze").contains(evidence.path("assumptions").path("attacker").path("ability").asText()))comparison="本次计算为零伤害：在当前无重力、无破格类特性等所列条件下，地面招式受到防御方飘浮免疫；电太晶不会移除其特性。不能把这个零伤害当作整场胜负结论。";
         } else if (min >= hp) {
             comparison = "本次伤害区间的下界已达到防御方满HP参考阈值；这只是所列条件下的数值比较，不保证实战击倒。";
         } else if (max < hp) {
@@ -130,6 +138,8 @@ public final class DamageAnswerEvidence {
         for (int index = 0; index < keys.length; index++) parts.add(names[index] + value.path(keys[index]).asInt());
         return String.join("/", parts);
     }
+    private boolean gym(){return evidence!=null&&"GYM_SINGLE_ACTION_V1".equals(evidence.path("calculationScope").asText());}
+    private static String boosts(JsonNode values){String[] keys={"atk","def","spa","spd","spe"};String[] names={"攻击","防御","特攻","特防","速度"};var result=new java.util.StringJoiner("、");for(int i=0;i<keys.length;i++)if(values.path(keys[i]).asInt()!=0)result.add(names[i]+String.format(Locale.ROOT,"%+d",values.path(keys[i]).asInt()));return result.length()==0?"无":result.toString();}
     private static String number(JsonNode value) { return String.format(Locale.ROOT,"%.0f",value.asDouble()); }
     private static String percent(JsonNode value) { return String.format(Locale.ROOT,"%.2f",value.asDouble()); }
     private static String safe(String value) { return value.replaceAll("[|\\r\\n*`<>]", " "); }

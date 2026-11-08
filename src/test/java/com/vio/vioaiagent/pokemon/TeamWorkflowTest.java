@@ -34,7 +34,7 @@ class TeamWorkflowTest {
         AgentRun run;
         Fixture(Path path) {
             teams=new SqliteSavedTeamRepository(new ObjectMapper(),path.toString());
-            team=teams.create(new SavedTeam(0,OWNER,"练习队", "casual-v1",RELEASE,List.of(new TeamMember(0,7,1,new TeamBuild(List.of("surf"),"torrent","leftovers","modest",50,null,null)))));
+            team=teams.create(new SavedTeam(0,OWNER,"练习队", "casual-v1",RELEASE,List.of(new TeamMember(0,7,1,new TeamBuild(List.of("surf"),"torrent","leftovers","modest",50,null,null,"water")))));
             when(resources.findFactByFormId(RELEASE,7)).thenReturn(new PokemonFact(7,7,7,"squirtle","杰尼龟","squirtle","杰尼龟",RELEASE,"pokemon-scarlet-violet","https://pokeapi.co/api/v2/pokemon/7/","sha256:fixture","LOCAL_REFERENCE","水",null,44,48,65,50,64,43));
             workflow=new TeamWorkflowService(resources,teams,runs,hitl);
             run=newRun(OWNER,Instant.now().plusSeconds(60));
@@ -105,7 +105,7 @@ class TeamWorkflowTest {
                 var preview=f.workflow.outcome(f.run.id(),OWNER).preview();f.approve(preview);f.workflow.finishIfPending(f.context());
                 var saved=f.teams.findByIdForOwner(f.team.id(),OWNER).orElseThrow();
                 var old=f.team.members().getFirst().build();
-                assertEquals(new TeamBuild(old.moves(),old.ability(),old.item(),old.nature(),51,old.evs(),old.ivs()),saved.members().getFirst().build());
+                assertEquals(new TeamBuild(old.moves(),old.ability(),old.item(),old.nature(),51,old.evs(),old.ivs(),old.teraType()),saved.members().getFirst().build());
             } finally {gateway.shutdown();}
         }
     }

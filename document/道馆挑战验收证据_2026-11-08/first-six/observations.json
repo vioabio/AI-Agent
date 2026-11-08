@@ -1,0 +1,431 @@
+{
+  "suiteId": "gym-v2-independent-2026-11-08",
+  "suiteSha256": "d70cbed0086f91ba5abd939282a5ab7f5bedb514ed3a3cc4a5ff564d724bcf81",
+  "startedAt": "2026-11-08T20:04:58+0800",
+  "mode": "real-model-via-local-agent-http",
+  "semanticReview": "PENDING",
+  "records": [
+    {
+      "id": "GYM-H01",
+      "prompt": "我刚开始玩朱，想打第一个道馆。你直接给我一队和招式吧。先别假设我有什么宝可梦，也不知道我有几枚徽章。",
+      "rubric": "应追问已有成员、等级招式、徽章/目标馆主和可用资源；不得声称已读取我的队伍或已知资源可得。",
+      "status": "COMPLETED",
+      "answer": "你说得对——我现在拿不出适合你的具体队伍和招式，因为缺少你自己的实际条件，硬给一份清单就是凭空编的。下面是能立刻执行的做法。\n\n**先说明一个事实边界：** 本轮我没有调用道馆分析或伤害计算，因此下面不含馆主队伍的逐只阵容、数值或伤害范围，也不做胜率估计。要拿到针对性的队伍和招式，需要你先提供实际条件（见最后一节）。\n\n**流程上的关键提醒（资料事实）**\n- 朱版第一个道馆是**圆模镇道馆**，属性为**超能系**，馆主为妮娜。\n- 初战道馆的等级通常较低（大致在十几到二十级区间），但具体等级请以游戏内为准，我本轮未核对具体数值。\n- 道馆战为单打，队伍中可携带若干只，具体上场规则以游戏内说明为准。\n\n**可执行的准备思路（策略建议，非计算结论）**\n1. **等级先行**：先把主力升到略高于道馆一般等级的水平，等级差本身是最稳的保障。\n2. **克制超能系的手段**：恶系和虫系招式对超能系有优势；幽灵系招式对超能系无效或偏弱，别指望它。\n3. **抗性方面**：超能系招式对格斗、毒系效果不佳，队伍里带一只格斗或毒系成员可以减轻压力。\n4. **不要只靠一只**：准备两到三只能打出有效伤害的成员，避免主力被压住时全队无解。\n5. **回复与消耗**：带足伤药，注意超能系常用变化招式（如降低能力、催眠类），别把关键回合浪费在被控上。\n6. **太晶化**：先确认你的版本里是否已解锁太晶化、以及要用的宝可梦太晶属性是什么，再决定是否在道馆战中使用。\n\n**要我给你具体队伍和招式，请提供：**\n- 徽章数（新档请确认是 0 枚）；\n- 每只宝可梦的名称、等级、已学会的四个招式（没有的可以不写）；\n- 是否愿意在战前抓新宝可梦或练级；\n- 手头可用的道具、是否已解锁太晶化、太晶属性是什么；\n- 确认挑战的就是圆模镇超能系道馆。\n\n把这些发我，我会先核对馆主初战阵容，再给你逐只的招式方向和等级目标。",
+      "toolNames": [],
+      "runId": "run-adf6c0ad-f1fe-4b8b-be95-fcb30b38130d",
+      "hasAnswer": true,
+      "elapsedMs": 12375,
+      "eventsSha256": "8ca2b2df84d30cae8a70545fe45ca3bb2b7b2bf28cf31b3127e8eddd0823119e"
+    },
+    {
+      "id": "GYM-H02",
+      "prompt": "我玩紫，初次挑战奇树，有2枚道馆徽章，不练级，只使用现有烈咬陆鲨Lv23，粗糙皮肤、无道具、勤奋，招式地震和龙爪；没有其他成员或资源。帮我看关键威胁和当前打法。不要编造新捕获目标。",
+      "rubric": "应调用planGymChallenge；说明梦妖魔电太晶后仍飘浮，地震无效，也不能地震打电海燕；不承诺必胜、不把其他世代队伍混入。",
+      "status": "FAILED",
+      "answer": "",
+      "toolNames": [
+        "lookupPokemonReference",
+        "planGymChallenge",
+        "calculateGymDamage"
+      ],
+      "runId": "run-2796cc72-49d0-4f6c-bafc-ba598a8c2076",
+      "hasAnswer": false,
+      "elapsedMs": 16266,
+      "eventsSha256": "9db869a81d37219acb7836acc6d43388fd123e8e050365acff131d2f5bb7888c"
+    },
+    {
+      "id": "GYM-H03",
+      "prompt": "朱，8枚道馆徽章，但是还没完成归乡之路，也没有也慈的视察任务。现在能打阿枫的道馆重赛吗？不要把8枚徽章当成通关。",
+      "rubric": "应说明重赛未解锁，须主线通关并接视察任务；不提供已可执行的重赛行动或说每天都能重赛。",
+      "status": "COMPLETED",
+      "answer": "**现在不能打阿枫的道馆重赛。**\n\n**条件核对**\n- 版本：朱 ✅\n- 徽章：8 枚 ✅\n- “归乡之路”完成 ❌（8 枚徽章不等于通关）\n- 也慈的视察任务 ❌\n\n阿枫重赛属于主线通关后的视察重赛，需要同时满足“主线通关”和“已接到视察任务”。你现在两项都不满足，所以没有可进入的重赛入口；她的初战你已打过并拿到徽章，也不能重复。\n\n**接下来可执行的步骤**\n1. 完成第零区“归乡之路”，包括对也慈的最终战，才算主线通关。\n2. 通关后接到也慈安排的道馆视察任务，再去圆模镇挑战阿枫，即可进入重赛。\n3. 到那时想让我做重赛战术方案，请提供：实际出战的 6 只成员、真实等级、四招、特性、持有物，以及是否允许练级/使用道具的限制。重赛队伍与初战不同（等级与阵容有变化），必须按你的真实配置核对，不能套用初战思路。\n\n说明：以上结论依据重赛的解锁规则；我本轮没有经过数值计算，因此不涉及具体伤害或胜率判断。",
+      "toolNames": [],
+      "runId": "run-6b939749-68a1-4b75-9147-f1ff4187495d",
+      "hasAnswer": true,
+      "elapsedMs": 7375,
+      "eventsSha256": "dc00f88d605ea728b99a897262c072bcd807dd2f6e7e45eb432e45c3b156ea8a"
+    },
+    {
+      "id": "GYM-H04",
+      "prompt": "朱，主线含归乡之路已通关，8枚道馆徽章，已经接到也慈视察任务。准备打阿枫视察重赛，当前只有烈咬陆鲨Lv66，粗糙皮肤，无道具，勤奋，地震和火焰放射，不练级、不要推荐新资源。请先查重赛阵容，再给关键威胁与建议，NPC隐藏数值未知。",
+      "rubric": "应调用planGymChallenge且phase=rematch、progress已确认；重赛5成员、圈圈熊66级，不能用初战熊宝宝15级；区分属性覆盖与伤害。",
+      "status": "FAILED",
+      "answer": "",
+      "toolNames": [
+        "planGymChallenge",
+        "lookupPokemonReference"
+      ],
+      "runId": "run-ff174d8e-845d-4236-afea-640209d9f5f8",
+      "hasAnswer": false,
+      "elapsedMs": 15046,
+      "eventsSha256": "e50c22a889514b62d7fdc064a190e79d52b9872e56f0fa73d1ab7a92eb69c4bb"
+    },
+    {
+      "id": "GYM-H05",
+      "prompt": "紫，初次挑战奇树，2枚道馆徽章只来自阿枫和寇沙，没有击败奇树。当前烈咬陆鲨Lv24，粗糙皮肤，勤奋，无道具，地震/龙爪，不允许练级。检查TM048伏特替换能否靠奇树首胜奖励现在拿到。请检查具体进度，其他获取途径我不知道，背包也没有。",
+      "rubric": "应按completedGyms检查tm048，不能用徽章数断言已获得；未击败奇树则首胜途径尚未满足，不可断言所有其他途径都不存在。",
+      "status": "COMPLETED",
+      "answer": "### 招式学习途径（本次读取）\n仅展示朱／紫版本组在该公开快照中的记录。\n\n**garchomp · volt-switch**\n\n该快照未记录此成员与招式的朱紫学习途径；不能据此断言无法学习。\n\n\n来源：[PokéAPI](https://pokeapi.co/api/v2/pokemon/445/) · 抓取于 2026-11-04\n\n学习方式是来源字段的中文标签，未补造TM编号、获取地点、遗传亲本、回忆或进化操作；不证明特定补丁、DLC条件、跨世代传入或赛事合法性，也未修改队伍。\n\n### 资料范围\n以上仅表示本次实际核验的学习记录；未取得的机制、操作与比赛规则仍需对应来源。\n",
+      "toolNames": [
+        "planGymChallenge",
+        "lookupPokemonLearnset"
+      ],
+      "runId": "run-450ccfb6-7d90-447e-9403-945196d02508",
+      "hasAnswer": true,
+      "elapsedMs": 10859,
+      "eventsSha256": "4a96b3e5d75cb55e61be0ec1f0587bcbe49e785bc298f5abdab68666cb083047"
+    },
+    {
+      "id": "GYM-H06",
+      "prompt": "紫，初次挑战奇树，2枚道馆徽章，不练级。现有烈咬陆鲨Lv24，粗糙皮肤，无道具，勤奋，0努力值、31个体值（六项），招式地震/龙爪，未太晶。对手是初战王牌梦妖魔Lv24，已经电太晶且飘浮；NPC按勤奋、0努力值、31个体值作假设，双方满HP、无能力变化、无状态、单打、无天气地形或重力。请调用道馆伤害工具算地震打它的伤害，并说明为什么。不要手算冒充工具。",
+      "rubric": "应调用calculateGymDamage，正确对手槽位4、npcState.teraActive=true；输出0伤害/无效，说明飘浮且隐藏数值只是计算假设，不宣称胜率。",
+      "status": "COMPLETED",
+      "answer": "本次计算工具执行失败，暂未取得有效伤害结果。请查看执行记录后重试。",
+      "toolNames": [
+        "calculateGymDamage"
+      ],
+      "runId": "run-af5068c9-d595-4319-896e-cf1f4309362c",
+      "hasAnswer": true,
+      "elapsedMs": 14625,
+      "eventsSha256": "89a9e5adaad670e29b3c35f1d526115e7d991dc5cc951a8ff8e16707de0c5e73"
+    }
+  ],
+  "runtime": {
+    "taskBudgetPolicy": {
+      "accounting": "MAX_RESERVATION_OR_PROVIDER_V1",
+      "tokenLimit": 131072,
+      "maxModelCalls": 16
+    },
+    "implementationSha256": {
+      "VioManus": "e3146b7ab7407f010d8d63bb454a6ab1468ba470e638c2b6191bff85b877041b",
+      "ToolCallAgent": "ecb8296583188514ca32f9cdd0636571a4fccf532aa649142ff1d94c2c30c407",
+      "AnswerPresentation": "f957b79085d07e36a91d90cde7314d9edfbed0f17bd7de014c32b82d5f6718a1",
+      "CapabilityCatalog": "9b0be74919da3120f65b71fc92f2ad748f89b02870dfccfbca4c9d0db05354c2",
+      "AccountScopeReply": "a9aac1855e1f7431dab811bea2d1a1bb411d27e08c975dc27780459ac09498ce",
+      "TeamAnswerEvidence": "1a379b592c2d0a2b1e122d47a23523e29cdc14620afb172ffa8b1cc9998ea62d",
+      "DamageAnswerEvidence": "ee0744d3c178cec9601f0f77ede3ee0ee22405f481ea94223aa921fc641bdd3e",
+      "GuideAnswerEvidence": "3747d98bef75dfb4af40739157d203d49e0951a33b0c35c57d32c3112732846b",
+      "SavedTeamAnswerEvidence": "51d69d378cf7e95c2a0e33592faf3ce289862d62d5d1c797ce8102d1e10e6022",
+      "EvidenceText": "5a5df23e488f0cd60330d3b4170e0cbc602375620950329fb9cb5ea093eb8742",
+      "TeamReferenceTools": "7ab3609debdee4f7dae89c9b911279b24c11959ffa41dd4d4ea3e0cb95fa42ff",
+      "TeamWorkflowService": "a837bfa7feea25858b7713aa9391122ee948f34f479d0ed42dd5c733d484847f",
+      "RunMutationBoundary": "dc9dd79d80426b94edcee94eb86fd20c4f47d798d9e5d8b2dd3cce0ca5faeb92",
+      "TeamChangePresentation": "3ea7fcb698a9794f674188e24d7f04af72c44dadd2994c096108a7a730dc8e19",
+      "TeamWorkflowController": "0f8004553fdd9abc691c0202a5b8eba4381f863866916405f206f86cfff18cbf",
+      "EvaluationToolPolicy": "3acd33fbb6ddc768fa32bc6227cfa1b6d443d39d897d9bfc555c639693808223",
+      "ProjectGuideRequest": "70dfbf477f433e6259ce031a1b144a1fc2ae74931d19ee074c14dc68909738d3",
+      "GuideReferenceIdentity": "f18b10021b5063b27b9f42ac953afc88fa032d0a0a1dd501a6c27d5feb8c8d7d",
+      "ResourceAnswerEvidence": "ed3bc229bbb9fa14a4a44eb151ccc433672e5db34f82617c9392613b5799b9ee",
+      "ResourceReferenceFacts": "dbfa0b21cd516f937df050655a16f7b09229746a8bbb7d7094e19f098a8e315c",
+      "OverviewResourceCoverage": "fafc569d656af77b6960a1332ab0dfd66f9c941453856fc96581e74838971c43",
+      "LearnsetAnswerEvidence": "b0f426ba1094085261bfba1ae8d7c0326d0cfe65de905c0193dc15282c518d51",
+      "PokemonLearnsetFacts": "6bfa234acd575e5638b56723be12888a997f58162842bff937f423e9c46c5d11",
+      "LocalLearnsetReferences": "9210e9927c7e5167835c421e88fc4d47494985f715436e4d2778d77334476e20",
+      "PokemonLearnsetController": "94d83faea43fca27adffe706ae0ffdbdfd4737f9168521ab349ccd18d4025d70",
+      "MechanicAnswerEvidence": "57d5f8679372329b3a98b8009d0eb8fd18811a2f40eda18d4d204c4b3e46e7d4",
+      "IndependentMechanicFacts": "0ed2a7bf03a72f811370002f214e9df65a712efd5f08611d8276ccf7db804ea4",
+      "IndependentMechanicCatalog": "49d7bb0866153f9eec3f12d91d316bd6fdcd502bc2a48883266e3aec173e58bd",
+      "PokemonMechanicsController": "85eacf4d3bfe71ee7d07294cac74abf49c3b98d4cb250026fe5fcecfe79b1239",
+      "MechanicResultEvidence": "efb8878d3d340f3067685f2cd54aa278e58c5a2a2b71640af69eaa00696e4d2a",
+      "BuildCheckAnswerEvidence": "2615853419afa337f97b503c25418dd419a133d16609d0c78e8f44d2453c3cad",
+      "ToolHistoryIntegrity": "9ac39118404e1e522b242867ffdb2287da0d235420ab009f779e60d3fc60acd7",
+      "BuildCheckRequestRoute": "2478526d8beaec98e2255689b0058f55030511c6250e3889f3633c70d3119781",
+      "BuildCheckFacts": "5845d71c109f4554939ea4d0a65b3e843370dd94173a83f968fd02dac5c0c8ba",
+      "BuildLearningNotes": "ac3e314895a9c1c1a5cabdaafccd06ee5661128dfa815b1596aebacb49491d64",
+      "LocalBuildCheckService": "3d9ff9026e99f459b67f80efa0bcedebfe2eb288eef2c83eb884ff57df3969a7",
+      "PokemonBuildCheckController": "84de172ee8dbb58e06afea2ffe8ce98c5ab48d151bd66eb8a92c54aadb601954",
+      "TeamBuildCheckFacts": "cb1a61afd50dc54d0e5f629000ee7f42e02c2ea9e23a38aeae543fc5ca2fb316",
+      "PokemonTeamBuildCheckController": "cad01672d9d11fa406493bd8ac4055ef23c97864ee0354c35bc7562d60eefab8",
+      "TeamBuildAnswerEvidence": "7ed4c2599da6b814601f9b7d94f65e61886ccd5cc51a206696fe97cbdbe88e22",
+      "TeamBuildResultEvidence": "7fcd1c5a4d30040d6c2d320fa9eaa4ccfc7935757d7c6fa54b418d92cd07102a",
+      "TeamBuildRequestRoute": "5abcaa2d55706d1db202b41799fc7990857a1e6494616493f9772fa6d8318915",
+      "BuildCheckResultEvidence": "a45b143b62ffbde832d7585e5a928bdb05b492efc191484328a13bd97c1bd1d3",
+      "MachineAnswerEvidence": "396ae22dc1d4629aec88066fba64f3d3d001136ada63da7b3e2a8f34f7b31cd9",
+      "MachineReferenceCatalog": "a9e087aede752bd74987032a1812feed527f18fadf0b86fbf5f380b73aa91048",
+      "MachineCraftingGuide": "925192d40d2aeb8e8d91f7abeddcc9cff1533e2d073240f82d2ee09cefbf06fe",
+      "MachineRecipeCatalog": "96e3f9b69f8af315b4b06658f40c289f1e1b05fffa881391e676f4941bd418d9",
+      "MachineAcquisitionCatalog": "5bebe4b015785880406e1d2d2d5b2b4e1e6310877810d3955d0545549158e850",
+      "MachineReferenceFacts": "3e91d835786d021b1faea4a1fa6eaa9ab47c931cf9b004cca168385c918c19e7",
+      "LocalMachineReferences": "e7d570bb8cc7f3e7d11b2684ce54db9887557cc42be0ae5f3d2c002a3b238036",
+      "PokemonMachineController": "7ae4d87adc280f41ffd58aa8501528f5e10623ac7be279bbea3083ad1cbd5a6c",
+      "MachineResultEvidence": "b8abe6623c66f551b69d6502c0fa3959fc3de719bb49aab313b58e5c45d16f25",
+      "LocalResourceReferences": "11509a47d72786919882becbd1322bfa8f08815fa71445355a44a9ccd4aa3a03",
+      "PokemonReferenceTools": "b67de44be6a7a1a6d324aa0c34e982c5b8baa120fd5fdd833227ed0a61e28e61",
+      "PokemonReferenceController": "79a2fb1a5c96749ab03a4e7956f5ddd0eca013c7819dce15219a1799646db9dc",
+      "DefaultRunExecutor": "8a8869953a7aa6ba0780b5adf5604de397983977497b3c3c09c907efe42e22a5",
+      "AgentRunContext": "51cc95ca17f97bf0a758d7679e1c9e6493f1e154897719743ccd477cc2c24e83",
+      "PokemonAgentRunService": "db0654ed121157971ca080adf259dead9c22d01ebeabfaec6a371b06c24574f7",
+      "ObservedChatModel": "0f310b8c7d25c68a0eb1900f5b41cd3c57f581033be08d9e883d92b692020e30",
+      "ModelUsageLedger": "a852ac9c9b87c1f7a9f90577bbb072bbf6b97e847aaeeaea0c542fbc4fcca386",
+      "ModelFailureDiagnostics": "b6a811aabc5c716b8411cc2536cb7116ad421f88f36eddc288b795c4f468e7f8",
+      "ProviderTokenUsage": "0713016c78c2ab8c25f6dcb0ece32519ce32b92e960eee5d269b8ef096b815bf",
+      "TokenEstimateComparison": "ca9ba8fd7dee7d4f4cf91cf63385abb1b6a0695bf1f9518d0c008cffd996855f",
+      "ModelContextBudget": "19a49ee0c3b3a79baf427e5c6974ed0494b0d4d13381ba4d779bbbe15316bb26",
+      "ContextTokenEstimator": "7c1240814adf74f516d18a5a27ec3335295861a3fe9ead647e92d3471538fae8",
+      "DashScopeBudgetChatModel": "bc0a1dedf9083ae8a0159bfec318525a6c9ef3f4555b1545ff4603dd424af27b",
+      "ContextBudgetExceededException": "6ea21a5edc3f924a3edebb52444f89a5c2779a3bbc7b7aa08c5acd4fd0d04834",
+      "ContextBudgetProperties": "51a583b19a11cf9829cbdc9fbe08fd0a72a0755bc5c270d136f7a6429e543180",
+      "TaskModelBudget": "c1210e68b19b134a8d94ca9a219b519702e546e45b1a3a07b1c1ede913ef808c",
+      "TaskBudgetExceededException": "487d3fc543d3fd5a5e08516a8969cf48bf5a5604ededad8dcf913235f33a51a2",
+      "TaskBudgetProperties": "64534d963aeb3a22c1d9edf657b40b858eba1b5f267a8a8d950b637d95a421a1",
+      "ProviderBillingUsage": "0fc733a86e2da31ad20a0b6e96320e22106e8bd39141119350d824c9754ad17d",
+      "ModelPriceCatalog": "0ffa0425d08ad25d2d9f36745b5cfc7a1e68c4328bd04a8ae1adacfa54194604",
+      "ModelCostEstimate": "49d0bb3d0bb5e0b9ef8da88697edf58d01bc28a46a54407730ef9e463671bffa",
+      "ModelPricingProperties": "0e8c9eeaea9ae8493f89f66a4186a6da1131842f824178690e350f8e75b073ec",
+      "RunAttemptTiming": "5783ab27cc6807de72d36a7f21348fc0527a7bba97b54221e93997dc755837df",
+      "AgentMetrics": "d36941d632c93b4f95df5e3fc32477618593375f604024a956be40e19979294f",
+      "BoundedToolExecutor": "7208ac5039bbf1d794b6b46f9df762d81bd36ee44c051a6eb7dac985055cf2fc",
+      "ToolAttemptTiming": "c5215f1a8484dc661fce40b2c5e9edcfcb4997181082712c74fc0783651a81a6",
+      "ModelPricingConfiguration": "2882de88015ed36616b7860306629e63de22f854bea2c34af3a87212783e1a23",
+      "DeepSeekModelConfiguration": "12b5452f7264fecf5a0607fa2988e78bda91f1caed490287c9568a6824a68d84",
+      "DeepSeekRequestCodec": "b45c834b9a49d656d91bab4252b78f55852fe4d37aba255de8af24f81339c7d4",
+      "DeepSeekBillingSseReader": "1b648aaf2ccd716ea1503b511532c43b5d8330a6644549a4ff63ecce771fdada",
+      "ConversationHistory": "41df012b58a14053695c12ff3fa75a0cfc24180e51be15b357a67ee021e8851e",
+      "ConversationConstraints": "0f34a9cc84a1be11140af24ee14ea3d8432b91841e6506d96cec4e9257fa292a",
+      "JdbcConversationConstraints": "94bde517b2f8e040a3ec35ed49c7d8d300d60d428c7d706e44d699f22c009b9e",
+      "SqliteLocalHistoryRepository": "68c13e0bb9a7b6f7f840d609ed7433f855d368bda0beb6ab0036321ab4b383ad",
+      "JdbcConversationRepository": "9d6d063d8de45dca6974805b38165679034a10f7e1cc08022bcaf2155a12b4b0",
+      "InMemoryConversationRepository": "ef47438869f0927cf1b3fa4040f130d030c485f99b8834f13ba3695d947b92d0",
+      "AgentRunController": "dde546bc55d982cddd6a3d12f9f476c3d6693add50fb698afd57acbc97356b78",
+      "ToolExecutionGateway": "e5517827596775412c9bdd217c6e8db07e72bee417ef91bd2d3edb442ea5ffd8",
+      "ToolInputEvidence": "24c03bb8aaa9200efc75ee5fe384ddea06dad780f75e574a5a3c36e89655601c",
+      "DamageResultEvidence": "40ceacbc0ba57ee202783a621e9925ad74853f9af4b6a9a5ced0dbe3726e4f0a",
+      "DamageResultContract": "682e2bfc7b06fa58de5220ba24e01da4ba5c7aab6fa828399e5df68a6d88f98f",
+      "LearnsetResultEvidence": "3c443f60ad42f87dbbe402c5a34c72f5d0746ed52e2230ddf49b8f3751769a38",
+      "DamageToolSchema": "393b859d4a5b3d6095c9255d2e324c443a4cba7b94bba658497de789edcf4f6c",
+      "ToolSchemaReferences": "233472742b46b97cb813d99f9718d488f43787ebcc7f18ed5e22cce19f99a438",
+      "DamageAdvicePolicy": "06a3d15c3c60d071a7c83fe08d7af4a44b468910e26d675817b24bb01317ca5a",
+      "ToolRegistration": "ea228ebb3d516b4277bb26ed7940e8c09e4a978592f432d6793d30c3557be7fb",
+      "LocalDamageEngine": "a6611763c8f9cf19680677224bfa1c6d6c6e289b4b0631ff657ab5d9e8d2eedd",
+      "VerifiedLocalDamageEngine": "5b94e7386cb5ee51898fb78be6d4f3378823ea02b3df66348899c30a261b67f0",
+      "TeamBuild": "dfde6d88457d9d89d39b1ab9dbf594ea97ad902e87f456babb3098b42b516f77",
+      "LocalGuideSearch": "fb9f947a74d521bbbfa3bbff5ea95213f80bea6420814226adb021c337855c43",
+      "GuideChunks": "9b3a0032cf9eae38b96031ea71705503dc00d8d084ac51684e01763c9b8409d5",
+      "GuideApplicability": "26b5d2b79a06d9f2c52b6f8158edb38c4fea6274e242c2cb802624b4cc5eb467",
+      "SqliteGuideKnowledgeRetriever": "afbd7097bed0976f94c956320ec883dbb1b0beb6435aab52016dc598cf1da5ad",
+      "GuideProvenance": "8ba0bb41cf3fc37b0d83e13e3aece4a512f080c5c5d3a35d756040fc06765a22",
+      "RunToolScope": "4c87e75795366298e1aa3be41108c48e6e9a08a90035c6c4ba08533b68a32e93"
+    },
+    "promptVersion": "campus-s4-intent-v2",
+    "providerReturnedModelId": "not-attested-by-this-endpoint",
+    "features": {
+      "answerStreaming": true,
+      "costObservation": true,
+      "contextBudget": true,
+      "conversationConstraints": true,
+      "highRiskTools": false,
+      "modelUsage": true,
+      "timingObservation": true,
+      "mcpClient": false,
+      "taskBudget": true,
+      "versionedGrounding": false
+    },
+    "tools": [
+      "calculateBattleDamage",
+      "calculateGymDamage",
+      "checkPokemonBuild",
+      "checkPokemonTeamBuild",
+      "checkTypeEffectiveness",
+      "doTerminate",
+      "getTypeChart",
+      "listCurrentTeams",
+      "lookupCompetitiveTeams",
+      "lookupCompetitiveTrends",
+      "lookupPokemonLearnset",
+      "lookupPokemonMachine",
+      "lookupPokemonMechanics",
+      "lookupPokemonReference",
+      "lookupPokemonResource",
+      "lookupPokemonTeamReference",
+      "planGymChallenge",
+      "previewTeamChanges",
+      "readCurrentTeam",
+      "searchPokemonGuides",
+      "searchWeb"
+    ],
+    "configuredProvider": "deepseek",
+    "contextBudgetPolicy": {
+      "safetyPercent": 125,
+      "estimator": "cl100k-base-proxy-v1",
+      "contextTokens": 32768,
+      "historyTurns": 8,
+      "outputReserve": 2048,
+      "historyTokens": 4096
+    },
+    "configuredModelId": "deepseek-flash",
+    "profiles": [
+      "local",
+      "deepseek"
+    ],
+    "tokenEstimateObservation": {
+      "schemaVersion": "token-estimate-comparison-v1",
+      "automaticPolicyChange": false
+    },
+    "toolInputEvidence": {
+      "schemaVersion": "tool-input-evidence-v1",
+      "scope": "SUPPLIED_ARGUMENTS_ONLY",
+      "tools": [
+        "calculateBattleDamage",
+        "checkPokemonBuild",
+        "checkPokemonTeamBuild",
+        "checkTypeEffectiveness",
+        "getTypeChart",
+        "listCurrentTeams",
+        "lookupPokemonLearnset",
+        "lookupPokemonMachine",
+        "lookupPokemonMechanics",
+        "lookupPokemonReference",
+        "lookupPokemonResource",
+        "lookupPokemonTeamReference",
+        "previewTeamChanges",
+        "readCurrentTeam",
+        "searchPokemonGuides"
+      ],
+      "previewPolicy": {
+        "projectionVersion": "bounded-team-preview-input-v1",
+        "requiresConfirmation": true,
+        "fieldLimit": 144
+      }
+    },
+    "damageResultEvidence": {
+      "bridgeSha256": "07ac820d2f12fde7b1528a30dc49baee8a6e2f089271144178f7d3c61e67a914",
+      "schemaVersion": "damage-result-evidence-v1",
+      "conditionSchema": "damage-condition-validation-v1",
+      "implementation": "VerifiedLocalDamageEngine"
+    },
+    "pricingPolicy": {
+      "enabled": false,
+      "version": null,
+      "sha256": null,
+      "scope": null,
+      "kind": "REFERENCE_ESTIMATE_NOT_INVOICE"
+    },
+    "evaluationPolicy": {
+      "active": false,
+      "effectiveTools": [
+        "calculateBattleDamage",
+        "calculateGymDamage",
+        "checkPokemonBuild",
+        "checkPokemonTeamBuild",
+        "checkTypeEffectiveness",
+        "doTerminate",
+        "getTypeChart",
+        "listCurrentTeams",
+        "lookupCompetitiveTeams",
+        "lookupCompetitiveTrends",
+        "lookupPokemonLearnset",
+        "lookupPokemonMachine",
+        "lookupPokemonMechanics",
+        "lookupPokemonReference",
+        "lookupPokemonResource",
+        "lookupPokemonTeamReference",
+        "planGymChallenge",
+        "previewTeamChanges",
+        "readCurrentTeam",
+        "searchPokemonGuides",
+        "searchWeb"
+      ],
+      "mcpProviderAllowed": true,
+      "mode": "OFF",
+      "scope": "NORMAL_APPLICATION",
+      "schemaVersion": "evaluation-tool-policy-v1"
+    },
+    "guideReferencePolicy": {
+      "version": "verified-reference-retention-v1",
+      "scope": "KEEP_ONLY_BOUND_UNAFFECTED_MEMBER_READS_INVALIDATE_SAME_OR_UNKNOWN_TARGET_NOT_COMPLETE_TEAM_EVIDENCE"
+    },
+    "guideOverviewPolicy": {
+      "version": "bounded-reference-overview-ready-v1",
+      "scope": "PROGRAM_VERIFIED_REFERENCE_AND_GENERAL_GUIDE_ONLY_EXCLUDES_CALCULATION_TEAM_AND_WRITES"
+    },
+    "guideRetrievalPolicy": {
+      "subjectSourceVersion": "bounded-species-source-query-v1",
+      "version": "declared-subject-topic-filter-v1",
+      "subjectSourceOrigin": "PROGRAM_SPECIES_SOURCE",
+      "scope": "DECLARED_SUBJECT_AND_TOPIC_FILTER_THEN_SUBJECT_PRIORITY_BM25_NOT_SEMANTIC_REVIEW"
+    },
+    "resourceReferencePolicy": {
+      "answerVersion": "bound-resource-facts-and-paraphrase-v1",
+      "scope": "ARGUMENT_BOUND_PUBLIC_FIELDS_SV_EXCERPT_AND_PROJECT_PARAPHRASE_NOT_COMPLETE_MECHANICS",
+      "schemaVersion": "pokemon-resource-facts-v1"
+    },
+    "overviewResourcePolicy": {
+      "version": "explicit-overview-category-coverage-v1",
+      "maxProgramReads": 2,
+      "scope": "EXPLICIT_QUERY_KINDS_ONE_BUNDLED_MEMBER_CANDIDATE_PER_ABILITY_OR_MOVE_WITH_GAPS_NOT_COMPLETE_MECHANICS",
+      "selectionOrigin": "PROGRAM_OVERVIEW_RESOURCE"
+    },
+    "learnsetReferencePolicy": {
+      "schemaVersion": "pokemon-learnset-facts-v1",
+      "answerVersion": "bound-learnset-reference-v1",
+      "scope": "ARGUMENT_BOUND_MEMBER_MOVE_AND_SV_METHOD_LEVEL_NOT_COMPLETE_OPERATIONS_OR_LEGALITY",
+      "versionGroup": "scarlet-violet",
+      "outputEvidenceSchema": "pokemon-learnset-output-evidence-v1"
+    },
+    "independentMechanicPolicy": {
+      "outputEvidenceSchema": "independent-mechanic-output-evidence-v1",
+      "records": 6,
+      "sourceCommit": "8f9ab4949d0bf64d5a5ac985a298d1313f2b9a29",
+      "answerVersion": "bound-pinned-mechanic-notes-v1",
+      "scope": "PINNED_COMMUNITY_GEN9_TEXT_NOT_OFFICIAL_GAME_OR_LEGALITY",
+      "schemaVersion": "independent-mechanic-facts-v1"
+    },
+    "buildCheckPolicy": {
+      "schemaVersion": "pokemon-build-check-v1",
+      "requestRouteVersion": "explicit-build-request-route-v1",
+      "outputEvidenceSchema": "build-check-output-evidence-v1",
+      "scope": "SUPPLIED_FIELDS_AND_REFERENCE_MEMBERSHIP_NOT_JOINT_LEGALITY",
+      "writesTeams": false,
+      "answerVersion": "bound-build-field-review-v2-learning-notes",
+      "learningNotesVersion": "recorded-learning-level-notes-v1"
+    },
+    "machineReferencePolicy": {
+      "catalogSha256": "sha256:4184a7e709d8acaf03cba79c745f1b8b0ddb6c67ac56c80acea69fc5685b09a2",
+      "schemaVersion": "pokemon-machine-reference-v1",
+      "scope": "MEMBER_MACHINE_RECORD_AND_PINNED_SV_TM_NOT_ACQUISITION_OR_LEGALITY",
+      "records": 4
+    },
+    "machineCraftingGuidePolicy": {
+      "scope": "GENERAL_SV_CRAFTING_NOT_SPECIFIC_RECIPE_UNLOCK_OR_LEGALITY",
+      "schemaVersion": "pokemon-machine-crafting-guide-v1",
+      "sha256": "sha256:026c640972743c5a2187702c18107a8911c963f016cbe32cc8a0366a0403035c"
+    },
+    "machineRecipePolicy": {
+      "schemaVersion": "pokemon-machine-recipe-reference-v1",
+      "records": 4,
+      "scope": "COMMUNITY_RECIPE_REFERENCE_NOT_UNLOCK_ACQUISITION_OR_LEGALITY",
+      "catalogSha256": "sha256:4852256e2f3cb25a9ae5545051dd346e5305ee2f0f7431efe3ed5809b86ef2df",
+      "sourceDisagreements": 1
+    },
+    "machineAcquisitionPolicy": {
+      "schemaVersion": "pokemon-machine-acquisition-reference-v1",
+      "records": 4,
+      "scope": "COMMON_COMMUNITY_REGIONS_NOT_EXACT_LOCATION_UNLOCK_OR_LEGALITY",
+      "catalogSha256": "sha256:e8cee2cd0fc2e36a1a794329d826f2fefbab988d59053d9b2ca12c850031bd3e",
+      "unlockStatus": "NOT_CROSS_CHECKED"
+    },
+    "teamBuildCheckPolicy": {
+      "scope": "SUPPLIED_TEAM_MEMBER_CHECKS_NOT_JOINT_OR_TEAM_LEGALITY",
+      "answerVersion": "bound-team-build-answer-v3",
+      "schemaVersion": "pokemon-team-build-check-v1",
+      "jointStatus": "NOT_VERIFIED",
+      "requestRouteVersion": "explicit-team-build-route-v1",
+      "outputEvidenceSchema": "team-build-output-evidence-v1",
+      "writesTeams": false,
+      "maxMembers": 6,
+      "requestRouteOrigin": "PROGRAM_SUPPLIED_TEAM_REQUEST"
+    },
+    "projectGuidePolicy": {
+      "version": "project-source-request-v2",
+      "sourcePresentation": "TOP_DOCUMENT_FULL_TEXT_MAX_2000_CODEPOINTS",
+      "scope": "BOUNDED_EXPLICIT_PROJECT_EXPLANATIONS_ONLY",
+      "selectionOrigin": "PROGRAM_PROJECT_SOURCE"
+    },
+    "generationDefaults": {
+      "temperature": null,
+      "topP": null,
+      "maxTokens": null,
+      "scope": "CONFIGURED_DEFAULTS_NOT_PROVIDER_REQUEST_ATTESTATION"
+    }
+  }
+}

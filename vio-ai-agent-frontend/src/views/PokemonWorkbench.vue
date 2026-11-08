@@ -16,11 +16,14 @@
 
     <nav class="resource-tabs" aria-label="资料导航">
       <button v-for="tab in resourceTabs.slice(0, 4)" :key="tab.id" type="button" :aria-label="tab.id === 'teams' ? '队伍配置' : tab.label" :aria-pressed="section === tab.id" @click="showSection(tab.id)">{{ tab.label }}</button>
+      <button type="button" :aria-pressed="section === 'gym'" @click="showSection('gym')">道馆挑战</button>
       <details ref="resourceMenu" class="more-resources"><summary>更多<UiIcon name="chevron" /></summary><div><button v-for="tab in resourceTabs.slice(4)" :key="tab.id" type="button" :aria-pressed="section === tab.id" @click="showSection(tab.id)">{{ tab.label }}</button></div></details>
     </nav>
     <p class="resource-status" :class="{ 'positive-notice': /^(已将|已收藏|队伍分析问题已)/.test(resourceNotice) }" role="status">{{ resourceNotice }}</p>
-    <input ref="teamImportInput" type="file" accept=".json,application/json" hidden aria-label="导入队伍文件" @change="importTeamFile" />
+    <input ref="teamImportInput" type="file" accept=".json,.txt,.csv,.docx,.pdf,application/json,text/plain,text/csv" hidden aria-label="导入队伍文件" @change="importTeamFile" />
+    <TeamImportDialog v-model:open="teamPasteOpen" :busy="teamImporting" :error="teamTransferError ? teamTransferNotice : ''" @file="teamImportInput?.click()" @text="importPastedTeam" />
     <main class="workbench-content">
+      <GymChallengePanel v-if="gymVisited" v-show="section === 'gym'" :get-roster="currentGymRoster" :game-release-id="context.gameReleaseId" :roster-identity="JSON.stringify([teamForm,memberBuilds])" @configure="showSection('teams')" @ask="emit('ask',$event)" />
       <p class="trust-banner" aria-label="数据可信边界">本地参考资料，不代表排位合法性。<span>资料来源与版本可展开查看。</span></p>
       <TeamRoster v-if="workspaceMode === 'team'" v-model:name="teamForm.name" :cards="rosterCards" :selected-member="selectedMember" :saved="teamSaved" :saving="teamsState.status === 'saving'" :editing="isEditingTeam" :importing="teamImporting" :transfer-notice="teamTransferNotice" :transfer-error="teamTransferError" form-id="team-editor-form" @export="exportTeamFile" @import="chooseTeamFile" @select="selectedMember = $event" @add="showSection('facts')" @reset="isEditingTeam ? cancelEditTeam() : resetTeamForm()" />
 
@@ -252,7 +255,7 @@
               <summary>成员配置 <small>第 {{ index + 1 }} 位</small></summary>
               <div class="member-profile-grid">
                 <div class="member-identity"><PokemonPortrait :form-id="member" :name="memberName(index)" /><strong>{{ memberName(index) }}</strong><small v-if="memberFact(index)?.type1" class="type-tag" :data-type="memberFact(index).type1">{{ memberFact(index).type1 }}</small><button type="button" class="danger-link" :disabled="teamsState.status === 'saving'" @click="removeDraftMember(index)">移除成员</button></div>
-                <div class="member-profile-fields"><label>等级<input v-model.number="memberBuilds[index].level" :aria-label="`第 ${index + 1} 位等级`" type="number" min="1" max="100" /></label><label>性格<select v-model="memberBuilds[index].nature" :aria-label="`第 ${index + 1} 位性格`"><option v-for="nature in natureOptions" :key="nature" :value="nature">{{ natureLabels[nature] || nature }}</option></select></label><label>特性<BuildOptionSelect v-model="memberBuilds[index].ability" kind="ability" :pokemon-id="member" :data-release-id="teamForm.dataReleaseId" :game-release-id="context.gameReleaseId" :active="selectedMember === index" :disabled="teamsState.status === 'saving'" :id="`member-${index}-ability`" :label="`第 ${index + 1} 位特性`" placeholder="搜索或选择特性" /></label><label>道具<BuildOptionSelect v-model="memberBuilds[index].item" kind="item" :pokemon-id="member" :data-release-id="teamForm.dataReleaseId" :game-release-id="context.gameReleaseId" :active="selectedMember === index" :disabled="teamsState.status === 'saving'" :id="`member-${index}-item`" :label="`第 ${index + 1} 位道具`" placeholder="不携带 / 搜索道具" /></label></div>
+                <div class="member-profile-fields"><label>等级<input v-model.number="memberBuilds[index].level" :aria-label="`第 ${index + 1} 位等级`" type="number" min="1" max="100" /></label><label>性格<select v-model="memberBuilds[index].nature" :aria-label="`第 ${index + 1} 位性格`"><option v-for="nature in natureOptions" :key="nature" :value="nature">{{ natureLabels[nature] || nature }}</option></select></label><label>特性<BuildOptionSelect v-model="memberBuilds[index].ability" kind="ability" :pokemon-id="member" :data-release-id="teamForm.dataReleaseId" :game-release-id="context.gameReleaseId" :active="selectedMember === index" :disabled="teamsState.status === 'saving'" :id="`member-${index}-ability`" :label="`第 ${index + 1} 位特性`" placeholder="搜索或选择特性" /></label><label>道具<BuildOptionSelect v-model="memberBuilds[index].item" kind="item" :pokemon-id="member" :data-release-id="teamForm.dataReleaseId" :game-release-id="context.gameReleaseId" :active="selectedMember === index" :disabled="teamsState.status === 'saving'" :id="`member-${index}-item`" :label="`第 ${index + 1} 位道具`" placeholder="不携带 / 搜索道具" /></label><label>太晶属性<select title="保存计划属性；伤害计算默认未太晶化" v-model="memberBuilds[index].teraType" :aria-label="`第 ${index + 1} 位太晶属性`"><option :value="null">未指定</option><option v-for="(label,key) in TERA_LABELS" :key="key" :value="key">{{ label }}</option></select></label></div>
               </div>
               <h3 class="moves-heading">招式配置</h3>
               <div class="move-slots"><label v-for="slot in 4" :key="slot"><UiIcon name="book" /><span class="sr-only">第 {{ index + 1 }} 位第 {{ slot }} 个招式</span><BuildOptionSelect :model-value="moveAt(index, slot - 1)" kind="move" :pokemon-id="member" :data-release-id="teamForm.dataReleaseId" :game-release-id="context.gameReleaseId" :active="selectedMember === index" :disabled="teamsState.status === 'saving'" :id="`member-${index}-move-${slot}`" :label="`第 ${index + 1} 位第 ${slot} 个招式`" :excluded-slugs="Array.from({length:4}, (_, other) => other === slot - 1 ? '' : moveAt(index, other)).filter(Boolean)" placeholder="搜索或选择招式" @update:model-value="setMove(index, slot - 1, $event)" /></label></div>
@@ -284,8 +287,10 @@
                   <button class="danger-link" type="button" @click="removeTeam(team)">删除</button>
                 </div>
               </div>
-              <ol class="member-list">
-                <li v-for="member in (team.members || [])" :key="member.id || `${member.formId}-${member.slot}`">槽位 {{ member.slot }} · formId {{ member.formId }}<span v-if="member.build"> · {{ member.build.moves?.join(' / ') || '未填招式' }} · {{ member.build.ability || '未填特性' }} · {{ member.build.item || '无道具' }} · {{ member.build.nature }} · Lv.{{ member.build.level }}</span></li>
+              <ol class="saved-team-icons" :aria-label="`${team.name || '未命名队伍'}的宝可梦成员`">
+                <li v-for="member in [...(team.members || [])].sort((a,b) => a.slot - b.slot)" :key="member.id || `${member.formId}-${member.slot}`" :title="`${knownFacts[`${team.dataReleaseId}:${member.formId}`]?.speciesNameZh || `第 ${member.slot} 位成员`}${member.build?.level ? ` · Lv.${member.build.level}` : ''}`">
+                  <PokemonPortrait :form-id="member.formId" :name="knownFacts[`${team.dataReleaseId}:${member.formId}`]?.speciesNameZh || `第 ${member.slot} 位成员`" />
+                </li>
               </ol>
             </article>
           </div>
@@ -452,17 +457,21 @@ import {
   fetchRunSnapshot,
   calculateEngineDamage,
   searchPokemonGuides,
+  fetchPokemonReference, fetchPokemonBuildOptions, extractTeamDocument,
   fetchPokemonTeams
 } from '@/api'
 import { BATTLE_FORMAT_OPTIONS, resolveBattleFormat, resolveGameRelease } from '@/api/version-registry'
 import PokemonPortrait from '@/components/PokemonPortrait.vue'
 import UiIcon from '@/components/UiIcon.vue'
 import TeamRoster from '@/components/TeamRoster.vue'
+import GymChallengePanel from '@/components/GymChallengePanel.vue'
+import TeamImportDialog from '@/components/TeamImportDialog.vue'
+import {parseTeamDocument, englishResource, pokemonLookupName} from '@/api/team-document'
 import BuildOptionSelect from '@/components/BuildOptionSelect.vue'
 import { NATURE_LABELS } from '@/api/pokemon-natures'
 import BuildCheckPanel from '@/components/BuildCheckPanel.vue'
 import TeamBuildCheckPanel from '@/components/TeamBuildCheckPanel.vue'
-import { createTeamExport, parseTeamImport, teamFileName, MAX_TEAM_FILE_BYTES } from '@/api/team-transfer'
+import { createTeamExport, teamFileName, MAX_TEAM_FILE_BYTES, TERA_LABELS } from '@/api/team-transfer'
 import {buildCheckDraft} from '@/api/build-check'
 import {teamBuildQuestion} from '@/api/team-build-check'
 
@@ -477,6 +486,7 @@ const emit = defineEmits(['ask', 'continue-conversation', 'history-change', 'mod
 const resourceTabs = [{ id: 'facts', label: '图鉴' }, { id: 'teams', label: '队伍' }, { id: 'calculations', label: '计算' }, { id: 'guides', label: '攻略' },
   { id: 'history', label: '历史与收藏' }, { id: 'favorites', label: '收藏' }, { id: 'activities', label: '活动' }, { id: 'all', label: '全部' }]
 const section = ref(props.embedded ? 'facts' : 'all')
+const gymVisited = ref(false)
 const factSearchInput = ref(null)
 const workbenchElement = ref(null)
 const resourceMenu = ref(null)
@@ -488,6 +498,7 @@ const factStatOptions = [
   {key:'spDefense',label:'特防',color:'#6b96d5'}, {key:'speed',label:'速度',color:'#a78bcb'}
 ]
 function showSection(value) {
+  if(value === 'gym')gymVisited.value = true
   if (resourceMenu.value) resourceMenu.value.open = false
   section.value = value
   emit('section-change', value)
@@ -678,7 +689,7 @@ const teamForm = reactive({
 })
 const natureOptions = ['hardy','lonely','brave','adamant','naughty','bold','docile','relaxed','impish','lax','timid','hasty','serious','jolly','naive','modest','mild','quiet','bashful','rash','calm','gentle','sassy','careful','quirky']
 const statOptions = [{key:'hp',label:'HP'},{key:'atk',label:'攻击'},{key:'def',label:'防御'},{key:'spa',label:'特攻'},{key:'spd',label:'特防'},{key:'spe',label:'速度'}]
-function defaultBuild() { return { movesText:'',ability:'',item:'',nature:'hardy',level:50,
+function defaultBuild() { return { movesText:'',ability:'',item:'',nature:'hardy',level:50,teraType:null,
   evs:Object.fromEntries(statOptions.map(stat=>[stat.key,0])),ivs:Object.fromEntries(statOptions.map(stat=>[stat.key,31])) } }
 const memberBuilds = reactive(Array.from({length:6}, defaultBuild))
 const rosterCards = computed(() => teamForm.members.map((id,index)=>({id,name:memberName(index),level:memberBuilds[index].level})))
@@ -742,6 +753,7 @@ async function findGuides(){
   try{const result=await searchPokemonGuides(guideQuery.value,context.gameReleaseId,{signal:controller.signal});if(requestWasSuperseded(controller))return;guideHits.value=Array.isArray(result)?result:[];guideState.value=guideHits.value.length?'ready':'empty'}catch(error){if(!isAbortError(error)){guideError.value=error.message;guideState.value='error'}}finally{endRequest(controller)}
 }
 function askAboutGuide(hit){if(!props.busy)emit('ask',{prompt:guideQuestion(guideQuery.value,hit),context:{gameReleaseId:hit.document.gameReleaseId}})}
+function currentGymRoster() {return teamForm.members.flatMap((id,index)=>id?[{formId:Number(id),build:serializeBuild(index)}]:[])}
 function serializeBuild(index) {
   const value = memberBuilds[index]
   const moves = value.movesText.split(/[,，]/).map(move=>move.trim()).filter(Boolean)
@@ -750,7 +762,7 @@ function serializeBuild(index) {
     if(!Number.isInteger(value[key][stat.key]) || value[key][stat.key]<0 || value[key][stat.key]>max) throw new Error('EV 或 IV 超出范围')
   }
   if(Object.values(value.evs).reduce((sum,n)=>sum+n,0)>510) throw new Error('努力值总和不能超过 510')
-  return {moves,ability:value.ability.trim(),item:value.item.trim(),nature:value.nature,level:value.level,evs:{...value.evs},ivs:{...value.ivs}}
+  return {moves,ability:value.ability.trim(),item:value.item.trim(),nature:value.nature,level:value.level,teraType:value.teraType || null,evs:{...value.evs},ivs:{...value.ivs}}
 }
 function buildCheckInput(index) {
   const value=memberBuilds[index]
@@ -1060,6 +1072,8 @@ async function loadTeams() {
 }
 
 const teamImportInput = ref(null)
+const teamPasteOpen = ref(false)
+function importPastedTeam(text) { return importTeamFile({target:{files:[{name:'粘贴队伍.txt',size:new TextEncoder().encode(text).length,text:async()=>text}],value:''}}) }
 const teamImporting = ref(false)
 const teamTransferNotice = ref('')
 const teamTransferError = ref(false)
@@ -1089,7 +1103,7 @@ function exportTeamFile() {
   }
 }
 function chooseTeamFile() {
-  if (teamsState.status !== 'saving' && !teamImporting.value) teamImportInput.value?.click()
+  if (teamsState.status !== 'saving' && !teamImporting.value) teamPasteOpen.value = true
 }
 async function importTeamFile(event) {
   const file = event.target.files?.[0]
@@ -1098,12 +1112,29 @@ async function importTeamFile(event) {
   const snapshot = JSON.stringify([teamForm, memberBuilds, editingTeamId.value, context])
   teamImporting.value = true
   try {
-    if (!/\.json$/i.test(file.name)) throw new Error('请选择 JSON 队伍文件')
+    if (!/\.(json|txt|csv|docx|pdf)$/i.test(file.name)) throw new Error('请选择 JSON、TXT、CSV、DOCX 或文本 PDF；扫描件暂不支持')
     if (file.size > MAX_TEAM_FILE_BYTES) throw new Error('队伍文件不能超过 1 MB')
-    const team = parseTeamImport(await file.text(), context.gameReleaseId)
+    const contents = /\.(docx|pdf)$/i.test(file.name) ? (await extractTeamDocument(file)).text : await file.text()
+    const parsed = await parseTeamDocument(contents, {
+      gameReleaseId:context.gameReleaseId,rulesetId:context.rulesetVersionId,dataReleaseId:teamForm.dataReleaseId,
+      name:file.name.replace(/\.[^.]+$/,'') || '导入队伍',
+      resolvePokemon:async query => {
+        const detail=await fetchPokemonReference(pokemonLookupName(query),{dataReleaseId:teamForm.dataReleaseId})
+        if(!Number.isSafeInteger(detail?.fact?.formId))throw new Error(`无法解析成员：${query}`)
+        return detail.fact.formId
+      },
+      resolveResource:async (kind,value,pokemonId) => {
+        const english=englishResource(value);if(english)return english
+        const page=await fetchPokemonBuildOptions({kind,pokemonId,dataReleaseId:teamForm.dataReleaseId,gameReleaseId:context.gameReleaseId,query:value})
+        const matches=page.items.filter(option=>option.nameZh===value||option.slug===value)
+        if(matches.length!==1)throw new Error(`无法唯一匹配 ${value}，请改用英文标识`)
+        return matches[0].slug
+      }
+    })
+    const team=parsed.team
     if (disposed) return
     if (snapshot !== JSON.stringify([teamForm, memberBuilds, editingTeamId.value, context])) throw new Error('读取期间队伍或版本已变更，请重新导入')
-    const notices = []
+    const notices = [...parsed.warnings]
     if (!teamSaved.value && (teamForm.name || teamForm.members.some(Boolean))) notices.push('当前未保存的草稿将被替换。')
     if (team.rulesetId !== context.rulesetVersionId || team.dataReleaseId !== context.dataReleaseId) notices.push('文件与当前规则或数据版本不同，将保留文件中的队伍版本。')
     if (notices.length && !window.confirm(`${notices.join('\n')}\n确认导入？已有的已保存队伍不会被覆盖。`)) return
@@ -1118,6 +1149,7 @@ async function importTeamFile(event) {
       memberBuilds[index] = member ? { ...defaultBuild(), ...member.build, movesText: member.build.moves.join(', ') } : defaultBuild()
       return member ? String(member.formId) : ''
     })
+    teamPasteOpen.value = false
     selectedMember.value = team.members[0].slot - 1
     teamFormError.value = ''
     hydrateTeamMembers(team)

@@ -1,0 +1,86 @@
+# Single-server demonstration overlay. Loaded as an external file, not a prod profile.
+# Replace __VIO_DOMAIN__ before starting. No credentials belong in this file.
+server:
+  address: 127.0.0.1
+  port: 8123
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      tracking-modes: cookie
+      cookie:
+        http-only: true
+        secure: true
+        same-site: lax
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+vio:
+  http:
+    cors:
+      allowed-origins:
+        - https://__VIO_DOMAIN__
+  security:
+    enabled: true
+    api-keys: {}
+    oidc:
+      enabled: false
+      required: false
+    trusted-proxy-cidrs:
+      - 127.0.0.1/32
+      - ::1/128
+  legacy:
+    ai:
+      enabled: false
+    manus:
+      enabled: false
+  tools:
+    high-risk:
+      enabled: false
+  local-accounts:
+    enabled: true
+    path: /var/lib/vio-agent/accounts.sqlite
+  local-history:
+    enabled: true
+    path: /var/lib/vio-agent/history.sqlite
+  local-teams:
+    path: /var/lib/vio-agent/teams.sqlite
+  local-favorites:
+    path: /var/lib/vio-agent/favorites.sqlite
+  pokemon:
+    reference:
+      enabled: true
+      path: /var/lib/vio-agent/pokeapi
+  local-guides:
+    enabled: true
+    path: /var/lib/vio-agent/guides.sqlite
+  damage-engine:
+    enabled: true
+    node: /usr/local/bin/node
+    script: /opt/vio-agent/current/tools/pokemon-engine/calculate-v2.cjs
+  run:
+    durable-resume: false
+    admission:
+      thread-count: 2
+      queue-capacity: 4
+      max-per-principal: 1
+      max-per-tenant: 4
+  orchestration:
+    max-concurrent-agents: 2
+
+logging:
+  level:
+    root: INFO
+    com.vio.vioaiagent: INFO
+    com.vio.vioaiagent.agent: WARN
+    com.vio.vioaiagent.advisor: WARN
+    org.springframework.ai: WARN

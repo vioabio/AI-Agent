@@ -77,7 +77,7 @@ public class TeamWorkflowService {
             var member=members.get(index); var old=member.build();
             var build=new TeamBuild(change.moves()==null?old.moves():change.moves(),pick(change.ability(),old.ability()),
                     pick(change.item(),old.item()),pick(change.nature(),old.nature()),change.level()==null?old.level():change.level(),
-                    merge(change.evs(),old.evs()),merge(change.ivs(),old.ivs()));
+                    merge(change.evs(),old.evs()),merge(change.ivs(),old.ivs()),old.teraType());
             members.set(index,new TeamMember(member.id(),member.formId(),member.slot(),build));
         }
         SavedTeam before=read.snapshot().team();

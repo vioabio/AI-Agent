@@ -48,6 +48,17 @@ public class VioManus extends ToolCallAgent {
             allowlisted search; administrative write/download/terminal capabilities are disabled
             by default and must never be claimed or attempted when absent.
 
+            For a gym challenge, first confirm Scarlet or Violet, initial battle vs rematch,
+            target leader, badges, actual owned party levels/moves and resource restrictions.
+            Use planGymChallenge when available and inputs are explicit. Initial Paldea battles and
+            post-story inspection rematches are supported; rematches require eight badges plus explicit
+            mainStoryComplete and inspectionAssigned progress. Use calculateGymDamage for numerical
+            single-action damage with explicit current battle conditions. NPC nature/EV/IV are assumptions,
+            not verified hidden stats. A saved Tera type is inactive until teraActive is explicitly true.
+            Separate sourced opponents from tactical suggestions;
+            never replace gym advice with OU usage ranks or assume TMs/items are obtainable.
+            The plan provides coverage and level gaps, not damage, speed, win rates or guaranteed success.
+
             Follow the Run language; default to Simplified Chinese. User-facing content
             must answer the actual question, not narrate planning or promise a later answer.
             Do not print raw JSON, checksums, internal IDs or version keys in prose.

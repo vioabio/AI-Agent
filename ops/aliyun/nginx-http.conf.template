@@ -1,0 +1,51 @@
+# Installed under /etc/nginx/sites-available/; included in nginx's http context.
+# Certbot adds HTTPS after DNS and HTTP have been verified.
+limit_req_zone $binary_remote_addr zone=vio_agent_api:10m rate=10r/s;
+
+server {
+    listen 80;
+    server_name __VIO_DOMAIN__;
+    root /opt/vio-agent/current/frontend;
+    index index.html;
+    client_max_body_size 1m;
+
+    # After creating your demonstration account, uncomment this exact location
+    # to stop new public registrations, then run nginx -t and reload nginx.
+    # location = /api/auth/local/register { return 403; }
+
+    location ^~ /api/ {
+        limit_req zone=vio_agent_api burst=40 nodelay;
+        limit_req_status 429;
+        proxy_pass http://127.0.0.1:8123;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Connection "";
+        proxy_set_header Forwarded "";
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-API-Key "";
+        proxy_set_header X-User-Id "";
+        proxy_cookie_flags JSESSIONID secure httponly samesite=lax;
+        # The browser must read the CSRF cookie to send X-CSRF-TOKEN.
+        proxy_cookie_flags CSRF-TOKEN secure samesite=lax;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 600s;
+        proxy_send_timeout 30s;
+        proxy_intercept_errors off;
+    }
+
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+    location /assets/ {
+        try_files $uri =404;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

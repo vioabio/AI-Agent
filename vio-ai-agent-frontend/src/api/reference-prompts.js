@@ -29,7 +29,7 @@ export function teamMemberDescription(member, fact = {}) {
   return `${fact.speciesNameZh || fact.slug || '未命名成员'}：`
     + `属性 ${[fact.type1, fact.type2].filter(Boolean).join(' / ') || '未返回'}；`
     + `种族值 ${statKeys.flatMap((key, i) => Number.isFinite(fact[key]) ? [`${statNames[i]} ${fact[key]}`] : []).join('，') || '未返回'}；`
-    + `等级 ${build.level ?? '未填写'}；性格 ${build.nature || '未填写'}；`
+    + `等级 ${build.level ?? '未填写'}；性格 ${build.nature || '未填写'}；计划太晶属性 ${build.teraType || '未指定'}（不表示已太晶化）；`
     + `特性 ${build.ability || '未填写'}；道具 ${build.item || '未填写'}；`
     + `招式 ${(build.moves || []).join('、') || '未填写'}；`
     + `努力值 ${stats(build.evs)}；个体值 ${stats(build.ivs)}。`

@@ -5,9 +5,14 @@ import java.util.Set;
 
 /** A user's battle assumptions; storing a set does not assert that it is legal in a competition. */
 public record TeamBuild(List<String> moves, String ability, String item, String nature,
-                        Integer level, Stats evs, Stats ivs) {
+                        Integer level, Stats evs, Stats ivs, @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) String teraType) {
+    public TeamBuild(List<String> moves,String ability,String item,String nature,Integer level,Stats evs,Stats ivs) {
+        this(moves,ability,item,nature,level,evs,ivs,null);
+    }
     private static final Set<String> NATURES = Set.of("hardy","lonely","brave","adamant","naughty","bold","docile","relaxed","impish","lax","timid","hasty","serious","jolly","naive","modest","mild","quiet","bashful","rash","calm","gentle","sassy","careful","quirky");
     public TeamBuild {
+        teraType=teraType==null||teraType.isBlank()?null:teraType.strip().toLowerCase(java.util.Locale.ROOT);
+        if(teraType!=null&&!Set.of("normal","fire","water","electric","grass","ice","fighting","poison","ground","flying","psychic","bug","rock","ghost","dragon","dark","steel","fairy","stellar").contains(teraType)) throw new IllegalArgumentException("未知太晶属性");
         moves = moves == null ? List.of() : moves.stream().map(TeamBuild::name).toList();
         if (moves.size() > 4 || moves.stream().map(v->v.toLowerCase(java.util.Locale.ROOT).replace('-', ' ')).distinct().count()!=moves.size()) throw new IllegalArgumentException("招式最多四个且不能重复");
         ability = optionalName(ability); item = optionalName(item);

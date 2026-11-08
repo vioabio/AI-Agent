@@ -22,6 +22,23 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class ToolCallAgentAnswerTest {
+    @Test void gymInformationQueriesPublishDifferentSourcedAnswersWithoutAskingForPlayerStats() {
+        ChatModel model=mock(ChatModel.class);
+        var overview=new ToolCallAgent(new ToolCallback[0]);overview.setSystemPrompt("Only verified facts.");overview.setChatClient(ChatClient.builder(model).build());var chunks=new java.util.ArrayList<String>();overview.setAnswerDeltaSink(chunks::add);
+        overview.run("目标馆主有哪些啊");assertNotNull(overview.getFinalAnswer());assertTrue(overview.getFinalAnswer().contains("阿枫"));assertEquals(String.join("",chunks),overview.getFinalAnswer());
+        var detail=new ToolCallAgent(new ToolCallback[0]);detail.setSystemPrompt("Only verified facts.");detail.setChatClient(ChatClient.builder(model).build());detail.run("查询奇树初战队伍与招式");assertTrue(detail.getFinalAnswer().contains("充电光束"));assertNotEquals(overview.getFinalAnswer(),detail.getFinalAnswer());verify(model,never()).call(any(Prompt.class));verify(model,never()).stream(any(Prompt.class));
+    }
+    @Test void gymToolCompletionPublishesFinalAnswerBeforeEndingTheRun() throws Exception {
+        var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
+        var snapshot=mapper.readTree(java.nio.file.Files.readString(java.nio.file.Path.of("src/main/resources/pokemon-gym/sv-initial-v2.json")));
+        var evidence=mapper.createObjectNode().put("sourceVersion","sv-initial-v2");evidence.set("gym",snapshot.path("gyms").get(2));evidence.putArray("plan").add("梦妖魔电太晶后仍有飘浮，地面无效");evidence.putArray("missing").add("NPC隐藏数值未知");evidence.putArray("resourceChecks");
+        ChatModel model=mock(ChatModel.class);var call=new AssistantMessage("私有规划",Map.of(),List.of(new AssistantMessage.ToolCall("gym-1","function","planGymChallenge","{}")));
+        when(model.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(new Generation(call))));
+        var manager=mock(ToolCallingManager.class);when(manager.executeToolCalls(any(),any())).thenReturn(new DefaultToolExecutionResult(List.of(call,new ToolResponseMessage(List.of(new ToolResponseMessage.ToolResponse("gym-1","planGymChallenge",evidence.toString())))),false));
+        var agent=new ToolCallAgent(new ToolCallback[0]);agent.setSystemPrompt("Only verified facts.");agent.setChatClient(ChatClient.builder(model).build());agent.setToolCallingManager(manager);
+        var chunks=new java.util.ArrayList<String>();agent.setAnswerDeltaSink(chunks::add);agent.run("紫，奇树初战，烈咬陆鲨Lv24地震");
+        assertNotNull(agent.getFinalAnswer());assertEquals(String.join("",chunks),agent.getFinalAnswer());assertTrue(agent.getFinalAnswer().contains("梦妖魔"));assertFalse(agent.getFinalAnswer().contains("私有规划"));verify(model,times(1)).call(any(Prompt.class));
+    }
     @Test void upstreamFailurePublishesARecoverableMessageInsteadOfModelInventedDamage() {
         ChatModel model=mock(ChatModel.class);var call=new AssistantMessage("内部计划",Map.of(),List.of(new AssistantMessage.ToolCall("damage","function","calculateBattleDamage","{}")));
         when(model.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(new Generation(call))),new ChatResponse(List.of(new Generation(new AssistantMessage("猜测造成999伤害")))));

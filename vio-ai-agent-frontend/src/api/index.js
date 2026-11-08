@@ -8,6 +8,19 @@
 const API_BASE_URL = '/api'
 
 const API_KEY_HEADER = 'X-API-Key'
+export async function fetchGymChallenges({signal,phase='initial'}={}) {
+  return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/gym-challenges?phase=${encodeURIComponent(phase)}`,{credentials:'include',headers:requestHeaders(),signal}),'读取馆主资料失败')
+}
+export async function fetchGymResources({signal}={}) { return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/gym-challenges/resources`,{credentials:'include',headers:requestHeaders(),signal}),'读取资源条件失败') }
+export async function calculateGymDamage(payload,{signal}={}) {return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/gym-challenges/damage`,{method:'POST',credentials:'include',headers:requestHeaders({'Content-Type':'application/json'}),body:JSON.stringify(payload),signal}),'道馆伤害计算失败')}
+export async function analyzeGymChallenge(payload,{signal}={}) {
+  return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/gym-challenges/analyze`,{method:'POST',credentials:'include',headers:requestHeaders({'Content-Type':'application/json'}),body:JSON.stringify(payload),signal}),'道馆分析失败')
+}
+
+export async function extractTeamDocument(file) {
+  const body=new FormData();body.append('file',file)
+  return readJson(await authenticatedFetch(`${API_BASE_URL}/pokemon/reference/team-document`,{method:'POST',credentials:'include',headers:requestHeaders(),body}), '提取队伍文档失败')
+}
 
 /**
  * 仅在用户显式调用 setApiKey 时保留本次页面生命周期内的临时令牌。
