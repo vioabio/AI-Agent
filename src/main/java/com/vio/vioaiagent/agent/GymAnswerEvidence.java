@@ -14,6 +14,7 @@ final class GymAnswerEvidence {
     }
     boolean complete(){return report!=null;}
     boolean attempted(){return attempted;}
+    String adviceOnly(){String full=answer();int start=full.indexOf("### 当前配置的建议");return start<0?full:full.substring(start);}
     String answer(){
         if(!complete())return "本次尚未取得有效道馆分析，暂不提供馆主阵容或具体打法。请在道馆挑战面板选择阶段、目标馆主和真实队伍，并确认进度后重试；失败时不会把模型记忆当作已核实资料。";
         var gym=report.path("gym");var text=new StringBuilder("### 馆主资料 · ").append(safe(gym.path("name").asText())).append(gym.path("phase").asText().equals("rematch")?"（视察重赛）":"（初战）").append("\n")

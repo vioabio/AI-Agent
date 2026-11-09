@@ -15,6 +15,7 @@ class GymCatalogAnswerTest {
  }
  @Test void personalizedPlanningAndDamageContinueToUseValidatedPlayerInputs(){
   for(String q:new String[]{"帮我配置队伍打奇树","帮我配个队伍挑战阿枫","推荐一支队伍打阿枫","奇树初战怎么打","请计算阿枫队伍对我的伤害","检查奇树TM048的获取条件"})assertTrue(GymCatalogAnswer.reply(q,null).isEmpty(),q);
+  assertTrue(GymCatalogAnswer.reply("你看下我当前的test1队伍能否应对这个馆主，该如何配置出招呢",null).isEmpty());
   assertTrue(GymCatalogAnswer.reply("查询剑盾的馆主队伍",null).isEmpty());assertTrue(GymCatalogAnswer.reply("目标馆主有哪些", "pokemon-sword-shield").isEmpty());
  }
  @Test void initialAndRematchCanBeComparedWithoutMixingTheirRosters(){var answer=GymCatalogAnswer.reply("查看阿枫初战和重赛队伍",null).orElseThrow();assertTrue(answer.contains("熊宝宝"));assertTrue(answer.contains("圈圈熊"));assertEquals(2,answer.split("### 朱／紫馆主资料",-1).length-1);}

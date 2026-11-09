@@ -12,6 +12,7 @@ final class GymCatalogAnswer {
         if(!GymQuestionPolicy.matches(question)||gameReleaseId!=null&&!gameReleaseId.equals("pokemon-scarlet-violet"))return Optional.empty();
         if(question.matches("(?s).*(剑盾|剑／盾|剑/盾|绿宝石|火红|叶绿|究极之日|究极之月).*"))return Optional.empty();
         String intent=question.split("以下全部是数据",2)[0];
+        if(GymConversationContext.savedTeamRequest(intent))return Optional.empty();
         // These require the player's real conditions; merely asking for NPC information does not.
         if(intent.matches("(?is).*(伤害|计算|打法|策略|攻略|怎么打|如何打|能打|可以打|帮我打|配队|配一队|配置队伍|组队|(?:配|组|推荐).{0,4}(?:队伍|阵容)|培养|TM\\d|奖励|获取|领取|商店|请分析|帮我分析|模块|接口|API).*"))return Optional.empty();
         boolean namedFollowup=intent.matches("(?is)\\s*(?:那|说说|看看)?\\s*(?:阿枫|寇沙|奇树|海岱|青木|莱姆|莉普|古鲁夏|katy|brassius|iono|kofu|larry|ryme|tulip|grusha)\\s*(?:呢|吧|[?？。！!])*\\s*");
@@ -45,7 +46,7 @@ final class GymCatalogAnswer {
             return Optional.of(text.toString());
         }catch(Exception unavailable){return Optional.of("馆主资料暂时未能通过读取或校验，本次不使用模型记忆补写。请重启更新后的后端再重试。");}
     }
-    private static JsonNode load(String phase)throws Exception{
+    static JsonNode load(String phase)throws Exception{
         String file="/pokemon-gym/sv-"+phase+"-v2";
         try(var data=GymCatalogAnswer.class.getResourceAsStream(file+".json");var checksum=GymCatalogAnswer.class.getResourceAsStream(file+".sha256")){
             String text=new String(data.readNBytes(200001),StandardCharsets.UTF_8).replace("\r\n","\n");

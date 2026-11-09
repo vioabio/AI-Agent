@@ -43,6 +43,8 @@ public final class ToolCapabilityCatalog {
                     List.of("trainer", "operator"))),
             Map.entry("planGymChallenge", card("planGymChallenge", LOW, NONE, true, 5_000,
                     List.of("trainer", "operator"))),
+            Map.entry("analyzeSavedTeamForGym", card("analyzeSavedTeamForGym", LOW, NONE, true, 10_000,
+                    List.of("trainer", "operator"))),
             Map.entry("calculateGymDamage", card("calculateGymDamage", LOW, NETWORK, true, 25_000,
                     List.of("trainer", "operator"))),
             Map.entry("lookupCompetitiveTrends", card("lookupCompetitiveTrends", LOW, NETWORK, true, 20_000,

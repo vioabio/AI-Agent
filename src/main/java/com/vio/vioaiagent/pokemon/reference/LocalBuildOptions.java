@@ -104,6 +104,7 @@ public class LocalBuildOptions {
         return catalog.getOrDefault(kind+":"+slug,new Choice(kind,slug,slug,null,null,null,null,null,null,List.of()));
     }
     public Choice lookupMove(String slug) { return choice("move",slug); }
+    public String label(String kind,String value){if(value==null||value.isBlank())return "无";String slug=value.toLowerCase(Locale.ROOT).replace(' ','-');return slug.matches("[a-z0-9][a-z0-9-]{0,79}")?choice(kind,slug).nameZh():value;}
     public record Learning(String method,int level) {}
     public record Choice(String kind,String slug,String nameZh,String typeKey,String damageClass,Integer power,Integer accuracy,String description,Boolean hidden,List<Learning> learning) {}
     public record Page(String kind,String dataReleaseId,String gameReleaseId,Long pokemonId,List<Choice> items,int total,Integer nextOffset,

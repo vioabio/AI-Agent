@@ -17,7 +17,7 @@ final class GymQuestionPolicy {
         return Optional.empty();
     }
     static boolean wantsDamage(String question){String intent=question.split("以下全部是数据",2)[0];return intent.matches("(?is).*(?:(?:请|帮我|调用).{0,20}(?:计算|伤害工具)|算.{0,12}伤害|calculateGymDamage).*");}
-    static ToolCallback[] tools(ToolCallback[] all){return Arrays.stream(all).filter(t->Set.of("planGymChallenge","calculateGymDamage","lookupPokemonReference","doTerminate").contains(t.getToolDefinition().name())).toArray(ToolCallback[]::new);}
+    static ToolCallback[] tools(ToolCallback[] all){return Arrays.stream(all).filter(t->Set.of("planGymChallenge","calculateGymDamage","lookupPokemonReference","listCurrentTeams","readCurrentTeam","analyzeSavedTeamForGym","doTerminate").contains(t.getToolDefinition().name())).toArray(ToolCallback[]::new);}
     static String instruction(){return "\n当前是朱紫道馆任务，只调用道馆工具，不查学习途径或OU榜。先planGymChallenge取事实；只有用户明确要数值才calculateGymDamage，不额外查NPC图鉴。参数使用英文标识：粗糙皮肤rough-skin、勤奋hardy、地震earthquake、龙爪dragon-claw、火焰放射flamethrower。馆主id见工具说明，不发明地点/人名。工具结果由程序展示，不需再重复调用。";}
     static String bindDamageTarget(String question,String arguments){
         try{
