@@ -10,7 +10,7 @@ public final class GymGeneralAdviceRoute {
     public static Optional<String> reply(AgentRunContext context){
         String question=context.run().prompt();
         if(!"pokemon-scarlet-violet".equals(context.run().gameReleaseId())||GymConversationContext.savedTeamRequest(question)||GymQuestionPolicy.wantsDamage(question)
-                ||!question.matches("(?s).*(如何应对|怎么应对|怎么打|应对队伍|应对阵容).*")||question.matches("(?is).*(Lv\\.?\\s*\\d+|\\d+\\s*级|\"level\"\\s*:).*"))return Optional.empty();
+                ||!Set.of(GymTurnPlan.Intent.RECOMMEND_TEAM,GymTurnPlan.Intent.GENERAL_ADVICE).contains(GymTurnPlan.classify(question))||question.matches("(?is).*(Lv\\.?\\s*\\d+|\\d+\\s*级|\"level\"\\s*:).*"))return Optional.empty();
         var target=GymConversationContext.resolve(question,context.history());if(target.isEmpty())return Optional.empty();
         try{
             var selection=target.get();com.fasterxml.jackson.databind.JsonNode gym=null;for(var row:GymCatalogAnswer.load(selection.phase()).path("gyms"))if(row.path("id").asText().equals(selection.gymId()))gym=row;
@@ -24,6 +24,7 @@ public final class GymGeneralAdviceRoute {
             if(gym.path("theme").asText().equals("虫"))text.append("岩石招式克制虫，但岩石属性并不抵抗虫招式（1倍）；不能把进攻克制当成防守抗性。\n");
             if(selection.gymId().equals("iono"))text.append("梦妖魔电太晶后仍有飘浮，不能直接靠地面招式收尾。\n");
             if(selection.gymId().equals("ryme"))text.append("这是双打，群体招式需检查是否波及友方，不能凭空补出第二位首发。\n");
+            if(GymTurnPlan.classify(question)==GymTurnPlan.Intent.RECOMMEND_TEAM)text.append("\n**队伍推荐的缺口：** 目前给出的是属性与角色方向，尚不是完整成员配置。请补充朱或紫、当前徽章与地图进度，以及愿意使用现有成员还是重新捕捉；已有队伍只需告诉我保存名称。没有完整获取条件证据时，不保证候选成员在你的进度中可获得。\n");
             text.append("\n**具体成员与队伍：** 图鉴存在不等于当前进度可获得；当前没有覆盖全地图的捕获解锁数据，所以不把未核验的新成员拼成可执行队伍。你可以告诉我已保存队伍的名称，我会直接读取成员、等级和招式，再给出首发与出招候选，不需要重新手填一遍。\n\n来源：[馆主资料](https://www.serebii.net/scarletviolet/").append(selection.phase().equals("initial")?"gyms":"gymrematches").append(".shtml)及本地属性相性表。");
             return Optional.of(text.toString());
         }catch(Exception unavailable){return Optional.of("已识别你在继续询问上文馆主，但资料读取失败，本次不猜测队伍或属性结论。请稍后重试。");}

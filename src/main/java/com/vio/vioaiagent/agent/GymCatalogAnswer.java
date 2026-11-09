@@ -12,6 +12,7 @@ final class GymCatalogAnswer {
         if(!GymQuestionPolicy.matches(question)||gameReleaseId!=null&&!gameReleaseId.equals("pokemon-scarlet-violet"))return Optional.empty();
         if(question.matches("(?s).*(剑盾|剑／盾|剑/盾|绿宝石|火红|叶绿|究极之日|究极之月).*"))return Optional.empty();
         String intent=question.split("以下全部是数据",2)[0];
+        if(GymTurnPlan.classify(intent)!=GymTurnPlan.Intent.CATALOG)return Optional.empty();
         if(GymConversationContext.savedTeamRequest(intent))return Optional.empty();
         // These require the player's real conditions; merely asking for NPC information does not.
         if(intent.matches("(?is).*(伤害|计算|打法|策略|攻略|怎么打|如何打|能打|可以打|帮我打|配队|配一队|配置队伍|组队|(?:配|组|推荐).{0,4}(?:队伍|阵容)|培养|TM\\d|奖励|获取|领取|商店|请分析|帮我分析|模块|接口|API).*"))return Optional.empty();

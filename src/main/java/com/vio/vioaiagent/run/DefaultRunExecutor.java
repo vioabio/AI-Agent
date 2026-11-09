@@ -129,10 +129,8 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
     private String executeLegacy(AgentRunContext context) {
         AgentRun run = context.run();
         if(!evaluationPolicy.active()){
-            var savedGym=com.vio.vioaiagent.agent.SavedGymQuestionRoute.reply(context,allTools);
-            if(savedGym.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(savedGym.get());return savedGym.get();}
-            var generalGym=com.vio.vioaiagent.agent.GymGeneralAdviceRoute.reply(context);
-            if(generalGym.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(generalGym.get());return generalGym.get();}
+            var gymReply=com.vio.vioaiagent.agent.GymDialogueRouter.reply(context,allTools);
+            if(gymReply.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(gymReply.get());return gymReply.get();}
         }
         if(teamWorkflow!=null && !evaluationPolicy.active()) {
             String confirmed=com.vio.vioaiagent.pokemon.team.TeamChangePresentation.finishIfPending(teamWorkflow,context);
