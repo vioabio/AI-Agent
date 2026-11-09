@@ -99,6 +99,8 @@ vio:
   # ==================== v1.0 灰度开关 ====================
   # 默认全部关闭；启用前必须完成对应里程碑验收并保留回退证据。
   agent:
+    specialists:
+      enabled: ${VIO_AGENT_SPECIALISTS_ENABLED:false}
     guide-research:
       enabled: ${VIO_AGENT_GUIDE_RESEARCH_ENABLED:false}
     v1:

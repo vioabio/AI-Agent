@@ -13,7 +13,7 @@
 | 资料查询 | PokéAPI Java 适配、本地缓存与摘要校验、中英文名称索引、编号查询、回答直达对应图鉴 |
 | 在线环境参考 | 无需额外 Key 读取 Smogon 最新已发布月度使用率；按赛制澄清，保留月份、样本与来源 |
 | 攻略检索 | 项目原创笔记、SQLite/BM25；可选 Embedding 向量缓存与混合检索，保留版本过滤、原文引用和明确降级 |
-| 可选 Agent 协作 | 主 Agent 管理状态与最终回答；只读资料检索 Agent 处理项目资料说明，限制一次模型决策与一次白名单查询，异常回退 |
+| 可选 Agent 协作 | 主 Agent 统一管理状态与最终回答；资料检索、组队规划、伤害核验分别使用独立提示词、工具白名单和私有工作上下文；混合任务顺序交接实际证据，共享请求预算 |
 | 队伍配置 | 招式、特性、道具、性格、等级、EV/IV；缺项与原配置保护 |
 | 伤害计算 | Java 调用本地 `@smogon/calc`，保留实际输入、范围、HP、百分比和假设 |
 | 受控修改 | 读取 → 变更预览 → 用户确认 → 保存回读；并发冲突不覆盖旧数据 |
@@ -29,8 +29,13 @@ flowchart LR
     RUN --> MODEL[模型理解与工具规划]
     MODEL --> GW[工具网关：参数 / 权限 / 超时]
     GW --> DATA[图鉴与本地缓存]
-    RUN -. 可选项目资料任务 .-> RESEARCH[只读资料检索 Agent]
+    RUN -. 可选专用 Agent 分工 .-> RESEARCH[资料检索 Agent]
+    RUN -.-> PLANNER[组队规划 Agent]
+    RUN -.-> DAMAGE[伤害核验 Agent]
     RESEARCH --> GW
+    PLANNER --> GW
+    PLANNER -. 仅实际工具证据 .-> DAMAGE
+    DAMAGE --> GW
     GW --> RAG[SQLite / BM25 / 可选 Embedding]
     GW --> CALC[本地 Smogon 伤害引擎]
     GW --> TEAM[队伍读取与变更预览]
@@ -121,7 +126,9 @@ npm --prefix vio-ai-agent-frontend run dev
 
 ## 数据与配置
 
-可选资料检索协作通过 `VIO_AGENT_GUIDE_RESEARCH_ENABLED=true` 开启并重启后端，默认关闭；当前仅覆盖项目资料说明，不代表所有问答都运行多 Agent。Embedding 另行配置服务、模型、Key 与维度，再使用 `ops/local/build-guide-semantic-index.ps1` 显式构建。两项功能相互独立，详见[开发与配置说明](document/单主Agent结构化状态与回答校验开发计划_2026-11-09.md)。
+三类专用 Agent 通过 `VIO_AGENT_SPECIALISTS_ENABLED=true` 开启并重启后端，默认关闭，复用当前聊天模型与 Key，不需分别部署服务。主 Agent 保留最终校验与队伍修改确认；固定馆主资料、确定性检查等程序直达路径继续复用。每个请求最多6次专用规划、8次工具选择，仍受更严格的全局预算与截止时间约束。评测策略启用时保留单 Agent 基线。旧的 `VIO_AGENT_GUIDE_RESEARCH_ENABLED` 仅在总开关关闭时生效，避免重复检索。
+
+Embedding 独立配置服务、模型、Key 与维度，再使用 `ops/local/build-guide-semantic-index.ps1` 显式构建；不启用时使用 BM25。[统一配置与验收清单](document/三类专用Agent开发与配置清单_2026-11-09.md)列出了需要你处理的全部配置及检查步骤。
 
 本地数据默认位于 `.local-data/`，包含账号、对话、队伍、攻略索引和图鉴缓存。它们保存在当前电脑，不提供跨设备同步；正在执行的 Run 不承诺跨重启自动续跑。具体可配置路径见公开模板，用户私有配置不应提交。
 

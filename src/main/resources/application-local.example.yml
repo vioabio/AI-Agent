@@ -37,6 +37,10 @@ search-api:
 
 # 浏览器跨域白名单（只填写完整 origin，不要使用 '*' 或带路径的 URL）
 vio:
+  agent:
+    specialists:
+      # 三类角色复用当前ChatModel；改为true后重启后端。
+      enabled: ${VIO_AGENT_SPECIALISTS_ENABLED:false}
   local-accounts:
     # 本机用户名/密码登录；如启用企业 OIDC，必须先关闭此开关。
     enabled: ${VIO_LOCAL_ACCOUNTS_ENABLED:true}

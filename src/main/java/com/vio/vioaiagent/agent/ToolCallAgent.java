@@ -96,6 +96,8 @@ public class ToolCallAgent extends ReActAgent {
     private com.vio.vioaiagent.pokemon.team.TeamWorkflowService teamWorkflow;
     private GuideResearchAgent.Result guideResearchResult=GuideResearchAgent.Result.skipped();
     private boolean researchApplied;
+    private SpecialistAgentCoordinator specialistCoordinator;
+    private SpecialistAgentCoordinator.Decision specialistDecision;
 
     // ==================== 构造器 ====================
 
@@ -177,18 +179,19 @@ public class ToolCallAgent extends ReActAgent {
             if(!gymMode){
                 if (planMovePreview(currentQuestion)) return getState() != AgentState.FINISHED;
                 if (checkSuppliedTeam(currentQuestion) || checkSuppliedBuild(currentQuestion)) return false;
-                ensureProjectGuideSource(currentQuestion);
+                if(specialistCoordinator==null)ensureProjectGuideSource(currentQuestion);
             }
             prompt = new Prompt(getMessageList(), this.chatOptions);
-            var request = getChatClient().prompt(prompt)
-                    .system(getSystemPrompt() + (gymMode?GymQuestionPolicy.instruction(): (teamAnswerEvidence == null ? "" : teamAnswerEvidence.planningInstruction())
+            String planningInstruction = (gymMode?GymQuestionPolicy.instruction(): (teamAnswerEvidence == null ? "" : teamAnswerEvidence.planningInstruction())
                             + (guideAnswerEvidence == null ? "" : guideAnswerEvidence.planningInstruction())
-                            + draftIdentity.instruction() + TeamMutationIntent.instruction(currentQuestion)))
-                    .toolCallbacks(gymMode?GymQuestionPolicy.tools(getMergedTools()):TeamMutationIntent.planningTools(currentQuestion,
-                            draftIdentity.planningTools(TeamBuildAnswerEvidence.planningTools(currentQuestion,getMergedTools()))));
+                            + draftIdentity.instruction() + TeamMutationIntent.instruction(currentQuestion));
+            ToolCallback[] planningTools = gymMode?GymQuestionPolicy.tools(getMergedTools()):TeamMutationIntent.planningTools(currentQuestion,
+                            draftIdentity.planningTools(TeamBuildAnswerEvidence.planningTools(currentQuestion,getMergedTools())));
+            specialistDecision = specialistCoordinator==null?null:specialistCoordinator.plan(planningTools,planningInstruction).orElse(null);
             // Tool selection is private. A model can put planning text in content,
             // not only reasoning_content, so it must never share the answer stream.
-            ChatResponse chatResponse = request.call().chatResponse();
+            ChatResponse chatResponse = specialistDecision!=null?specialistDecision.response():getChatClient().prompt(prompt)
+                    .system(getSystemPrompt()+planningInstruction).toolCallbacks(planningTools).call().chatResponse();
 
             // 成功调用，重置错误计数
             this.consecutiveErrors = 0;
@@ -210,7 +213,7 @@ public class ToolCallAgent extends ReActAgent {
 
             if (toolCallList.isEmpty()) {
                 getMessageList().add(assistantMessage);
-                if (StrUtil.isNotBlank(thinkText)) {
+                if (specialistDecision!=null || StrUtil.isNotBlank(thinkText)) {
                     finalAnswer = summarizeAnswer();
                     setState(AgentState.FINISHED);
                 }
@@ -519,7 +522,9 @@ public class ToolCallAgent extends ReActAgent {
         org.slf4j.MDC.put("stepType", "act");
 
         // 1. 执行工具调用
-        Prompt prompt = new Prompt(getMessageList(), programOnlyPreview
+        if(specialistDecision!=null&&specialistCoordinator!=null)specialistCoordinator.bindActualCalls(toolCallChatResponse);
+        Prompt prompt = new Prompt(getMessageList(), specialistDecision!=null
+                ? ToolCallingChatOptions.builder().internalToolExecutionEnabled(false).toolCallbacks(Arrays.asList(specialistDecision.tools())).build() : programOnlyPreview
                 ? ToolCallingChatOptions.builder().internalToolExecutionEnabled(false)
                     .toolCallbacks(Arrays.asList(availableTools)).build() : this.chatOptions);
         // RunService 会在异步 worker 中预置完整上下文；不要再次从 RequestContext 生成新的 run/trace。
@@ -533,6 +538,11 @@ public class ToolCallAgent extends ReActAgent {
         ToolExecutionContext parentContext = inherited;
         AtomicBoolean approvalRequired = new AtomicBoolean(false);
         ToolExecutionContext context = parentContext.withEventSink(event -> {
+            if(specialistDecision!=null&&specialistDecision.role()!=null) {
+                var attributes=new java.util.LinkedHashMap<String,Object>(event.attributes());
+                attributes.put("agentRole",specialistDecision.role().name());attributes.put("selectionOrigin","SPECIALIST_TOOL_PLAN");
+                event=new com.vio.vioaiagent.tools.governance.ToolGovernanceEvent(event.eventType(),event.runId(),event.toolName(),event.eventId(),event.occurredAt(),attributes);
+            }
             if(programOnlyPreview && java.util.Set.of("readCurrentTeam","previewTeamChanges").contains(event.toolName())) {
                 var attributes=new java.util.LinkedHashMap<String,Object>(event.attributes());attributes.put("selectionOrigin","PROGRAM_EXPLICIT_MOVE_PREVIEW");
                 event=new com.vio.vioaiagent.tools.governance.ToolGovernanceEvent(event.eventType(),event.runId(),event.toolName(),event.eventId(),event.occurredAt(),attributes);
@@ -575,6 +585,7 @@ public class ToolCallAgent extends ReActAgent {
         // 3. 检查是否调用了终止工具
         ToolResponseMessage toolResponseMessage =
                 (ToolResponseMessage) CollUtil.getLast(toolExecutionResult.conversationHistory());
+        if(specialistDecision!=null&&specialistCoordinator!=null)specialistCoordinator.observe(toolResponseMessage);
         if (draftIdentity != null) toolResponseMessage.getResponses().forEach(response ->
                 draftIdentity.observe(response.name(), response.responseData(),
                         toolCallChatResponse.getResult().getOutput().getToolCalls().stream()

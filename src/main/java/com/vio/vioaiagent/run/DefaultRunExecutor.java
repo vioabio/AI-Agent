@@ -31,6 +31,9 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
     @Value("${vio.agent.guide-research.enabled:false}")
     private boolean guideResearchEnabled;
     public void setGuideResearchEnabled(boolean enabled){this.guideResearchEnabled=enabled;}
+    @Value("${vio.agent.specialists.enabled:false}")
+    private boolean specialistsEnabled;
+    public void setSpecialistsEnabled(boolean enabled){this.specialistsEnabled=enabled;}
     private com.vio.vioaiagent.config.EvaluationToolPolicy evaluationPolicy=com.vio.vioaiagent.config.EvaluationToolPolicy.off();
     @Autowired(required=false)
     public void setEvaluationToolPolicy(com.vio.vioaiagent.config.EvaluationToolPolicy policy) {
@@ -166,12 +169,13 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
         if (chatModel != null) {
             var budget=new com.vio.vioaiagent.observability.ModelContextBudget(contextBudgetProperties,context.history(),context.modelUsage());
             var research=com.vio.vioaiagent.agent.GuideResearchAgent.Result.skipped();
-            if(guideResearchEnabled&&!evaluationPolicy.active())research=new com.vio.vioaiagent.agent.GuideResearchAgent().research(context,
+            if(guideResearchEnabled&&!specialistsEnabled&&!evaluationPolicy.active())research=new com.vio.vioaiagent.agent.GuideResearchAgent().research(context,
                     new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage(),
                             new com.vio.vioaiagent.observability.ModelContextBudget(contextBudgetProperties,java.util.List.of(),context.modelUsage())),allTools);
             VioManus agent = new VioManus(evaluationPolicy.select(allTools), evaluationPolicy.active()?null:mcpToolProvider,
                     new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage(),budget));
             agent.setGuideResearchResult(research);
+            configureSpecialists(agent,context);
             agent.setToolExecutionGateway(toolExecutionGateway);
             agent.setCurrentUserRequest(run.prompt());
             agent.setGuideGameReleaseId(run.gameReleaseId());
@@ -202,6 +206,7 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
             var budget=new com.vio.vioaiagent.observability.ModelContextBudget(contextBudgetProperties,context.history(),context.modelUsage());
             VioManus agent = new VioManus(allTools, mcpToolProvider,
                     new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage(),budget));
+            configureSpecialists(agent,context);
             agent.setToolExecutionGateway(toolExecutionGateway);
             agent.setCurrentUserRequest(run.prompt());
             agent.setGuideGameReleaseId(run.gameReleaseId());
@@ -225,6 +230,12 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
         append(prefix, "ruleset_version_id", run.rulesetVersionId());
         append(prefix, "language", run.language());
         return prefix.append("\n用户请求：").append(run.prompt()).toString();
+    }
+
+    private void configureSpecialists(VioManus agent,AgentRunContext context) {
+        if(specialistsEnabled&&!evaluationPolicy.active())agent.setSpecialistCoordinator(new com.vio.vioaiagent.agent.SpecialistAgentCoordinator(context,
+                new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage(),
+                        new com.vio.vioaiagent.observability.ModelContextBudget(contextBudgetProperties,java.util.List.of(),context.modelUsage()))));
     }
 
     private void append(StringBuilder builder, String key, String value) {

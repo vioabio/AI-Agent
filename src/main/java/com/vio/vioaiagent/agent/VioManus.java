@@ -160,7 +160,7 @@ public class VioManus extends ToolCallAgent {
         if (allTools != null && java.util.Arrays.stream(allTools).anyMatch(tool -> "lookupPokemonTeamReference".equals(tool.getToolDefinition().name()))) {
             this.setTeamAnswerEvidence(new TeamAnswerEvidence());
         }
-        if (allTools != null && java.util.Arrays.stream(allTools).anyMatch(tool -> "calculateBattleDamage".equals(tool.getToolDefinition().name()))) {
+        if (allTools != null && java.util.Arrays.stream(allTools).anyMatch(tool -> java.util.Set.of("calculateBattleDamage","calculateGymDamage").contains(tool.getToolDefinition().name()))) {
             this.setDamageAnswerEvidence(new DamageAnswerEvidence());
         }
         if (allTools != null && java.util.Arrays.stream(allTools).anyMatch(tool -> java.util.Set.of("searchPokemonGuides", "lookupPokemonReference", "lookupPokemonResource", "lookupPokemonLearnset", "lookupPokemonMachine", "lookupPokemonMechanics", "checkPokemonBuild", "checkPokemonTeamBuild").contains(tool.getToolDefinition().name()))) {

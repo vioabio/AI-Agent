@@ -18,7 +18,7 @@ public final class DamageToolSchema {
             var request=object(schema.path("properties").path("request"));optional(request,Set.of("field"));
             for(String side:List.of("attacker","defender")) {
                 var combatant=object(request.path("properties").path(side));optional(combatant,Set.of("build"));
-                optional(object(combatant.path("properties").path("build")),Set.of("moves","ability","item","nature","level","evs","ivs"));
+                optional(object(combatant.path("properties").path("build")),Set.of("moves","ability","item","nature","level","evs","ivs","teraType"));
             }
             optional(object(request.path("properties").path("field")),Set.of("gameType"));
             var definition=ToolDefinition.builder().name(delegate.getToolDefinition().name()).description(delegate.getToolDefinition().description()).inputSchema(json.writeValueAsString(schema)).build();

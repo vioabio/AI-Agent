@@ -9,6 +9,21 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class DamageToolSchemaTest {
+    @Test void optionalTeraDoesNotBlockCompleteExistingDamageRequests() throws Exception {
+        var json=new com.fasterxml.jackson.databind.ObjectMapper();var engine=mock(LocalDamageEngine.class);
+        var callback=DamageToolSchema.adapt(ToolCallbacks.from(new DamageEngineController.Tools(engine,null))[0]);
+        var schema=json.readTree(callback.getToolDefinition().inputSchema());
+        for(String side:List.of("attacker","defender"))assertFalse(schema.path("properties").path("request").path("properties").path(side).path("properties").path("build").path("required").toString().contains("teraType"));
+        var request=json.createObjectNode();request.set("request",json.readTree(java.nio.file.Path.of("evaluation/campus/s01/damage-reference.json").toFile()).path("input"));
+        var hitl=new HitlManager();var masker=new ParameterMasker();
+        var gateway=new ToolExecutionGateway(hitl,new PathGuard(List.of(System.getProperty("user.dir")+"/tmp")),new CommandGuard(List.of()),masker,new AuditLogger(masker));
+        try {
+            gateway.wrapMcp(callback,ToolCapabilityCatalog.find("calculateBattleDamage").orElseThrow());
+            var context=new ToolExecutionContext("owner","tera-optional",Set.of("trainer"),"t",null,null);
+            assertEquals(ToolGovernanceResult.Status.EXECUTED,gateway.execute("calculateBattleDamage",request.toString(),context).status());
+            verify(engine).calculate(argThat(r->r.attacker().build().teraType()==null&&r.defender().build().teraType()==null&&r.attacker().build().evs().spa()==252));
+        } finally {gateway.shutdown();hitl.shutdown();}
+    }
     @Test void nullDefaultContainersReachTheActualDtoWhileIdentityFieldsRemainRequired() {
         var engine=mock(LocalDamageEngine.class);var callback=DamageToolSchema.adapt(ToolCallbacks.from(new DamageEngineController.Tools(engine,null))[0]);
         var hitl=new HitlManager();var masker=new ParameterMasker();

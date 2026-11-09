@@ -5,7 +5,8 @@ import java.util.Set;
 
 /** A user's battle assumptions; storing a set does not assert that it is legal in a competition. */
 public record TeamBuild(List<String> moves, String ability, String item, String nature,
-                        Integer level, Stats evs, Stats ivs, @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) String teraType) {
+                        Integer level, Stats evs, Stats ivs, @org.springframework.ai.tool.annotation.ToolParam(required=false)
+                        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) String teraType) {
     public TeamBuild(List<String> moves,String ability,String item,String nature,Integer level,Stats evs,Stats ivs) {
         this(moves,ability,item,nature,level,evs,ivs,null);
     }
