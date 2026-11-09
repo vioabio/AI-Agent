@@ -40,7 +40,7 @@ public class LocalRuntimeController {
                 || model.getDefaultOptions().getModel() == null ? "unconfigured" : model.getDefaultOptions().getModel();
         Map<String, String> hashes = new LinkedHashMap<>();
         for (Class<?> implementation : List.of(VioManus.class, ToolCallAgent.class, AnswerPresentation.class, CapabilityCatalog.class, AccountScopeReply.class, TeamAnswerEvidence.class, DamageAnswerEvidence.class,
-                GuideAnswerEvidence.class, SavedTeamAnswerEvidence.class, EvidenceText.class, TeamReferenceTools.class,
+                GuideAnswerEvidence.class, GuideResearchAgent.class, SavedTeamAnswerEvidence.class, EvidenceText.class, TeamReferenceTools.class,
                 com.vio.vioaiagent.pokemon.team.TeamWorkflowService.class, com.vio.vioaiagent.run.RunMutationBoundary.class,
                 com.vio.vioaiagent.pokemon.team.TeamChangePresentation.class, com.vio.vioaiagent.pokemon.team.TeamWorkflowController.class,
                 com.vio.vioaiagent.config.EvaluationToolPolicy.class,
@@ -117,6 +117,7 @@ public class LocalRuntimeController {
                         "safetyPercent",contextBudgetProperties.safetyPercent(),"estimator",com.vio.vioaiagent.observability.ContextTokenEstimator.ID),
                 "tools", Arrays.stream(tools).map(tool -> tool.getToolDefinition().name()).sorted().toList()));
         runtime.put("tokenEstimateObservation",Map.of("schemaVersion","token-estimate-comparison-v1","automaticPolicyChange",false));
+        runtime.put("agentCollaboration",Map.of("guideResearchEnabled",environment.getProperty("vio.agent.guide-research.enabled",Boolean.class,false),"specialistRole","GUIDE_RESEARCH","maxSpecialistModelCalls",1,"maxSpecialistToolCalls",1,"scope","PROJECT_GUIDE_SOURCE_REQUESTS_ONLY"));
         runtime.put("toolInputEvidence",Map.of("schemaVersion",com.vio.vioaiagent.tools.governance.ToolInputEvidence.SCHEMA,
                 "scope","SUPPLIED_ARGUMENTS_ONLY","tools",com.vio.vioaiagent.tools.governance.ToolInputEvidence.supportedTools().stream().sorted().toList(),
                 "previewPolicy",Map.of("projectionVersion",com.vio.vioaiagent.tools.governance.ToolInputEvidence.PREVIEW_POLICY_VERSION,

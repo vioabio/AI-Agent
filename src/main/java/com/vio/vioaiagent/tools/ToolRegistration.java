@@ -19,6 +19,8 @@ public class ToolRegistration {
     private com.vio.vioaiagent.pokemon.gym.GymAgentTools gymAgentTools;
     @Autowired(required=false)
     private com.vio.vioaiagent.pokemon.gym.SavedTeamGymTool savedTeamGymTool;
+    @Autowired(required=false)
+    private com.vio.vioaiagent.pokemon.gym.GymTeamCoreTool gymTeamCoreTool;
 
     /** 可选治理网关；未加载治理模块时保留旧工具注册行为。 */
     @Autowired(required = false)
@@ -102,6 +104,7 @@ public class ToolRegistration {
         if (teamWorkflow != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(teamWorkflow)));
         if (gymAgentTools != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(gymAgentTools)));
         if (savedTeamGymTool != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(savedTeamGymTool)));
+        if (gymTeamCoreTool != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(gymTeamCoreTool)));
         if (referenceRepository != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.PokemonReferenceTools(referenceRepository,toolScope,resourceReferences))));
         if (learnsetReferences != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.PokemonLearnsetController.Tools(learnsetReferences,toolScope))));
         if (independentMechanics != null) tools.addAll(java.util.Arrays.asList(ToolCallbacks.from(new com.vio.vioaiagent.pokemon.reference.PokemonMechanicsController.Tools(independentMechanics,toolScope))));

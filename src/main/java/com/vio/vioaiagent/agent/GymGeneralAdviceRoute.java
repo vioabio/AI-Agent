@@ -11,7 +11,7 @@ public final class GymGeneralAdviceRoute {
         String question=context.run().prompt();
         if(!"pokemon-scarlet-violet".equals(context.run().gameReleaseId())||GymConversationContext.savedTeamRequest(question)||GymQuestionPolicy.wantsDamage(question)
                 ||!Set.of(GymTurnPlan.Intent.RECOMMEND_TEAM,GymTurnPlan.Intent.GENERAL_ADVICE).contains(GymTurnPlan.classify(question))||question.matches("(?is).*(Lv\\.?\\s*\\d+|\\d+\\s*级|\"level\"\\s*:).*"))return Optional.empty();
-        var target=GymConversationContext.resolve(question,context.history());if(target.isEmpty())return Optional.empty();
+        var target=GymConversationContext.resolve(question,context.dialogueHistory());if(target.isEmpty())return Optional.empty();
         try{
             var selection=target.get();com.fasterxml.jackson.databind.JsonNode gym=null;for(var row:GymCatalogAnswer.load(selection.phase()).path("gyms"))if(row.path("id").asText().equals(selection.gymId()))gym=row;
             if(gym==null)return Optional.empty();

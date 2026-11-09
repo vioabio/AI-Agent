@@ -14,16 +14,7 @@ public final class ConversationHistory {
     }
     static Window select(AgentRun run,List<ChatMessage> stored,ContextBudgetProperties limits) {
         var estimator=new ContextTokenEstimator(limits.safetyPercent());
-        Map<String,List<ChatMessage>> grouped=new LinkedHashMap<>();
-        if(stored!=null)stored.stream().filter(m->run.userId().equals(m.userId()) && run.conversationId().equals(m.conversationId())
-                && m.runId()!=null && !run.id().equals(m.runId()) && !m.createdAt().isAfter(run.createdAt())
-                && ("user".equals(m.role()) || "assistant".equals(m.role())))
-                .sorted(Comparator.comparing(ChatMessage::createdAt).thenComparing(ChatMessage::id))
-                .forEach(m->grouped.computeIfAbsent(m.runId(),ignored->new ArrayList<>()).add(m));
-        List<List<ChatMessage>> pairs=grouped.values().stream().filter(rows->rows.size()==2
-                && "user".equals(rows.getFirst().role()) && "assistant".equals(rows.getLast().role())
-                && !rows.getFirst().id().equals(rows.getLast().id()))
-                .sorted(Comparator.comparing(rows->rows.getLast().createdAt())).toList();
+        var pairs=completedPairs(run,stored);
         List<Message> selected=new ArrayList<>();int tokens=0,characters=0,turns=0;
         for(int i=pairs.size()-1;i>=0;i--) {
             var pair=pairs.get(i);var user=new UserMessage(pair.getFirst().content());var answer=new AssistantMessage(pair.getLast().content());
@@ -34,6 +25,28 @@ public final class ConversationHistory {
         }
         return new Window(List.copyOf(selected),Map.of("availableTurns",pairs.size(),"selectedTurns",turns,
                 "omittedTurns",pairs.size()-turns,"estimatedTokens",tokens));
+    }
+    /** Rebuilt from persisted completed pairs after restart; never passed to the model. Consumers must
+     * parse user selections and verified program list formats, not treat assistant prose as authority. */
+    static List<Message> dialogueState(AgentRun run,List<ChatMessage> stored) {
+        List<Message> state=new ArrayList<>();
+        for(var pair:completedPairs(run,stored)){
+            state.add(new UserMessage(pair.getFirst().content()));
+            state.add(new AssistantMessage(pair.getLast().content()));
+        }
+        return List.copyOf(state);
+    }
+    private static List<List<ChatMessage>> completedPairs(AgentRun run,List<ChatMessage> stored) {
+        Map<String,List<ChatMessage>> grouped=new LinkedHashMap<>();
+        if(stored!=null)stored.stream().filter(m->run.userId().equals(m.userId()) && run.conversationId().equals(m.conversationId())
+                && m.runId()!=null && !run.id().equals(m.runId()) && !m.createdAt().isAfter(run.createdAt())
+                && ("user".equals(m.role()) || "assistant".equals(m.role())))
+                .sorted(Comparator.comparing(ChatMessage::createdAt).thenComparing(ChatMessage::id))
+                .forEach(m->grouped.computeIfAbsent(m.runId(),ignored->new ArrayList<>()).add(m));
+        return grouped.values().stream().filter(rows->rows.size()==2
+                && "user".equals(rows.getFirst().role()) && "assistant".equals(rows.getLast().role())
+                && !rows.getFirst().id().equals(rows.getLast().id()))
+                .sorted(Comparator.comparing(rows->rows.getLast().createdAt())).toList();
     }
     record Window(List<Message> messages,Map<String,Object> summary) { }
 }

@@ -12,7 +12,8 @@
 | 本机账号 | 登录、注册、资料设置；BCrypt 密码哈希，Session/CSRF 与账号归属检查 |
 | 资料查询 | PokéAPI Java 适配、本地缓存与摘要校验、中英文名称索引、编号查询、回答直达对应图鉴 |
 | 在线环境参考 | 无需额外 Key 读取 Smogon 最新已发布月度使用率；按赛制澄清，保留月份、样本与来源 |
-| 攻略检索 | 项目原创笔记、SQLite 持久化倒排索引与 BM25、片段及来源展示 |
+| 攻略检索 | 项目原创笔记、SQLite/BM25；可选 Embedding 向量缓存与混合检索，保留版本过滤、原文引用和明确降级 |
+| 可选 Agent 协作 | 主 Agent 管理状态与最终回答；只读资料检索 Agent 处理项目资料说明，限制一次模型决策与一次白名单查询，异常回退 |
 | 队伍配置 | 招式、特性、道具、性格、等级、EV/IV；缺项与原配置保护 |
 | 伤害计算 | Java 调用本地 `@smogon/calc`，保留实际输入、范围、HP、百分比和假设 |
 | 受控修改 | 读取 → 变更预览 → 用户确认 → 保存回读；并发冲突不覆盖旧数据 |
@@ -28,7 +29,9 @@ flowchart LR
     RUN --> MODEL[模型理解与工具规划]
     MODEL --> GW[工具网关：参数 / 权限 / 超时]
     GW --> DATA[图鉴与本地缓存]
-    GW --> RAG[SQLite / BM25 攻略检索]
+    RUN -. 可选项目资料任务 .-> RESEARCH[只读资料检索 Agent]
+    RESEARCH --> GW
+    GW --> RAG[SQLite / BM25 / 可选 Embedding]
     GW --> CALC[本地 Smogon 伤害引擎]
     GW --> TEAM[队伍读取与变更预览]
     TEAM --> CONFIRM[用户确认后校验并保存]
@@ -117,6 +120,8 @@ npm --prefix vio-ai-agent-frontend run dev
 此路径沿用 SQLite 与现有账号链，适合个人作品展示；不等同于企业生产、高可用或任务跨重启恢复。首次部署建议 2 核 4 GB，具体容量需实际验证。
 
 ## 数据与配置
+
+可选资料检索协作通过 `VIO_AGENT_GUIDE_RESEARCH_ENABLED=true` 开启并重启后端，默认关闭；当前仅覆盖项目资料说明，不代表所有问答都运行多 Agent。Embedding 另行配置服务、模型、Key 与维度，再使用 `ops/local/build-guide-semantic-index.ps1` 显式构建。两项功能相互独立，详见[开发与配置说明](document/单主Agent结构化状态与回答校验开发计划_2026-11-09.md)。
 
 本地数据默认位于 `.local-data/`，包含账号、对话、队伍、攻略索引和图鉴缓存。它们保存在当前电脑，不提供跨设备同步；正在执行的 Run 不承诺跨重启自动续跑。具体可配置路径见公开模板，用户私有配置不应提交。
 

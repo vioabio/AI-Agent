@@ -14,9 +14,19 @@ final class GymConversationContext {
     static Optional<Target> resolve(String question,List<Message> history){
         // Chronological user selections only. Assistant claims cannot select a target or a challenge stage.
         String id=null,phase=null;
-        var turns=new ArrayList<String>();for(var message:history)if(message instanceof UserMessage)turns.add(message.getText());turns.add(question);
-        for(String turn:turns){
+        var turns=new ArrayList<Message>(history);turns.add(new UserMessage(question));
+        List<String> order=List.of();
+        for(var message:turns){
+            if(message instanceof AssistantMessage){var shown=GymOrdinalReference.displayedOrder(List.of(message));if(!shown.isEmpty())order=shown;continue;}
+            if(!(message instanceof UserMessage))continue;
+            String turn=message.getText();
             var choices=names(turn);
+            var ordinal=GymOrdinalReference.requestedOrdinal(turn);
+            if(ordinal.isPresent()){
+                var selected=GymOrdinalReference.resolve(turn,order);
+                if(selected.isEmpty()||!choices.isEmpty()&&!choices.equals(List.of(selected.get()))){id=null;phase=null;continue;}
+                choices=List.of(selected.get());
+            }
             if(choices.size()>1){id=null;phase=null;continue;}
             if(choices.size()==1){String next=choices.getFirst();if(!next.equals(id))phase=null;id=next;}
             if(id!=null){String stage=phase(turn);if(stage!=null)phase=stage;}

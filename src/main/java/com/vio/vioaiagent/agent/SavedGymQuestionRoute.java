@@ -13,7 +13,7 @@ public final class SavedGymQuestionRoute {
         String question=context.run().prompt();
         if(!"pokemon-scarlet-violet".equals(context.run().gameReleaseId())||!GymConversationContext.savedTeamRequest(question))return Optional.empty();
         if(question.matches("(?s).*(帮我保存|保存修改|直接保存|确认修改|应用修改|替换成员).*"))return Optional.empty();
-        var target=GymConversationContext.resolve(question,context.history());
+        var target=GymConversationContext.resolve(question,context.dialogueHistory());
         if(!GymQuestionPolicy.matches(question)&&!(question.matches("(?s).*(应对|对付|挑战|这个对手).*")&&target.isPresent()))return Optional.empty();
         if(target.isEmpty())return Optional.of("你是在请求分析已保存队伍。当前没有唯一确认的馆主，请告诉我是阿枫、奇树等哪一位，以及初战还是视察重赛；无需重新手填已经保存的成员。");
         try{

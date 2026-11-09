@@ -2,6 +2,32 @@ package com.vio.vioaiagent.agent;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 class GymCatalogAnswerTest {
+ @Test void quantitiesReturnCountAndExplicitlyNumberedReferenceList(){
+  for(String question:new String[]{"咨询下朱紫有几位馆主","朱紫有多少位馆主","朱紫馆主有几位"}){
+   var answer=GymCatalogAnswer.reply(question,"pokemon-scarlet-violet").orElseThrow();
+   assertTrue(answer.contains("8 位道馆馆主"));assertTrue(answer.contains("| 4 | 海岱 |"));assertTrue(answer.contains("| 6 | 莱姆 |"));assertTrue(answer.contains("不是固定挑战顺序"));assertFalse(answer.contains("冒险进度"));
+  }
+ }
+ @Test void ordinalsRequireAnActualDisplayedListAndNeverReturnAllRosters(){
+  String question="看下第四位馆主的队伍配置";
+  var unknown=GymCatalogAnswer.reply(question,null).orElseThrow();assertTrue(unknown.contains("没有可唯一对应"));assertFalse(unknown.contains("熊宝宝"));
+  var selected=GymCatalogAnswer.reply(question,null,GymOrdinalReference.catalogOrder()).orElseThrow();
+  assertTrue(selected.contains("**海岱**"));assertTrue(selected.contains("轻身鳕"));assertFalse(selected.contains("熊宝宝"));assertFalse(selected.contains("| 馆主 |"));
+  assertTrue(GymCatalogAnswer.reply("查看第99位馆主队伍",null,GymOrdinalReference.catalogOrder()).orElseThrow().contains("没有可唯一对应"));
+  assertTrue(GymOrdinalReference.resolve("第六位馆主",GymOrdinalReference.catalogOrder()).orElseThrow().equals("ryme"));
+  assertTrue(GymOrdinalReference.resolve("第四位馆主",java.util.List.of("katy","iono")).isEmpty());
+  assertEquals(-1,GymOrdinalReference.requestedOrdinal("第四位馆主和第六位馆主").orElseThrow());
+  assertEquals(-1,GymOrdinalReference.requestedOrdinal("第四和第六位馆主").orElseThrow());
+  assertEquals(-1,GymOrdinalReference.requestedOrdinal("第4位和第6位馆主").orElseThrow());
+ }
+ @Test void onlyCanonicalActuallyDisplayedNumberedListCanResolveReferences(){
+  var answer=GymCatalogAnswer.reply("咨询下朱紫有几位馆主",null).orElseThrow();
+  var history=java.util.List.<org.springframework.ai.chat.messages.Message>of(new org.springframework.ai.chat.messages.AssistantMessage(answer));
+  assertEquals(GymOrdinalReference.catalogOrder(),GymOrdinalReference.displayedOrder(history));
+  assertTrue(GymOrdinalReference.displayedOrder(java.util.List.of(new org.springframework.ai.chat.messages.UserMessage(answer))).isEmpty());
+  assertTrue(GymOrdinalReference.displayedOrder(java.util.List.of(new org.springframework.ai.chat.messages.AssistantMessage(answer.replace("| 4 | 海岱 |","| 4 | 奇树 |")))).isEmpty());
+  assertTrue(GymOrdinalReference.displayedOrder(java.util.List.of(new org.springframework.ai.chat.messages.AssistantMessage("按我的排名，第四位是阿枫"))).isEmpty());
+ }
  @Test void screenshotQuestionsReturnCatalogInsteadOfPlayerChecklist(){
   for(String question:new String[]{"我想了解下朱紫中朱版本的几个道馆馆主的队伍情况","目标馆主有哪些啊"}){
    var answer=GymCatalogAnswer.reply(question,"pokemon-scarlet-violet").orElseThrow();assertTrue(answer.contains("阿枫"));assertTrue(answer.contains("奇树"));assertTrue(answer.contains("古鲁夏"));assertFalse(answer.contains("先确认你的冒险进度"));

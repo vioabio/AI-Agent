@@ -18,6 +18,9 @@ public class LocalGuideSearch {
     private final SqliteGuideKnowledgeRetriever index;
     private final KnowledgeRetriever retriever;
     private final Catalog catalog;
+    private LocalGuideSemanticSearch semantic;
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    public void setSemantic(LocalGuideSemanticSearch semantic){this.semantic=semantic;}
     public LocalGuideSearch(ObjectMapper mapper,ResourceLoader loader,
             @Value("${vio.local-guides.location:classpath:pokemon-strategy/overview-v1.json}") String location,
             @Value("${vio.local-guides.path:${user.dir}/.local-data/guides.sqlite}") String path) {
@@ -53,13 +56,15 @@ public class LocalGuideSearch {
         if(query!=null&&java.util.regex.Pattern.compile("组队|队伍搭配|联防|属性覆盖").matcher(query).find()) {
             // Reserve one result for the explicitly requested team-building topic.
             // Long secondary questions about provenance must not crowd it out.
-            var focused=retrieve(new KnowledgeRetrievalQuery("组队 角色 属性覆盖 轮转",language,gameReleaseId,format,rules,4));
+            var focused=index.retrieve(new KnowledgeRetrievalQuery("组队 角色 属性覆盖 轮转",language,gameReleaseId,format,rules,4));
             if(!focused.isEmpty())result.put(focused.getFirst().view().documentId(),index.hit(focused.getFirst()));
         }
         for(var chunk:chunks) result.putIfAbsent(chunk.view().documentId(),index.hit(chunk));
         return result.values().stream().limit(4).toList();
     }
-    public List<RetrievedKnowledgeChunk> retrieve(KnowledgeRetrievalQuery query) { return retriever.retrieve(query); }
+    public List<RetrievedKnowledgeChunk> retrieve(KnowledgeRetrievalQuery query) { return semantic==null?retriever.retrieve(query):semantic.retrieve(query,index); }
+    public LocalGuideSemanticSearch.Status semanticStatus(){return semantic==null?new LocalGuideSemanticSearch.Status(false,false,false,"BM25","none",0,0,"DISABLED"):semantic.status(index);}
+    public LocalGuideSemanticSearch.Status buildSemanticIndex(){return semantic==null?semanticStatus():semantic.build(index);}
     public SqliteGuideKnowledgeRetriever.Status status() { return index.status(); }
     public Catalog catalog() {return catalog;}
     public Optional<Hit> locate(String chunkId) { return index.locate(chunkId); }

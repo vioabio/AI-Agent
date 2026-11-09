@@ -165,6 +165,7 @@ public final class GuideAnswerEvidence {
             hits = List.copyOf(checked);
         } catch (Exception ignored) { /* failed, malformed or truncated output is not a source */ }
     }
+    public boolean hasGuideSources(){return !hits.isEmpty();}
     private void failedReference(String arguments) {
         partialReferenceFailure=true;
         var target=GuideReferenceIdentity.target(arguments);

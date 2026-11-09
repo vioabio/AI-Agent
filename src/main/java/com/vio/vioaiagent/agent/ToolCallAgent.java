@@ -94,6 +94,8 @@ public class ToolCallAgent extends ReActAgent {
     private boolean mainGuideTopicAttempted;
     private final java.util.Set<String> overviewResourceAttempts=new java.util.HashSet<>();
     private com.vio.vioaiagent.pokemon.team.TeamWorkflowService teamWorkflow;
+    private GuideResearchAgent.Result guideResearchResult=GuideResearchAgent.Result.skipped();
+    private boolean researchApplied;
 
     // ==================== 构造器 ====================
 
@@ -161,6 +163,7 @@ public class ToolCallAgent extends ReActAgent {
         }
         if (guideAnswerEvidence != null && !guideAnswerEvidence.initialized()) guideAnswerEvidence.begin(currentQuestion);
         if (savedTeamAnswerEvidence != null && !savedTeamAnswerEvidence.initialized()) savedTeamAnswerEvidence.begin(currentQuestion);
+        applyResearchEvidence();
         // 1. 将"下一步提示词"追加到消息列表，引导 AI 主动规划
         if (StrUtil.isNotBlank(getNextStepPrompt())) {
             UserMessage userMessage = new UserMessage(getNextStepPrompt());
@@ -389,6 +392,18 @@ public class ToolCallAgent extends ReActAgent {
         finalAnswer = publishVerified(guideAnswerEvidence.verifiedAnswer()); setState(AgentState.FINISHED); return true;
     }
 
+    private void applyResearchEvidence(){
+        if(researchApplied||guideAnswerEvidence==null)return;
+        researchApplied=true;
+        if(guideResearchResult==null||!"EVIDENCE_RETURNED".equals(guideResearchResult.status()))return;
+        for(var evidence:guideResearchResult.evidence()){
+            guideAnswerEvidence.observe("searchPokemonGuides",evidence.output(),evidence.arguments());
+            String id="research-guide-"+java.util.UUID.randomUUID();
+            getMessageList().add(new AssistantMessage("",java.util.Map.of("agentRole",GuideResearchAgent.ROLE),List.of(new AssistantMessage.ToolCall(id,"function","searchPokemonGuides",evidence.arguments()))));
+            getMessageList().add(new ToolResponseMessage(List.of(new ToolResponseMessage.ToolResponse(id,"searchPokemonGuides",evidence.output()))));
+            projectGuideAttempted=true;
+        }
+    }
     private void ensureProjectGuideSource(String question) throws Exception {
         if(projectGuideAttempted||guideAnswerEvidence==null||!ProjectGuideRequest.requiresSource(question))return;
         projectGuideAttempted=true;

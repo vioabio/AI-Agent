@@ -11,7 +11,7 @@ public record GymTurnPlan(String ownerId, String conversationId, String gameRele
 
     public static GymTurnPlan from(AgentRunContext context) {
         var run = context.run();
-        var target = GymConversationContext.resolve(run.prompt(), context.history())
+        var target = GymConversationContext.resolve(run.prompt(), context.dialogueHistory())
                 .map(t -> new Target(t.gymId(), t.name(), t.phase(), t.defaultStage()));
         Intent intent = classify(run.prompt());
         // A historic gym must not capture unrelated team/encyclopedia requests.

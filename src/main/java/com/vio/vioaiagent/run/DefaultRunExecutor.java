@@ -28,6 +28,9 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
     private final GameApp gameApp;
     private final VersionedKnowledgeRunFacade knowledgeFacade;
     private final boolean groundingEnabled;
+    @Value("${vio.agent.guide-research.enabled:false}")
+    private boolean guideResearchEnabled;
+    public void setGuideResearchEnabled(boolean enabled){this.guideResearchEnabled=enabled;}
     private com.vio.vioaiagent.config.EvaluationToolPolicy evaluationPolicy=com.vio.vioaiagent.config.EvaluationToolPolicy.off();
     @Autowired(required=false)
     public void setEvaluationToolPolicy(com.vio.vioaiagent.config.EvaluationToolPolicy policy) {
@@ -162,8 +165,13 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
         String prompt = context.constraints().applyTo(scopedPrompt(run));
         if (chatModel != null) {
             var budget=new com.vio.vioaiagent.observability.ModelContextBudget(contextBudgetProperties,context.history(),context.modelUsage());
+            var research=com.vio.vioaiagent.agent.GuideResearchAgent.Result.skipped();
+            if(guideResearchEnabled&&!evaluationPolicy.active())research=new com.vio.vioaiagent.agent.GuideResearchAgent().research(context,
+                    new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage(),
+                            new com.vio.vioaiagent.observability.ModelContextBudget(contextBudgetProperties,java.util.List.of(),context.modelUsage())),allTools);
             VioManus agent = new VioManus(evaluationPolicy.select(allTools), evaluationPolicy.active()?null:mcpToolProvider,
                     new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage(),budget));
+            agent.setGuideResearchResult(research);
             agent.setToolExecutionGateway(toolExecutionGateway);
             agent.setCurrentUserRequest(run.prompt());
             agent.setGuideGameReleaseId(run.gameReleaseId());

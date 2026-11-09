@@ -26,6 +26,10 @@ public class LocalGuideController {
     public SqliteGuideKnowledgeRetriever.Status index(){return search.status();}
     @GetMapping("/pokemon/guides/catalog")
     public LocalGuideSearch.Catalog catalog(){return search.catalog();}
+    @GetMapping("/pokemon/guides/semantic")
+    public LocalGuideSemanticSearch.Status semantic(){return search.semanticStatus();}
+    @org.springframework.web.bind.annotation.PostMapping("/pokemon/guides/semantic/index")
+    public LocalGuideSemanticSearch.Status buildSemantic(){return search.buildSemanticIndex();}
     @GetMapping("/pokemon/guides/retrieve")
     public java.util.List<com.vio.vioaiagent.rag.retrieval.RetrievedKnowledgeChunk> retrieve(
             @RequestParam String query,@RequestParam String gameReleaseId,@RequestParam(defaultValue="zh-CN") String language,

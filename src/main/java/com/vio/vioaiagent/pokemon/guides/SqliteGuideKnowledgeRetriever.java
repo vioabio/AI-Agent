@@ -154,6 +154,16 @@ public final class SqliteGuideKnowledgeRetriever implements KnowledgeRetriever {
                 doc.gameReleaseId(),doc.battleFormatId(),doc.rulesetVersionId());
         return new RetrievedKnowledgeChunk(source,rank,0,score);
     }
+    /** Canonical source views for vector ingestion; vectors never become the citation authority. */
+    List<RetrievedKnowledgeChunk> embeddingSources() {
+        return transactions.execute(tx->{assertCurrent();return parts.values().stream().sorted(Comparator.comparing(GuideChunks.Part::id)).map(p->view(p,0,0)).toList();});
+    }
+    List<RetrievedKnowledgeChunk> semanticEligible(KnowledgeRetrievalQuery query) {
+        if(query.text().length()>500)throw new IllegalArgumentException("请输入 1..500 字的攻略问题");
+        if(query.language()==null||query.gameReleaseId()==null||query.battleFormatId()==null||query.rulesetVersionId()==null)return List.of();
+        if(query.dataReleaseId()!=null&&!DATA_RELEASE.equals(query.dataReleaseId())||query.knowledgeReleaseId()!=null&&!status.fingerprint().equals(query.knowledgeReleaseId())||query.indexReleaseId()!=null&&!status.fingerprint().equals(query.indexReleaseId()))return List.of();
+        return transactions.execute(tx->{assertCurrent();return parts.values().stream().filter(p->{var d=documents.get(p.documentId());return d.language().equals(query.language())&&d.gameReleaseId().equals(query.gameReleaseId())&&d.battleFormatId().equals(query.battleFormatId())&&d.rulesetVersionId().equals(query.rulesetVersionId())&&fresh(d)&&(d.applicability()==null||d.applicability().allows(query.text()));}).map(p->view(p,0,0)).toList();});
+    }
     public LocalGuideSearch.Hit hit(RetrievedKnowledgeChunk result) {
         var part=parts.get(result.view().chunk().id()); var doc=documents.get(part.documentId());
         var citation=new LocalGuideSearch.Citation(part.id(),part.version(),part.number(),part.start(),part.end(),part.content(),part.hash());

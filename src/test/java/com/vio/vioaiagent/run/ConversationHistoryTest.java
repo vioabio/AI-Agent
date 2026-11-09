@@ -54,4 +54,31 @@ class ConversationHistoryTest {
                 new com.vio.vioaiagent.config.ContextBudgetProperties(1024,128,0,1,125));
         assertTrue(selected.messages().isEmpty());assertEquals(1,selected.summary().get("omittedTurns"));
     }
+    @Test void routingStateOutlivesModelWindowWithoutIncreasingModelPrompt() {
+        var stored=new ArrayList<ChatMessage>();
+        for(int i=0;i<16;i++){
+            var time=run.createdAt().minusSeconds(40-i);
+            stored.add(new ChatMessage("u"+i,"conversation","old"+i,"owner","user",i==0?"选择海岱初战":"问题"+i,time,Map.of()));
+            stored.add(new ChatMessage("z"+i,"conversation","old"+i,"owner","assistant","回答"+i,time.plusMillis(1),Map.of()));
+        }
+        var bounded=ConversationHistory.select(run,stored,com.vio.vioaiagent.config.ContextBudgetProperties.defaults());
+        var state=ConversationHistory.dialogueState(run,stored);
+        assertEquals(16,bounded.messages().size());assertEquals(32,state.size());
+        assertEquals("选择海岱初战",state.getFirst().getText());
+        assertFalse(bounded.messages().stream().anyMatch(m->m.getText().contains("海岱")));
+        assertEquals(state,ConversationHistory.dialogueState(run,List.copyOf(stored)),"reconstruction has no process-local memory dependency");
+        var context=new AgentRunContext(run,null,bounded.messages(),RunMutationBoundary.denied(),new com.vio.vioaiagent.observability.ModelUsageLedger(),ConversationConstraints.defaults(),state);
+        assertEquals(16,context.history().size());assertEquals(32,context.dialogueHistory().size());
+        assertThrows(UnsupportedOperationException.class,()->context.dialogueHistory().clear());
+    }
+    @Test void routingStateEnforcesOwnerConversationCompletionAndSnapshotTime() {
+        var stored=new ArrayList<>(List.of(message("1","old","owner","user","选择阿枫"),message("2","old","owner","assistant","已选择"),
+                message("3","orphan","owner","user","选择奇树"),message("4","foreign","other-owner","user","选择海岱"),message("5","foreign","other-owner","assistant","已选择"),
+                message("6","current","owner","user","不能重复注入本轮")));
+        stored.add(new ChatMessage("7","other-conversation","else","owner","user","选择莱姆",run.createdAt().minusSeconds(2),Map.of()));
+        stored.add(new ChatMessage("8","other-conversation","else","owner","assistant","已选择",run.createdAt().minusSeconds(1),Map.of()));
+        stored.add(new ChatMessage("9","conversation","future","owner","user","选择青木",run.createdAt().plusSeconds(1),Map.of()));
+        stored.add(new ChatMessage("10","conversation","future","owner","assistant","已选择",run.createdAt().plusSeconds(2),Map.of()));
+        assertEquals(List.of("选择阿枫","已选择"),ConversationHistory.dialogueState(run,stored).stream().map(m->m.getText()).toList());
+    }
 }

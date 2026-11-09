@@ -1169,6 +1169,7 @@ public class PokemonAgentRunService {
         StringBuilder streamed = new StringBuilder();
         boolean allowStreaming = answerStreamingEnabled && !durableRunProperties.durableResume()
                 && executor instanceof ContractAwareRunExecutor aware && !aware.usesKnowledgeGrounding();
+        var storedHistory=messageRepository.findByConversationForUser(run.conversationId(),run.userId());
         AgentRunContext context = new AgentRunContext(run, allowStreaming ? delta -> {
             if (delta == null || delta.isEmpty()) return;
             workerWrite(run, () -> {
@@ -1183,7 +1184,7 @@ public class PokemonAgentRunService {
                 streamed.append(delta);
                 return null;
             });
-        } : null, historyWindow(run,modelUsage), new RunMutationBoundary() {
+        } : null, historyWindow(run,modelUsage,storedHistory), new RunMutationBoundary() {
             public void check() {
                 ExecutionLease lease = executionLease.get();
                 if (lease == null) throw new RunLeaseLostException();
@@ -1193,7 +1194,7 @@ public class PokemonAgentRunService {
                     throw new java.util.concurrent.CancellationException("Run 已停止或超过写入期限");
             }
             public <T> T write(Supplier<T> action) { return workerWrite(run, () -> { check(); return action.get(); }); }
-        },modelUsage,constraintsForRun(run));
+        },modelUsage,constraintsForRun(run),ConversationHistory.dialogueState(run,storedHistory));
         if (!(executor instanceof ContractAwareRunExecutor contractExecutor)) {
             return new AnswerExecution(executor.execute(context), null);
         }
@@ -1611,6 +1612,7 @@ public class PokemonAgentRunService {
             case "approval.required" -> AgentEventType.APPROVAL_REQUIRED;
             case "tool.started" -> AgentEventType.TOOL_STARTED;
             case "tool.completed", "tool.finished", "tool.failed", "tool.rejected", "tool.deduplicated" -> AgentEventType.TOOL_FINISHED;
+            case "agent.delegation.started", "agent.delegation.completed", "agent.delegation.fallback" -> AgentEventType.ROUTE_SELECTED;
             default -> null;
         };
         if (type == null) return;
@@ -1624,6 +1626,7 @@ public class PokemonAgentRunService {
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("toolName", event.toolName());
             payload.put("governanceEventId", event.eventId());
+            if(event.eventType().startsWith("agent.delegation."))payload.put("delegationEvent",event.eventType());
             payload.putAll(event.attributes());
             // A cache hit need not emit tool.started. Keep its terminal outcome explicit.
             if (!payload.containsKey("status")) {
@@ -1732,8 +1735,8 @@ public class PokemonAgentRunService {
     }
 
     /** Persist completed attempt snapshots with the owner-scoped answer, including pre-approval model work. */
-    private List<org.springframework.ai.chat.messages.Message> historyWindow(AgentRun run,com.vio.vioaiagent.observability.ModelUsageLedger usage) {
-        var window=ConversationHistory.select(run,messageRepository.findByConversationForUser(run.conversationId(),run.userId()),contextBudgetProperties);
+    private List<org.springframework.ai.chat.messages.Message> historyWindow(AgentRun run,com.vio.vioaiagent.observability.ModelUsageLedger usage,List<ChatMessage> storedHistory) {
+        var window=ConversationHistory.select(run,storedHistory,contextBudgetProperties);
         usage.historySource(window.summary());return window.messages();
     }
 

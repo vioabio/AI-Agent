@@ -117,3 +117,9 @@ logging:
   level:
     org.springframework.ai: INFO
     com.vio.vioaiagent: DEBUG
+
+# Embedding攻略检索默认关闭。配置完整endpoint/model/key后显式构建索引；
+# 使用 VIO_GUIDE_SEMANTIC_ENABLED、VIO_GUIDE_EMBEDDING_ENDPOINT、
+# VIO_GUIDE_EMBEDDING_API_KEY、VIO_GUIDE_EMBEDDING_MODEL、
+# VIO_GUIDE_EMBEDDING_DIMENSIONS 环境变量，勿把真实Key提交到本文件。
+# 本地小语料存SQLite；独立的生产pgvector表仍须遵守其1536维迁移约束。

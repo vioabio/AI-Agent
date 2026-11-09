@@ -99,6 +99,8 @@ vio:
   # ==================== v1.0 灰度开关 ====================
   # 默认全部关闭；启用前必须完成对应里程碑验收并保留回退证据。
   agent:
+    guide-research:
+      enabled: ${VIO_AGENT_GUIDE_RESEARCH_ENABLED:false}
     v1:
       enabled: false
   legacy:
@@ -308,6 +310,15 @@ vio:
     enabled: ${VIO_LOCAL_GUIDES_ENABLED:true}
     location: ${VIO_LOCAL_GUIDES_LOCATION:classpath:pokemon-strategy/overview-v1.json}
     path: ${VIO_LOCAL_GUIDES_PATH:${user.dir}/.local-data/guides.sqlite}
+    semantic:
+      enabled: ${VIO_GUIDE_SEMANTIC_ENABLED:false}
+      endpoint: ${VIO_GUIDE_EMBEDDING_ENDPOINT:}
+      api-key: ${VIO_GUIDE_EMBEDDING_API_KEY:}
+      model: ${VIO_GUIDE_EMBEDDING_MODEL:}
+      dimensions: ${VIO_GUIDE_EMBEDDING_DIMENSIONS:1536}
+      path: ${VIO_GUIDE_VECTOR_PATH:${user.dir}/.local-data/guide-vectors.sqlite}
+      timeout-seconds: ${VIO_GUIDE_EMBEDDING_TIMEOUT_SECONDS:10}
+      minimum-similarity: ${VIO_GUIDE_SEMANTIC_MINIMUM_SIMILARITY:0.55}
   local-accounts:
     enabled: ${VIO_LOCAL_ACCOUNTS_ENABLED:true}
   local-history:
