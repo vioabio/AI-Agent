@@ -59,10 +59,10 @@ public final class LocalGuideSemanticSearch {
             try{load(index);state="READY_REUSED";return status(index);}catch(IllegalStateException needsBuild){/* Explicit user build may replace an incomplete/corrupt cache. */}
             var vectors=new ArrayList<double[]>();
             long deadline=System.nanoTime()+45_000_000_000L;
-            for(int offset=0;offset<source.size();offset+=16){
+            for(int offset=0;offset<source.size();offset+=GuideEmbeddingClient.MAX_BATCH_SIZE){
                 if(Thread.currentThread().isInterrupted())throw new IllegalStateException("EMBEDDING_CANCELLED");
                 if(System.nanoTime()>deadline)throw new IllegalStateException("CORPUS_SIZE_LIMIT");
-                vectors.addAll(client.embed(source.subList(offset,Math.min(offset+16,source.size())).stream().map(s->s.view().sourceTitle()+"\n"+s.view().chunk().content()).toList()));
+                vectors.addAll(client.embed(source.subList(offset,Math.min(offset+GuideEmbeddingClient.MAX_BATCH_SIZE,source.size())).stream().map(s->s.view().sourceTitle()+"\n"+s.view().chunk().content()).toList()));
             }
             // Check the canonical index has not changed while external batches were running.
             index.embeddingSources();database();String key=key(index);

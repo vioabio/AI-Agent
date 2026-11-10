@@ -16,6 +16,7 @@ class LocalGuideSemanticSearchTest {
     @TempDir Path dir;
     final ObjectMapper json=new ObjectMapper();
     final AtomicInteger calls=new AtomicInteger();
+    final List<Integer> batchSizes=Collections.synchronizedList(new ArrayList<>());
     HttpServer server;
     String endpoint;
     volatile String mode="OK";
@@ -23,6 +24,8 @@ class LocalGuideSemanticSearchTest {
         server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
         server.createContext("/embeddings",exchange->{
             calls.incrementAndGet();var request=json.readTree(exchange.getRequestBody());
+            batchSizes.add(request.path("input").size());
+            if(mode.equals("BATCH_LIMIT")&&request.path("input").size()>8){exchange.sendResponseHeaders(413,-1);exchange.close();return;}
             if(mode.equals("FAIL")){exchange.sendResponseHeaders(503,-1);exchange.close();return;}
             var root=json.createObjectNode().put("model",mode.equals("MODEL")?"other-model":request.path("model").asText());var data=root.putArray("data");
             for(int n=request.path("input").size()-1;n>=0;n--){String text=request.path("input").get(n).asText();var row=data.addObject().put("index",mode.equals("DUPLICATE")?0:n);var vector=row.putArray("embedding");
@@ -35,6 +38,23 @@ class LocalGuideSemanticSearchTest {
     LocalGuideSearch.Document doc(String id,String text){return new LocalGuideSearch.Document(id,"资料说明","pokemon-scarlet-violet","索引","VIO project","2026-10-01","",text);}
     SqliteGuideKnowledgeRetriever index(List<LocalGuideSearch.Document> docs){return new SqliteGuideKnowledgeRetriever(json,docs,dir.resolve("source.sqlite").toString());}
     KnowledgeRetrievalQuery query(String text){return new KnowledgeRetrievalQuery(text,"zh-CN","pokemon-scarlet-violet","casual-singles","casual-v1",5);}
+
+    @Test void buildSplitsSeventeenChunksIntoEightEightAndOne(){
+        mode="BATCH_LIMIT";
+        var docs=new ArrayList<LocalGuideSearch.Document>();
+        for(int i=0;i<17;i++)docs.add(doc("apple-"+i,"苹果培养资料第"+i+"条。"));
+        var source=index(docs);var search=new LocalGuideSemanticSearch(properties("fixture-model"));
+        var status=search.build(source);
+        assertTrue(status.ready());assertEquals(17,status.indexedChunks());
+        assertEquals(List.of(8,8,1),batchSizes);assertEquals(3,calls.get());
+    }
+    @Test void clientAcceptsEightAndRejectsNineBeforeSending(){
+        var client=new GuideEmbeddingClient(properties("fixture-model"));
+        assertThrows(IllegalArgumentException.class,()->client.embed(Collections.nCopies(9,"苹果资料。")));
+        assertEquals(0,calls.get());
+        assertEquals(8,client.embed(Collections.nCopies(8,"苹果资料。")).size());
+        assertEquals(List.of(8),batchSizes);
+    }
 
     @Test void explicitBuildEnablesParaphraseRetrievalWithCanonicalCitationAndPersistentReuse(){
         var source=index(List.of(doc("apple","苹果培养资料。"),doc("banana","香蕉资料。")));var search=new LocalGuideSemanticSearch(properties("fixture-model"));

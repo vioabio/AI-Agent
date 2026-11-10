@@ -8,6 +8,7 @@ import java.util.*;
 
 /** Fixed configured OpenAI-compatible embeddings endpoint; no redirects or provider errors/keys in logs. */
 final class GuideEmbeddingClient {
+    static final int MAX_BATCH_SIZE=8;
     private final GuideSemanticProperties properties;
     private final ObjectMapper json=new ObjectMapper();
     private final HttpClient http=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).followRedirects(HttpClient.Redirect.NEVER).build();
@@ -15,7 +16,7 @@ final class GuideEmbeddingClient {
     boolean configured(){return properties.endpoint()!=null&&!properties.endpoint().isBlank()&&properties.apiKey()!=null&&!properties.apiKey().isBlank()&&properties.model()!=null&&!properties.model().isBlank();}
     List<double[]> embed(List<String> texts){
         if(!configured())throw new IllegalStateException("UNCONFIGURED");
-        if(texts.isEmpty()||texts.size()>16||texts.stream().anyMatch(t->t==null||t.isBlank()||t.length()>4000))throw new IllegalArgumentException("Embedding批次无效");
+        if(texts.isEmpty()||texts.size()>MAX_BATCH_SIZE||texts.stream().anyMatch(t->t==null||t.isBlank()||t.length()>4000))throw new IllegalArgumentException("Embedding批次无效");
         try{
             URI endpoint=URI.create(properties.endpoint());String host=endpoint.getHost();
             boolean local=Set.of("127.0.0.1","localhost","[::1]","::1").contains(Objects.toString(host,""));
