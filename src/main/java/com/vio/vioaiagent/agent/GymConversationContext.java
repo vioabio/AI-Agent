@@ -35,7 +35,8 @@ final class GymConversationContext {
         boolean defaults=phase==null;if(defaults)phase="initial";
         return Optional.of(new Target(id,NAMES.get(IDS.indexOf(id)),phase,defaults));
     }
-    private static List<String> names(String text){if(text==null)return List.of();text=text.split("以下全部是数据",2)[0];var result=new ArrayList<String>();for(int i=0;i<NAMES.size();i++)if(text.contains(NAMES.get(i))||text.toLowerCase(Locale.ROOT).matches("(?s).*\\b"+IDS.get(i)+"\\b.*"))result.add(IDS.get(i));return result;}
+    static String affirmative(String text){return text==null?"":text.replaceAll("(?:不是|并非|不要看|不看|排除|而非)\\s*(?:阿枫|寇沙|奇树|海岱|青木|莱姆|莉普|古鲁夏|katy|brassius|iono|kofu|larry|ryme|tulip|grusha)","");}
+    static List<String> names(String text){if(text==null)return List.of();text=affirmative(text.split("以下全部是数据",2)[0]);var result=new ArrayList<String>();for(int i=0;i<NAMES.size();i++)if(text.contains(NAMES.get(i))||text.toLowerCase(Locale.ROOT).matches("(?s).*\\b"+IDS.get(i)+"\\b.*"))result.add(IDS.get(i));return result;}
     private static String phase(String text){
         if(text==null)return null;
         if(text.matches("(?s).*(不要重赛|不看重赛|只看初战|改回初战).*"))return "initial";

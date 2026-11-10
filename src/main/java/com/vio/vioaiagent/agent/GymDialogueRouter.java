@@ -19,7 +19,7 @@ public final class GymDialogueRouter {
             }
             response=GymCatalogAnswer.reply(question,plan.gameReleaseId(),GymOrdinalReference.displayedOrder(context.dialogueHistory()));
         } else if (plan.intent() == GymTurnPlan.Intent.SAVED_TEAM_ANALYSIS) {
-            response = SavedGymQuestionRoute.reply(context, tools);
+            response = SavedGymQuestionRoute.reply(context, tools,true);
         } else if (plan.intent() == GymTurnPlan.Intent.RECOMMEND_TEAM || plan.intent() == GymTurnPlan.Intent.GENERAL_ADVICE) {
             if (plan.target().isEmpty()) return Optional.of("你想为哪位馆主推荐队伍或制定应对策略？请告诉我馆主名字；已经保存的队伍只需提供名称，不必重填配置。");
             response = plan.intent()==GymTurnPlan.Intent.RECOMMEND_TEAM

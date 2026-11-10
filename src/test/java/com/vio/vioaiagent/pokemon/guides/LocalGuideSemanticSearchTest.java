@@ -80,7 +80,7 @@ class LocalGuideSemanticSearchTest {
     }
     @Test void providerFailureFallsBackWithoutLeakingTheProviderResponse(){
         var source=index(List.of(doc("apple","苹果培养资料。")));var search=new LocalGuideSemanticSearch(properties("fixture-model"));search.build(source);mode="FAIL";
-        assertEquals(source.retrieve(query("苹果")),search.retrieve(query("苹果"),source));assertEquals("PROVIDER_ERROR",search.status(source).state());assertEquals("BM25",search.status(source).mode());
+        assertEquals(source.retrieve(query("苹果")),search.retrieve(query("苹果"),source));assertEquals("PROVIDER_HTTP_503",search.status(source).state());assertEquals("BM25",search.status(source).mode());
     }
     @Test void invalidBatchesNeverPublishAnIndexAndUnconfiguredDoesNotCallTheProvider(){
         var source=index(List.of(doc("apple","苹果资料。"),doc("banana","香蕉资料。")));

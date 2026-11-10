@@ -114,4 +114,20 @@ class GymMultiTurnAcceptanceTest {
         assertFalse(answer.contains("轻身鳕")); assertFalse(answer.contains("| 馆主 |"));
         assertTrue(answer.contains("顺序") || answer.contains("名单") || answer.contains("名字"));
     }
+    @Test void originalFailedTacticalFollowupsReadTheSavedTeamWithoutFreeMechanics() {
+        ask("朱紫有哪些道馆馆主？请编号列出。",false);
+        ask("看看你刚才列表中第四位馆主的队伍。",false);
+        ask("我的 test1 队伍能应对这位馆主吗？",false);
+        String first=ask("根据我实际保存的招式，建议怎么出招？",false);
+        assertTrue(first.contains("已读取队伍：test1"));assertTrue(first.contains("海岱初战"));assertTrue(first.contains("燕返 / 重踏"));
+        String sixth=ask("再看第六位馆主，需要调整哪些成员？",false);
+        assertTrue(sixth.contains("莱姆初战"));assertTrue(sixth.contains("不足两名"));assertFalse(sixth.contains("共有 **8"));
+        var beforeStatus=teams.snapshotForOwner(team.id(),"owner-a");
+        String status=ask("你刚才说的调整已经保存到我的队伍了吗？",false);
+        assertTrue(status.contains("本次没有执行保存或修改"));assertFalse(status.contains("没有唯一匹配"));
+        assertEquals(beforeStatus,teams.snapshotForOwner(team.id(),"owner-a"));
+        String corrected=ask("我说错了，目标是海岱，不是莱姆，还是刚才那支队伍。",false);
+        assertTrue(corrected.contains("海岱初战"));assertFalse(corrected.contains("莱姆初战"));verifyNoInteractions(model);
+    }
+
 }

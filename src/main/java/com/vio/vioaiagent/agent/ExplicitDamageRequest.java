@@ -13,17 +13,23 @@ public final class ExplicitDamageRequest {
             .enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
             .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
     private ExplicitDamageRequest() { }
+    public static final String INVALID_INPUT="计算输入缺失、无效或版本不匹配。本次未计算；请补齐明确招式及双方完整配置，并核对资料版本。不会自动补选招式、改写版本或沿用历史数值。";
+    public static boolean hasInput(String question) {
+        if(question==null||question.length()>8000)return false;
+        var marker=Pattern.compile("(?:输入数据|输入)[：:]").matcher(question);
+        if(!marker.find()||marker.start()>1000)return false;
+        String head=question.substring(0,marker.start());
+        return head.matches("(?s).*(calculateBattleDamage|伤害|重新计算|特攻努力值).*" )&&!head.matches("(?s).*(以下为资料|以下是资料|引用以下|解释以下资料|示例文本).*" );
+    }
 
     public static Optional<String> arguments(String question) {
         if (question == null || question.length() > 8000) return Optional.empty();
-        int marker = question.indexOf("输入：");
-        if (marker < 0 || marker > 250) return Optional.empty();
-        String head = question.substring(0,marker).strip();
-        if (!head.matches("^请调用\\s*calculateBattleDamage\\s*计算.*伤害.*")
-                || Pattern.compile("保存|修改|删除|预览|读取|引用|以下资料|```|[\\r\\n]").matcher(head).find())
-            return Optional.empty();
+        if(!hasInput(question))return Optional.empty();
+        var marker=Pattern.compile("(?:输入数据|输入)[：:]").matcher(question);marker.find();
+        String intent=question.substring(0,marker.start()).replaceAll("(?:不要|不)(?:修改或保存|修改|保存)(?:队伍|配置)?","");
+        if(intent.matches("(?s).*(保存|修改|删除|预览|读取|引用|以下资料|```).*"))return Optional.empty();
         try {
-            JsonNode input = JSON.readTree(question.substring(marker + 3));
+            JsonNode input = JSON.readTree(question.substring(marker.end()));
             var request = JSON.treeToValue(input, LocalDamageEngine.Request.class);
             // Requiring a lossless typed round trip rejects missing/defaulted fields,
             // unknown keys, numeric coercions and normalized conditions.

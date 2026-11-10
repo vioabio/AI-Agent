@@ -13,7 +13,7 @@ public final class DamageAnswerEvidence {
     private static final String REFERENCE_FAILURE="宝可梦参考资料暂时无法读取，本次未能生成伤害范围。请检查资料连接，或导入所需本地资料后重试。";
     public void begin(String prompt) {
         initialized = true;
-        requested = prompt.contains("calculateBattleDamage") || prompt.contains("请解释以下真实伤害")
+        requested = ExplicitDamageRequest.hasInput(prompt) || prompt.contains("calculateBattleDamage") || prompt.contains("请解释以下真实伤害")
                 || prompt.contains("请用中文解释以下真实伤害") || prompt.matches("(?s).*?(?:请|帮我)计算.{0,40}伤害.*");
     }
     public boolean initialized() { return initialized; }

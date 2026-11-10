@@ -180,7 +180,7 @@ public final class GuideAnswerEvidence {
     public Optional<String> basicFactAnswer() {
         if (question == null || question.length() > 600 || references.isEmpty() || partialReferenceFailure
                 || active() || question.contains("\n") || question.contains("```")
-                || !Pattern.compile("种族值|基础数值|图鉴属性").matcher(question).find()
+                || !Pattern.compile("种族值|基础数值|图鉴属性|特点").matcher(question).find()
                 || Pattern.compile("培养|建议|搭配|攻略|配招|努力值|个体值|计算|伤害|对比|比较|克制|弱点|特性|招式|保存|修改|队伍").matcher(question).find())
             return Optional.empty();
         String lower = question.toLowerCase(Locale.ROOT);
@@ -218,6 +218,8 @@ public final class GuideAnswerEvidence {
                 +"\n这些不是同等级的实际速度，不能据此保证实战先手；本次未核对特性、招式或机制，不补充相关断言。\n");
     }
     public String verifiedAnswer(boolean includeReferences) {
+        if(question.matches("(?s).*(本地|原文).*" )&&question.matches("(?s).*(当前|月份|本月).*" )&&question.matches("(?s).*(最强|热门|胜率).*"))
+            return "本次检索到的本地攻略没有提供可核验的当前月份完整队伍与胜率数据，不能据此列出实时最强阵容。通用培养或伤害说明不支持这种结论。需要带日期、赛制和完整配置的赛事或样例来源；本次不把无关原文当作答案。";
         if(teamBuildChecks.attempted()||TeamBuildAnswerEvidence.requested(question))return teamBuildChecks.summary(question);
         String prefix = includeReferences ? referenceSummary() : "";
         if (partialReferenceFailure) prefix += "### 资料读取提醒\n本次有资料调用失败或未通过校验；以下仅展示已核对的结果，未取得的机制信息不作确认。\n\n";

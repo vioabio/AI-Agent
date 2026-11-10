@@ -10,11 +10,14 @@ public final class SavedGymQuestionRoute {
     private static final ObjectMapper JSON=new ObjectMapper();
     private SavedGymQuestionRoute() { }
     public static Optional<String> reply(AgentRunContext context,ToolCallback[] tools){
+        return reply(context,tools,false);
+    }
+    static Optional<String> reply(AgentRunContext context,ToolCallback[] tools,boolean contextual){
         String question=context.run().prompt();
-        if(!"pokemon-scarlet-violet".equals(context.run().gameReleaseId())||!GymConversationContext.savedTeamRequest(question))return Optional.empty();
+        if(!"pokemon-scarlet-violet".equals(context.run().gameReleaseId())||!contextual&&!GymConversationContext.savedTeamRequest(question))return Optional.empty();
         if(question.matches("(?s).*(帮我保存|保存修改|直接保存|确认修改|应用修改|替换成员).*"))return Optional.empty();
         var target=GymConversationContext.resolve(question,context.dialogueHistory());
-        if(!GymQuestionPolicy.matches(question)&&!(question.matches("(?s).*(应对|对付|挑战|这个对手).*")&&target.isPresent()))return Optional.empty();
+        if(!contextual&&!GymQuestionPolicy.matches(question)&&!(question.matches("(?s).*(应对|对付|挑战|这个对手).*")&&target.isPresent()))return Optional.empty();
         if(target.isEmpty())return Optional.of("你是在请求分析已保存队伍。当前没有唯一确认的馆主，请告诉我是阿枫、奇树等哪一位，以及初战还是视察重赛；无需重新手填已经保存的成员。");
         try{
             var listed=call(tools,"listCurrentTeams","{}");if(listed.startsWith("[tool."))return Optional.of("未能读取当前账号的已保存队伍，请检查登录状态后重试；本次未用聊天内容猜测队伍。");
@@ -23,6 +26,7 @@ public final class SavedGymQuestionRoute {
             var id=java.util.regex.Pattern.compile("(?i)(?:teamId\\s*[=:：]\\s*|队伍(?:编号|ID|#)\\s*[:：=]?\\s*)([0-9]+)").matcher(question);
             Long explicit=id.find()?Long.parseLong(id.group(1)):null;
             for(var team:teams){String name=team.path("name").asText();boolean selected=explicit!=null?team.path("id").asLong()==explicit:!name.isBlank()&&java.util.regex.Pattern.compile("(?i)(?<![a-z0-9_-])"+java.util.regex.Pattern.quote(name)+"(?![a-z0-9_-])").matcher(question).find();if(selected)matches.add(team);}
+            if(matches.isEmpty()&&explicit==null&&contextual&&!GymConversationContext.savedTeamRequest(question))OwnedTeamReadRoute.select(teams,question,context.dialogueHistory(),true).ifPresent(matches::add);
             if(matches.size()!=1){var names=new ArrayList<String>();teams.forEach(t->names.add(safe(t.path("name").asText())+"（编号"+t.path("id").asLong()+"）"));return Optional.of(matches.isEmpty()?"当前账号检索到的队伍中没有唯一匹配你指定的队伍。请确认队伍名称或编号。"+(names.isEmpty()?" 当前还没有已保存队伍。":" 可选："+String.join("、",names)):"有多支匹配的队伍，请在队伍页选择具体编号后再分析，避免读取错误配置。");}
             var args=JSON.createObjectNode().put("teamId",matches.getFirst().path("id").asLong()).put("gymId",target.get().gymId()).put("phase",target.get().phase());
             String result=call(tools,"analyzeSavedTeamForGym",args.toString());
@@ -36,6 +40,7 @@ public final class SavedGymQuestionRoute {
             text.append("\n**能否应对：** ").append(strong?"已保存招式对每位对手都有克制候选，具备属性覆盖条件。":covered?"已保存招式有可命中的覆盖候选，但部分对手缺少克制招式。":"当前保存配置还有无法评估或无法命中的对手，请先补齐下面的缺口。").append("这不是必胜或一击击倒保证。\n");
             String advice=evidence.adviceOnly();for(var foe:report.path("gym").path("opponents"))advice=advice.replace(foe.path("name").asText(),foe.path("nameZh").asText(foe.path("name").asText()));
             text.append("\n").append(advice);
+            if(report.path("gym").path("battleMode").asText().equals("Doubles")&&analysis.path("members").size()<2)text.append("\n当前保存队伍不足两名成员，无法组成双打的两位首发。调整时优先补足第二位搭档，再核对两位成员的角色与招式；没有候选资料和资源条件时不编造具体新成员。\n");
             text.append("\n出招使用建议：先从上面覆盖候选中选择首发与招式，遇到免疫或不利效果时再换候选。只建议已保存的招式，不自行补造招式机、捕获目标或新持物。当前徽章、获得等级和剧情进度未确认，不能据此保证服从、已解锁重赛或必胜；需要精确伤害时再明确状态与NPC数值假设。");
             return Optional.of(text.toString());
         }catch(Exception failure){return Optional.of("本次未能读取并核对指定队伍与馆主，未生成出招结论或保存修改。请确认登录账号、队伍名称及所选游戏版本后重试。");}

@@ -135,8 +135,15 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
     private String executeLegacy(AgentRunContext context) {
         AgentRun run = context.run();
         if(!evaluationPolicy.active()){
+            var saveStatus=com.vio.vioaiagent.agent.OwnedTeamReadRoute.saveStatusReply(run.prompt());
+            if(saveStatus.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(saveStatus.get());return saveStatus.get();}
+            var damageReply=com.vio.vioaiagent.agent.DamageDialogueRoute.reply(context,allTools);
+            if(damageReply.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(damageReply.get());return damageReply.get();}
+            if(run.prompt().matches("(?s).*这一轮仅回复[“\"]收到[”\"].*")){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept("收到");return "收到";}
             var gymReply=com.vio.vioaiagent.agent.GymDialogueRouter.reply(context,allTools);
             if(gymReply.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(gymReply.get());return gymReply.get();}
+            var ownedReply=com.vio.vioaiagent.agent.OwnedTeamReadRoute.reply(context,allTools);
+            if(ownedReply.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(ownedReply.get());return ownedReply.get();}
         }
         if(teamWorkflow!=null && !evaluationPolicy.active()) {
             String confirmed=com.vio.vioaiagent.pokemon.team.TeamChangePresentation.finishIfPending(teamWorkflow,context);

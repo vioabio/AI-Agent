@@ -87,7 +87,7 @@ class SourcedAnswerEvidenceTest {
         var evidence = new SavedTeamAnswerEvidence(); evidence.begin("还没定对手，请说明缺哪些条件");
         evidence.observe("readCurrentTeam", snapshot("hardy", true));
         assertTrue(evidence.ownsClarification()); String answer = evidence.verifiedClarification();
-        assertTrue(answer.contains("勤奋（hardy）")); assertFalse(answer.contains("固执"));
+        assertTrue(answer.contains("勤奋")); assertFalse(answer.contains("固执"));
         assertTrue(answer.contains("| 杰尼龟 | 50 |")); assertTrue(answer.contains("| 杰尼龟 | 44 | 48 | 65 | 50 | 64 | 43 |"));
         assertTrue(answer.contains("种族值与等级无关")); assertFalse(answer.contains("种族值（50级）"));
         assertTrue(answer.contains("招式、特性、道具未明确"));
@@ -120,9 +120,9 @@ class SourcedAnswerEvidenceTest {
         assertFalse(complete.ownsClarification());
     }
     @Test void unknownChineseNatureNameFallsBackToStoredSlugWithoutInventingEffects() {
-        assertEquals("勤奋（hardy）", SavedTeamAnswerEvidence.natureName("hardy"));
-        assertEquals("固执（adamant）", SavedTeamAnswerEvidence.natureName("adamant"));
-        assertEquals("calm", SavedTeamAnswerEvidence.natureName("calm"));
+        assertEquals("勤奋", SavedTeamAnswerEvidence.natureName("hardy"));
+        assertEquals("固执", SavedTeamAnswerEvidence.natureName("adamant"));
+        assertEquals("温和", SavedTeamAnswerEvidence.natureName("calm"));
     }
     @Test void guideAndSavedClarificationNeverInvokeOrStreamAnUnverifiedFinalGeneration() throws Exception {
         for (boolean guide : List.of(true,false)) for (boolean streaming : List.of(true,false)) {
@@ -141,7 +141,7 @@ class SourcedAnswerEvidenceTest {
             agent.run(guide ? "检索组队攻略" : "还没定对手，先说明缺哪些条件");
             String answer = agent.getFinalAnswer();
             assertFalse(answer.contains("猫老大")); assertFalse(answer.contains("固执性格")); assertFalse(answer.contains("种族值（50级）"));
-            assertTrue(answer.contains(guide ? "原文节选" : "勤奋（hardy）"));
+            assertTrue(answer.contains(guide ? "原文节选" : "勤奋"));
             if(streaming) { assertTrue(chunks.size()>1); assertEquals(String.join("", chunks), answer); }
             verify(model,times(2)).call(any(Prompt.class)); verify(model,never()).stream(any(Prompt.class));
         }
@@ -229,7 +229,7 @@ class SourcedAnswerEvidenceTest {
         var callback = org.springframework.ai.support.ToolCallbacks.from(new ReadToolFixture())[0];
         var evidence = new SavedTeamAnswerEvidence(); evidence.begin("先说明缺哪些条件");
         evidence.observe(callback.getToolDefinition().name(), callback.call("{}"));
-        assertTrue(evidence.verifiedClarification().contains("勤奋（hardy）"));
+        assertTrue(evidence.verifiedClarification().contains("勤奋"));
         assertTrue(evidence.verifiedClarification().contains("招式、特性、道具未明确"));
     }
     @Test void incompleteBuildProjectionNeverInterruptsAnActualApprovalPause() throws Exception {
@@ -264,7 +264,7 @@ class SourcedAnswerEvidenceTest {
         var agent=new ToolCallAgent(new ToolCallback[0]); agent.setSystemPrompt("Be accurate"); agent.setChatClient(ChatClient.builder(model).build());
         agent.setSavedTeamAnswerEvidence(new SavedTeamAnswerEvidence()); agent.setToolCallingManager(manager);
         List<String> chunks=new ArrayList<>(); agent.setAnswerDeltaSink(chunks::add); agent.run("查看当前已保存配置");
-        assertTrue(agent.getFinalAnswer().contains("勤奋（hardy）"));
+        assertTrue(agent.getFinalAnswer().contains("勤奋"));
         assertFalse(agent.getFinalAnswer().contains("固执")); assertFalse(agent.getFinalAnswer().contains("种族值（50级）"));
         assertEquals(String.join("",chunks),agent.getFinalAnswer()); verify(model,never()).stream(any(Prompt.class));
     }

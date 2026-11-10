@@ -40,7 +40,7 @@ public class LocalRuntimeController {
                 || model.getDefaultOptions().getModel() == null ? "unconfigured" : model.getDefaultOptions().getModel();
         Map<String, String> hashes = new LinkedHashMap<>();
         for (Class<?> implementation : List.of(VioManus.class, ToolCallAgent.class, AnswerPresentation.class, CapabilityCatalog.class, AccountScopeReply.class, TeamAnswerEvidence.class, DamageAnswerEvidence.class,
-                GuideAnswerEvidence.class, GuideResearchAgent.class, SpecialistAgentCoordinator.class, SpecialistRole.class, SavedTeamAnswerEvidence.class, EvidenceText.class, TeamReferenceTools.class,
+                GuideAnswerEvidence.class, DamageDialogueRoute.class, OwnedTeamReadRoute.class, GuideResearchAgent.class, SpecialistAgentCoordinator.class, SpecialistRole.class, SavedTeamAnswerEvidence.class, EvidenceText.class, TeamReferenceTools.class,
                 com.vio.vioaiagent.pokemon.team.TeamWorkflowService.class, com.vio.vioaiagent.run.RunMutationBoundary.class,
                 com.vio.vioaiagent.pokemon.team.TeamChangePresentation.class, com.vio.vioaiagent.pokemon.team.TeamWorkflowController.class,
                 com.vio.vioaiagent.config.EvaluationToolPolicy.class,

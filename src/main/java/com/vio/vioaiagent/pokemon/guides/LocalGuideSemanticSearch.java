@@ -97,6 +97,6 @@ public final class LocalGuideSemanticSearch {
             state="READY";return result.stream().sorted(Comparator.comparingDouble(RetrievedKnowledgeChunk::retrievalScore).reversed().thenComparing(h->h.view().chunk().id())).limit(query.topK()).toList();
         }catch(RuntimeException unavailable){state=safeState(unavailable);return lexical;}
     }
-    private static String safeState(RuntimeException failure){return Set.of("UNCONFIGURED","INDEX_NOT_READY","INDEX_INTEGRITY_ERROR","CORPUS_SIZE_LIMIT","EMBEDDING_CANCELLED","DIMENSION_OR_INDEX_MISMATCH","MODEL_MISMATCH","PROVIDER_ERROR","INVALID_ENDPOINT","VECTOR_STORAGE_UNAVAILABLE").contains(failure.getMessage())?failure.getMessage():"EMBEDDING_UNAVAILABLE";}
+    private static String safeState(RuntimeException failure){return failure.getMessage()!=null&&failure.getMessage().matches("PROVIDER_HTTP_[1-5][0-9]{2}")?failure.getMessage():Set.of("EMBEDDING_TIMEOUT","EMBEDDING_CONNECTION_FAILED","EMBEDDING_IO_ERROR","UNCONFIGURED","INDEX_NOT_READY","INDEX_INTEGRITY_ERROR","CORPUS_SIZE_LIMIT","EMBEDDING_CANCELLED","DIMENSION_OR_INDEX_MISMATCH","MODEL_MISMATCH","PROVIDER_ERROR","INVALID_ENDPOINT","VECTOR_STORAGE_UNAVAILABLE").contains(failure.getMessage())?failure.getMessage():"EMBEDDING_UNAVAILABLE";}
     private static double cosine(double[] left,double[] right){double dot=0,a=0,b=0;for(int i=0;i<left.length;i++){dot+=left[i]*right[i];a+=left[i]*left[i];b+=right[i]*right[i];}return dot/Math.sqrt(a*b);}
 }

@@ -16,9 +16,13 @@ public record GymTurnPlan(String ownerId, String conversationId, String gameRele
         Intent intent = classify(run.prompt());
         // A historic gym must not capture unrelated team/encyclopedia requests.
         String question = run.prompt();
+        if(question.matches("(?s).*(仅回复|只回复|先不聊队伍|先不讨论队伍).*"))return new GymTurnPlan(run.userId(),run.conversationId(),run.gameReleaseId(),Intent.OTHER,target);
+        boolean savedContext=context.dialogueHistory().stream().filter(org.springframework.ai.chat.messages.UserMessage.class::isInstance).anyMatch(m->GymConversationContext.savedTeamRequest(m.getText()));
+        boolean tactical=question.matches("(?s).*(实际保存.{0,10}招式|现有.{0,8}(招|成员)|怎么出招|建议怎么|调整哪些成员|还是刚才那支队伍|目标是).*" );
+        if(savedContext&&target.isPresent()&&tactical)intent=Intent.SAVED_TEAM_ANALYSIS;
         boolean followup = question.matches("(?s).*((?:这个|该|这位)(?:馆主|道馆|对手)|这个队伍|这套阵容).*")
                 || question.matches("\\s*(?:那|那么)?(?:怎么打|如何应对|怎样打|重赛呢)[?？。！!\\s]*");
-        boolean domain = GymQuestionPolicy.matches(question)
+        boolean domain = savedContext&&target.isPresent()&&tactical || GymQuestionPolicy.matches(question)
                 || target.isPresent() && followup && intent != Intent.CATALOG && intent != Intent.OTHER;
         return new GymTurnPlan(run.userId(), run.conversationId(), run.gameReleaseId(),
                 domain ? intent : Intent.OTHER, target);

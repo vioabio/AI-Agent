@@ -140,6 +140,9 @@ public class ToolCallAgent extends ReActAgent {
     @Override
     public boolean think() {
         String currentQuestion = currentQuestion();
+        if(ExplicitDamageRequest.hasInput(currentQuestion)&&ExplicitDamageRequest.arguments(currentQuestion).isEmpty()){
+            finalAnswer=publishVerified(ExplicitDamageRequest.INVALID_INPUT);setState(AgentState.FINISHED);return false;
+        }
         gymMode=GymQuestionPolicy.matches(currentQuestion);
         if(gymMode){var catalog=GymCatalogAnswer.reply(currentQuestion,guideGameReleaseId);if(catalog.isPresent()){finalAnswer=publishVerified(catalog.get());setState(AgentState.FINISHED);return false;}}
         if(gymMode){var clarification=GymQuestionPolicy.clarification(currentQuestion);if(clarification.isPresent()){finalAnswer=publishVerified(clarification.get());setState(AgentState.FINISHED);return false;}}

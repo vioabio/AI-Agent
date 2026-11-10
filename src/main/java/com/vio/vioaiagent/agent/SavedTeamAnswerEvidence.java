@@ -9,7 +9,6 @@ import java.util.regex.Pattern;
 /** A missing-condition answer is a projection of a real saved snapshot. The model
  * does not translate stored nature values or relabel base stats with a level. */
 public final class SavedTeamAnswerEvidence {
-    private static final Map<String,String> NAMES = Map.of("hardy","勤奋", "modest","内敛", "timid","胆小", "adamant","固执", "jolly","爽朗", "bold","大胆");
     private static final Pattern RESERVED_FACT = Pattern.compile("性格|种族值|等级|勤奋|内敛|胆小|固执|爽朗|大胆|\\d+\\s*级|\\b(?:hardy|lonely|brave|adamant|naughty|bold|docile|relaxed|impish|lax|timid|hasty|serious|jolly|naive|modest|mild|quiet|bashful|rash|calm|gentle|sassy|careful|quirky)\\b",Pattern.CASE_INSENSITIVE);
     private final ObjectMapper mapper = new ObjectMapper().registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
     private boolean initialized, attempted;
@@ -57,7 +56,7 @@ public final class SavedTeamAnswerEvidence {
         StringBuilder text = new StringBuilder(verifiedSummary());
         text.append("\n### 还需明确\n");
         missing().forEach(line -> text.append("- ").append(line).append("\n"));
-        return text.append("\n请指定本次要计算的攻击方、对手和招式，并补齐上面未明确的项目；已有条件可以保留，无道具也请明确说明。计算前还会核对双方培养配置与场地。当前没有据此补造伤害或修改队伍。\n").toString();
+        return text.append("\n以上配置按原保存记录展示；空道具不代表已确认不携带。若要进一步讨论搭配，请明确目标对手和成员角色；只有请求精确伤害时才需要补充计算条件。本次未修改队伍。\n").toString();
     }
     public String verifiedSummary() {
         if (read == null) return "";
@@ -66,8 +65,8 @@ public final class SavedTeamAnswerEvidence {
         for (int n = 0; n < members.size(); n++) {
             var b = members.get(n).build();
             text.append("| ").append(EvidenceText.inline(read.facts().get(n).speciesNameZh())).append(" | ").append(b.level())
-                    .append(" | ").append(natureName(b.nature())).append(" | ").append(shown(String.join(" / ", b.moves())))
-                    .append(" | ").append(shown(b.ability())).append(" | ").append(shown(b.item())).append(" |\n");
+                    .append(" | ").append(natureName(b.nature())).append(" | ").append(shown(String.join(" / ", b.moves().stream().map(m->PokemonDisplayNames.label("move",m)).toList())))
+                    .append(" | ").append(PokemonDisplayNames.label("ability",b.ability())).append(" | ").append(PokemonDisplayNames.label("item",b.item())).append(" |\n");
         }
         text.append("\n### 图鉴种族值（资料事实）\n种族值与等级无关，以下不是当前等级的实际能力值。\n\n| 成员 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- |\n");
         for (var f : read.facts()) text.append("| ").append(EvidenceText.inline(f.speciesNameZh())).append(" | ").append(f.hp()).append(" | ")
@@ -94,6 +93,6 @@ public final class SavedTeamAnswerEvidence {
         }
         return lines;
     }
-    static String natureName(String slug) { return NAMES.containsKey(slug) ? NAMES.get(slug) + "（" + slug + "）" : EvidenceText.inline(slug); }
+    static String natureName(String slug) { return PokemonDisplayNames.nature(slug); }
     private static String shown(String value) { return value.isBlank() ? "未明确" : EvidenceText.inline(value); }
 }
