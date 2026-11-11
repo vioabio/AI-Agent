@@ -33,6 +33,6 @@ export function auditCorpus(corpus,workspace=root) {
 }
 if(process.argv[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
   if(process.argv.length>2)throw Error('Usage: node tools/campus/audit-s3-corpus.mjs')
-  const path=resolve(root,'src/main/resources/pokemon-guides/expanded-v1.json')
+  const path=resolve(root,'src/main/resources/pokemon-guides/expanded-v2.json')
   console.log(JSON.stringify({...auditCorpus(JSON.parse(readFileSync(path,'utf8'))),corpusSha256:frozenFileDigest(path)},null,2))
 }

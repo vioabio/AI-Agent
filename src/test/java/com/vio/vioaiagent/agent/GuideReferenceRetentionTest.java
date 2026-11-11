@@ -34,7 +34,7 @@ class GuideReferenceRetentionTest {
     }
     @Test void failureWithoutAValidReadCannotCreateMemberFactsAndResourceFailuresAreVisible() throws Exception {
         var e=evidence();e.observe("lookupPokemonReference","[tool.denied] secret-policy");e.observe("lookupPokemonResource","[tool.error] private-resource-detail");
-        String answer=e.verifiedAnswer();assertFalse(answer.contains("图鉴速览"));assertFalse(answer.contains("| 杰尼龟 |"));assertTrue(answer.contains("未取得的机制信息不作确认"));
+        String answer=e.verifiedAnswer();assertFalse(answer.contains("图鉴速览"));assertFalse(answer.contains("| 杰尼龟 |"));assertTrue(answer.contains("未取得的资料不作确认"));
         assertFalse(answer.contains("secret-policy"));assertFalse(answer.contains("private-resource-detail"));
         var good=evidence();good.observe("lookupPokemonResource","{\"kind\":\"ability\",\"dataReleaseId\":\"pokeapi-reference-v1\",\"slug\":\"torrent\"}");
         assertFalse(good.verifiedAnswer().contains("资料读取提醒"));

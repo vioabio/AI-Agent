@@ -8,6 +8,19 @@ import java.util.concurrent.Executors;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PokemonAgentRunServiceToolOutcomeTest {
+    @Test void failedCalculationPublishesFailedTerminalWithSafeMessage() {
+        var runs=new InMemoryRunRepository();var events=new InMemoryEventRepository();
+        var service=new PokemonAgentRunService(runs,events,new InMemoryConversationRepository(),new InMemoryChatMessageRepository(),
+                context->{throw new com.vio.vioaiagent.agent.DamageCalculationFailedException();},
+                Executors.newSingleThreadExecutor(),Executors.newSingleThreadScheduledExecutor());
+        try {
+            var run=service.createRun(new CreateRunCommand("owner",null,null,"fixture","sv-1","singles","rules-1","zh-CN",null,null,Duration.ofSeconds(15)));
+            var terminal=RunTestAwait.awaitTerminalEvent(events,run.runId());
+            assertEquals(AgentEventType.RUN_FAILED,terminal.type());assertEquals("DAMAGE_CALCULATION_FAILED",terminal.payload().get("errorType"));
+            assertTrue(terminal.payload().get("message").toString().contains("伤害计算失败"));
+            assertTrue(events.findAfter(run.runId(),0).stream().noneMatch(e->e.type()==AgentEventType.RUN_COMPLETED));
+        } finally {service.shutdown();}
+    }
     @Test void settledCallsWithoutStartedKeepCacheRejectionAndFailedEffectStatuses() {
         var runs=new InMemoryRunRepository();var events=new InMemoryEventRepository();
         RunExecutor executor=context->{

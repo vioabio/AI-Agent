@@ -23,7 +23,7 @@ class DeepSeekBillingProtocolTest {
             server.createContext("/chat/completions",exchange->{
                 exchange.getRequestBody().readAllBytes();String data;
                 if(stream)data="data: {\"id\":\"fixture\",\"model\":\"fixture-model\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"你好\"}}]}\n\n"
-                        +"data: {\"id\":\"fixture\",\"model\":\"fixture-model\",\"choices\":[],"+usage(malformed)+"}\n\n";
+                        +"data: {\"id\":\"fixture\",\"model\":\"fixture-model\",\"choices\":[],"+usage(malformed)+"}\n\ndata: [DONE]\n\n";
                 else data="{\"id\":\"fixture\",\"model\":\"fixture-model\",\"choices\":[{\"index\":0,\"finish_reason\":\"stop\",\"message\":{\"role\":\"assistant\",\"content\":\"你好\"}}],"+usage(malformed)+"}";
                 byte[] bytes=data.getBytes(StandardCharsets.UTF_8);exchange.getResponseHeaders().set("Content-Type",stream?"text/event-stream":"application/json");
                 exchange.sendResponseHeaders(200,bytes.length);try(var out=exchange.getResponseBody()){out.write(bytes);}

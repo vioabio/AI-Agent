@@ -1,3 +1,14 @@
+# S3 来源绑定版本说明（2026-11-10）
+
+新增 `src/main/resources/pokemon-guides/expanded-v2.json` 与 `retrieval-expanded-dev-v2.json`：复核 TeamBuild 的太晶字段扩展和 TeamWorkflowService 的提交隔离后，保留12篇原文及题目，重新绑定现有代码摘要，仍标记待人工语义复核。旧 v1 文件和其24题数据集保持冻结，不能声称旧摘要代表当前代码。
+
+- `node tools/campus/audit-s3-corpus.mjs` 现在审计 v2；随机损坏摘要及越界路径仍失败。
+- 使用新版开发题集时，隔离后端需明确指定 `--vio.local-guides.location=classpath:pokemon-guides/expanded-v2.json`，评测选择 `evaluation/campus/s3/retrieval-expanded-dev-v2.json`。正常业务默认语料不自动切换。
+- 来源回归命令 `s3-source-regression.mjs` 默认核对 v2 身份；旧观测包不能冒充新版证据，旧计划与语料仍可用于历史对照。
+- 正文未改、题目未换，因此这些仍是已知开发回归，不是新保留集。来源身份审计不代表人工策略质量验收。
+
+下面保留历史版本的执行说明；当前业务实际语料以 `/api/pokemon/guides/catalog` 返回为准。
+
 # S3 本地检索开发回归
 
 当前默认后端加载12篇扩充资料。新24题及来源登记见[第二批说明](../../../document/秋招升级/S3/来源与语料扩充_2026-10-23.md)，使用 `retrieval-expanded-dev.json` 作为命令第三个参数。以下保留原4篇/13题基线；运行旧集时需启动后端并显式设置 `--vio.local-guides.location=classpath:pokemon-guides/index.json`。评测会核对实际加载的文件摘要，拒绝混用语料。

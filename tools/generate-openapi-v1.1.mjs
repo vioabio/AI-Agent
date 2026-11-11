@@ -449,6 +449,12 @@ addOperationsPaths();
 addHealthPaths();
 addLegacyPaths();
 addLocalPokemonModules();
+// Explicit local module input: keep the reviewed import/gym schemas reproducible.
+// Never read the generated contract back into its own generator.
+const localGym = readJson('contracts/modules/local-gym-v1.1.json');
+Object.assign(schemas, localGym.schemas);
+Object.assign(candidate.paths, localGym.paths);
+schemas.TeamBuild.properties.teraType = localGym.teraType;
 
 // Marker consumed by local tooling/review; it is not a secret or runtime flag.
 candidate['x-generated-from'] = baselinePath.replaceAll('\\', '/');

@@ -94,7 +94,7 @@ class SpeciesGuideRetrievalTest {
         evidence.observe("lookupPokemonResource","[tool.error] unavailable","{\"kind\":\"ability\",\"slug\":\"snow-cloak\",\"dataReleaseId\":\"pokeapi-reference-v1\"}");
         assertFalse(evidence.overviewReady(question));
         evidence.observe("lookupPokemonResource","[tool.error] unavailable","{\"kind\":\"move\",\"slug\":\"ice-beam\",\"dataReleaseId\":\"pokeapi-reference-v1\"}");
-        assertTrue(evidence.overviewReady(question));assertTrue(evidence.overviewAnswer().contains("未取得的机制信息不作确认"));
+        assertTrue(evidence.overviewReady(question));assertTrue(evidence.overviewAnswer().contains("未取得的资料不作确认"));
         assertTrue(evidence.overviewAnswer().contains("特性：未取得"));assertTrue(evidence.overviewAnswer().contains("招式：未取得"));
     }
 }

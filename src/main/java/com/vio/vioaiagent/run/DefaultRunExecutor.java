@@ -135,6 +135,12 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
     private String executeLegacy(AgentRunContext context) {
         AgentRun run = context.run();
         if(!evaluationPolicy.active()){
+            var types=com.vio.vioaiagent.agent.TypeMatchupReply.reply(run.prompt());
+            if(types.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(types.get());return types.get();}
+            var training=com.vio.vioaiagent.agent.TrainingMechanicsReply.reply(run.prompt());
+            if(training.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(training.get());return training.get();}
+            var localGuide=com.vio.vioaiagent.agent.LocalGuideOnlyRoute.reply(context,allTools);
+            if(localGuide.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(localGuide.get());return localGuide.get();}
             var saveStatus=com.vio.vioaiagent.agent.OwnedTeamReadRoute.saveStatusReply(run.prompt());
             if(saveStatus.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(saveStatus.get());return saveStatus.get();}
             var damageReply=com.vio.vioaiagent.agent.DamageDialogueRoute.reply(context,allTools);
@@ -191,6 +197,7 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
             agent.setAnswerDeltaSink(answerDeltaSink);
             agent.setMessageList(new java.util.ArrayList<>(context.history()));
             String transcript = agent.run(prompt);
+            if(agent.calculationFailed())throw new com.vio.vioaiagent.agent.DamageCalculationFailedException();
             if(agent.isProgramOnlyPreview() || agent.isProgramOnlyTrends()) context.modelUsage().noModelCalls();
             budget.throwIfBlocked();
             context.modelUsage().checkTaskBudget();
@@ -220,6 +227,7 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
             agent.setResponseStyle(context.constraints().responseStyle());
             agent.setMessageList(new java.util.ArrayList<>(context.history()));
             String transcript = agent.run(groundedPrompt);
+            if(agent.calculationFailed())throw new com.vio.vioaiagent.agent.DamageCalculationFailedException();
             budget.throwIfBlocked();
             context.modelUsage().checkTaskBudget();
             return agent.getFinalAnswer() == null ? transcript : agent.getFinalAnswer();

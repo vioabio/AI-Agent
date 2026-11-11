@@ -1,0 +1,275 @@
+{
+  "datasetId": "campus-s3-expanded-dev-v2",
+  "split": "development-only",
+  "labelOrigin": "AI-assisted source-linked seeds; independent human relevance review pending",
+  "corpusFile": "src/main/resources/pokemon-guides/expanded-v2.json",
+  "corpusSha256": "55d7ae2c06870db3efa8b3c216f6056e6a8497f5bee96aea30d01d324edfea68",
+  "defaults": {
+    "gameReleaseId": "pokemon-scarlet-violet",
+    "language": "zh-CN",
+    "battleFormatId": "casual-singles",
+    "rulesetVersionId": "casual-v1"
+  },
+  "cases": [
+    {
+      "id": "S3X-R01",
+      "query": "图鉴里的formId、speciesId和全国编号分别指什么？",
+      "relevantDocumentIds": [
+        "species-form-identity-v1"
+      ],
+      "relevantEvidence": [
+        {
+          "documentId": "species-form-identity-v1",
+          "contains": "formId来自宝可梦资源编号"
+        }
+      ]
+    },
+    {
+      "id": "S3X-R02",
+      "query": "地区形态和同名的成员应该先确认什么？",
+      "relevantDocumentIds": [
+        "species-form-identity-v1"
+      ],
+      "relevantEvidence": [
+        {
+          "documentId": "species-form-identity-v1",
+          "contains": "遇到地区形态或同名对象时"
+        }
+      ]
+    },
+    {
+      "id": "S3X-R03",
+      "query": "朱紫招式候选是怎样筛出来的？空列表说明没招式吗？",
+      "relevantDocumentIds": [
+        "move-version-and-identifiers-v1"
+      ],
+      "relevantEvidence": [
+        {
+          "documentId": "move-version-and-identifiers-v1",
+          "contains": "只收集scarlet-violet对应条目"
+        }
+      ]
+    },
+    {
+      "id": "S3X-R04",
+      "query": "中文招式名称能直接猜成计算用的slug吗？",
+      "relevantDocumentIds": [
+        "move-version-and-identifiers-v1"
+      ],
+      "relevantEvidence": [
+        {
+          "documentId": "move-version-and-identifiers-v1",
+          "contains": "不要由中文名称猜造标识"
+        }
+      ]
+    },
+    {
+      "id": "S3X-R05",
+      "query": "为什么图鉴种族值不能叫50级的实际能力？",
+      "relevantDocumentIds": [
+        "build-values-and-defaults-v1"
+      ],
+      "relevantEvidence": [
+        {
+          "documentId": "build-values-and-defaults-v1",
+          "contains": "不能标成50级或100级的实际能力"
+        }
+      ]
+    },
+    {
+      "id": "S3X-R06",
+      "query": "没有填等级、性格和个体值时用了什么默认配置？",
+      "relevantDocumentIds": [
+        "build-values-and-defaults-v1"
+      ],
+      "relevantEvidence": [
+        {
+          "documentId": "build-values-and-defaults-v1",
+          "contains": "等级50、性格hardy、努力值全0、个体值全31"
+        }
+      ]
+    },
+    {
+      "id": "S3X-R07",
+      "query": "只有一支队伍和属性倍率能确定具体伤害吗？",
+      "relevantDocumentIds": [
+        "damage-request-checklist-v1"
+      ],
+      "relevantEvidence": [
+        {
+          "documentId": "damage-request-checklist-v1",
+          "contains": "不能确定实际伤害"
+        }
+      ]
+    },
+    {
+      "id": "S3X-R08",
+      "query": "要算对手受到的伤害，双方的配置需要问哪些条件？",
+      "relevantDocumentIds": [
+        "damage-request-checklist-v1"
+      ],
+      "relevantEvidence": [
+        {
+          "documentId": "damage-request-checklist-v1",
+          "contains": "双方等级、性格、努力值、个体值、特性、道具"
+        }
+      ]
+    },
+    {
+      "id": "S3X-R09",
+      "query": "天气和场地没提供，结果应怎样解读？",
+      "relevantDocumentIds": [
+        "field-settings-and-unsupported-v1"
+      ],
+      "relevantEvidence": [
+        {
+          "documentId": "field-settings-and-unsupported-v1",
+          "contains": "以空值回读"
+        }
+      ]
+    },
+    {
+      "id": "S3X-R10",
+      "query": "太晶、能力强化、墙和入场伤害是否已经被桥接计算？",
+      "relevantDocumentIds": [
+        "field-settings-and-unsupported-v1"
+      ],
+      "relevantEvidence": [
+        {
+          "documentId": "field-settings-and-unsupported-v1",
+          "contains": "没有表达能力强化、异常状态、墙、入场伤害或太晶条件"
+        }
+      ]
+    },
+    {
+      "id": "S3X-R11",
+      "query": "变化招式为何不能算直接伤害，是没有战术价值吗？",
+      "relevantDocumentIds": [
+        "status-moves-and-output-v1"
+      ],
+      "relevantEvidence": [
+        {
+          "documentId": "status-moves-and-output-v1",
+          "contains": "不表示该招式没有战术价值"
+        }
+      ]
+    },
+    {
+      "id": "S3X-R12",
+      "query": "只挑最高伤害能说明稳定击倒或胜率吗？",
+      "relevantDocumentIds": [
+        "status-moves-and-output-v1"
+      ],
+      "relevantEvidence": [
+        {
+          "documentId": "status-moves-and-output-v1",
+          "contains": "不是只挑最大值宣称稳定击倒"
+        }
+      ]
+    },
+    {
+      "id": "S3X-R13",
+      "query": "特性候选是不是已经选好的特性？",
+      "relevantDocumentIds": [
+        "ability-item-traceability-v1"
+      ],
+      "relevantEvidence": [
+        {
+          "documentId": "ability-item-traceability-v1",
+          "contains": "候选只说明资料列出这个名称"
+        }
+      ]
+    },
+    {
+      "id": "S3X-R14",
+      "query": "道具名称验证和计算assumptions回读应该怎样核对？",
+      "relevantDocumentIds": [
+        "ability-item-traceability-v1"
+      ],
+      "relevantEvidence": [
+        {
+          "documentId": "ability-item-traceability-v1",
+          "contains": "核对assumptions中实际使用的名称"
+        }
+      ]
+    },
+    {
+      "id": "S3X-R15",
+      "query": "AI给出队伍修改建议后是否就已经保存了？",
+      "relevantDocumentIds": [
+        "team-change-confirmation-v1"
+      ],
+      "relevantEvidence": [
+        {
+          "documentId": "team-change-confirmation-v1",
+          "contains": "用户确认之前不写入保存队伍"
+        }
+      ]
+    },
+    {
+      "id": "S3X-R16",
+      "query": "队伍编辑区已经保存了新配置，旧预览能覆盖吗？",
+      "relevantDocumentIds": [
+        "team-change-confirmation-v1"
+      ],
+      "relevantEvidence": [
+        {
+          "documentId": "team-change-confirmation-v1",
+          "contains": "旧预览不能覆盖新状态"
+        }
+      ]
+    },
+    {
+      "id": "S3X-N01",
+      "query": "火星种菜完全无关问题",
+      "relevantDocumentIds": []
+    },
+    {
+      "id": "S3X-N02",
+      "query": "努力值性格",
+      "scope": {
+        "battleFormatId": "vgc"
+      },
+      "relevantDocumentIds": []
+    },
+    {
+      "id": "S3X-N03",
+      "query": "努力值性格",
+      "scope": {
+        "language": "en-US"
+      },
+      "relevantDocumentIds": []
+    },
+    {
+      "id": "S3X-N04",
+      "query": "努力值性格",
+      "scope": {
+        "rulesetVersionId": "other"
+      },
+      "relevantDocumentIds": []
+    },
+    {
+      "id": "S3X-N05",
+      "query": "努力值性格",
+      "scope": {
+        "gameReleaseId": "other"
+      },
+      "relevantDocumentIds": []
+    },
+    {
+      "id": "S3X-N06",
+      "query": "zzzxxyyqqq",
+      "relevantDocumentIds": []
+    },
+    {
+      "id": "S3X-N07",
+      "query": "烘焙蛋糕配方",
+      "relevantDocumentIds": []
+    },
+    {
+      "id": "S3X-N08",
+      "query": "深海采矿设备",
+      "relevantDocumentIds": []
+    }
+  ]
+}

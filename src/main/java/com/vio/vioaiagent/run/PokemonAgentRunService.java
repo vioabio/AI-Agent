@@ -1702,7 +1702,9 @@ public class PokemonAgentRunService {
                     : ex instanceof RunDispatchException ? "RUN_EXECUTION_UNAVAILABLE"
                     : ex instanceof RunAuthorizationExpiredException ? "RUN_AUTHORIZATION_EXPIRED"
                     : ex.getClass().getSimpleName();
-            emitLocked(run, AgentEventType.RUN_FAILED, Map.of("errorType", errorType));
+            if (ex instanceof com.vio.vioaiagent.agent.DamageCalculationFailedException) {
+                emitLocked(run, AgentEventType.RUN_FAILED, Map.of("errorType", "DAMAGE_CALCULATION_FAILED", "message", ex.getMessage()));
+            } else emitLocked(run, AgentEventType.RUN_FAILED, Map.of("errorType", errorType));
             if (metrics != null) metrics.recordError();
             log.warn("Run 执行失败 runId={}, errorType={}", run.id(), ex.getClass().getSimpleName());
             return null;

@@ -10,6 +10,8 @@ public final class DamageAnswerEvidence {
     private boolean requested;
     private JsonNode evidence;
     private String failureMessage;
+    private boolean calculationAttempted;
+    public boolean calculationFailed() { return calculationAttempted && !complete(); }
     private static final String REFERENCE_FAILURE="宝可梦参考资料暂时无法读取，本次未能生成伤害范围。请检查资料连接，或导入所需本地资料后重试。";
     public void begin(String prompt) {
         initialized = true;
@@ -24,7 +26,7 @@ public final class DamageAnswerEvidence {
             if(requested&&evidence==null&&Set.of("lookupPokemonReference","lookupPokemonResource","lookupPokemonTeamReference").contains(tool)&&referenceFailure(output))failureMessage=REFERENCE_FAILURE;
             return;
         }
-        requested = true; evidence = null;
+        calculationAttempted = true; requested = true; evidence = null;
         failureMessage=null;
         if (output == null || output.length() > 1_048_576) return;
         if(output!=null&&(output.startsWith("[tool.error]")||output.startsWith("[tool.denied]"))) {
@@ -83,23 +85,23 @@ public final class DamageAnswerEvidence {
                 .append(percent(evidence.path("percent").path("maximum"))).append("% |\n\n");
         for (String side : List.of("attacker", "defender")) {
             JsonNode member = assumptions.path(side);
-            text.append(side.equals("attacker") ? "攻击方：" : "防御方：").append(safe(member.path("species").asText()))
-                    .append("，Lv.").append(member.path("level").asInt()).append("，性格 ").append(safe(member.path("nature").asText("未填")))
-                    .append("，特性 ").append(safe(member.path("ability").asText("未填"))).append("，道具 ").append(member.path("item").isTextual()&&member.path("item").asText().isEmpty()?"无":safe(member.path("item").asText("未填")))
-                    .append("；EV ").append(stats(member.path("evs"))).append("；IV ").append(stats(member.path("ivs"))).append("。\n");
+            text.append(side.equals("attacker") ? "攻击方：" : "防御方：").append(safe(PokemonDisplayNames.species(member.path("species").asText())))
+                    .append("，等级").append(member.path("level").asInt()).append("，性格 ").append(PokemonDisplayNames.nature(member.path("nature").asText()))
+                    .append("，特性 ").append(safe(PokemonDisplayNames.calculationLabel("ability",member.path("ability").asText()))).append("，道具 ").append(member.path("item").isTextual()&&member.path("item").asText().isEmpty()?"无道具（计算假设）":safe(PokemonDisplayNames.calculationLabel("item",member.path("item").asText())))
+                    .append("；努力值 ").append(stats(member.path("evs"))).append("；个体值 ").append(stats(member.path("ivs"))).append("。\n");
         }
         var defaults=evidence.path("conditionValidation").path("engineDefaultAbilitySides");
         if(defaults.isArray()&&!defaults.isEmpty())text.append("注意：未指定的特性采用了引擎默认特性（见上方实际条件），请确认该假设；这不表示用户已经选择了该特性。\n");
         if(gym()){
-            text.append("招式：").append(safe(assumptions.path("move").asText())).append("；场地：").append(safe(assumptions.path("field").path("gameType").asText())).append("。\n");
-            for(String side:List.of("attacker","defender")){var state=assumptions.path(side).path("state");text.append(side.equals("attacker")?"攻击方状态：":"防御方状态：").append("剩余HP ").append(state.path("hpPercent").asInt()).append("%；太晶 ").append(state.path("teraActive").asBoolean()?safe(state.path("activeTeraType").asText()):"未激活").append("；异常状态 ").append(safe(state.path("status").asText().isEmpty()?"无":state.path("status").asText())).append("；能力变化 ").append(boosts(state.path("boosts"))).append("。\n");}
+            text.append("招式：").append(safe(PokemonDisplayNames.calculationLabel("move",assumptions.path("move").asText()))).append("；场地：").append(safe(PokemonDisplayNames.condition(assumptions.path("field").path("gameType").asText()))).append("。\n");
+            for(String side:List.of("attacker","defender")){var state=assumptions.path(side).path("state");text.append(side.equals("attacker")?"攻击方状态：":"防御方状态：").append("剩余HP ").append(state.path("hpPercent").asInt()).append("%；太晶 ").append(state.path("teraActive").asBoolean()?safe(PokemonDisplayNames.type(state.path("activeTeraType").asText())):"未激活").append("；异常状态 ").append(safe(PokemonDisplayNames.condition(state.path("status").asText()))).append("；能力变化 ").append(boosts(state.path("boosts"))).append("。\n");}
             text.append("NPC性格、努力值与个体值是计算假设，不是已核实的隐藏数值。来源：本地 @smogon/calc 0.12.0；按已提供的HP、太晶、状态、能力变化与场地计算单次伤害，不包含多回合行动、命中率、回合末结算或胜率。\n");
             return text.toString();
         }
-        text.append("招式：").append(safe(assumptions.path("move").asText())).append("；场地：")
-                .append(safe(assumptions.path("field").path("gameType").asText("未填"))).append("；天气：")
-                .append(safe(assumptions.path("field").path("weather").asText("无"))).append("；地形：")
-                .append(safe(assumptions.path("field").path("terrain").asText("无")))
+        text.append("招式：").append(safe(PokemonDisplayNames.calculationLabel("move",assumptions.path("move").asText()))).append("；场地：")
+                .append(safe(PokemonDisplayNames.condition(assumptions.path("field").path("gameType").asText()))).append("；天气：")
+                .append(safe(PokemonDisplayNames.condition(assumptions.path("field").path("weather").asText("")))).append("；地形：")
+                .append(safe(PokemonDisplayNames.condition(assumptions.path("field").path("terrain").asText(""))))
                 .append("。\n来源：本地 @smogon/calc 0.12.0。假设满HP；未模拟未提供的强化、异常状态、墙、场地伤害和太晶。伤害范围不是胜率或赛制合法性证明，也不单独保证击倒结果。\n");
         return text.toString();
     }

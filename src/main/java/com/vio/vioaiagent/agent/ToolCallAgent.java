@@ -309,11 +309,11 @@ public class ToolCallAgent extends ReActAgent {
                 var snapshot = mapper.readValue(output, com.vio.vioaiagent.tools.CompetitiveTeamsTool.Snapshot.class);
                 StringBuilder text = new StringBuilder("### 朱／紫 OU 公开样例队伍与完整配置\n以下是公开样例，不是实时热门排名或胜率榜。\n\n")
                         .append("赛制：**gen9ou** · 抓取时间：").append(snapshot.retrievedAt())
-                        .append("\n原帖更新时间：").append(snapshot.sourceUpdatedAt()).append("\n\n");
+                        .append("\n来源更新时间：").append(snapshot.sourceUpdatedAt()).append("\n\n");
                 for (var team : snapshot.teams()) {
                     text.append("#### ").append(team.title()).append("\n作者：").append(team.author())
                             .append("\n六人成员：").append(String.join("、",team.members()))
-                            .append("\n\n完整配置（英文原始标识）：\n\n```text\n")
+                            .append("\n\n完整Showdown配置（保留来源标识）：\n\n```text\n")
                             .append(team.configuration()).append("\n```\n[查看原始配置](").append(team.sourceUrl()).append(")\n\n");
                 }
                 answer=text.append("[查看样例来源](").append(snapshot.sourceUrl()).append(")\n\n").append(snapshot.limitation()).toString();
@@ -334,7 +334,7 @@ public class ToolCallAgent extends ReActAgent {
         } catch (java.util.concurrent.CancellationException cancelled) { throw cancelled; }
         catch (Exception failure) {
             answer = selected.completeTeams()
-                    ? "### 完整队伍来源暂未取得\n本次未能读取完整六人配置，可能是来源拦截、超时或页面结构变化；不会用使用率榜替代或补造配置。\n可先查看 [Smogon OU 样例主帖](" + com.vio.vioaiagent.tools.CompetitiveTeamsTool.SOURCE + ")；完整样例检索目前仅支持 gen9ou。\n"
+                    ? "### 完整队伍来源暂未取得\n本次未能读取完整六人配置，可能是来源拦截、超时或页面结构变化；不会用使用率榜替代或补造配置。\n可先查看 [Smogon OU 样例主帖](" + com.vio.vioaiagent.tools.CompetitiveTeamsTool.SOURCE + ")。若网页要求浏览器与 Cookie 校验，请自行访问；找到队伍后可复制完整 Showdown 配置，在队伍页导入并核对预览。完整样例检索目前仅支持 gen9ou。\n"
                     : "### 在线资料暂未取得\n本次未取得可核验的在线统计，不能确认当前热门队伍。请稍后重试；若查询VGC，请同时提供游戏、规则与赛事日期。不会用本地旧攻略代替最新榜单。\n";
         }
         finalAnswer = publishVerified(answer); setState(AgentState.FINISHED); return true;
@@ -655,7 +655,15 @@ public class ToolCallAgent extends ReActAgent {
     }
 
     /** No tools are registered for this final synthesis: it cannot perform another action. */
+    public boolean calculationFailed() {
+        return damageAnswerEvidence != null && damageAnswerEvidence.calculationFailed();
+    }
+
     protected String summarizeAnswer() {
+        var types=TypeMatchupReply.reply(currentQuestion());
+        if(types.isPresent())return publishVerified(types.get());
+        if (LocalGuideOnlyRoute.matches(currentQuestion()) && guideAnswerEvidence != null)
+            return publishVerified(guideAnswerEvidence.verifiedAnswer());
         if(gymMode){
             if(damageAnswerEvidence!=null&&damageAnswerEvidence.complete())return publishVerified(damageAnswerEvidence.verifiedSummary()+damageAnswerEvidence.verifiedInterpretation());
             if(GymQuestionPolicy.wantsDamage(currentQuestion()))return publishVerified(gymAnswerEvidence.answer()+"\n尚未获得有效的本次伤害结果，不能提供具体伤害数字。请核对道馆伤害面板中的真实配置及战斗状态。");

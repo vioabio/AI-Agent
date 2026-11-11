@@ -36,6 +36,7 @@ public class SavedTeamGymTool {
         var matches=report.matchups().stream().map(m->new GymChallengeService.Matchup(ordered.get(m.slot()-1).slot(),m.pokemon(),m.move(),m.opponent(),m.beforeTera(),m.afterTera(),m.levelGap())).toList();
         report=new GymChallengeService.Report(report.gym(),matches,plans,report.missing(),report.sourceVersion(),null,null,report.resourceChecks());
         var members=ordered.stream().map(m->new Member(m.slot(),PokemonNameIndex.all().stream().filter(p->p.nationalNo()==m.formId()).map(PokemonNameIndex.Entry::nameZh).findFirst().orElse("形态#"+m.formId()),m.build(),m.build().moves().stream().map(move->options.label("move",move)).toList(),options.label("ability",m.build().ability()),options.label("item",m.build().item()))).toList();
+        members=members.stream().map(m->new Member(m.slot(),m.name(),m.build(),m.moveLabels(),m.build().ability().isBlank()?"未明确":m.abilityLabel(),m.build().item().isBlank()?"未明确":m.itemLabel())).toList();
         return new Analysis(team.id(),team.name(),snapshot.revision(),team.dataReleaseId(),team.rulesetId(),members,report);
     }
 }

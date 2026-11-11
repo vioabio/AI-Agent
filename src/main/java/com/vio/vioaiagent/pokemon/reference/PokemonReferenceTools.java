@@ -15,7 +15,11 @@ public class PokemonReferenceTools {
             @ToolParam(description="宝可梦中文/英文名或全国编号") String query,
             @ToolParam(description="当前 Run 的 dataReleaseId，不能自行改变版本") String dataReleaseId) {
         if(scope!=null)scope.check(dataReleaseId,null);
-        return repository.detail(query,dataReleaseId);
+        try {
+            return repository.detail(query,dataReleaseId);
+        } catch(com.vio.vioaiagent.pokemon.service.PokemonResourceNotFoundException missing) {
+            throw new com.vio.vioaiagent.pokemon.service.PokemonResourceNotFoundException("POKEMON_REFERENCE_NOT_FOUND");
+        }
     }
     @Tool(description="读取 PokéAPI 招式、特性、道具或性格资料。仅供参考，不证明特定版本合法性。")
     public java.util.Map<String,Object> lookupPokemonResource(

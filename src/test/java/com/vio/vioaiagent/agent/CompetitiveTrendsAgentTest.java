@@ -41,7 +41,7 @@ class CompetitiveTrendsAgentTest {
             agent.run(question);
             assertTrue(agent.isProgramOnlyTrends()); verifyNoInteractions(model);
             assertTrue(agent.getFinalAnswer().contains(expected), agent.getFinalAnswer());
-            assertEquals(networkExpected ? 2 : 0, calls.get());
+            assertEquals(networkExpected ? (question.contains("来源失败") ? 4 : 2) : 0, calls.get());
             if(question.contains("详细配置")) assertFalse(agent.getFinalAnswer().contains("| 排名 | 宝可梦 |"));
             assertEquals(agent.getFinalAnswer(), String.join("", chunks));
             if (networkExpected && !question.contains("详细配置")) {

@@ -14,6 +14,14 @@ public final class DamageDialogueRoute {
         String question=context.run().prompt();
         if(question.strip().matches("(?:请|帮我)?(?:计算|算)(?:一下)?伤害[。！？?\\s]*"))
             return Optional.of("请明确本次攻击方、防御方、所用招式及等级、特性、道具、性格、努力值、个体值和场地条件。本次尚未计算，不自动选择保存队伍、招式或默认配置。");
+        // A bare named matchup is not a request to select an account's saved team.
+        // Resolve only exact public identities; supplied builds/JSON and follow-ups
+        // continue through their existing evidence-bound paths below.
+        var bare=java.util.regex.Pattern.compile("^(?:请帮我|帮我|请)?(?:计算|算)(?:一下|下)?\\s*(.{1,80}?)(?:打|攻击|对)(.{1,80}?)(?:的)?(?:伤害范围|伤害是多少|伤害)[。？！?\\s]*$").matcher(question.strip());
+        if(bare.matches()) {
+            var attacker=identity(bare.group(1));var defender=identity(bare.group(2));
+            if(attacker.isPresent()&&defender.isPresent())return Optional.of("你要计算的是"+attacker.get()+"攻击"+defender.get()+"的伤害。目前只明确了双方物种，还需提供所用招式、双方等级、实际攻防能力或性格/努力值/个体值、特性、道具，以及天气、场地和太晶等条件。\n本次尚未计算，不自动读取保存队伍、不代选招式或默认培养配置；可直接补充双方完整配置后再计算。");
+        }
         boolean current=ExplicitDamageRequest.hasInput(question);
         boolean followup=question.matches("(?s).*(解释.{0,12}(上次|上一次|计算结果)|重新计算|重新算|精确.{0,8}(伤害|数值)|胜率|保证.{0,12}赢|一定赢).*" );
         if(!current&&!followup)return Optional.empty();
@@ -47,8 +55,16 @@ public final class DamageDialogueRoute {
             ToolExecutionContextHolder.set(marked);
             try {output=tool.get().call(input.get());}finally {ToolExecutionContextHolder.set(parent);}
             var evidence=new DamageAnswerEvidence();evidence.begin(question);evidence.observe("calculateBattleDamage",output);
-            return Optional.of(evidence.complete()?evidence.verifiedSummary()+evidence.verifiedInterpretation():evidence.missingAnswer());
+            if (!evidence.complete()) throw new DamageCalculationFailedException();
+            return Optional.of(evidence.verifiedSummary()+evidence.verifiedInterpretation());
         } catch(com.vio.vioaiagent.observability.TaskBudgetExceededException|com.vio.vioaiagent.observability.ContextBudgetExceededException|java.util.concurrent.CancellationException stop){throw stop;}
-        catch(Exception failure){return Optional.of("本次计算失败，未取得可核对结果，不使用历史数字或模型记忆补齐。");}
+        catch(Exception failure){throw new DamageCalculationFailedException();}
     }
+    private static Optional<String> identity(String text) {
+        String name=text.strip();
+        return com.vio.vioaiagent.pokemon.reference.PokemonNameIndex.all().stream()
+            .filter(e->e.nameZh().equals(name)||e.slug().equalsIgnoreCase(name)||e.aliases().stream().anyMatch(a->a.equalsIgnoreCase(name)))
+            .map(com.vio.vioaiagent.pokemon.reference.PokemonNameIndex.Entry::nameZh).findFirst();
+    }
+
 }

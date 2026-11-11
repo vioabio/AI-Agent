@@ -350,3 +350,13 @@ test('task credit failures keep partial text and show stable messages without pr
     assert.doesNotMatch(view.error, /private/)
   }
 })
+
+
+test('计算失败终态使用可读错误且不能变成成功', () => {
+  const model = replay([{ id: '1', type: 'run.failed', data: {
+    errorType: 'DAMAGE_CALCULATION_FAILED', message: '本次伤害计算失败，未取得有效结果。'
+  } }])
+  assert.equal(model.status, RUN_STATUS.FAILED)
+  assert.match(model.error, /伤害计算失败/)
+  assert.equal(model.answer, '')
+})

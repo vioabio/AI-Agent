@@ -60,7 +60,7 @@ test('新请求观测浏览器首段，重新加载历史不会伪造本机接�
     return route.fulfill({ status: 404, json: {} })
   })
   await page.goto('/game-master')
-  await page.locator('textarea').fill('你好')
+  await page.getByLabel('输入消息', { exact: true }).fill('你好')
   await page.getByRole('button', { name: '发送', exact: true }).click()
   const details = page.getByLabel('模型用量与耗时')
   await expect(page.locator('.client-response-timing')).toBeHidden()

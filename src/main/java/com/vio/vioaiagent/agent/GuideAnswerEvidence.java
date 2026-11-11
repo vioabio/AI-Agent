@@ -22,6 +22,7 @@ public final class GuideAnswerEvidence {
     private boolean initialized, requested, attempted, projectExplanation, partialReferenceFailure, resourceAttempted;
     private String question="";
     private List<LocalGuideSearch.Hit> hits = List.of();
+    private final Map<String,Boolean> referenceFailures = new LinkedHashMap<>();
     private final Map<Long,PokemonFact> references = new LinkedHashMap<>();
     private final ResourceAnswerEvidence resources=new ResourceAnswerEvidence();
     private final OverviewResourceCoverage resourceCoverage=new OverviewResourceCoverage();
@@ -30,7 +31,7 @@ public final class GuideAnswerEvidence {
     private final BuildCheckAnswerEvidence buildChecks=new BuildCheckAnswerEvidence();
     private final TeamBuildAnswerEvidence teamBuildChecks=new TeamBuildAnswerEvidence();
     private final MachineAnswerEvidence machines=new MachineAnswerEvidence();
-    public void begin(String prompt) { question=prompt;teamBuildChecks.begin(prompt); initialized = true; projectExplanation = ProjectGuideRequest.requiresSource(prompt); requested = GUIDE_REQUEST.matcher(prompt).find() || projectExplanation || (!TeamMutationIntent.requested(prompt) && java.util.regex.Pattern.compile("培养|搭配|对战策略").matcher(prompt).find()); }
+    public void begin(String prompt) { referenceFailures.clear();question=prompt;teamBuildChecks.begin(prompt); initialized = true; projectExplanation = ProjectGuideRequest.requiresSource(prompt); requested = GUIDE_REQUEST.matcher(prompt).find() || projectExplanation || (!TeamMutationIntent.requested(prompt) && java.util.regex.Pattern.compile("培养|搭配|对战策略").matcher(prompt).find()); }
     public boolean initialized() { return initialized; }
     public boolean needsReferenceTopic() {
         if(question==null||question.length()>800||question.contains("\n")||TeamMutationIntent.requested(question)
@@ -50,7 +51,7 @@ public final class GuideAnswerEvidence {
                 &&!h.document().applicability().subjects().isEmpty()&&h.document().applicability().matchesSubject(question))
                 &&references.values().stream().noneMatch(f->question.contains(f.speciesNameZh())||question.toLowerCase(Locale.ROOT).contains(f.slug().toLowerCase(Locale.ROOT)));
     }
-    public boolean active() { if (TeamMutationIntent.requested(question)) return false; return teamBuildChecks.attempted() || TeamBuildAnswerEvidence.requested(question) || machines.attempted() || MachineAnswerEvidence.requested(question) || requested || attempted || resourceAttempted || learnsets.attempted() || LearnsetAnswerEvidence.requested(question) || mechanics.attempted() || MechanicAnswerEvidence.requested(question) || buildChecks.attempted() || BuildCheckAnswerEvidence.requested(question)
+    public boolean active() { if (TeamMutationIntent.requested(question)) return false; return !referenceFailures.isEmpty() || teamBuildChecks.attempted() || TeamBuildAnswerEvidence.requested(question) || machines.attempted() || MachineAnswerEvidence.requested(question) || requested || attempted || resourceAttempted || learnsets.attempted() || LearnsetAnswerEvidence.requested(question) || mechanics.attempted() || MechanicAnswerEvidence.requested(question) || buildChecks.attempted() || BuildCheckAnswerEvidence.requested(question)
             ||!OverviewResourceCoverage.requiredKinds(question).isEmpty()&&overviewTarget(question).isPresent(); }
     public boolean overviewReady(String rawQuestion) {
         return !TeamBuildAnswerEvidence.requested(rawQuestion)&&!MachineAnswerEvidence.requested(rawQuestion)&&!BuildCheckAnswerEvidence.requested(rawQuestion)&&!MechanicAnswerEvidence.requested(rawQuestion)&&!LearnsetAnswerEvidence.requested(rawQuestion)&&!hits.isEmpty()&&overviewReferenceReady(rawQuestion)
@@ -125,15 +126,21 @@ public final class GuideAnswerEvidence {
             return;
         }
         if ("lookupPokemonReference".equals(tool)) {
-            if (output == null || output.length() > 120_000) { failedReference(arguments); return; }
+            if (output == null || output.length() > 120_000) { recordReferenceFailure(arguments,output);failedReference(arguments); return; }
             try {
                 var root = mapper.readTree(output);
                 for (String stat : List.of("hp","attack","defense","spAttack","spDefense","speed"))
                     if (!root.path("fact").path(stat).isIntegralNumber()) throw new IllegalArgumentException();
                 var detail=mapper.treeToValue(root, LocalPokeApiRepository.Detail.class);var fact=detail.fact();
                 if (!"pokeapi-reference-v1".equals(fact.dataReleaseId()) || !"pokemon-scarlet-violet".equals(fact.gameReleaseId())) throw new IllegalArgumentException();
+                if(GuideReferenceIdentity.target(arguments).map(target->target.matches(fact)).orElse(false)) {
+                    referenceFailures.keySet().removeIf(query->GuideReferenceIdentity.target(
+                        mapper.createObjectNode().put("query",query).put("dataReleaseId","pokeapi-reference-v1").toString())
+                        .map(target->target.matches(fact)).orElse(false));
+                }
                 if (references.containsKey(fact.formId()) || references.size() < 6) {references.put(fact.formId(),fact);resources.member(detail);}
             } catch(Exception ignored) {
+                recordReferenceFailure(arguments,output);
                 failedReference(arguments);
             }
             return;
@@ -166,6 +173,33 @@ public final class GuideAnswerEvidence {
         } catch (Exception ignored) { /* failed, malformed or truncated output is not a source */ }
     }
     public boolean hasGuideSources(){return !hits.isEmpty();}
+    private Optional<String> boundReferenceQuery(String arguments) {
+        if(arguments==null||arguments.length()>2000)return Optional.empty();
+        try {
+            var input=mapper.readTree(arguments);
+            if(!input.isObject()||input.size()!=2||!"pokeapi-reference-v1".equals(input.path("dataReleaseId").asText())||!input.path("query").isTextual())return Optional.empty();
+            String query=input.path("query").asText().strip().toLowerCase(Locale.ROOT);
+            if(query.isEmpty()||query.length()>80||question==null)return Optional.empty();
+            var mention=Pattern.compile("(?<![a-z0-9-])"+Pattern.quote(query)+"(?![a-z0-9-])",Pattern.CASE_INSENSITIVE);
+            return mention.matcher(question).find()?Optional.of(query):Optional.empty();
+        } catch(Exception invalid){return Optional.empty();}
+    }
+    private void recordReferenceFailure(String arguments,String output) {
+        // Only this tool's explicit not-found marker establishes absence. Other
+        // failures describe availability and must never become invented absence.
+        boundReferenceQuery(arguments).ifPresent(query->{
+            if(referenceFailures.containsKey(query)||referenceFailures.size()<6)
+                referenceFailures.put(query,output!=null&&output.length()<=120_000&&output.startsWith("[tool.error]")&&output.contains("POKEMON_REFERENCE_NOT_FOUND"));
+        });
+    }
+    private String referenceFailureSummary() {
+        var text=new StringBuilder();
+        referenceFailures.forEach((query,missing)->text.append("### 宝可梦查询结果\n")
+            .append(missing?"当前资料源未找到宝可梦“":"本次未能读取宝可梦“").append(EvidenceText.inline(query)).append("”的资料。")
+            .append(missing?"请核对名称或全国图鉴编号后重试。":"请稍后重试，或检查资料连接与输入版本。")
+            .append("当前无法据此提供该物种的属性、种族值、配招或资料引用。\n"));
+        return text.toString();
+    }
     private void failedReference(String arguments) {
         partialReferenceFailure=true;
         var target=GuideReferenceIdentity.target(arguments);
@@ -178,9 +212,12 @@ public final class GuideAnswerEvidence {
     }
     /** Bounded reference lookup, not an interpretation of arbitrary strategy questions. */
     public Optional<String> basicFactAnswer() {
+        // Only an explicit simple lookup may ignore unsolicited extra tool reads.
+        // A declared moves/mechanics/strategy task is excluded below, not discarded.
+        boolean simpleLookup=question!=null&&Pattern.compile("^(?:请)?(?:查|查询|读取).{1,30}的(?:(?:朱[／/]?紫|朱|紫)(?:版本)?的?)?(?:资料|图鉴(?:资料)?)(?:[，,。；;]|$)").matcher(question).find();
         if (question == null || question.length() > 600 || references.isEmpty() || partialReferenceFailure
-                || active() || question.contains("\n") || question.contains("```")
-                || !Pattern.compile("种族值|基础数值|图鉴属性|特点").matcher(question).find()
+                || (active()&&!simpleLookup) || question.contains("\n") || question.contains("```")
+                || (!simpleLookup&&!Pattern.compile("种族值|基础数值|图鉴属性|特点").matcher(question).find())
                 || Pattern.compile("培养|建议|搭配|攻略|配招|努力值|个体值|计算|伤害|对比|比较|克制|弱点|特性|招式|保存|修改|队伍").matcher(question).find())
             return Optional.empty();
         String lower = question.toLowerCase(Locale.ROOT);
@@ -218,17 +255,19 @@ public final class GuideAnswerEvidence {
                 +"\n这些不是同等级的实际速度，不能据此保证实战先手；本次未核对特性、招式或机制，不补充相关断言。\n");
     }
     public String verifiedAnswer(boolean includeReferences) {
-        if(question.matches("(?s).*(本地|原文).*" )&&question.matches("(?s).*(当前|月份|本月).*" )&&question.matches("(?s).*(最强|热门|胜率).*"))
+        if(LocalGuideOnlyRoute.matches(question))
             return "本次检索到的本地攻略没有提供可核验的当前月份完整队伍与胜率数据，不能据此列出实时最强阵容。通用培养或伤害说明不支持这种结论。需要带日期、赛制和完整配置的赛事或样例来源；本次不把无关原文当作答案。";
         if(teamBuildChecks.attempted()||TeamBuildAnswerEvidence.requested(question))return teamBuildChecks.summary(question);
         String prefix = includeReferences ? referenceSummary() : "";
-        if (partialReferenceFailure) prefix += "### 资料读取提醒\n本次有资料调用失败或未通过校验；以下仅展示已核对的结果，未取得的机制信息不作确认。\n\n";
+        if (partialReferenceFailure) prefix += "### 资料读取提醒\n本次有资料调用失败或未通过校验；以下仅展示已核对的结果，未取得的资料不作确认。\n\n";
+        prefix+=referenceFailureSummary();
         prefix+=resources.summary();
         prefix+=learnsets.summary(question,references.values());
         prefix+=mechanics.summary(question);
         prefix+=buildChecks.summary(question);
         prefix+=machines.summary(question);
         prefix+=overviewTarget(question).map(f->resourceCoverage.summary(question,f,resources)).orElse("");
+        if(!referenceFailures.isEmpty()&&references.isEmpty()&&hits.isEmpty())return prefix;
         if(hits.isEmpty()&&(machines.attempted()||MachineAnswerEvidence.requested(question)))return prefix;
         if(hits.isEmpty()&&(buildChecks.attempted()||BuildCheckAnswerEvidence.requested(question)))return prefix;
         if(hits.isEmpty()&&(mechanics.attempted()||MechanicAnswerEvidence.requested(question)))return prefix

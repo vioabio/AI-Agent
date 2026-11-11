@@ -19,7 +19,21 @@ public final class DeepSeekBillingSseReader implements HttpMessageReader<String>
         return type.resolve()==String.class && mediaType!=null && MediaType.TEXT_EVENT_STREAM.isCompatibleWith(mediaType);
     }
     @Override public Flux<String> read(ResolvableType type,ReactiveHttpInputMessage message,Map<String,Object> hints) {
-        return delegate.read(type,message,hints).cast(String.class).map(this::normalize);
+        return Flux.defer(()->{
+            var done=new java.util.concurrent.atomic.AtomicBoolean();
+            return delegate.read(type,message,hints).cast(String.class).map(event->{
+                if("[DONE]".equals(event.strip()))done.set(true);
+                return normalize(event);
+            }).onErrorResume(this::drainThenFail)
+              .concatWith(Flux.defer(()->done.get()?Flux.empty():drainThenFail(
+                  new IllegalStateException("模型回答流提前结束，已显示内容不代表完整回答。"))));
+        });
+    }
+    private Flux<String> drainThenFail(Throwable failure) {
+        // Spring AI 1.0 retains one response for usage look-ahead. A content-free
+        // chunk drains pending text before the error, without a finish reason or
+        // usage. The error still terminates generation and prevents completion.
+        return Flux.concat(Flux.just("{\"id\":\"incomplete-stream-drain\",\"choices\":[]}"), Flux.error(failure));
     }
     @Override public Mono<String> readMono(ResolvableType type,ReactiveHttpInputMessage message,Map<String,Object> hints) {
         return read(type,message,hints).next();

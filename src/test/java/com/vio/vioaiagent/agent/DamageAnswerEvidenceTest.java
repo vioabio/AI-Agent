@@ -7,6 +7,15 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DamageAnswerEvidenceTest {
+    @Test void translatesComputedNamesWithoutChangingEvidenceOrHidingUnknownForms() throws Exception {
+        var value=result();String original=value.toString();var policy=new DamageAnswerEvidence();policy.begin("计算伤害");policy.observe("calculateBattleDamage",original);
+        String shown=policy.verifiedSummary();
+        assertTrue(shown.contains("杰尼龟"));assertTrue(shown.contains("冲浪"));assertTrue(shown.contains("激流"));assertTrue(shown.contains("吃剩的东西"));
+        assertFalse(shown.contains("Squirtle"));assertFalse(shown.contains("Leftovers"));assertFalse(shown.contains("Singles"));assertFalse(shown.contains("null"));
+        assertEquals(original,value.toString());
+        assertTrue(PokemonDisplayNames.species("unregistered-form").contains("unregistered-form"));
+        assertTrue(PokemonDisplayNames.calculationLabel("move","unregistered-move").contains("待核对"));
+    }
     @Test void referenceFailureExplainsRecoveryWithoutEchoingPrivateDetailsOrRequestingMoreStats() {
         var policy=new DamageAnswerEvidence();policy.observe("calculateBattleDamage","[tool.error] 工具执行失败：PokéAPI 正文读取超时 private-network-secret");
         assertFalse(policy.complete());assertTrue(policy.missingAnswer().contains("参考资料暂时无法读取"));assertFalse(policy.missingAnswer().contains("补齐"));assertFalse(policy.missingAnswer().contains("private-network-secret"));

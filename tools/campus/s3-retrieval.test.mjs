@@ -37,7 +37,7 @@ test('fixed development plan binds the real corpus and contains only known sourc
   assert.equal(new Set(suite.cases.map(c => c.id)).size, 13)
   for (const item of suite.cases) for (const id of item.relevantDocumentIds) assert.ok(docs.includes(id))
 })
-const expanded=()=>JSON.parse(readFileSync(new URL('../../src/main/resources/pokemon-guides/expanded-v1.json',import.meta.url),'utf8'))
+const expanded=()=>JSON.parse(readFileSync(new URL('../../src/main/resources/pokemon-guides/expanded-v2.json',import.meta.url),'utf8'))
 test('expanded corpus source metadata and normalized code identities audit successfully',()=>{
   const report=auditCorpus(expanded())
   assert.equal(report.documentCount,12);assert.equal(report.uniqueCodeFiles,5)
@@ -52,7 +52,7 @@ test('upstream URLs and code paths cannot turn the source audit into an arbitrar
   assert.throws(()=>auditCorpus(url),/Invalid reference-only URL/)
 })
 test('expanded evidence labels bind exact source phrases and a separate frozen corpus',()=>{
-  const suite=JSON.parse(readFileSync(new URL('../../evaluation/campus/s3/retrieval-expanded-dev.json',import.meta.url),'utf8'))
+  const suite=JSON.parse(readFileSync(new URL('../../evaluation/campus/s3/retrieval-expanded-dev-v2.json',import.meta.url),'utf8'))
   assert.equal(suite.cases.length,24);assert.equal(new Set(suite.cases.map(c=>c.id)).size,24)
   assert.equal(suite.corpusSha256,frozenFileDigest(fileURLToPath(new URL('../../'+suite.corpusFile,import.meta.url))))
   for(const row of suite.cases)for(const label of row.relevantEvidence||[])assert.ok(expanded().documents.find(d=>d.id===label.documentId)?.content.includes(label.contains))
@@ -72,4 +72,14 @@ test('new corpus support is explicit and does not rewrite the old frozen source 
 test('expanded model checks reject a runtime with missing or different corpus identity',()=>{
   assert.throws(()=>checkExpandedReport({},expanded(),'expected'),/did not attest/)
   assert.throws(()=>checkExpandedReport({guideCatalog:{corpusSha256:'other',catalogId:expanded().catalogId}},expanded(),'expected'),/did not attest/)
+})
+
+
+test('source binding v2 preserves archived v1 bodies and rejects stale live bindings',()=>{
+  const archived=JSON.parse(readFileSync(new URL('../../src/main/resources/pokemon-guides/expanded-v1.json',import.meta.url),'utf8'))
+  const current=expanded()
+  assert.notEqual(current.catalogId,archived.catalogId)
+  assert.deepEqual(current.documents.map(d=>[d.id,d.content]),archived.documents.map(d=>[d.id,d.content]))
+  assert.throws(()=>auditCorpus(archived),/Stale code reference/)
+  assert.equal(auditCorpus(current).humanReview,'pending')
 })

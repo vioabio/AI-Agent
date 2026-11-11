@@ -16,7 +16,7 @@ if(process.argv[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url))
   if(!inputArg || !outputArg || extra.length)throw Error('Usage: node tools/campus/s3-source-regression.mjs OBSERVATIONS_JSON NEW_OUTPUT_DIRECTORY')
   const input=resolve(inputArg),output=resolve(outputArg)
   if(existsSync(output))throw Error('Use a new output directory')
-  const file=resolve(root,'src/main/resources/pokemon-guides/expanded-v1.json'),corpus=JSON.parse(readFileSync(file,'utf8'))
+  const file=resolve(root,'src/main/resources/pokemon-guides/expanded-v2.json'),corpus=JSON.parse(readFileSync(file,'utf8'))
   const report=JSON.parse(readFileSync(input,'utf8')),checked=checkExpandedReport(report,corpus,frozenFileDigest(file))
   checked.streaming=report.records.map(record=>{
     if(!record.eventsFile || /[/\\]/.test(record.eventsFile))throw Error('Invalid captured event file')

@@ -27,7 +27,7 @@ class GymBattleCalculatorTest {
  @Test void callsRealNodeBothDirectionsAndKeepsHiddenStatsAsAssumptions(){
   org.junit.jupiter.api.Assumptions.assumeTrue(Files.exists(Path.of("tools/pokemon-engine/node_modules/@smogon/calc/package.json")));
   var r=calculator().calculate(request("surf","player",null));assertTrue(r.path("range").path("maximum").asInt()>0);assertEquals("Electric",r.path("assumptions").path("defender").path("state").path("activeTeraType").asText());assertEquals("USER_ASSUMPTIONS_NOT_VERIFIED_NPC_STATS",r.path("npcStatsStatus").asText());
-  var evidence=new com.vio.vioaiagent.agent.DamageAnswerEvidence();evidence.begin("请计算道馆伤害");evidence.observe("calculateGymDamage",r.toString());assertTrue(evidence.complete());assertTrue(evidence.verifiedSummary().contains("不是已核实的隐藏数值"));assertTrue(evidence.verifiedSummary().contains("Electric"));assertFalse(evidence.verifiedSummary().contains("假设满HP；未模拟"));
+  var evidence=new com.vio.vioaiagent.agent.DamageAnswerEvidence();evidence.begin("请计算道馆伤害");evidence.observe("calculateGymDamage",r.toString());assertTrue(evidence.complete());assertTrue(evidence.verifiedSummary().contains("不是已核实的隐藏数值"));assertTrue(evidence.verifiedSummary().contains("太晶 电"));assertFalse(evidence.verifiedSummary().contains("假设满HP；未模拟"));
   var incoming=calculator().calculate(request("Charge Beam","npc",null));assertTrue(incoming.path("range").path("maximum").asInt()>0);assertEquals("squirtle",incoming.path("assumptions").path("defender").path("species").asText().toLowerCase());
  }
  @Test void rejectsForeignMovesAndWrongBattleMode(){

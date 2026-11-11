@@ -56,7 +56,7 @@ class DeepSeekToolStreamingProtocolTest {
             agent.setChatClient(ChatClient.builder(model).build());
             List<String> chunks = new ArrayList<>();
             agent.setAnswerDeltaSink(chunks::add);
-            agent.run("火属性对草属性？");
+            agent.run("请调用属性工具并解释火系招式对草系的效果。");
             assertEquals("火克制草。", agent.getFinalAnswer());
             assertEquals(List.of("火克制", "草。"), chunks);
             assertEquals(3, requests.size(), "two private decisions followed by a dedicated public answer");

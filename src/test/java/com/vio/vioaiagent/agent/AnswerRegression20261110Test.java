@@ -27,6 +27,30 @@ class AnswerRegression20261110Test {
         var tool=mock(ToolCallback.class);when(tool.getToolDefinition()).thenReturn(ToolDefinition.builder().name("calculateBattleDamage").description("fixture").inputSchema("{}").build());return tool;
     }
     @AfterEach void cleanup(){ToolExecutionContextHolder.clear();}
+    @Test void pureTypeRequestThroughRunExecutorUsesChartBeforeModelOrSavedTeams() {
+        var tool=calculator();var model=mock(org.springframework.ai.chat.model.ChatModel.class);
+        var executor=new DefaultRunExecutor(model,new ToolCallback[]{tool},null,null,null,null,false);clearInvocations(model);
+        String answer=executor.execute(context(TypeMatchupReplyTest.ORIGINAL,List.of(new UserMessage("我的test1队伍"))));
+        assertEquals(TypeMatchupReply.reply(TypeMatchupReplyTest.ORIGINAL).orElseThrow(),answer);
+        verifyNoInteractions(model);verify(tool,never()).call(anyString());
+    }
+    @Test void namedMatchupWithoutBuildNeverSelectsSavedTeamOrReusesHistory() throws Exception {
+        var saved=calculator();when(saved.getToolDefinition()).thenReturn(ToolDefinition.builder().name("readCurrentTeam").description("saved team").inputSchema("{}").build());
+        var calc=calculator();var model=mock(org.springframework.ai.chat.model.ChatModel.class);
+        var executor=new DefaultRunExecutor(model,new ToolCallback[]{saved,calc},null,null,null,null,false);
+        clearInvocations(model);
+        for(String q:List.of("帮我算一下杰尼龟打小火龙的伤害。","请计算Squirtle对Charmander的伤害范围？")) {
+            var c=context(q,List.of(new UserMessage("我的test1队伍"),new UserMessage(prompt(input()))));
+            String answer=executor.execute(c);
+            assertTrue(answer.contains("杰尼龟攻击小火龙"));assertTrue(answer.contains("本次尚未计算"));assertTrue(answer.contains("所用招式"));
+            assertFalse(answer.contains("烈咬陆鲨"));assertFalse(answer.contains("164～194"));
+        }
+        verify(saved,never()).call(anyString());verify(calc,never()).call(anyString());verifyNoInteractions(model);
+    }
+    @Test void namedMatchupGuardDoesNotReplaceGymOrSuppliedConfigurationTasks() {
+        for(String q:List.of("用我的test1队伍计算挑战阿枫的伤害","解释杰尼龟打小火龙的伤害公式","帮我算一下杰尼龟50级打小火龙的伤害"))
+            assertTrue(DamageDialogueRoute.reply(context(q,List.of()),new ToolCallback[0]).isEmpty(),q);
+    }
     @Test void absentMoveUnknownVersionAndInvalidEvsNeverReachTheCalculator() throws Exception {
         var missing=input();missing.remove("move");var version=input();version.put("dataReleaseId","qa-unknown-release");var ev=input();((ObjectNode)ev.path("attacker").path("build").path("evs")).put("spa",253);
         var tool=calculator();
@@ -75,6 +99,33 @@ class AnswerRegression20261110Test {
     }
     @Test void savedLabelsAreChineseAndDoNotChangeStoredSlugs() {
         assertEquals("燕返",PokemonDisplayNames.label("move","aerial-ace"));assertEquals("重踏",PokemonDisplayNames.label("move","bulldoze"));assertEquals("粗糙皮肤",PokemonDisplayNames.label("ability","rough-skin"));assertEquals("勤奋",PokemonDisplayNames.nature("hardy"));assertEquals("未明确",PokemonDisplayNames.label("item",""));
+    }
+    @Test void failedDamageToolCannotBecomeACompletedAnswer() throws Exception {
+        var tool=calculator();when(tool.call(anyString())).thenReturn("[tool.error] engine unavailable");
+        var failure=assertThrows(DamageCalculationFailedException.class,()->DamageDialogueRoute.reply(context(prompt(input()),List.of()),new ToolCallback[]{tool}));
+        assertTrue(failure.getMessage().contains("伤害计算失败"));verify(tool,times(1)).call(anyString());
+    }
+    @Test void statExplanationPreservesLevelAndRoundingAndDoesNotCaptureSourceRequests() {
+        String answer=TrainingMechanicsReply.reply("先不聊队伍，解释一下种族值和努力值的区别。").orElseThrow();
+        assertTrue(answer.contains("floor(EV/4)"));assertTrue(answer.contains("等级缩放"));assertTrue(answer.contains("不会改变"));
+        for(String q:List.of("什么是种族值和努力值？","努力值每4点一定增加1点能力吗？","50级的努力值怎么换算？"))
+            assertTrue(TrainingMechanicsReply.reply(q).orElseThrow().contains("取整"));
+        assertTrue(TrainingMechanicsReply.reply("读取我的队伍，解释种族值和努力值区别。").isEmpty());
+        assertTrue(TrainingMechanicsReply.reply("说明当前项目种族值和努力值的区别，引用本地项目说明。").isEmpty());
+        assertTrue(TrainingMechanicsReply.reply("说明当前项目种族值和努力值的区别").isEmpty());
+    }
+    @Test void localOnlyGuideQuestionNeverReadsSavedTeams() {
+        var guide=mock(ToolCallback.class);when(guide.getToolDefinition()).thenReturn(ToolDefinition.builder().name("searchPokemonGuides").description("guide").inputSchema("{}").build());
+        when(guide.call(anyString())).thenReturn("[]");var other=mock(ToolCallback.class);
+        String q="本地攻略是否有当前月份的最强完整队伍及胜率？请只据本地原文回答。";
+        String answer=LocalGuideOnlyRoute.reply(context(q,List.of(new AssistantMessage("已读取队伍test1"))),new ToolCallback[]{guide,other}).orElseThrow();
+        assertTrue(answer.contains("没有提供"));assertFalse(answer.contains("test1"));verify(guide,times(1)).call(anyString());verifyNoInteractions(other);
+        when(guide.call(anyString())).thenReturn("[tool.error] unavailable");
+        assertTrue(LocalGuideOnlyRoute.reply(context(q,List.of()),new ToolCallback[]{guide}).orElseThrow().contains("检索失败"));
+        assertFalse(LocalGuideOnlyRoute.matches("读取我的队伍并查询本地攻略当前热门胜率。"));
+        when(guide.call(anyString())).thenThrow(new com.vio.vioaiagent.observability.ContextBudgetExceededException());
+        assertThrows(com.vio.vioaiagent.observability.ContextBudgetExceededException.class,()->LocalGuideOnlyRoute.reply(context(q,List.of()),new ToolCallback[]{guide}));
+        var realtime=new GuideAnswerEvidence();realtime.begin("本地文档是否有实时最强队伍和胜率？");assertTrue(realtime.verifiedAnswer().contains("没有提供"));
     }
     @Test void emptyDamageQuestionCannotSelectAnUnrequestedSavedParty() {
         var tool=calculator();String answer=DamageDialogueRoute.reply(context("帮我计算一下伤害。",List.of()),new ToolCallback[]{tool}).orElseThrow();

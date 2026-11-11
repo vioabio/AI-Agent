@@ -87,7 +87,7 @@ test('连续发送后上一条回答保留用量，当前任务不重复展示',
     return route.fulfill({ status: 404, json: {} })
   })
   await page.goto('/game-master')
-  const input = page.locator('textarea')
+  const input = page.getByLabel('输入消息', { exact: true })
   await expect(input).toBeEnabled()
   for (const number of [1, 2]) {
     await input.fill(`问题 ${number}`)

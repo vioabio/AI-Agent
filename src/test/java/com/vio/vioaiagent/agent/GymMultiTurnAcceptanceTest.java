@@ -118,7 +118,10 @@ class GymMultiTurnAcceptanceTest {
         ask("朱紫有哪些道馆馆主？请编号列出。",false);
         ask("看看你刚才列表中第四位馆主的队伍。",false);
         ask("我的 test1 队伍能应对这位馆主吗？",false);
+        String initial=transcript.getLast().getText();
+        assertTrue(initial.contains("未明确"));
         String first=ask("根据我实际保存的招式，建议怎么出招？",false);
+        assertFalse(first.contains("| 槽位 |"));assertTrue(first.contains("按已保存招式"));assertTrue(first.length()<initial.length());
         assertTrue(first.contains("已读取队伍：test1"));assertTrue(first.contains("海岱初战"));assertTrue(first.contains("燕返 / 重踏"));
         String sixth=ask("再看第六位馆主，需要调整哪些成员？",false);
         assertTrue(sixth.contains("莱姆初战"));assertTrue(sixth.contains("不足两名"));assertFalse(sixth.contains("共有 **8"));
