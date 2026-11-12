@@ -1,184 +1,201 @@
+<div align="center">
+
 # VIO 宝可梦智能体
 
-面向宝可梦资料查询、培养建议、道馆挑战与队伍搭配的全栈 AI 应用。在统一网页工作区内，通过自然语言完成**查资料 → 分析队伍 → 核验伤害 → 预览修改 → 确认保存**。
+**正式版 v1.0.0** · [发布记录](document/发布记录/v1.0.0.md) · [版本标签](https://github.com/vioabio/AI-Agent/tree/v1.0.0)
 
-基于 Java 21、Spring Boot、Spring AI 和 Vue 3，支持 DeepSeek 流式问答、结构化多轮状态、可选专用 Agent 协作与 BM25 / Embedding 混合检索。默认本地运行，无需云服务器；模型调用与首次在线资料读取需要网络。
+**让资料查询、道馆应对、队伍搭配与伤害核验，在一个工作区完成。**
 
-[快速启动](#本地启动) · [系统架构](#系统架构) · [测试与质量](#测试与质量) · [配置说明](#数据与配置) · [简历写法](document/学习与面试/项目简历介绍_2026-11-11.md)
+Java 21 · Spring Boot · Spring AI · DeepSeek · Vue 3 · SSE · Tool Calling · RAG
 
-## 项目解决什么问题
+[快速启动](#quick-start) · [系统架构](#architecture) · [功能配置](#configuration) · [测试验证](#quality) · [学习与面试](#documents)
 
-通用模型可以给出培养建议，但容易混淆游戏版本、沿用旧队伍配置，或在没有计算的情况下生成伤害数值。本项目将模型理解、业务状态、资料证据与实际操作分开处理：
+</div>
 
-- **资料有来源：**通过 PokéAPI、项目攻略与明确标注的社区资料获取事实，绑定游戏、规则和数据版本；资料不足时展示缺项。
-- **数值可复核：**属性倍率由本地规则计算，伤害交给 `@smogon/calc`，回答保留输入条件、伤害范围和计算假设。
-- **追问有上下文：**保存馆主目标、挑战阶段与队伍关联等结构化状态，支持“第四位馆主”“这支队伍”“换成重赛”等连续提问。
-- **修改需确认：**建议不会直接覆盖队伍，变更必须经过预览、确认、保存与回读，旧快照发生冲突时拒绝覆盖。
+## 项目简介
 
-## 核心功能
+VIO 是一个面向宝可梦玩家的全栈 AI 应用：通过自然语言查询图鉴、分析已保存队伍、规划道馆挑战，并调用本地引擎核验伤害。用户可以在同一网页中完成对话、资料查看、队伍配置和确认修改。
 
-| 场景 | 已实现能力 |
+项目采用 **ReAct 风格的工具调用循环**，将大语言模型的理解与规划能力，与结构化事实、知识检索、确定性计算及操作授权结合。默认运行在个人电脑，使用 SQLite 保存本机数据；聊天模型通过 API 调用。
+
+> 核心流程：**理解需求 → 读取资料与队伍 → 执行工具 → 核对证据 → 展示结果 → 确认后保存**。
+
+## 功能一览
+
+| 能力 | 可以做什么 |
 | --- | --- |
-| 流式对话 | SSE 正文与执行事件、历史会话、复制和编辑、事件游标重连；上游不完整结束明确失败，不把部分答案标成完整 |
-| 图鉴与配置 | 中英文名称／编号索引、对话与右侧图鉴联动、特性／招式／道具候选、中文性格展示 |
-| 道馆应对 | 朱／紫馆主初战与重赛资料、馆主切换与连续追问、读取已保存队伍并提供受资料约束的应对建议 |
-| 队伍管理 | 1–6 位成员，配置等级、招式、特性、道具、性格、EV/IV、太晶属性；保存、JSON 导入导出及字段校验 |
-| 伤害核验 | Java 调用本机 Node.js 引擎，核对真实输入和数值输出；缺失条件先澄清，覆盖零伤害及非法参数 |
-| 攻略检索 | SQLite / BM25；可选 Embedding 与混合检索，支持索引指纹、向量缓存、版本过滤和失败降级 |
-| 在线竞技参考 | 区分月度单只使用率与完整六人样例；保留来源、时间及非官方边界，读取失败时提供原始链接 |
-| Agent 分工 | 主 Agent 统一调度；资料检索、组队规划、伤害核验三个角色使用独立提示词、工具白名单和私有工作上下文 |
-| 账号与操作安全 | 本机注册登录、BCrypt、Session/CSRF、账号归属校验；队伍变更预览与人工确认、乐观并发冲突检查 |
-| 执行治理 | Run 生命周期、超时与取消、模型／工具预算、工具网关、租约提交隔离；可选持久化适配提供不可变步骤输出 |
-| 诊断追踪 | Run ID / Trace ID、步骤事件、模型 usage、阶段耗时、失败类别与脱敏诊断；开发详情按需展开 |
+| 流式问答 | SSE 输出正文与执行事件，支持历史会话、消息复制与编辑、取消和游标重连 |
+| 图鉴查询 | 中英文名称、编号检索，查看属性与种族值，点击回答卡片打开对应图鉴 |
+| 道馆应对 | 查询朱／紫馆主初战、重赛配置，结合已保存队伍讨论培养与出招 |
+| 队伍配置 | 编辑等级、四招、特性、道具、性格、EV/IV、太晶属性，保存及 JSON 导入导出 |
+| 伤害计算 | Java 调用本地 Node.js `@smogon/calc`，保留输入、伤害区间及计算假设 |
+| 攻略检索 | SQLite / BM25；可选 Embedding 混合检索、向量缓存与失败降级 |
+| 竞技参考 | 分别查询月度使用率与完整六人样例，展示来源、时间及适用范围 |
+| 受控修改 | 先读取快照与预览变更，用户确认后校验、保存并回读，冲突时拒绝覆盖 |
 
-## 技术栈
+### 可以这样使用
 
-| 层次 | 技术与职责 |
-| --- | --- |
-| 前端 | Vue 3、TypeScript / JavaScript、Vite、Vue Router、Axios；统一工作区与响应式布局 |
-| 后端 | Java 21、Spring Boot 3.5、Spring Security、Spring JDBC、Bean Validation |
-| 模型与编排 | Spring AI、DeepSeek、Tool Calling / Function Calling、ReAct 风格工具循环、Prompt Engineering |
-| 知识与资料 | PokéAPI、本地缓存、SQLite、BM25、可选 Embedding 混合检索、来源与版本绑定 |
-| 计算 | Node.js、固定版本 `@smogon/calc` 0.12.0、本地进程桥接、参数与结果校验 |
-| 通信与观测 | REST、SSE、Run / Trace、Actuator、Micrometer |
-| 测试与交付 | JUnit、Spring Boot Test、Node Test Runner、Playwright、GitHub Actions；Nginx / systemd 部署模板 |
-| 可选适配 | PostgreSQL / Flyway、Redis、PGVector、OIDC、MCP；与默认本地模式分别配置及验收 |
+- **认识宝可梦：**“查一下杰尼龟的属性和种族值。”
+- **连续追问：**“朱紫有哪些馆主？”→“按刚才表格第四位的队伍是什么？”→“我的 test1 能应对吗？”
+- **培养与计算：**先在队伍中配置成员，再让助手分析搭配；伤害计算条件不足时会询问缺项。
+- **查看竞技样例：**“朱紫 OU 单打有哪些完整队伍样例？展示详细配置和来源。”
+- **修改队伍：**提出调整要求，检查变更预览，确认后保存。
 
+## 实现重点
+
+### 结构化多轮状态与 Agent 分工
+
+用结构化状态关联馆主目标、挑战阶段与队伍，配合真实快照读取处理连续追问。主 Agent 负责最终回答与确认流程，可选启用**资料检索、组队规划、伤害核验**三个专用角色。
+
+角色使用独立提示词、工具白名单和私有工作记录，在同一后端进程内顺序协作，共享模型、身份、工具网关和请求预算；角色之间交接实际工具证据。
+
+### 资料与计算共同约束回答
+
+通过 PokéAPI 适配、本地缓存、摘要校验和版本绑定获取事实；攻略检索保留原文与来源。属性倍率由程序计算，伤害由固定版本引擎计算，回答区分事实、策略建议和信息缺失。
+
+### 操作授权与执行可靠性
+
+队伍修改采用 Human-in-the-Loop（人工确认），结合账号归属与并发冲突校验。Run 提供超时、取消、调用预算及执行记录；上游断流时保留部分正文并明确失败，浏览器重连通过事件游标补读。
+
+<a id="architecture"></a>
 ## 系统架构
 
 ```mermaid
 flowchart TD
-    UI[Vue 3 统一工作区] --> API[身份认证 / REST / Run API]
-    API --> RUN[Run 生命周期 / 结构化对话状态 / 请求预算]
-    RUN --> ROUTE{任务路由}
-    ROUTE --> DIRECT[确定性资料与规则直达]
-    ROUTE --> MAIN[主 Agent：理解 / 工具规划 / 最终回答]
-    MAIN -. 可选进程内顺序分工 .-> SPECIAL[资料检索 / 组队规划 / 伤害核验]
-    MAIN --> GW[工具网关：参数 / 身份 / 白名单 / 超时]
-    SPECIAL --> GW
-    GW --> FACT[PokéAPI / 缓存 / 馆主资料]
-    GW --> RAG[攻略：SQLite / BM25 / 可选 Embedding]
-    GW --> CALC[本机 Node.js / Smogon 计算]
-    GW --> TEAM[队伍快照 / 变更预览]
-    TEAM --> HITL[用户确认 / 冲突校验 / 保存回读]
-    FACT --> EVIDENCE[来源绑定 / 输入输出核对 / 回答约束]
-    RAG --> EVIDENCE
-    CALC --> EVIDENCE
-    DIRECT --> EVIDENCE
-    HITL --> EVIDENCE
-    EVIDENCE --> RUN
-    RUN --> SSE[SSE 正文与事件 / 游标重连]
-    SSE --> UI
+    UI[Vue 3：对话 / 图鉴 / 队伍] --> API[身份认证与 Run API]
+    API --> RUN[任务生命周期 / 对话状态 / 预算]
+    RUN --> PLAN[主 Agent 与确定性路由]
+    PLAN -. 可选顺序协作 .-> ROLES[资料检索 / 组队规划 / 伤害核验]
+    PLAN --> GATE[工具网关：参数 / 权限 / 超时]
+    ROLES --> GATE
+    GATE --> FACT[PokéAPI / 缓存 / 馆主资料]
+    GATE --> RAG[SQLite / BM25 / 可选 Embedding]
+    GATE --> CALC[Node.js / Smogon 伤害引擎]
+    GATE --> TEAM[队伍快照 / 修改预览]
+    TEAM --> SAVE[用户确认 / 冲突检查 / 保存回读]
+    FACT --> CHECK[来源绑定与结果校验]
+    RAG --> CHECK
+    CALC --> CHECK
+    SAVE --> CHECK
+    CHECK --> OUT[SSE 正文 / 状态 / 执行事件]
+    OUT --> UI
 ```
 
-专用 Agent 是**同一后端进程内的顺序协作**，共享当前模型、身份、工具网关和请求预算，并非独立部署的三个服务。角色间交接实际工具结果，主 Agent 负责最终回答；私有规划文字不作为公开证据。
+部分明确的资料与规则查询由程序直接处理；普通回答支持模型正文流。程序分段发布的核验结果与供应商逐 Token 生成分别处理。
 
-普通回答支持模型正文流；部分固定事实、规则与核验结果由程序生成并分段发布。SSE 推送不代表所有内容都是供应商逐 Token 生成。
+## 技术栈
 
-## 本地启动
+| 层次 | 技术 |
+| --- | --- |
+| 前端 | Vue 3、TypeScript / JavaScript、Vite、Vue Router、Axios |
+| 后端 | Java 21、Spring Boot 3.5、Spring Security、Spring JDBC、Bean Validation |
+| AI 应用 | Spring AI、DeepSeek、Tool Calling / Function Calling、Prompt Engineering、RAG |
+| 资料与检索 | PokéAPI、SQLite、BM25、可选 Embedding、余弦相似度与 RRF 融合 |
+| 确定性计算 | Node.js、`@smogon/calc` 0.12.0、本地进程桥接 |
+| 可观测性 | REST / SSE、Run ID / Trace ID、Actuator、Micrometer、模型用量与阶段耗时 |
+| 测试与交付 | JUnit、Spring Boot Test、Node Test Runner、Playwright、GitHub Actions |
+| 可选适配 | PostgreSQL / Flyway、Redis、PGVector、OIDC、MCP，分别配置与验证 |
 
-### 环境
+<a id="quick-start"></a>
+<a id="本地启动"></a>
+## 快速启动
 
-- JDK 21，`JAVA_HOME` 指向 JDK 目录，不能指向 `bin` 或 `java.exe`。
-- Node.js 与 npm。本轮使用 Node.js 24.19.0；Vite 声明也支持 20.19+、22.12+ 的相应版本，未逐一实装验证。
-- Git、个人 DeepSeek API Key。Maven 使用仓库 Wrapper。
+### 1. 准备环境
 
-默认本地模式使用 SQLite，不需要另装 PostgreSQL、Redis、Docker 或云服务器。
+- **JDK 21**：`JAVA_HOME` 指向 JDK 根目录。
+- **Node.js 与 npm**：前端声明支持 `^20.19.0 || >=22.12.0`，实际约束以 `package.json` 为准。
+- **Git、DeepSeek API Key**：Maven 使用仓库 Wrapper。
 
-### 1. 获取代码与依赖
+默认本地模式无需安装 PostgreSQL、Redis 或 Docker。首次下载依赖、访问模型和获取在线资料需要网络。
+
+### 2. 获取代码与安装依赖
+
+以下使用 Windows PowerShell，在项目根目录执行：
 
 ```powershell
 git clone https://github.com/vioabio/AI-Agent.git
 cd AI-Agent
 npm --prefix tools/pokemon-engine ci
 npm --prefix vio-ai-agent-frontend ci
+
 if (!(Test-Path src/main/resources/application-local.yml)) {
     Copy-Item src/main/resources/application-local.example.yml src/main/resources/application-local.yml
 }
 ```
 
-已有项目时直接进入项目根目录，不要覆盖自己的本地配置。以下后端命令均在包含 `mvnw.cmd` 的目录执行。
-
-### 2. 启动后端
+### 3. 启动后端
 
 ```powershell
 java -version
+
 if ([string]::IsNullOrWhiteSpace($env:DEEPSEEK_API_KEY)) {
     $secret = Read-Host 'DeepSeek API Key（仅本机输入）' -AsSecureString
     $env:DEEPSEEK_API_KEY = [System.Net.NetworkCredential]::new('', $secret).Password
     Remove-Variable secret
 }
+
 .\mvnw.cmd '-Dspring-boot.run.profiles=local,deepseek' spring-boot:run
 ```
 
-后端默认 `http://localhost:8123/api`。Key 只应放在本机环境或被忽略的运行配置中，不发送到聊天、截图或 Git。
+后端地址：`http://localhost:8123/api`。使用 IDEA 时，Active profiles 填 `local,deepseek`，Key 填入 Environment variables。默认模型见公开配置 [application-deepseek.yml](src/main/resources/application-deepseek.yml)，实际使用取决于账户权限。
 
-使用 IDEA 时：Active profiles 填 `local,deepseek`，Environment variables 中配置 `DEEPSEEK_API_KEY`；不要把 Key 填入 Active profiles。`.run/`、`.idea/` 和私有 `application-local.yml` 均不入库。实际可用模型以账户权限和配置为准，默认模型见公开的 `application-deepseek.yml`。
+### 4. 启动前端
 
-### 3. 启动前端
-
-另开一个终端：
+另开终端，进入项目根目录：
 
 ```powershell
 npm --prefix vio-ai-agent-frontend run dev
 ```
 
-打开 `http://localhost:3000`，注册本机账号并进入助手。Vite 将 `/api` 代理至本机 8123；不要重复启动占用同一端口的后端实例。
+访问 **[http://localhost:3000](http://localhost:3000)**，注册本机账号后进入助手。项目没有通用默认账号密码；前端通过 `/api` 代理访问 8123 后端。
 
-### 4. 基础操作
+<a id="configuration"></a>
+<a id="数据与配置"></a>
+## 功能配置与数据
 
-- 查询“杰尼龟的属性和种族值”，核对图鉴资料。
-- 在队伍配置填写成员及培养条件，再发起伤害计算。
-- 请求修改已保存队伍时先查看预览，真正点击确认后才保存。
-- 检索攻略时查看具体片段与来源；资料不足时保留缺项，不要求模型补造。
-
-首次图鉴查询需要 PokéAPI 网络或已校验缓存；模型 Key 不等于搜索服务 Key，也不能修复资料网络。预热、代理和缓存导入见[资料使用说明](document/秋招升级/S2/资料预热与离线包_2026-10-26.md)。
-
-### 5. 在线竞技资料
-
-- 问“朱紫 OU 最新使用率”，读取 Smogon 最新已发布月度统计，默认无需额外 Key，缓存最长 15 分钟。使用率不代表胜率或完整队伍。
-- 问“朱紫 OU 热门队伍及详细配置”，走完整队伍检索，优先读取 Smogon 样例帖及队表；必要时使用固定白名单社区镜像，并标明第三方来源。不会把使用率前六名拼成热门队伍。
-- 若来源阻拦、超时或未取得完整配置，返回查阅链接与缺失说明；样例不构成当前赛事合法性认证。
-- 通用网页搜索独立配置 `SEARCH_API_KEY`（SearchAPI），可选 `SEARCH_API_ENGINE=google`、`baidu` 或 `bing`。DeepSeek Key 不能替代搜索 Key。
-
-## 公网部署
-
-提供[阿里云单机部署操作手册](ops/aliyun/README.md)：Windows 隔离打包 → Ubuntu → Nginx HTTPS → systemd → 登录与问答验收。沿用 SQLite 与本机账号链，适合个人作品展示；公网容量和高可用需要另行验证，密钥仅在服务器配置。
-
-## 数据与配置
-
-三类专用 Agent 通过 `VIO_AGENT_SPECIALISTS_ENABLED=true` 开启并重启后端，默认关闭，复用当前聊天模型与 Key，不需分别部署服务。主 Agent 保留最终校验与队伍修改确认；固定馆主资料、确定性检查等程序直达路径继续复用。每个请求最多6次专用规划、8次工具选择，仍受更严格的全局预算与截止时间约束。评测策略启用时保留单 Agent 基线。旧的 `VIO_AGENT_GUIDE_RESEARCH_ENABLED` 仅在总开关关闭时生效，避免重复检索。
-
-Embedding 独立配置服务、模型、Key 与维度，再使用 `ops/local/build-guide-semantic-index.ps1` 显式构建；不启用时使用 BM25。[统一配置与验收清单](document/三类专用Agent开发与配置清单_2026-11-09.md)列出了需要你处理的全部配置及检查步骤。
-
-本地数据默认位于 `.local-data/`，包含账号、对话、队伍、攻略索引和图鉴缓存。它们保存在当前电脑，不提供跨设备同步；正在执行的 Run 不承诺跨重启自动续跑。具体可配置路径见公开模板，用户私有配置不应提交。
-
-- 默认关闭高风险终端、文件写入、下载和抓取能力；不能把代码中存在的工具当作已授权功能。
-- 默认攻略检索不需要 embedding 服务。PGVector、混合检索、OIDC、MCP 及生产适配属于独立可选范围，不是当前本地链默认已验收能力。
-- 模型用量、代理 Token 估算、参考费用和供应商账单分别处理。上下文估算未充分校准，参考价格功能默认关闭。
-- PokéAPI 是参考资料，不是当前赛事合法性或热门程度证明。逐招记录匹配不证明四招可共同取得；单次伤害不等于实战胜率或整队强度。
-
-## 测试与质量
-
-以下是**不同批次与范围**的验收结果，不合并为模型准确率。更新日期：2026-11-11。
-
-| 范围 | 最近已记录结果 | 说明 |
+| 功能 | 配置方式 | 说明 |
 | --- | --- | --- |
-| 后端整体回归 | 1,562 项，0 失败、0 错误、3 跳过 | 最近修复轮的 Maven 全量记录；不代表全部外部环境已验收 |
-| 工具与契约检查 | 402 / 402 通过 | Node 测试集合，含工具及契约检查；不是 402 个真实模型问答 |
-| 测试文档全量验收 | 68 / 68 通过，0 失败、0 阻塞 | 用户重建后端后，覆盖资料、计算、长对话、Embedding、治理及页面操作 |
-| HTTP 断流与浏览器重连 | 2 / 2 通过 | 最新业务验收轮额外重跑，检查部分正文、失败状态及不重复生成 |
+| 聊天模型 | `local,deepseek` Profile 与 `DEEPSEEK_API_KEY` | 本地问答入口 |
+| 三角色分工 | `VIO_AGENT_SPECIALISTS_ENABLED=true` | 默认关闭，开启后重启后端，复用聊天模型与 Key |
+| 语义检索 | `VIO_GUIDE_SEMANTIC_ENABLED=true`，另配 Embedding 服务、模型、Key 与维度 | 显式构建索引；未启用时使用 BM25 |
+| 通用网页搜索 | `SEARCH_API_KEY`，可选 `SEARCH_API_ENGINE` | 独立的 SearchAPI 凭据，聊天 Key 不能替代 |
+| 本地伤害计算 | 安装 `tools/pokemon-engine` 依赖，后端可找到 `node` | 本机进程，无需额外启动 Node HTTP 服务 |
 
-68 项验收包括实际回答内容、工具事件、计算结果及页面行为核对，**属于已知用例回归**。仍需扩大独立新题和自由回答质量验收；现有记录保留了检索排序、答案偏长与旧语料说明等观察，不能据此宣称消除幻觉或全领域回答正确。
+完整步骤见[三类专用 Agent 与 Embedding 配置清单](document/三类专用Agent开发与配置清单_2026-11-09.md)。语义索引使用 [构建脚本](ops/local/build-guide-semantic-index.ps1)显式创建；开关为 true 不等于索引已就绪，也不证明当前请求实际使用语义检索。
 
-- [最新 68 项验收报告与证据索引](document/测试文档/测试报告_2026-11-11_未知物种修复后重建全量验收.md)
-- [测试文档总览与执行计划](document/测试文档/测试文档_总览与执行计划.md)
-- [历史回答质量验收报告](document/秋招升级/最终交付/回答质量验收报告.md)
-- [历史整体回归与新题验证](document/秋招升级/最终交付/整体回归与新题验证_2026-10-31.md)
+本机账号、会话、队伍、攻略索引和资料缓存默认存放于 `.local-data/`，不提供跨设备自动同步。Key 和私有运行配置仅存本机，不提交 `.run/`、`.idea/` 或私有 `application-local.yml`。
 
-最近修复轮本机日志：`artifacts/species-failure-backend-final.log`、`artifacts/species-failure-tools.log`。原始运行产物不入库，克隆仓库后应重新运行检查，不能将文档数字当作当前 CI 结果。
+<details>
+<summary>常见启动与数据问题</summary>
 
-### 本地检查命令
+- **找不到 mvnw.cmd**：先进入包含 Wrapper 的项目根目录。
+- **JAVA_HOME 错误**：检查 `$env:JAVA_HOME` 与 `Test-Path "$env:JAVA_HOME\bin\java.exe"`，路径不能以 `bin` 或 `java.exe` 结尾。
+- **8123 被占用**：核对已运行的后端，避免重复启动；仅刷新网页不会更新后端代码或环境变量。
+- **图鉴读取失败**：检查 PokéAPI 网络与缓存，模型 Key 不能修复资料连接。参见[资料预热与离线包](document/秋招升级/S2/资料预热与离线包_2026-10-26.md)。
+- **开启 Embedding 后仍是 BM25**：依次检查当前进程配置、索引构建、模型／维度／资料指纹和实际查询结果。
+- **查询热门队伍只拿到部分资料**：单只月度使用率与完整队表是不同来源；完整样例读取失败时会提供原始链接，不能将使用率前六名拼成队伍。
+
+</details>
+
+<a id="quality"></a>
+<a id="测试与质量"></a>
+## 测试验证
+
+以下为截至 **2026-11-11** 已记录的不同批次结果，本次 README 重构未重新运行业务测试。
+
+| 范围 | 结果 | 验证内容 |
+| --- | --- | --- |
+| 后端整体回归 | 1,562 项，0 失败、0 错误、3 跳过 | 最近修复轮 Maven 全量检查 |
+| 工具与契约 | 402 / 402 通过 | Node 工具与契约检查集合 |
+| 测试文档业务回归 | 68 / 68 通过，0 失败、0 阻塞 | 回答、工具事件、计算、多轮、Embedding、授权与页面操作 |
+| 断流与重连 | 2 / 2 通过 | 最新业务验收轮额外执行的 HTTP 与浏览器检查 |
+
+[查看最新验收报告](document/测试文档/测试报告_2026-11-11_未知物种修复后重建全量验收.md) · [测试文档与执行计划](document/测试文档/测试文档_总览与执行计划.md)
+
+上述计数不合并为模型准确率。68 项属于已知用例回归，独立新题与更广泛回答质量仍需验证；报告保留了检索排序、答案长度和旧语料说明等观察。
+
+<details>
+<summary>本地检查命令</summary>
 
 ```powershell
 .\mvnw.cmd test
@@ -190,33 +207,53 @@ npm --prefix vio-ai-agent-frontend run security:contract
 npm --prefix vio-ai-agent-frontend run build
 ```
 
-真实模型及故障测试按测试文档使用隔离账号、合成队伍和独立配置，避免修改个人数据。Embedding 验收还需独立服务配置及显式索引构建。
+真实模型与故障测试按测试文档使用隔离账号、合成队伍和独立配置，避免修改个人数据。原始运行日志位于本机忽略的 `artifacts/`，克隆后需自行复现，历史报告不代表当前 CI 状态。
 
-## 能力边界与后续方向
+</details>
 
-- 当前适合本地使用及秋招作品展示；Docker / PostgreSQL 等环境验证另计，不承诺生产高可用或未完成 Run 跨重启自动重放。
-- 租约、加密步骤输出等基础设施按仓储和 codec 配置启用，不应理解为默认 SQLite 模式已具备全部生产治理能力。
-- PokéAPI、社区队表和攻略各有适用范围；成员学习记录匹配不证明完整配招或整队赛事合法性。
-- 道馆建议依赖实际等级、进度和资源；单次伤害区间不等于胜率。缺少条件时先询问，不补造精确数值。
-- 后续优先扩展独立质量题集、检索排序与语料更新，再补全资源获取／合法性校验和生产环境验证。
+## 目录与源码入口
 
-## 面试与代码入口
+```text
+AI-Agent/
+├── src/main/java/com/vio/vioaiagent/
+│   ├── agent/               # 主 Agent、专用角色、对话路由与回答校验
+│   ├── run/                 # Run 生命周期、上下文、事件与仓储
+│   ├── tools/               # 工具注册与执行治理
+│   ├── pokemon/             # 图鉴、攻略、道馆、队伍与计算适配
+│   ├── security/            # 账号、安全与权限
+│   └── observability/       # 用量、预算与诊断
+├── vio-ai-agent-frontend/   # Vue 工作区
+├── tools/pokemon-engine/   # 本地 Smogon 计算桥接
+├── evaluation/             # 评测资料与协议
+├── document/               # 学习、设计、开发与验收记录
+└── ops/                    # 本地配置脚本与部署模板
+```
 
-- [全栈与 AI 应用开发学习路线：Java/Spring Boot、Vue/TS、SQL 基础教程，十四周路线与十二个新版 Agent 实验](document/学习与面试/项目系统学习路线_2026-11-05.md)
-- [双岗位秋招面试全书：420 题，覆盖 Vue 3/Spring Boot、Python/FastAPI、AI 应用、项目与 HR，含智美官网部署及供应商 SEO 接口专项，附回答要点、追问与动手示例](document/学习与面试/秋招双岗位全栈与AI应用开发面试全书_2026-11-05.md)
-- [大厂 JD 调研与覆盖矩阵：7 家公司、10 个有正文依据的岗位，区分校招、实习与社招](document/学习与面试/大厂JD调研与题库覆盖矩阵_2026-11-05.md)
-- [原 168 题项目题库：源码定位与模拟面试](document/学习与面试/秋招AI应用开发面试题库_2026-11-05.md)
-- [项目讲解、简历描述与常见追问](document/秋招升级/最终交付/面试与项目讲解.md)
-- [架构、数据流与设计取舍](document/秋招升级/最终交付/架构与设计取舍.md)
-- [后端 Run 生命周期](src/main/java/com/vio/vioaiagent/run/PokemonAgentRunService.java)
-- [模型规划与回答发布](src/main/java/com/vio/vioaiagent/agent/ToolCallAgent.java)
-- [工具注册与治理](src/main/java/com/vio/vioaiagent/tools/ToolRegistration.java)
-- [本地知识检索](src/main/java/com/vio/vioaiagent/pokemon/guides/SqliteGuideKnowledgeRetriever.java)
-- [失败脱敏诊断](src/main/java/com/vio/vioaiagent/observability/ModelFailureDiagnostics.java)
-- [前端工作区](vio-ai-agent-frontend/src)
+推荐从 [Run 服务](src/main/java/com/vio/vioaiagent/run/PokemonAgentRunService.java) → [执行器](src/main/java/com/vio/vioaiagent/run/DefaultRunExecutor.java) → [ToolCallAgent](src/main/java/com/vio/vioaiagent/agent/ToolCallAgent.java) → [工具注册](src/main/java/com/vio/vioaiagent/tools/ToolRegistration.java)阅读，再按场景跟踪检索、计算或保存分支。
+
+<a id="documents"></a>
+## 文档导航
+
+| 主题 | 入口 |
+| --- | --- |
+| PDF下载 | [学习路线](output/pdf/项目系统学习路线_2026-11-12.pdf) · [420题面试全书](output/pdf/秋招双岗位面试全书_420题_2026-11-12.pdf) |
+| 学习资料总览 | [阅读顺序与每日记录](document/学习与面试/README.md) |
+| 系统学习路线 | [基础教程、十四周安排、十二个新版 Agent 实验](document/学习与面试/项目系统学习路线_2026-11-05.md) |
+| 面试准备 | [420 题全栈与 AI 应用开发面试全书](document/学习与面试/秋招双岗位全栈与AI应用开发面试全书_2026-11-05.md) |
+| 项目表达 | [简历写法与面试展开要点](document/学习与面试/项目简历介绍_2026-11-11.md) |
+| 设计说明 | [架构与设计取舍](document/秋招升级/最终交付/架构与设计取舍.md) |
+| 公网部署 | [阿里云单机部署手册](ops/aliyun/README.md)：Ubuntu、Nginx HTTPS、systemd与验收 |
+| 历史演进 | [历史 README 与交付记录](document/秋招升级/最终交付/历史README_2026-10-30.md) |
+
+## 当前边界与后续方向
+
+- 当前定位是可本地使用、可用于学习与作品展示的领域 AI 应用；公网容量、生产高可用及 Docker / PostgreSQL 环境需分别验证。
+- 历史与队伍持久化不代表正在执行的 Run 可跨重启自动续跑。租约隔离、不可变产物与加密 codec 按具体仓储和配置启用。
+- PokéAPI 与社区资料不构成赛事合法性认证；单次伤害不等于胜率，完整样例也不等于实时最强阵容。
+- 后续优先完善独立质量题集、检索排序与语料更新，扩展资源获取和合法性核对，再推进生产环境验证。
 
 ## 来源与许可
 
-第三方计算引擎说明见 [THIRD_PARTY_NOTICES](tools/pokemon-engine/THIRD_PARTY_NOTICES.md)，插图来源见 [SOURCES](vio-ai-agent-frontend/public/pokemon/SOURCES.md)。项目原创攻略与外部接口/机制参考分别标注，不把链接存在当作逐条事实核验。
+计算引擎说明见 [THIRD_PARTY_NOTICES](tools/pokemon-engine/THIRD_PARTY_NOTICES.md)，插图来源见 [SOURCES](vio-ai-agent-frontend/public/pokemon/SOURCES.md)。项目资料、第三方接口、计算依赖与宝可梦素材分别遵循其来源和使用范围。
 
-当前仓库没有完整项目 `LICENSE` 文件，`pom.xml` 的许可证元数据为空，本次不擅自指定或改变项目授权；第三方依赖和宝可梦素材有各自使用范围，不能统一宣称均可商用。
+仓库目前未提供完整项目 `LICENSE`，不能据此推定任意商业使用授权。
