@@ -4,6 +4,8 @@
 
 **正式版 v1.0.0** · [发布记录](document/发布记录/v1.0.0.md) · [版本标签](https://github.com/vioabio/AI-Agent/tree/v1.0.0)
 
+当前分支：**v1.1 升级开发**（`codex/v1.1-agent-upgrade`）。[查看完整开发方案](document/升级计划/v1.1智能体能力升级开发方案_2026-11-12.md)，从 U0 独立评测基线开始；新功能尚未实施。
+
 **让资料查询、道馆应对、队伍搭配与伤害核验，在一个工作区完成。**
 
 Java 21 · Spring Boot · Spring AI · DeepSeek · Vue 3 · SSE · Tool Calling · RAG
@@ -241,6 +243,7 @@ AI-Agent/
 | 系统学习路线 | [基础教程、十四周安排、十二个新版 Agent 实验](document/学习与面试/项目系统学习路线_2026-11-05.md) |
 | 面试准备 | [420 题全栈与 AI 应用开发面试全书](document/学习与面试/秋招双岗位全栈与AI应用开发面试全书_2026-11-05.md) |
 | 项目表达 | [简历写法与面试展开要点](document/学习与面试/项目简历介绍_2026-11-11.md) |
+| v1.1升级计划 | [六项新能力、U0～U6任务与验收回退方案](document/升级计划/v1.1智能体能力升级开发方案_2026-11-12.md) |
 | 设计说明 | [架构与设计取舍](document/秋招升级/最终交付/架构与设计取舍.md) |
 | 公网部署 | [阿里云单机部署手册](ops/aliyun/README.md)：Ubuntu、Nginx HTTPS、systemd与验收 |
 | 历史演进 | [历史 README 与交付记录](document/秋招升级/最终交付/历史README_2026-10-30.md) |
