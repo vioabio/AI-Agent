@@ -59,6 +59,9 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 @Service
 @Slf4j
 public class PokemonAgentRunService {
+    @org.springframework.beans.factory.annotation.Value("${vio.agent.answer-blocks.enabled:false}")
+    private boolean answerBlocksEnabled;
+
 
     @org.springframework.beans.factory.annotation.Value("${vio.run.answer-streaming-enabled:false}")
     private boolean answerStreamingEnabled;
@@ -1194,6 +1197,27 @@ public class PokemonAgentRunService {
                     throw new java.util.concurrent.CancellationException("Run 已停止或超过写入期限");
             }
             public <T> T write(Supplier<T> action) { return workerWrite(run, () -> { check(); return action.get(); }); }
+            public void publishFact(com.vio.vioaiagent.agent.PokemonAnswerBlock block) {
+                if(!answerBlocksEnabled)return;
+                if(!run.gameReleaseId().equals(block.gameReleaseId())||!run.dataReleaseId().equals(block.dataReleaseId()))return;
+                write(()->{emitLocked(run,AgentEventType.FACT_CARD,Map.of("factId",block.blockId(),"name",block.name(),"types",block.types(),"baseStats",block.stats(),"gameReleaseId",block.gameReleaseId(),"dataReleaseId",block.dataReleaseId(),"sourceUrl","https://pokeapi.co/api/v2/pokemon/"+block.formId()+"/","evidenceText","本次工具读取的图鉴事实","answerBlock",block));return null;});
+            }
+            public void publishDamage(com.vio.vioaiagent.agent.DamageAnswerBlock block) {
+                if(!answerBlocksEnabled||!run.gameReleaseId().equals(block.gameReleaseId())||!run.dataReleaseId().equals(block.dataReleaseId()))return;
+                write(()->{emitLocked(run,AgentEventType.CALCULATION_CARD,Map.of("calculationId",block.blockId(),"calculationType","VERIFIED_LOCAL_DAMAGE","result",Map.of("minimum",block.minimum(),"maximum",block.maximum(),"defenderHp",block.defenderHp()),"answerBlock",block));return null;});
+            }
+            public void publishTeam(com.vio.vioaiagent.agent.TeamSuggestionAnswerBlock block) {
+                if(!answerBlocksEnabled||!run.gameReleaseId().equals(block.gameReleaseId())||!run.dataReleaseId().equals(block.dataReleaseId()))return;
+                write(()->{emitLocked(run,AgentEventType.TEAM_MATRIX,Map.of("teamId",block.blockId(),"members",block.members(),"answerBlock",block));return null;});
+            }
+            public void publishTraining(long requestedId,com.vio.vioaiagent.pokemon.team.TeamWorkflowService.ReadTeam read) {
+                if(!answerBlocksEnabled)return;
+                com.vio.vioaiagent.agent.TrainingPlanAnswerBlock block;
+                try{block=com.vio.vioaiagent.agent.TrainingPlanAnswerBlock.from(requestedId,run.userId(),read,Instant.now());}
+                catch(IllegalArgumentException invalid){return;}
+                if(!run.gameReleaseId().equals(block.gameReleaseId())||!run.dataReleaseId().equals(block.dataReleaseId())||!run.rulesetVersionId().equals(block.rulesetVersionId()))return;
+                write(()->{emitLocked(run,AgentEventType.TEAM_MATRIX,Map.of("teamId",block.teamId(),"members",block.members(),"answerBlock",block));return null;});
+            }
         },modelUsage,constraintsForRun(run),ConversationHistory.dialogueState(run,storedHistory));
         if (!(executor instanceof ContractAwareRunExecutor contractExecutor)) {
             return new AnswerExecution(executor.execute(context), null);
@@ -1612,7 +1636,8 @@ public class PokemonAgentRunService {
             case "approval.required" -> AgentEventType.APPROVAL_REQUIRED;
             case "tool.started" -> AgentEventType.TOOL_STARTED;
             case "tool.completed", "tool.finished", "tool.failed", "tool.rejected", "tool.deduplicated" -> AgentEventType.TOOL_FINISHED;
-            case "agent.delegation.started", "agent.delegation.completed", "agent.delegation.fallback" -> AgentEventType.ROUTE_SELECTED;
+            case "retrieval.finished" -> AgentEventType.RETRIEVAL_FINISHED;
+            case "agent.delegation.started", "agent.delegation.completed", "agent.delegation.fallback", "agent.delegation.context" -> AgentEventType.ROUTE_SELECTED;
             default -> null;
         };
         if (type == null) return;
@@ -1764,6 +1789,15 @@ public class PokemonAgentRunService {
         // 使用执行器实际回读的 release 覆盖 Run 创建时的空值，但不会写入 unknown。
         Map<String, Object> enrichedPayload = new LinkedHashMap<>(lineagePayload(run));
         if (payload != null) enrichedPayload.putAll(payload);
+        if(payload!=null && (type==AgentEventType.FACT_CARD && payload.get("answerBlock") instanceof com.vio.vioaiagent.agent.PokemonAnswerBlock
+                || type==AgentEventType.CALCULATION_CARD && payload.get("answerBlock") instanceof com.vio.vioaiagent.agent.DamageAnswerBlock
+                || type==AgentEventType.TEAM_MATRIX && (payload.get("answerBlock") instanceof com.vio.vioaiagent.agent.TeamSuggestionAnswerBlock
+                    || payload.get("answerBlock") instanceof com.vio.vioaiagent.agent.TrainingPlanAnswerBlock))) {
+            // Public API facts bind game/data releases, not a retrieved knowledge/index release.
+            // Omit only absent optional dimensions. Explicit invalid placeholders still fail validation.
+            for(String key:List.of("knowledgeReleaseId","indexReleaseId"))
+                if(isBlank((String)enrichedPayload.get(key)))enrichedPayload.remove(key);
+        }
         if(type.isTerminal()) {
             var taskBudget=taskBudgets.get(run.id());
             if(taskBudget!=null)taskBudget.close();

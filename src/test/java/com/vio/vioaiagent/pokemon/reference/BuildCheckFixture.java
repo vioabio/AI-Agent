@@ -12,11 +12,12 @@ public class BuildCheckFixture {
     public final LocalPokeApiRepository repository;
     public final LocalLearnsetReferences learning;
     public final LocalBuildCheckService service;
-    public BuildCheckFixture(Path path) {
+    public BuildCheckFixture(Path path) { this(path,List.of(new PokemonLearnsetFacts.Entry("machine",0,null))); }
+    public BuildCheckFixture(Path path,List<PokemonLearnsetFacts.Entry> entries) {
         var p=json.createObjectNode().put("id",7).put("name","squirtle");p.putObject("species").put("name","squirtle");p.putArray("types").addObject().putObject("type").put("name","water");
         var stats=p.putArray("stats");for(String s:List.of("hp","attack","defense","special-attack","special-defense","speed"))stats.addObject().put("base_stat",40).putObject("stat").put("name",s);
         p.putArray("abilities").addObject().putObject("ability").put("name","torrent");
-        var moves=p.putArray("moves");for(String move:List.of("water-pulse","ice-beam","protect","surf")){var m=moves.addObject();m.putObject("move").put("name",move);var row=m.putArray("version_group_details").addObject().put("level_learned_at",0).putNull("order");row.putObject("version_group").put("name","scarlet-violet");row.putObject("move_learn_method").put("name","machine");}
+        var moves=p.putArray("moves");for(String move:List.of("water-pulse","ice-beam","protect","surf")){var m=moves.addObject();m.putObject("move").put("name",move);var details=m.putArray("version_group_details");for(var entry:entries){var row=details.addObject().put("level_learned_at",entry.levelLearnedAt());if(entry.order()==null)row.putNull("order");else row.put("order",entry.order());row.putObject("version_group").put("name","scarlet-violet");row.putObject("move_learn_method").put("name",entry.methodKey());}}
         var s=json.createObjectNode().put("id",7).put("name","squirtle");s.putObject("generation").put("name","generation-i");s.putArray("names").addObject().put("name","杰尼龟").putObject("language").put("name","zh-Hans");
         client=new PokeApiClient(json,path,url->{networkCalls.incrementAndGet();return url.contains("pokemon-species")?s.toString():p.toString();});
         repository=new LocalPokeApiRepository(json,client);learning=new LocalLearnsetReferences(json,client);service=new LocalBuildCheckService(json,repository,learning,client);

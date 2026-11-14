@@ -19,6 +19,9 @@ public class LocalGuideSearch {
     private final KnowledgeRetriever retriever;
     private final Catalog catalog;
     private LocalGuideSemanticSearch semantic;
+    private GuideRerankPipeline reranking;
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    public void setReranking(GuideRerankPipeline reranking){this.reranking=reranking;}
     @org.springframework.beans.factory.annotation.Autowired(required=false)
     public void setSemantic(LocalGuideSemanticSearch semantic){this.semantic=semantic;}
     public LocalGuideSearch(ObjectMapper mapper,ResourceLoader loader,
@@ -60,9 +63,29 @@ public class LocalGuideSearch {
             if(!focused.isEmpty())result.put(focused.getFirst().view().documentId(),index.hit(focused.getFirst()));
         }
         for(var chunk:chunks) result.putIfAbsent(chunk.view().documentId(),index.hit(chunk));
-        return result.values().stream().limit(4).toList();
+        var selected=result.values().stream().filter(hit->GuideRevisionPolicy.usable(hit.document(),query)).limit(4).toList();
+        var context=com.vio.vioaiagent.tools.governance.ToolExecutionContextHolder.peek();
+        if(reranking!=null&&context!=null) {
+            var sources=selected.stream().map(hit->new FinalSource(hit.document().id(),hit.citation().chunkId(),hit.citation().documentVersion())).toList();
+            context.eventSink().accept(new com.vio.vioaiagent.tools.governance.ToolGovernanceEvent(
+                    "retrieval.finished",context.runId(),"searchPokemonGuides",UUID.randomUUID().toString(),null,
+                    Map.of("retrievalStage","FINAL_GUIDE_SELECTION","selectionPolicy","DOCUMENT_DEDUP_WITH_REQUIRED_TOPIC","selectedSources",sources)));
+        }
+        return selected;
     }
-    public List<RetrievedKnowledgeChunk> retrieve(KnowledgeRetrievalQuery query) { return semantic==null?retriever.retrieve(query):semantic.retrieve(query,index); }
+    public List<RetrievedKnowledgeChunk> retrieve(KnowledgeRetrievalQuery query) {
+        java.util.function.Function<KnowledgeRetrievalQuery,List<RetrievedKnowledgeChunk>> base=q->{
+            var candidates=semantic==null?retriever.retrieve(q):semantic.retrieve(q,index);
+            return candidates.stream().filter(chunk->GuideRevisionPolicy.usable(index.hit(chunk).document(),q.text())).toList();
+        };
+        if(reranking==null)return base.apply(query);
+        var result=reranking.retrieve(query,base);
+        var context=com.vio.vioaiagent.tools.governance.ToolExecutionContextHolder.peek();
+        if(context!=null)context.eventSink().accept(new com.vio.vioaiagent.tools.governance.ToolGovernanceEvent(
+                "retrieval.finished",context.runId(),"searchPokemonGuides",UUID.randomUUID().toString(),null,
+                Map.of("retrievalStage","POST_RETRIEVAL_RERANK","rerankObservation",result.diagnostics(),"rerankState",result.state())));
+        return result.chunks();
+    }
     public LocalGuideSemanticSearch.Status semanticStatus(){return semantic==null?new LocalGuideSemanticSearch.Status(false,false,false,"BM25","none",0,0,"DISABLED"):semantic.status(index);}
     public LocalGuideSemanticSearch.Status buildSemanticIndex(){return semantic==null?semanticStatus():semantic.build(index);}
     public SqliteGuideKnowledgeRetriever.Status status() { return index.status(); }
@@ -117,6 +140,7 @@ public class LocalGuideSearch {
         }
     }
     public record Catalog(String catalogId,int schemaVersion,String corpusSha256,int documentCount) { }
+    public record FinalSource(String documentId,String chunkId,String documentVersion) { }
     public record Citation(String chunkId,String documentVersion,int chunkNo,int startOffset,int endOffset,String text,String contentHash) { }
     public record Hit(Document document,int score,String checksum,Citation citation) {
         public Hit(Document document,int score,String checksum){this(document,score,checksum,null);}

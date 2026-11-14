@@ -474,6 +474,7 @@ import TeamBuildCheckPanel from '@/components/TeamBuildCheckPanel.vue'
 import { createTeamExport, teamFileName, MAX_TEAM_FILE_BYTES, TERA_LABELS } from '@/api/team-transfer'
 import {buildCheckDraft} from '@/api/build-check'
 import {teamBuildQuestion} from '@/api/team-build-check'
+import { trainingBlockToDraft } from '@/api/training-draft'
 
 const props = defineProps({
   embedded: { type: Boolean, default: false },
@@ -568,7 +569,7 @@ async function openPokemon(query) {
   factQuery.value = identity?.nameZh || String(query || '')
   await searchFacts()
 }
-defineExpose({ showSection, openPokemon, resumeConversation, analyzeCurrentTeam, refreshHistory: loadConversations, refreshConfirmedTeam })
+defineExpose({ showSection, openPokemon, resumeConversation, analyzeCurrentTeam, refreshHistory: loadConversations, refreshConfirmedTeam, importTrainingDraft })
 async function refreshConfirmedTeam(saved) {
   if (!saved?.id) return
   const canReplace = String(editingTeamId.value) === String(saved.id) && teamSaved.value
@@ -1105,6 +1106,40 @@ function exportTeamFile() {
 function chooseTeamFile() {
   if (teamsState.status !== 'saving' && !teamImporting.value) teamPasteOpen.value = true
 }
+function applyImportedTeam(team) {
+  // Always create a new local draft; never retain a source team ID or edit baseline.
+  editingTeamId.value = null
+  editingBaseline.value = ''
+  teamForm.name = team.name
+  teamForm.rulesetId = team.rulesetId
+  teamForm.dataReleaseId = team.dataReleaseId
+  teamForm.members = Array.from({ length: 6 }, (_, index) => {
+    const member = team.members.find(value => value.slot === index + 1)
+    memberBuilds[index] = member ? { ...defaultBuild(), ...JSON.parse(JSON.stringify(member.build)), movesText: member.build.moves.join(', ') } : defaultBuild()
+    return member ? String(member.formId) : ''
+  })
+  teamPasteOpen.value = false
+  selectedMember.value = team.members[0].slot - 1
+  teamFormError.value = ''
+  hydrateTeamMembers(team)
+}
+
+function importTrainingDraft(raw) {
+  if (disposed) return false
+  if (props.busy || teamImporting.value || teamsState.status === 'saving') { resourceNotice.value='当前任务、保存或导入尚未结束，请稍后再导入配置卡片。';return false }
+  try {
+    const team = trainingBlockToDraft(raw, context)
+    const checkpoint = JSON.stringify([teamForm,memberBuilds,editingTeamId.value,context])
+    if (!teamSaved.value && (teamForm.name || teamForm.members.some(Boolean)) && !window.confirm('当前未保存草稿将被替换。只导入为新草稿，不修改任何已保存队伍。继续？')) return false
+    if (checkpoint !== JSON.stringify([teamForm,memberBuilds,editingTeamId.value,context])) throw new Error('确认期间队伍或版本已变更，请重新导入')
+    applyImportedTeam(team)
+    resourceNotice.value = ''
+    showSection('teams')
+    transferNotice(`已从读取时快照导入「${team.name}」为新草稿，原队伍未修改；核对后手动保存。`)
+    return true
+  } catch (error) { resourceNotice.value=`导入失败：${error.message}`;transferNotice(resourceNotice.value,true);return false }
+}
+
 async function importTeamFile(event) {
   const file = event.target.files?.[0]
   event.target.value = '' // Selecting the same file again must still trigger change.
@@ -1138,21 +1173,7 @@ async function importTeamFile(event) {
     if (!teamSaved.value && (teamForm.name || teamForm.members.some(Boolean))) notices.push('当前未保存的草稿将被替换。')
     if (team.rulesetId !== context.rulesetVersionId || team.dataReleaseId !== context.dataReleaseId) notices.push('文件与当前规则或数据版本不同，将保留文件中的队伍版本。')
     if (notices.length && !window.confirm(`${notices.join('\n')}\n确认导入？已有的已保存队伍不会被覆盖。`)) return
-    // Do not accept portable file IDs as an existing account-owned team.
-    editingTeamId.value = null
-    editingBaseline.value = ''
-    teamForm.name = team.name
-    teamForm.rulesetId = team.rulesetId
-    teamForm.dataReleaseId = team.dataReleaseId
-    teamForm.members = Array.from({ length: 6 }, (_, index) => {
-      const member = team.members.find(value => value.slot === index + 1)
-      memberBuilds[index] = member ? { ...defaultBuild(), ...member.build, movesText: member.build.moves.join(', ') } : defaultBuild()
-      return member ? String(member.formId) : ''
-    })
-    teamPasteOpen.value = false
-    selectedMember.value = team.members[0].slot - 1
-    teamFormError.value = ''
-    hydrateTeamMembers(team)
+    applyImportedTeam(team)
     transferNotice(`已导入「${team.name}」，点击保存队伍创建新队伍。格式校验不代表赛制合法性。`)
   } catch (error) {
     if (!disposed) transferNotice(`导入失败：${error.message}`, true)

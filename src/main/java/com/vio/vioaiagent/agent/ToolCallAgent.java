@@ -40,6 +40,58 @@ import java.util.stream.Collectors;
 @Data
 @Slf4j
 public class ToolCallAgent extends ReActAgent {
+    private java.util.function.Consumer<PokemonAnswerBlock> pokemonBlockSink;
+    private java.util.function.Consumer<DamageAnswerBlock> damageBlockSink;
+    private java.util.function.Consumer<TeamSuggestionAnswerBlock> teamBlockSink;
+    private java.util.function.BiConsumer<Long,com.vio.vioaiagent.pokemon.team.TeamWorkflowService.ReadTeam> trainingPlanSink;
+    public void setTrainingPlanSink(java.util.function.BiConsumer<Long,com.vio.vioaiagent.pokemon.team.TeamWorkflowService.ReadTeam> sink){trainingPlanSink=sink;}
+    private void publishVerifiedTraining(ToolResponseMessage.ToolResponse response){
+        if(trainingPlanSink==null||!"readCurrentTeam".equals(response.name())||response.responseData()==null||response.responseData().length()>120000)return;
+        long id;com.vio.vioaiagent.pokemon.team.TeamWorkflowService.ReadTeam read;
+        try{
+            String arguments=toolCallChatResponse.getResult().getOutput().getToolCalls().stream().filter(c->c.id().equals(response.id())&&c.name().equals(response.name())).map(AssistantMessage.ToolCall::arguments).findFirst().orElseThrow();
+            var requested=new com.fasterxml.jackson.databind.ObjectMapper().readTree(arguments).path("teamId");
+            if(!requested.isIntegralNumber()||!requested.canConvertToLong())return;id=requested.asLong();
+            var evidence=new SavedTeamAnswerEvidence();evidence.observe(response.name(),response.responseData());read=evidence.verifiedRead().orElseThrow();
+        }catch(Exception invalid){return;}
+        trainingPlanSink.accept(id,read);
+    }
+    public void setTeamBlockSink(java.util.function.Consumer<TeamSuggestionAnswerBlock> sink){teamBlockSink=sink;}
+    private void publishVerifiedTeam(ToolResponseMessage.ToolResponse response){
+        if(teamBlockSink==null||!"lookupPokemonTeamReference".equals(response.name())||response.responseData()==null||response.responseData().length()>1048576)return;
+        TeamSuggestionAnswerBlock block;
+        try {
+            String arguments=toolCallChatResponse.getResult().getOutput().getToolCalls().stream().filter(c->c.id().equals(response.id())&&c.name().equals(response.name())).map(AssistantMessage.ToolCall::arguments).findFirst().orElseThrow();
+            var mapper=new com.fasterxml.jackson.databind.ObjectMapper();var request=mapper.readTree(arguments);
+            var queries=mapper.convertValue(request.path("queries"),new com.fasterxml.jackson.core.type.TypeReference<List<String>>(){});
+            block=TeamSuggestionAnswerBlock.from(queries,request.path("dataReleaseId").asText(),mapper.readValue(response.responseData(),com.vio.vioaiagent.pokemon.reference.TeamReferenceTools.TeamEvidence.class));
+        }catch(Exception invalid){return;}
+        teamBlockSink.accept(block);
+    }
+    public void setDamageBlockSink(java.util.function.Consumer<DamageAnswerBlock> sink){damageBlockSink=sink;}
+    private void publishVerifiedDamage(org.springframework.ai.chat.messages.ToolResponseMessage.ToolResponse response){
+        if(damageBlockSink==null||!"calculateBattleDamage".equals(response.name())||response.responseData()==null||response.responseData().length()>131072)return;
+        DamageAnswerBlock block;
+        try {
+            String arguments=toolCallChatResponse.getResult().getOutput().getToolCalls().stream().filter(c->c.id().equals(response.id())&&c.name().equals(response.name())).map(org.springframework.ai.chat.messages.AssistantMessage.ToolCall::arguments).findFirst().orElseThrow();
+            var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
+            var request=mapper.treeToValue(mapper.readTree(arguments).path("request"),com.vio.vioaiagent.pokemon.engine.LocalDamageEngine.Request.class);
+            block=DamageAnswerBlock.from(request,mapper.readTree(response.responseData()));
+        }catch(Exception invalid){return;}
+        damageBlockSink.accept(block);
+    }
+    public void setPokemonBlockSink(java.util.function.Consumer<PokemonAnswerBlock> sink){this.pokemonBlockSink=sink;}
+    private void publishVerifiedPokemon(String name,String response) {
+        if(pokemonBlockSink==null||!"lookupPokemonReference".equals(name)||response==null||response.length()>500000)return;
+        PokemonAnswerBlock block;
+        try {
+            var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
+            var fact=mapper.treeToValue(mapper.readTree(response).path("fact"),com.vio.vioaiagent.pokemon.domain.PokemonFact.class);
+            block=PokemonAnswerBlock.from(fact);
+        }catch(Exception invalid){return;}
+        pokemonBlockSink.accept(block);
+    }
+
 
     /** 单次工具调用返回结果的最大字符数（超过则截断，防止 Token 爆炸） */
     private static final int MAX_TOOL_OUTPUT_LENGTH = 3000;
@@ -608,6 +660,10 @@ public class ToolCallAgent extends ReActAgent {
                         toolCallChatResponse.getResult().getOutput().getToolCalls().stream()
                                 .filter(call -> call.id().equals(response.id()) && call.name().equals(response.name()))
                                 .map(AssistantMessage.ToolCall::arguments).findFirst().orElse(null)));
+        toolResponseMessage.getResponses().forEach(response -> publishVerifiedPokemon(response.name(),response.responseData()));
+        toolResponseMessage.getResponses().forEach(this::publishVerifiedDamage);
+        toolResponseMessage.getResponses().forEach(this::publishVerifiedTeam);
+        toolResponseMessage.getResponses().forEach(this::publishVerifiedTraining);
         if (savedTeamAnswerEvidence != null) toolResponseMessage.getResponses().forEach(response ->
                 savedTeamAnswerEvidence.observe(response.name(), response.responseData()));
         if (teamWorkflow != null) toolResponseMessage.getResponses().forEach(response ->
@@ -660,6 +716,11 @@ public class ToolCallAgent extends ReActAgent {
     }
 
     protected String summarizeAnswer() {
+        // A pure form comparison is a factual request, even if the planner made unrelated reads.
+        if (guideAnswerEvidence != null) {
+            var forms = guideAnswerEvidence.formComparisonAnswer();
+            if (forms.isPresent()) return publishVerified(forms.get());
+        }
         var types=TypeMatchupReply.reply(currentQuestion());
         if(types.isPresent())return publishVerified(types.get());
         if (LocalGuideOnlyRoute.matches(currentQuestion()) && guideAnswerEvidence != null)
@@ -687,6 +748,8 @@ public class ToolCallAgent extends ReActAgent {
         boolean guardedSaved = savedTeamAnswerEvidence != null && savedTeamAnswerEvidence.complete();
         boolean guarded = guardedTeam || guardedDamage || guardedSaved;
         if (!guarded && guideAnswerEvidence != null) {
+            var forms = guideAnswerEvidence.formComparisonAnswer();
+            if (forms.isPresent()) return publishVerified(forms.get());
             var comparison=guideAnswerEvidence.speedComparisonAnswer();
             if(comparison.isPresent())return publishVerified(comparison.get());
             var basicFacts = guideAnswerEvidence.basicFactAnswer();

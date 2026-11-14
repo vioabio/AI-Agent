@@ -13,6 +13,24 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class GymDialogueRouterTest {
+    @Test void negativeActionsDoNotReplaceRosterAndBoundFollowupsNeverUseModelMemory() {
+        var tools = new ToolCallback[0];
+        var larry = List.<Message>of(new UserMessage("我只想看青木的队伍资料，不要推荐我方。"));
+        String roster = GymDialogueRouter.reply(context(larry.getFirst().getText(), List.of()), tools).orElseThrow();
+        assertTrue(roster.contains("树枕尾熊")); assertTrue(roster.contains("姆克鹰"));
+        assertFalse(roster.contains("队伍推荐的缺口"));
+        String ace = GymDialogueRouter.reply(context("他的太晶成员是哪只？", larry), tools).orElseThrow();
+        assertTrue(ace.contains("姆克鹰")); assertTrue(ace.contains("太晶属性 **一般**")); assertFalse(ace.contains("长毛狗"));
+        String rematch = GymDialogueRouter.reply(context("改看重赛，不需要分析我的队伍。", List.of(new UserMessage("请只查询寇沙初战资料。"))), tools).orElseThrow();
+        assertTrue(rematch.contains("视察重赛")); assertTrue(rematch.contains("寇沙")); assertFalse(rematch.contains("没有唯一匹配"));
+        String switched = GymDialogueRouter.reply(context("现在改问奇树，别沿用刚才的冰系馆主。", List.of(new UserMessage("古鲁夏初战资料"))), tools).orElseThrow();
+        assertTrue(switched.contains("奇树")); assertTrue(switched.contains("梦妖魔")); assertFalse(switched.contains("古鲁夏"));
+        String list = GymDialogueRouter.reply(context("请按参考等级顺序列出朱紫馆主，并说明不是强制挑战顺序。", List.of()), tools).orElseThrow();
+        assertTrue(list.contains("不是强制挑战顺序"));
+        String ordinal = GymDialogueRouter.reply(context("看刚才表格倒数第二位的初战配置。", List.of(new UserMessage("列出朱紫馆主"), new AssistantMessage(list))), tools).orElseThrow();
+        assertTrue(ordinal.contains("莉普")); assertTrue(ordinal.contains("花洁夫人")); assertTrue(ordinal.contains("招式"));
+    }
+
     private AgentRunContext context(String question, List<Message> history) {
         var run=AgentRun.create(UUID.randomUUID().toString(),"s","conversation-a","owner-a",question,
                 "pokemon-scarlet-violet","casual-singles","casual-v1","zh-CN","trace",null,Instant.now().plusSeconds(30));

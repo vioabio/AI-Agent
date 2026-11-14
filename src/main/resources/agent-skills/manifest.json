@@ -1,0 +1,76 @@
+[
+  {
+    "id": "gym-challenge",
+    "version": "1",
+    "description": "道馆应对",
+    "role": "TEAM_PLANNING",
+    "allowedTools": [
+      "planGymChallenge",
+      "analyzeSavedTeamForGym",
+      "recommendGymTeamCore",
+      "readCurrentTeam",
+      "listCurrentTeams",
+      "lookupPokemonTeamReference",
+      "lookupPokemonReference",
+      "checkTypeEffectiveness",
+      "getTypeChart"
+    ]
+  },
+  {
+    "id": "saved-team-review",
+    "version": "1",
+    "description": "保存队伍诊断",
+    "role": "TEAM_PLANNING",
+    "allowedTools": [
+      "listCurrentTeams",
+      "readCurrentTeam",
+      "lookupPokemonTeamReference",
+      "checkPokemonBuild",
+      "checkPokemonTeamBuild",
+      "lookupPokemonReference",
+      "lookupPokemonResource",
+      "searchPokemonGuides"
+    ]
+  },
+  {
+    "id": "damage-verification",
+    "version": "1",
+    "description": "伤害计算核验",
+    "role": "DAMAGE_CALCULATION",
+    "allowedTools": [
+      "calculateBattleDamage",
+      "calculateGymDamage",
+      "readCurrentTeam",
+      "listCurrentTeams",
+      "lookupPokemonReference",
+      "lookupPokemonResource",
+      "lookupPokemonMechanics"
+    ]
+  },
+  {
+    "id": "competitive-team-reference",
+    "version": "1",
+    "description": "竞技样例查询",
+    "role": "POKEMON_RESEARCH",
+    "allowedTools": [
+      "lookupCompetitiveTeams",
+      "lookupCompetitiveTrends",
+      "searchWeb",
+      "lookupPokemonReference"
+    ]
+  },
+  {
+    "id": "training-build-review",
+    "version": "1",
+    "description": "培养资料",
+    "role": "POKEMON_RESEARCH",
+    "allowedTools": [
+      "searchPokemonGuides",
+      "lookupPokemonReference",
+      "lookupPokemonResource",
+      "lookupPokemonLearnset",
+      "lookupPokemonMachine",
+      "lookupPokemonMechanics"
+    ]
+  }
+]

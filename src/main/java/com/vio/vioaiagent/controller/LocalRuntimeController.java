@@ -61,6 +61,7 @@ public class LocalRuntimeController {
                 TeamBuildAnswerEvidence.class,com.vio.vioaiagent.tools.governance.TeamBuildResultEvidence.class,
                 TeamBuildRequestRoute.class,
                 com.vio.vioaiagent.tools.governance.BuildCheckResultEvidence.class,
+                SavedTrainingRoadmap.class,SavedTrainingResources.class,TrainingIntentState.class,TrainingTargetCheck.class,TrainingLearningCheck.class,TrainingResourceBudget.class,SavedTrainingGymReview.class,TrainingStatProjection.class,TrainingLevelConstraints.class,TrainingProgressCheck.class,TeamMutationIntent.class,ReferenceRulesReply.class,GymFocusedFactReply.class,com.vio.vioaiagent.pokemon.guides.GuideRevisionPolicy.class,com.vio.vioaiagent.pokemon.gym.GymResourcePolicy.class,com.vio.vioaiagent.pokemon.calculator.StaticStatCalculator.class,
                 MachineAnswerEvidence.class,com.vio.vioaiagent.pokemon.reference.MachineReferenceCatalog.class,com.vio.vioaiagent.pokemon.reference.MachineCraftingGuide.class,com.vio.vioaiagent.pokemon.reference.MachineRecipeCatalog.class,com.vio.vioaiagent.pokemon.reference.MachineAcquisitionCatalog.class,
                 com.vio.vioaiagent.pokemon.reference.MachineReferenceFacts.class,com.vio.vioaiagent.pokemon.reference.LocalMachineReferences.class,
                 com.vio.vioaiagent.pokemon.reference.PokemonMachineController.class,com.vio.vioaiagent.tools.governance.MachineResultEvidence.class,
@@ -135,6 +136,7 @@ public class LocalRuntimeController {
                 "scope","KEEP_ONLY_BOUND_UNAFFECTED_MEMBER_READS_INVALIDATE_SAME_OR_UNKNOWN_TARGET_NOT_COMPLETE_TEAM_EVIDENCE"));
         runtime.put("guideOverviewPolicy",Map.of("version",com.vio.vioaiagent.agent.GuideAnswerEvidence.OVERVIEW_READY_VERSION,
                 "scope","PROGRAM_VERIFIED_REFERENCE_AND_GENERAL_GUIDE_ONLY_EXCLUDES_CALCULATION_TEAM_AND_WRITES"));
+        runtime.put("guideRevisionPolicy",Map.of("version",com.vio.vioaiagent.pokemon.guides.GuideRevisionPolicy.VERSION,"scopeRestrictedRevisions",com.vio.vioaiagent.pokemon.guides.GuideRevisionPolicy.LEGACY_SCOPE.size(),"scope","EXACT_ID_CHECKSUM_AND_TOOL_SCOPE_NOT_SEMANTIC_VALIDATION"));
         runtime.put("guideRetrievalPolicy",Map.of("version",com.vio.vioaiagent.pokemon.guides.GuideApplicability.POLICY,
                 "scope","DECLARED_SUBJECT_AND_TOPIC_FILTER_THEN_SUBJECT_PRIORITY_BM25_NOT_SEMANTIC_REVIEW",
                 "subjectSourceVersion",GuideAnswerEvidence.SUBJECT_SOURCE_VERSION,"subjectSourceOrigin",GuideAnswerEvidence.SUBJECT_SOURCE_ORIGIN));
@@ -168,6 +170,12 @@ public class LocalRuntimeController {
         generation.put("maxTokens",options==null?null:options.getMaxTokens());
         generation.put("scope","CONFIGURED_DEFAULTS_NOT_PROVIDER_REQUEST_ATTESTATION");
         runtime.put("generationDefaults",generation);
+        runtime.put("upgradeFeatures",Map.of(
+            "answerBlocks",environment.getProperty("vio.agent.answer-blocks.enabled",Boolean.class,false),
+            "skills",environment.getProperty("vio.agent.skills.enabled",Boolean.class,false),
+            "contextAssembly",environment.getProperty("vio.agent.context-assembly.enabled",Boolean.class,false),
+            "rerank",environment.getProperty("vio.local-guides.rerank.enabled",Boolean.class,false),
+            "domainTracing",environment.getProperty("vio.observability.tracing.enabled",Boolean.class,false)));
         return Collections.unmodifiableMap(runtime);
     }
     private static String classDigest(Class<?> implementation) {

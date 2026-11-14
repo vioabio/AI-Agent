@@ -28,6 +28,8 @@
     </scm>
     <properties>
         <java.version>21</java.version>
+        <!-- Keep verification output separate from a running IDEA target/classes JVM. -->
+        <vio.build.directory>target</vio.build.directory>
         <testcontainers.version>1.20.6</testcontainers.version>
         <!-- Mockito 5 requires an explicit agent on JDK 21; self-attachment is flaky on Windows. -->
         <mockito.version>5.17.0</mockito.version>
@@ -105,6 +107,15 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+        <!-- U4: versions follow the Spring Boot BOM; export is explicitly opt-in. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
         </dependency>
         <!-- Spring AI Alibaba DashScope（由 BOM 管理版本，兼容 Spring AI 1.0.0 GA） -->
         <dependency>
@@ -242,6 +253,7 @@
     </dependencies>
 
     <build>
+        <directory>${vio.build.directory}</directory>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
@@ -261,6 +273,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <mainClass>com.vio.vioaiagent.VioAiAgentApplication</mainClass>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>

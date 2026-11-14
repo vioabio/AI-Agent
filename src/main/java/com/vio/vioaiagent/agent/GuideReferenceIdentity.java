@@ -12,7 +12,7 @@ public final class GuideReferenceIdentity {
     private static final Map<String,Long> NAMES=names();
     private GuideReferenceIdentity(){ }
     record Target(Long id,String slug) {
-        boolean matches(PokemonFact fact){return id!=null?fact.formId()==id:slug.equals(fact.slug().toLowerCase(Locale.ROOT));}
+        boolean matches(PokemonFact fact){return id!=null ? (slug!=null ? fact.speciesId()==id && fact.slug().endsWith(slug) : fact.formId()==id) : slug.equals(fact.slug().toLowerCase(Locale.ROOT));}
     }
     static Optional<Target> target(String arguments) {
         if(arguments==null||arguments.length()>2000)return Optional.empty();
@@ -21,6 +21,8 @@ public final class GuideReferenceIdentity {
             if(!root.isObject()||root.size()!=2||!"pokeapi-reference-v1".equals(root.path("dataReleaseId").asText())||!root.path("query").isTextual())return Optional.empty();
             String query=root.path("query").asText().trim().toLowerCase(Locale.ROOT);
             if(query.isBlank()||query.length()>80)return Optional.empty();
+            String regional = com.vio.vioaiagent.pokemon.reference.RegionalFormName.alolanSpecies(query);
+            if (regional != null) { Long species = NAMES.get(regional); return species == null ? Optional.empty() : Optional.of(new Target(species,"-alola")); }
             if(query.matches("[0-9]+")) {long id=Long.parseLong(query);return id>0&&id<=Integer.MAX_VALUE?Optional.of(new Target(id,null)):Optional.empty();}
             if(query.matches("[a-z0-9][a-z0-9-]{0,79}"))return Optional.of(new Target(null,query));
             Long id=NAMES.get(query);return id==null?Optional.empty():Optional.of(new Target(id,null));

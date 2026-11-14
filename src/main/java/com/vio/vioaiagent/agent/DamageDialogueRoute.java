@@ -10,8 +10,12 @@ import java.util.*;
 /** Bind explicit numerical tasks to user input, never to an assistant's remembered numbers. */
 public final class DamageDialogueRoute {
     private DamageDialogueRoute() { }
+    static boolean isResultConditionsQuestion(String q) {
+        return q!=null&&q.strip().matches("(?:请问|请解释)?工具报告的伤害百分比是在什么条件下成立[？?。]?");
+    }
     public static Optional<String> reply(AgentRunContext context, ToolCallback[] tools) {
         String question=context.run().prompt();
+        if(isResultConditionsQuestion(question))return Optional.of(resultConditionsReply(context, tools));
         if(question.strip().matches("(?:请|帮我)?(?:计算|算)(?:一下)?伤害[。！？?\\s]*"))
             return Optional.of("请明确本次攻击方、防御方、所用招式及等级、特性、道具、性格、努力值、个体值和场地条件。本次尚未计算，不自动选择保存队伍、招式或默认配置。");
         // A bare named matchup is not a request to select an account's saved team.
@@ -65,6 +69,19 @@ public final class DamageDialogueRoute {
         return com.vio.vioaiagent.pokemon.reference.PokemonNameIndex.all().stream()
             .filter(e->e.nameZh().equals(name)||e.slug().equalsIgnoreCase(name)||e.aliases().stream().anyMatch(a->a.equalsIgnoreCase(name)))
             .map(com.vio.vioaiagent.pokemon.reference.PokemonNameIndex.Entry::nameZh).findFirst();
+    }
+
+    private static String resultConditionsReply(AgentRunContext context, ToolCallback[] tools) {
+        String summary = "伤害百分比只对报告中明确的双方配置与计算假设成立。百分比的分母是防御方最大HP；范围还依赖等级、招式、能力值、特性、道具、性格、EV/IV、天气、场地及太晶等输入。当前接口范围需区分：通用 calculateBattleDamage 只接基础培养配置、单双打、天气与场地，不接强化、异常状态、墙或太晶参数；馆主 calculateGymDamage 支持其Schema中已建模的双方状态、能力变化、太晶及场地侧条件，必须明确输入并核对回读，不能把NPC假设当真实数值。解释报告条件不需要另选成员计算，本次未执行新计算。缺少具体报告时不能确认某个数值适用于你的队伍。";
+        var tool = Arrays.stream(tools).filter(t -> t.getToolDefinition().name().equals("searchPokemonGuides")).findFirst();
+        if (tool.isEmpty()) return summary + "\n\n本次未取得本地攻略原文来源。";
+        try {
+            String args = new ObjectMapper().writeValueAsString(Map.of("query", "伤害计算 假设 双方配置 条件", "gameReleaseId", context.run().gameReleaseId()));
+            String output = tool.get().call(args);
+            var evidence = new GuideAnswerEvidence(); evidence.begin(context.run().prompt()); evidence.observe("searchPokemonGuides", output);
+            return summary + "\n\n" + evidence.verifiedAnswer(false);
+        } catch (com.vio.vioaiagent.observability.TaskBudgetExceededException | com.vio.vioaiagent.observability.ContextBudgetExceededException | java.util.concurrent.CancellationException stopped) { throw stopped; }
+        catch (Exception unavailable) { return summary + "\n\n本次本地攻略读取失败，不补写资料引用。"; }
     }
 
 }

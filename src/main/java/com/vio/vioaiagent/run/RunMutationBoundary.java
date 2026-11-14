@@ -6,6 +6,10 @@ import java.util.function.Supplier;
 public interface RunMutationBoundary {
     <T> T write(Supplier<T> action);
     void check();
+    default void publishFact(com.vio.vioaiagent.agent.PokemonAnswerBlock block) { }
+    default void publishDamage(com.vio.vioaiagent.agent.DamageAnswerBlock block) { }
+    default void publishTeam(com.vio.vioaiagent.agent.TeamSuggestionAnswerBlock block) { }
+    default void publishTraining(long requestedId,com.vio.vioaiagent.pokemon.team.TeamWorkflowService.ReadTeam read) { }
     static RunMutationBoundary denied() {
         return new RunMutationBoundary() {
             public <T> T write(Supplier<T> action) { check(); return null; }

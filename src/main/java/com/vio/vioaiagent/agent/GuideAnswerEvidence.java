@@ -31,7 +31,13 @@ public final class GuideAnswerEvidence {
     private final BuildCheckAnswerEvidence buildChecks=new BuildCheckAnswerEvidence();
     private final TeamBuildAnswerEvidence teamBuildChecks=new TeamBuildAnswerEvidence();
     private final MachineAnswerEvidence machines=new MachineAnswerEvidence();
-    public void begin(String prompt) { referenceFailures.clear();question=prompt;teamBuildChecks.begin(prompt); initialized = true; projectExplanation = ProjectGuideRequest.requiresSource(prompt); requested = GUIDE_REQUEST.matcher(prompt).find() || projectExplanation || (!TeamMutationIntent.requested(prompt) && java.util.regex.Pattern.compile("培养|搭配|对战策略").matcher(prompt).find()); }
+    public void begin(String prompt) { referenceFailures.clear();question=prompt;teamBuildChecks.begin(prompt); initialized = true; projectExplanation = ProjectGuideRequest.requiresSource(prompt); requested = GUIDE_REQUEST.matcher(prompt).find() || projectExplanation || (!TeamMutationIntent.requested(prompt) && (java.util.regex.Pattern.compile("培养|搭配|对战策略").matcher(prompt).find() || genericTeamRoles(prompt))); }
+    private static boolean genericTeamRoles(String prompt) {
+        return prompt != null && prompt.length() < 800 && !prompt.contains("\n")
+                && Pattern.compile("组队|构建队伍").matcher(prompt).find()
+                && Pattern.compile("功能角色|角色重叠|职责|分工").matcher(prompt).find()
+                && !Pattern.compile("我的|已保存|读取|修改|保存|这支|这套").matcher(prompt).find();
+    }
     public boolean initialized() { return initialized; }
     public boolean needsReferenceTopic() {
         if(question==null||question.length()>800||question.contains("\n")||TeamMutationIntent.requested(question)
@@ -46,7 +52,7 @@ public final class GuideAnswerEvidence {
                 ||ProjectGuideRequest.requiresSource(question)
                 ||Pattern.compile("```|输入：|以下资料|读取|保存|修改|变更|计算").matcher(question).find()
                 ||!Pattern.compile("组队|队伍搭配|联防|属性覆盖").matcher(question).find()
-                ||!Pattern.compile("检索|攻略|笔记|为什么|为何").matcher(question).find())return false;
+                ||(!genericTeamRoles(question)&&!Pattern.compile("检索|攻略|笔记|为什么|为何").matcher(question).find()))return false;
         return hits.stream().noneMatch(h->h.document().applicability()!=null
                 &&!h.document().applicability().subjects().isEmpty()&&h.document().applicability().matchesSubject(question))
                 &&references.values().stream().noneMatch(f->question.contains(f.speciesNameZh())||question.toLowerCase(Locale.ROOT).contains(f.slug().toLowerCase(Locale.ROOT)));
@@ -167,7 +173,7 @@ public final class GuideAnswerEvidence {
                 if (d.validUntil()!=null && LocalDate.parse(d.validUntil()).isBefore(LocalDate.now())) return;
                 if (hit.citation()!=null && (!"zh-CN".equals(d.language()) || !"casual-singles".equals(d.battleFormatId())
                         || !"casual-v1".equals(d.rulesetVersionId()) || !GuideChunks.validCitation(d,hit.citation()))) return;
-                checked.add(hit);
+                if(com.vio.vioaiagent.pokemon.guides.GuideRevisionPolicy.usable(d,question))checked.add(hit);
             }
             hits = List.copyOf(checked);
         } catch (Exception ignored) { /* failed, malformed or truncated output is not a source */ }
@@ -211,10 +217,27 @@ public final class GuideAnswerEvidence {
         return verifiedAnswer(true);
     }
     /** Bounded reference lookup, not an interpretation of arbitrary strategy questions. */
+    public Optional<String> formComparisonAnswer() {
+        if (question == null || question.length() > 600 || question.contains("\n")
+                || !Pattern.compile("(?:区分|区别|比较|对比).{0,12}形态|形态.{0,12}(?:区分|区别|比较|对比)").matcher(question).find()
+                || Pattern.compile("培养|搭配|配招|招式|特性|道具|伤害|队伍|建议|计算").matcher(question).find()) return Optional.empty();
+        if (references.isEmpty()) return Optional.of("本次未取得可核验的形态资料，不能使用模型记忆补写属性、种族值或招式。请核对形态名称后重试。");
+        if (references.values().stream().map(PokemonFact::speciesId).distinct().count() != 1)
+            return Optional.of("本次读取的资料对应不同物种，不能当作同一物种的两种形态比较。请明确形态名称后重试；不使用模型记忆补写。");
+        String answer = referenceSummary() + referenceFailureSummary();
+        if (references.size() < 2) answer += "本次尚未核对到两种形态，不能补写未读取形态的属性或数值。\n\n";
+        return Optional.of(answer + "以上只比较实际读取的形态身份、属性与种族值；物种全国编号相同不代表形态相同。"
+                + "本次不从候选招式推导配招、特性机制或获取条件，也不据此证明朱紫存档可获得性和赛事合法性。\n");
+    }
+
+    /** Bounded reference lookup, not an interpretation of arbitrary strategy questions. */
     public Optional<String> basicFactAnswer() {
         // Only an explicit simple lookup may ignore unsolicited extra tool reads.
         // A declared moves/mechanics/strategy task is excluded below, not discarded.
         boolean simpleLookup=question!=null&&Pattern.compile("^(?:请)?(?:查|查询|读取).{1,30}的(?:(?:朱[／/]?紫|朱|紫)(?:版本)?的?)?(?:资料|图鉴(?:资料)?)(?:[，,。；;]|$)").matcher(question).find();
+        boolean explicitStats=question!=null && Pattern.compile("^(?:请)?查询.{1,20}的属性[与和及]种族值[，,]只列图鉴已核验字段[。]?$" ).matcher(question).matches();
+        simpleLookup=simpleLookup||explicitStats;
+        if(explicitStats && references.isEmpty())return Optional.of("本次未取得该成员的已核验图鉴资料，无法确认属性和种族值。请重试资料查询；不会使用模型记忆补写这些字段。");
         if (question == null || question.length() > 600 || references.isEmpty() || partialReferenceFailure
                 || (active()&&!simpleLookup) || question.contains("\n") || question.contains("```")
                 || (!simpleLookup&&!Pattern.compile("种族值|基础数值|图鉴属性|特点").matcher(question).find())
@@ -306,7 +329,7 @@ public final class GuideAnswerEvidence {
     private String referenceSummary() {
         if (references.isEmpty()) return "";
         StringBuilder text = new StringBuilder("### 图鉴速览（资料事实）\n以下为本次实际读取的成员资料；种族值与等级无关。\n\n| 成员 | 属性 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n");
-        for (var f : references.values()) text.append("| ").append(EvidenceText.inline(f.speciesNameZh())).append(" | ")
+        for (var f : references.values()) text.append("| ").append(EvidenceText.inline(com.vio.vioaiagent.pokemon.reference.RegionalFormName.display(f))).append(" | ")
                 .append(EvidenceText.inline(f.type1()+(f.type2()==null?"":" / "+f.type2()))).append(" | ")
                 .append(f.hp()).append(" | ").append(f.attack()).append(" | ").append(f.defense()).append(" | ")
                 .append(f.spAttack()).append(" | ").append(f.spDefense()).append(" | ").append(f.speed()).append(" |\n");

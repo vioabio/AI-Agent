@@ -13,11 +13,15 @@ public final class GymDialogueRouter {
         if(context.run().prompt().matches("(?s).*(剑盾|剑／盾|剑/盾|绿宝石|火红|叶绿|究极之日|究极之月).*")&&!context.run().prompt().contains("不要混用"))return GymQuestionPolicy.clarification(context.run().prompt());
         Optional<String> response;
         if (plan.intent() == GymTurnPlan.Intent.CATALOG) {
-            String question=context.run().prompt();
-            if(plan.target().isPresent()&&(GymOrdinalReference.requestedOrdinal(question).isPresent()||question.matches("(?s).*(这个|该|这位)馆主.*"))){
+            var focused=GymFocusedFactReply.reply(plan,context.run().prompt());
+            if(focused.isPresent())response=focused;
+            else {
+            String question=GymConversationContext.requestedActions(context.run().prompt());
+            if(plan.target().isPresent()){
                 var target=plan.target().get();question+="\n目标馆主："+target.name()+"；"+(target.phase().equals("rematch")?"只看重赛":"只看初战");
             }
             response=GymCatalogAnswer.reply(question,plan.gameReleaseId(),GymOrdinalReference.displayedOrder(context.dialogueHistory()));
+            }
         } else if (plan.intent() == GymTurnPlan.Intent.SAVED_TEAM_ANALYSIS) {
             response = SavedGymQuestionRoute.reply(context, tools,true);
         } else if (plan.intent() == GymTurnPlan.Intent.RECOMMEND_TEAM || plan.intent() == GymTurnPlan.Intent.GENERAL_ADVICE) {

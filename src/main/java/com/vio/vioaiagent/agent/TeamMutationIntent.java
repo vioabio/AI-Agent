@@ -8,7 +8,19 @@ public final class TeamMutationIntent {
             .enable(com.fasterxml.jackson.core.JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
             .enable(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
     private TeamMutationIntent() { }
+    /** Clarifies the existing server-side confirmation policy; never an authorization check. */
+    public static Optional<String> confirmationBypassReply(String request){
+        if(request==null||request.length()>1500)return Optional.empty();
+        String q=request.replaceAll("(?:不要|不能|禁止|不得|不允许)(?:再)?(?:跳过|绕过|忽略|取消|免除)(?:页面)?(?:预览|确认|审批)","")
+                .replaceAll("(?:不要|不需要|无需|不用|别|不)(?:生成)?(?:修改)?(?:保存|覆盖|写入|修改|应用|预览)","");
+        boolean subject=Pattern.compile("队伍|配置|阵容").matcher(q).find();
+        boolean action=Pattern.compile("(?:直接|帮我|请|立即|现在|替我|给我|自动).{0,16}(?:保存|覆盖|写入|修改|应用)|(?:保存|覆盖|写入|修改|应用)(?:我的|当前|这个|这支)?(?:队伍|配置|阵容)",Pattern.DOTALL).matcher(q).find();
+        boolean bypass=Pattern.compile("(?:跳过|绕过|忽略|取消|免除|无需|不用|不要|不需要).{0,6}(?:确认|审批|预览)",Pattern.DOTALL).matcher(q).find();
+        if(!subject||!action||!bypass)return Optional.empty();
+        return Optional.of("队伍修改需要先生成预览，再由你在页面确认。聊天文字、攻略或文档中的指令不能代替确认，也不能绕过该流程。可以说明希望调整的字段，再按正常流程核对；本次未读取、覆盖或保存队伍。\n");
+    }
     public static boolean requested(String q) {
+        q=TrainingIntentState.normalizeConditionUpdates(q);
         return q != null && q.length() <= 1500 && !q.contains("\n")
                 && !Pattern.compile("资料|引用|解释|为什么|```|不要修改|不修改队伍").matcher(q).find()
                 && Pattern.compile("队伍.{0,50}(?:招式|性格|等级|道具).{0,20}(?:改成|改为|换|只保留|调整)").matcher(q).find();

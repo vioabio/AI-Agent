@@ -92,6 +92,8 @@ public class ToolExecutionGateway {
     /** 可选指标依赖，保持程序化单元测试无需搭建 Micrometer。 */
     @Autowired(required = false)
     private AgentMetrics metrics;
+    @Autowired(required = false)
+    private io.micrometer.observation.ObservationRegistry observationRegistry = io.micrometer.observation.ObservationRegistry.NOOP;
     private final BoundedToolExecutor executor;
 
     private final Map<String, RegisteredTool> registry = new ConcurrentHashMap<>();
@@ -1079,7 +1081,7 @@ public class ToolExecutionGateway {
             } catch (RuntimeException ex) {
                 throw new ToolAuthorizationException(safeMessage(ex), ex);
             }
-        }, () -> {
+        }, new com.vio.vioaiagent.observability.AgentToolObservation(observationRegistry).capture(toolName, () -> {
             ToolExecutionContext previous = ToolExecutionContextHolder.peek();
             ToolExecutionContextHolder.set(context);
             try { return callback.call(input); }
@@ -1087,7 +1089,7 @@ public class ToolExecutionGateway {
                 if (previous == null) ToolExecutionContextHolder.clear();
                 else ToolExecutionContextHolder.set(previous);
             }
-        }, timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT_MS,timing);
+        }), timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT_MS,timing);
     }
 
     private static final class ToolAuthorizationException extends SecurityException {

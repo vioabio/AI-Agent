@@ -9,6 +9,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PokeApiReferenceTest {
+    @Test void chineseRegionalQueryMustBindToAnActualSpeciesVariety() {
+        var client = new PokeApiClient(mapper, directory, url -> {
+            if (url.endsWith(".csv")) return "pokemon_species_id,local_language_id,name,genus\n37,12,六尾,狐狸宝可梦\n";
+            if (url.contains("pokemon-species/")) return "{\"id\":37,\"name\":\"vulpix\",\"generation\":{\"name\":\"generation-i\"},\"names\":[{\"name\":\"六尾\",\"language\":{\"name\":\"zh-hans\"}}],\"varieties\":[{\"pokemon\":{\"name\":\"vulpix\"}},{\"pokemon\":{\"name\":\"vulpix-alola\"}}]}";
+            assertTrue(url.contains("pokemon/vulpix-alola/"));
+            return pokemon().replace("\"id\":7", "\"id\":10103").replace("squirtle", "vulpix").replace("\"name\":\"vulpix\",\"species\"", "\"name\":\"vulpix-alola\",\"species\"").replace("water", "ice");
+        });
+        var fact = new LocalPokeApiRepository(mapper, client).detail("阿罗拉六尾", LocalPokeApiRepository.RELEASE).fact();
+        assertEquals(10103, fact.formId()); assertEquals(37, fact.speciesId());
+        assertEquals("冰", fact.type1()); assertEquals("阿罗拉六尾", RegionalFormName.display(fact));
+        var missing = new LocalPokeApiRepository(mapper, new PokeApiClient(mapper, directory.resolve("missing"), url -> url.endsWith(".csv") ? "pokemon_species_id,local_language_id,name,genus\n7,12,杰尼龟,龟\n" : species()));
+        assertThrows(IllegalArgumentException.class, () -> missing.detail("阿罗拉杰尼龟", LocalPokeApiRepository.RELEASE));
+    }
     @TempDir Path directory;
     private final ObjectMapper mapper = new ObjectMapper();
     private String pokemon() { return """

@@ -16,6 +16,8 @@ public final class SavedTeamAnswerEvidence {
     public void begin(String prompt) { initialized = true; }
     public boolean initialized() { return initialized; }
     public boolean complete() { return read != null; }
+    /** Same strict projection used by prose and typed configuration cards. */
+    public Optional<TeamWorkflowService.ReadTeam> verifiedRead() { return Optional.ofNullable(read); }
     public boolean ownsClarification() { return attempted && (read == null || !missing().isEmpty()); }
     public void observe(String tool, String output) {
         if (!"readCurrentTeam".equals(tool)) return;

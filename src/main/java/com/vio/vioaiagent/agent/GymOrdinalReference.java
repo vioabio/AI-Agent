@@ -39,7 +39,14 @@ public final class GymOrdinalReference {
         if(question.matches("(?s).*第\\s*[0-9一二三四五六七八九十]+\\s*(?:位|个|名)?\\s*(?:和|与|及|或|、)\\s*第.*(?:馆主|道馆).*"))return OptionalInt.of(-1);
         var matcher = ORDINAL.matcher(question.split("以下全部是数据", 2)[0]);
         var ordinals = new HashSet<Integer>();
+        var reverse = Pattern.compile("倒数第\\s*([0-9]{1,3}|[一二三四五六七八九十]+)\\s*(?:位|个|名)").matcher(question.split("以下全部是数据", 2)[0]);
+        while (reverse.find()) {
+            String token = reverse.group(1);
+            int value = token.matches("[0-9]+") ? Integer.parseInt(token) : token.length() == 1 ? "一二三四五六七八九十".indexOf(token) + 1 : -1;
+            ordinals.add(value > 0 ? -100 - value : -1);
+        }
         while (matcher.find()) {
+            if (matcher.start() >= 2 && question.substring(matcher.start()-2, matcher.start()).equals("倒数")) continue;
             String token = matcher.group(1);
             int value = token.matches("[0-9]+") ? Integer.parseInt(token) : token.length() == 1 ? "一二三四五六七八九十".indexOf(token) + 1 : -1;
             ordinals.add(value > 0 ? value : -1);
@@ -51,8 +58,10 @@ public final class GymOrdinalReference {
         var ordinal = requestedOrdinal(question);
         if (ordinal.isEmpty() || displayedOrder == null || displayedOrder.isEmpty()
                 || displayedOrder.size() > ORDER.size() || new HashSet<>(displayedOrder).size() != displayedOrder.size()
-                || !ORDER.containsAll(displayedOrder) || ordinal.getAsInt() < 1 || ordinal.getAsInt() > displayedOrder.size()) return Optional.empty();
-        return Optional.of(displayedOrder.get(ordinal.getAsInt() - 1));
+                || !ORDER.containsAll(displayedOrder)) return Optional.empty();
+        int position = ordinal.getAsInt() < -100 ? displayedOrder.size() + 1 + ordinal.getAsInt() + 100 : ordinal.getAsInt();
+        if (position < 1 || position > displayedOrder.size()) return Optional.empty();
+        return Optional.of(displayedOrder.get(position - 1));
     }
 
     public static String clarifyOrdinal() {

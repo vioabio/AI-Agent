@@ -5,6 +5,10 @@
  * 该文件不依赖 Vue，便于单元测试和断线恢复时重放事件。
  */
 
+import { parsePokemonBlock } from './answer-block.js'
+import { parseDamageBlock } from './damage-answer-block.js'
+import { parseTeamBlock } from './team-answer-block.js'
+import { parseTrainingBlock } from './training-answer-block.js'
 import { upsertModelUsage } from './model-usage.js'
 
 export const RUN_STATUS = Object.freeze({
@@ -267,11 +271,28 @@ export function reduceRunEvent(model, rawEvent) {
     case 'retrieval.completed':
     case 'retrieval.finished':
       return { ...next, status: RUN_STATUS.RUNNING }
-    case 'fact.card':
+    case 'fact.card': {
+      if(cardPayload.answerBlock) {
+        const block=parsePokemonBlock(cardPayload.answerBlock)
+        if(!block || (next.context?.gameReleaseId && block.gameReleaseId!==next.context.gameReleaseId) || (next.context?.dataReleaseId && block.dataReleaseId!==next.context.dataReleaseId))return next
+        return {...next,cards:{...next.cards,facts:[...next.cards.facts.filter(c=>c.answerBlock?.blockId!==block.blockId),{...cardPayload,answerBlock:block}]}}
+      }
       return { ...next, status: RUN_STATUS.RUNNING, cards: { ...next.cards, facts: [...next.cards.facts, cardPayload] } }
-    case 'calculation.card':
+    }
+    case 'calculation.card': {
+      if(cardPayload.answerBlock) {
+        const block=parseDamageBlock(cardPayload.answerBlock)
+        if(!block || (next.context?.gameReleaseId && block.gameReleaseId!==next.context.gameReleaseId) || (next.context?.dataReleaseId && block.dataReleaseId!==next.context.dataReleaseId))return next
+        return {...next,cards:{...next.cards,calculations:[...next.cards.calculations.filter(c=>c.answerBlock?.blockId!==block.blockId),{...cardPayload,answerBlock:block}]}}
+      }
       return { ...next, status: RUN_STATUS.RUNNING, cards: { ...next.cards, calculations: [...next.cards.calculations, cardPayload] } }
+    }
     case 'team.matrix':
+      if(cardPayload.answerBlock) {
+        const block=cardPayload.answerBlock.kind==='trainingPlan'?parseTrainingBlock(cardPayload.answerBlock):parseTeamBlock(cardPayload.answerBlock)
+        if(!block || (next.context?.gameReleaseId && block.gameReleaseId!==next.context.gameReleaseId) || (next.context?.dataReleaseId && block.dataReleaseId!==next.context.dataReleaseId) || (block.kind==='trainingPlan' && next.context?.rulesetVersionId && block.rulesetVersionId!==next.context.rulesetVersionId))return next
+        return {...next,cards:{...next.cards,teams:[...next.cards.teams.filter(c=>c.answerBlock?.blockId!==block.blockId),{...cardPayload,answerBlock:block}]}}
+      }
       return { ...next, status: RUN_STATUS.RUNNING, cards: { ...next.cards, teams: [...next.cards.teams, cardPayload] } }
     case 'activity.card':
       return { ...next, status: RUN_STATUS.RUNNING, cards: { ...next.cards, activities: [...next.cards.activities, cardPayload] } }

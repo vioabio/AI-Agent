@@ -20,6 +20,7 @@ import {
   loadRunResume,
   saveRunResume as persistRunResume
 } from '@/composables/runPersistence'
+import { createTransportErrorTracker } from '@/api/run-transport-error'
 
 // 断线属于传输层故障，不能直接把业务 Run 标记为 cancelled。客户端最多
 // 自动重连几次，之后保留 runId/游标交给用户手动继续；这样既避免无限请求，
@@ -40,6 +41,7 @@ export function useRunStream() {
   function clearRunResume(conversationId, runId) { deleteRunResume(conversationId, runId, { epoch: persistenceEpoch }) }
   const runs = reactive(new Map())
   const controllers = new Map()
+  const transportErrors = createTransportErrorTracker()
   // Page-local monotonic clocks; never restore these from server data or localStorage.
   const clientStarts = new Map()
   const monotonicNow = () => typeof globalThis.performance?.now === 'function' ? globalThis.performance.now() : null
@@ -217,7 +219,7 @@ export function useRunStream() {
             break
           }
           model.status = RUN_STATUS.RECONNECTING
-          model.error = error?.message || '连接暂时中断'
+          transportErrors.record(model, error?.message || '连接暂时中断')
           model.reconnectAttempts += 1
           if (model.reconnectAttempts > MAX_AUTO_RECONNECT_ATTEMPTS) {
             // 保留 reconnecting 以便 UI 提供“继续连接”，不伪造业务失败。
@@ -285,6 +287,7 @@ export function useRunStream() {
         model.finishedAt = snapshot.finishedAt || model.finishedAt || new Date().toISOString()
       }
     }
+    transportErrors.recover(model)
     saveOrClearResume(model)
     return page
   }
@@ -307,12 +310,14 @@ export function useRunStream() {
   function applyEvent(model, event) {
     if (!isCurrentModel(model)) return
     const next = reduceRunEvent(model, event)
+    const accepted = compareCursorIds(next.lastEventId, model.lastEventId) > 0
     if (!model.clientTiming && clientStarts.has(model.runId) && next.answer !== model.answer && next.answer?.trim()) {
       const now = monotonicNow()
       if (now !== null) next.clientTiming = { schemaVersion: 'client-response-timing-v1', source: 'BROWSER_OBSERVED',
         firstAnswerReceivedMs: Math.max(0, Math.floor(now - clientStarts.get(model.runId))) }
     }
     Object.assign(model, next)
+    if (accepted) transportErrors.recover(model)
     if (TERMINAL_STATUSES.has(model.status)) {
       clientStarts.delete(model.runId)
       if (conversationRuns.get(model.conversationId) === model.runId) {

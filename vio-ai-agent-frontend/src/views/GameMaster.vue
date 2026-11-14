@@ -38,7 +38,7 @@
       <div class="workspace-body" :class="{ 'resources-hidden': !resourcesOpen }">
         <section class="conversation-pane" :aria-label="workspaceMode === 'team' ? 'AI 搭配建议' : '助手对话'" :inert="resourcesOpen && !wideViewport || mobileNavOpen || undefined">
           <header v-if="workspaceMode === 'team'" class="conversation-pane-heading"><h2>AI 搭配建议</h2><button type="button" @click="openResourceSection('facts')">返回图鉴</button></header>
-          <ChatRoom :messages="messages" :connectionStatus="historyLoading || historyError ? 'creating' : connectionStatus" :draft-request="draftRequest" :pokemon-names="pokemonNames" :selected-pokemon="resourcesOpen && resourceSection === 'facts' ? selectedPokemon : null" :developer-mode="developerMode" compact :runViewModel="activeRun" aiType="game" @send-message="handleSend" @cancel-run="handleCancelRun" @reconnect-run="handleReconnectRun" @approve-run="handleApproveRun" @feedback="handleFeedback" @resource-section="openResourceSection"><template #suggestions><div v-if="workspaceMode === 'team'" class="team-advice-actions"><button type="button" :disabled="workspaceBusy || historyLoading" @click="workbenchRef?.analyzeCurrentTeam()"><UiIcon name="team" />分析当前队伍</button></div></template></ChatRoom>
+          <ChatRoom :messages="messages" :connectionStatus="historyLoading || historyError ? 'creating' : connectionStatus" :draft-request="draftRequest" :pokemon-names="pokemonNames" :selected-pokemon="resourcesOpen && resourceSection === 'facts' ? selectedPokemon : null" :developer-mode="developerMode" compact :runViewModel="activeRun" aiType="game" @send-message="handleSend" @cancel-run="handleCancelRun" @reconnect-run="handleReconnectRun" @approve-run="handleApproveRun" @feedback="handleFeedback" @resource-section="openResourceSection" @import-training-draft="importTrainingDraft"><template #suggestions><div v-if="workspaceMode === 'team'" class="team-advice-actions"><button type="button" :disabled="workspaceBusy || historyLoading" @click="workbenchRef?.analyzeCurrentTeam()"><UiIcon name="team" />分析当前队伍</button></div></template></ChatRoom>
         </section>
         <div v-if="resourcesOpen && wideViewport && workspaceMode !== 'team'" class="resource-resizer" role="separator" tabindex="0" aria-label="调整资料面板宽度" aria-orientation="vertical" :aria-valuenow="resourceWidth" aria-valuemin="320" :aria-valuemax="maxResourceWidth" @pointerdown="startResize" @pointermove="resizePanel" @pointerup="stopResize" @pointercancel="stopResize" @keydown.left.prevent="changeResourceWidth(20)" @keydown.right.prevent="changeResourceWidth(-20)"><span>⋮</span></div>
         <button v-if="resourcesOpen && !wideViewport" class="resource-scrim" aria-label="关闭资料抽屉" @click="closeResources"></button>
@@ -143,6 +143,13 @@ async function openResourceSection(section, pokemonQuery) {
   await nextTick()
   if (section === 'facts' && pokemonQuery) await workbenchRef.value?.openPokemon(pokemonQuery)
   else workbenchRef.value?.showSection(section)
+}
+async function importTrainingDraft(block) {
+  if (workspaceBusy.value || historyLoading.value || historyError.value) return
+  resourcesOpen.value = true
+  mobileNavOpen.value = false
+  await nextTick()
+  await workbenchRef.value?.importTrainingDraft(block)
 }
 function openRecentConversation(conversation) {
   if (workspaceBusy.value || historyLoading.value) return

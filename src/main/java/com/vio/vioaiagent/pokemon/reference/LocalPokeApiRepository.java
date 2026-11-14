@@ -30,6 +30,8 @@ public class LocalPokeApiRepository extends InMemoryPokemonFactRepository {
     public synchronized Detail detail(String query, String release) {
         requireRelease(release);
         String key = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        String regionalSpecies = RegionalFormName.alolanSpecies(key);
+        if (regionalSpecies != null) key = regionalSpecies;
         if (!key.matches("[a-z0-9][a-z0-9-]{0,79}")) {
             if (key.isBlank() || key.length() > 80) throw new IllegalArgumentException("请输入名称或全国编号");
             if (chineseNames == null) {
@@ -43,6 +45,17 @@ public class LocalPokeApiRepository extends InMemoryPokemonFactRepository {
             }
             key = chineseNames.get(key);
             if (key == null) throw new IllegalArgumentException("未识别该中文名称，请尝试英文名称或全国编号");
+        }
+        if (regionalSpecies != null) {
+            var species = parse(client.read("pokemon-species", key).payload());
+            if (species.path("id").asLong() != Long.parseLong(key)) throw new IllegalStateException("地域形态物种不匹配");
+            var matches = new ArrayList<String>();
+            for (var variety : species.path("varieties")) {
+                String candidate = variety.path("pokemon").path("name").asText();
+                if (candidate.matches("[a-z0-9-]+-alola")) matches.add(candidate);
+            }
+            if (matches.size() != 1) throw new IllegalArgumentException("资料未提供唯一阿罗拉形态，请使用形态英文名称查询");
+            key = matches.getFirst();
         }
         PokeApiClient.Snapshot raw = client.read("pokemon", key);
         JsonNode pokemon = parse(raw.payload());

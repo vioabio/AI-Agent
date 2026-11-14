@@ -17,6 +17,30 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class SpecialistAgentCoordinatorTest {
+    @Test void contextAssemblyCanBeEnabledWithoutChangingToolAuthority() {
+        var chat=mock(ChatModel.class);var c=new SpecialistAgentCoordinator(context("查询图鉴"),chat);
+        c.setContextAssembly(true,com.vio.vioaiagent.config.ContextBudgetProperties.defaults());
+        when(chat.call(any(Prompt.class))).thenAnswer(inv->{
+            var prompt=(Prompt)inv.getArgument(0);assertTrue(prompt.getContents().contains("Authoritative current task"));return stop();
+        });
+        c.plan(new ToolCallback[]{tool("lookupPokemonReference")},"");verify(chat).call(any(Prompt.class));
+    }
+
+    @Test void enabledSkillsAddTaskInstructionsWithoutGrantingWriteTools() {
+        var chat=mock(ChatModel.class);
+        var coordinator=new SpecialistAgentCoordinator(context("分析我的队伍"),chat);
+        coordinator.setSkillsEnabled(true);
+        when(chat.call(any(Prompt.class))).thenAnswer(inv->{
+            var prompt=(Prompt)inv.getArgument(0);
+            assertTrue(prompt.getContents().contains("saved-team-review@1"));
+            var opts=(ToolCallingChatOptions)prompt.getOptions();
+            assertFalse(opts.getToolCallbacks().stream().anyMatch(t->t.getToolDefinition().name().equals("previewTeamChanges")));
+            return stop();
+        });
+        coordinator.plan(new ToolCallback[]{tool("lookupPokemonReference"),tool("previewTeamChanges")},"");
+        verify(chat).call(any(Prompt.class));
+    }
+
     final ChatModel model=mock(ChatModel.class);
     final List<ToolGovernanceEvent> events=new ArrayList<>();
     ToolExecutionContext parent;
