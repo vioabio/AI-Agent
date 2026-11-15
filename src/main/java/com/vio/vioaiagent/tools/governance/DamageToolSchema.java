@@ -11,6 +11,21 @@ import java.util.*;
 /** Matches the read-only calculation DTO defaults without changing identity or stat requirements. */
 public final class DamageToolSchema {
     private DamageToolSchema() { }
+    /** Remove one redundant model envelope only when every original value is retained. */
+    public static String unwrapRequest(String tool,String input) {
+        if (!"calculateBattleDamage".equals(tool) || input==null || input.length()>24000) return input;
+        try {
+            var json=new ObjectMapper().enable(com.fasterxml.jackson.core.JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
+                    .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
+            var root=json.readTree(input);var wrapper=root.path("request");
+            if (root.isObject() && root.size()==1 && wrapper.isObject() && wrapper.size()==1
+                    && wrapper.path("request").isObject()) {
+                var normalized=json.createObjectNode();normalized.set("request",wrapper.path("request"));
+                return json.writeValueAsString(normalized);
+            }
+        } catch (Exception invalid) { /* The original arguments still go through the gateway validator. */ }
+        return input;
+    }
     public static ToolCallback adapt(ToolCallback delegate) {
         if(!"calculateBattleDamage".equals(delegate.getToolDefinition().name()))return delegate;
         try {
@@ -18,7 +33,9 @@ public final class DamageToolSchema {
             var request=object(schema.path("properties").path("request"));optional(request,Set.of("field"));
             for(String side:List.of("attacker","defender")) {
                 var combatant=object(request.path("properties").path(side));optional(combatant,Set.of("build"));
-                optional(object(combatant.path("properties").path("build")),Set.of("moves","ability","item","nature","level","evs","ivs","teraType"));
+                var build=object(combatant.path("properties").path("build"));
+                optional(build,Set.of("moves","ability","item","nature","level","evs","ivs","teraType"));
+                object(build.path("properties").path("item")).put("description","English held item name. For no held item omit item or use an empty string; none is accepted as an explicit no-item alias.");
             }
             optional(object(request.path("properties").path("field")),Set.of("gameType"));
             var definition=ToolDefinition.builder().name(delegate.getToolDefinition().name()).description(delegate.getToolDefinition().description()).inputSchema(json.writeValueAsString(schema)).build();

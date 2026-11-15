@@ -1,0 +1,103 @@
+{
+  "schemaVersion": "u6-partial-mcp-progress-v1",
+  "date": "2026-11-15",
+  "scope": "CONTROLLED_PARTIAL_TRANSPORT_AND_PRODUCTION_STDIO_CLIENT_DEADLINES",
+  "partial": {
+    "httpRuns": 4,
+    "browserRuns": 4,
+    "features": [
+      "skills",
+      "contextAssembly",
+      "answerBlocks",
+      "domainTracing"
+    ],
+    "specialistsEnabled": false,
+    "semanticEnabled": false,
+    "verification": {
+      "schemaVersion": "partial-output-combination-v1",
+      "status": "EVIDENCE_VERIFIED",
+      "runs": 4,
+      "scope": "CONTROLLED_PROVIDER_PARTIAL_TERMINATION",
+      "qualityBenefit": "NOT_EVALUATED",
+      "releaseDecision": "NOT_EVALUATED"
+    },
+    "runtimeBuildSha256": "937d030110197811afc5d4da313c700068b275c36d041378bbba119e538f071f",
+    "componentCount": 66
+  },
+  "mcp": {
+    "status": "VERIFIED",
+    "deadlineCalls": 5,
+    "successfulRecoveryCalls": 5,
+    "qualityBenefit": "NOT_EVALUATED",
+    "observation": {
+      "invalidFrames": 0,
+      "duplicateResponses": 0,
+      "stderrBytes": 520,
+      "forcedTermination": false
+    },
+    "implementationSha256": {
+      "mcp/PokemonMcpServerMain": "495d15b0744afc71615956b941148e16eb12ddb51873cb805ce0be1a760d367a",
+      "mcp/ReadOnlyMcpAdapter": "55f4d1f5d9898fef0c64ea557f61d11fc57e4dcd553d74686117b7c6d41982ec",
+      "mcp/McpStdioServer": "1a1e40fc036b80f2ca597d1ec21281cbef87692c5af6bfab291090d6b7eb611c",
+      "mcp/McpWireControl": "064928529a15e4515401a64af52d0bf7c23ee52933a346e7661e837206a3b4a6",
+      "tools/governance/ToolExecutionGateway": "e8a9aea0b13b95e45df3da6f038c1b24da80c7077ead13a0c2c9802abe5fff1b",
+      "pokemon/engine/LocalDamageEngine": "a6611763c8f9cf19680677224bfa1c6d6c6e289b4b0631ff657ab5d9e8d2eedd"
+    }
+  },
+  "validation": {
+    "newJavaTests": 6,
+    "relatedJavaTests": 34,
+    "nodeTests": 482,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "lastFullBackendReference": "evaluation/upgrade-v1.1/u6/rerank-and-browser-combination-20261115.json",
+    "lastFrontendReference": "evaluation/upgrade-v1.1/u6/termination-and-history-progress-20261115.json"
+  },
+  "evidence": {
+    "artifacts/u6-partial-enabled-5506445591368140332/partial-browser.json": "09e11fa61b89d91d134207c6b60608ba1b69d8d6560e37689cbccf6f57c794a7",
+    "artifacts/u6-partial-enabled-5506445591368140332/cancelled-partial-events.json": "07418a1b573afb0af8623327422a00567c4bdafcafa64bb08c0b2dcf38845f18",
+    "artifacts/u6-partial-enabled-5506445591368140332/timed_out-partial-events.json": "a90a4f01af2381af4a80e46ee9152e0010eeeea20a60a7ef4df9d179aa9dc4ae",
+    "artifacts/u6-partial-enabled-5506445591368140332/http-cancel-events.json": "6d6990f922772f23086c6cf11cca7593bf4120a993011d3b6532436d1f8c57fb",
+    "artifacts/u6-partial-enabled-5506445591368140332/http-timeout-events.json": "ec986fc4526c4cc898b9557513bbd75166891f9e880a54e0199fd9adf062c355",
+    "artifacts/u6-partial-disabled-5797681459349580902/partial-browser.json": "ef10f7dcebb1614f4c8fb57faa9f3db59418710fcf5653d711ee92facce4fed4",
+    "artifacts/u6-partial-disabled-5797681459349580902/cancelled-partial-events.json": "4162fc9d034fa596a10b55bcec9d55d3a755acdd02e9ef215bb29677d54d8916",
+    "artifacts/u6-partial-disabled-5797681459349580902/timed_out-partial-events.json": "e48fc113f3616e59fd86c2896076136e13b66ba22b33a43d4c44639f57899092",
+    "artifacts/u6-partial-disabled-5797681459349580902/http-cancel-events.json": "9293a3f850ed3de5f02efdcce0d2ce8df1a7b8b411ffb6016d7ef741c031fca7",
+    "artifacts/u6-partial-disabled-5797681459349580902/http-timeout-events.json": "c090508d4e3c0da1a1be681320663c9e9e822864583a9d4d98ec0abd7d148cea",
+    "artifacts/u6-mcp-timeout-recovery-final-20261115/report.json": "a064caa8e522394a80d975bce0d11897638c836d62301d96bae57901a3228fee",
+    "artifacts/u6-partial-combination-fixed-20261115.log": "b675e5040f7c9a1dc3d2561b6cb910ad5d6f40bccc378ebcf7ba72833169b5e9",
+    "artifacts/u6-partial-lifecycle-regression-20261115.log": "d8d20351335943ffd926c554912eb27ccf9096170ebffd91ae60e33fc5dd3c59",
+    "artifacts/u6-partial-mcp-final-node-20261115.log": "b1950c208e68ce58d1d84a3c6e04b9402f71dd0b9371cae8cbc8a75c099313c7",
+    "artifacts/u6-partial-combination-verified-20261115.json": "795b1aa97d03dee81a1b176db388572b1a43f9ba3d6b1bf3f90fba014df6967c"
+  },
+  "sourceCodeSha256": {
+    "tools/campus/partial-output-evidence.mjs": "d9f4cb1025acf23e2fa470747c17fcc03dcb26229189e14e701f56733ea890c5",
+    "tools/campus/partial-output-browser.mjs": "cf282e214cbb884f9d049cbd6e7a08d0be148433f81659fb1655be037a884f02",
+    "tools/campus/upgrade-partial-combination-verify.mjs": "260dad41e459e8bada1b701e8ed3c9f4fbc5a750d69e254af9794ded7b0e491d",
+    "tools/campus/mcp-timeout-recovery.mjs": "e4182881d188845c945a5d27f868129ad55e2d15ea3c26397b7871b90dd11288",
+    "src/test/java/com/vio/vioaiagent/config/AbstractPartialOutputTerminationHttpTest.java": "e6f37f8c978f1641d8c9b93acda878d1c9a0122b7ac7508c57799d21a0d571d8",
+    "src/test/java/com/vio/vioaiagent/config/PartialOutputEnabledRunHttpTest.java": "18525a91db7607c74a82827edeef6d17400004043bb8e0b1ec2386ce2962755d",
+    "src/test/java/com/vio/vioaiagent/config/PartialOutputDisabledRunHttpTest.java": "ae782c5d92b2862a3d7b12ab8829c7802a813bf72db7e0ff54f109efb1337c26"
+  },
+  "testClassSha256": {
+    "AbstractPartialOutputTerminationHttpTest": "238e2a89f149928441396af50f3c6a3cc60e8f7f4652c99078f8eb77ac63e265",
+    "PartialOutputEnabledRunHttpTest": "8d526be51d7922d783d7d17c628a5d7fe4d91ed4031f5d5498e6d29c43301414",
+    "PartialOutputDisabledRunHttpTest": "bc8f994ee15632c86a616a9c4bec70cffedc4603080eed74612e6ec901c8c1fc"
+  },
+  "retainedAttempt": {
+    "log": "artifacts/u6-partial-combination-targeted-20261115.log",
+    "finding": "FIRST_CHUNK_WAITED_IN_SDK_LOOKAHEAD_BUFFER",
+    "resolution": "CONTROLLED_NONFINISH_DRAIN_CHUNK_THEN_RECOLLECT"
+  },
+  "pending": [
+    "REAL_RERANK_PROVIDER_CONFIGURATION_AND_EFFECT_TEST",
+    "WEB_AGENT_EXTERNAL_MCP_CANCELLATION_PROPAGATION",
+    "PER_REQUEST_SERVER_CANCEL_CONFIRMATION_AND_SOAK",
+    "ANSWER_CONCISION",
+    "NEW_INDEPENDENT_QUESTIONS_AND_HUMAN_REVIEW"
+  ],
+  "qualityBenefit": "NOT_EVALUATED",
+  "humanReview": "PENDING",
+  "releaseDecision": "PENDING"
+}

@@ -12,6 +12,113 @@ import java.util.concurrent.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AgentTracingConfigurationTest {
+    @Test void partialSamplingKeepsWholeDomainTreesAndRestoresThreadScope() {
+        var capture = new Capture();
+        try (var runtime = AgentTracingConfiguration.runtime(capture, 0.25)) {
+            var registry = ObservationRegistry.create(); registry.observationConfig().observationHandler(runtime.handler());
+            var runs = new AgentRunObservation(registry);
+            for (int i = 0; i < 128; i++) {
+                assertEquals("ok", runs.execute("run-sampling-" + i, () -> {
+                    runs.phase(AgentRunObservation.Phase.AUTHORIZE, () -> true);
+                    return new AgentModelObservation(registry).call(() -> "ok");
+                }));
+                assertNull(registry.getCurrentObservation());
+                if (i % 16 == 15) assertTrue(runtime.provider().forceFlush().join(2,TimeUnit.SECONDS).isSuccess());
+            }
+            var traces = capture.spans.stream().collect(java.util.stream.Collectors.groupingBy(SpanData::getTraceId));
+            assertTrue(traces.size() > 0 && traces.size() < 128);
+            for (var spans : traces.values()) {
+                assertEquals(3,spans.size());
+                var root = spans.stream().filter(span -> span.getName().equals("agent.run.execute")).findFirst().orElseThrow();
+                assertTrue(spans.stream().filter(span -> span != root).allMatch(span -> span.getParentSpanId().equals(root.getSpanId())));
+            }
+        }
+    }
+    @Test void sampledForeignParentCannotOverrideZeroDomainSampling() {
+        var capture = new Capture();
+        try (var foreignProvider = io.opentelemetry.sdk.trace.SdkTracerProvider.builder()
+                    .setSampler(io.opentelemetry.sdk.trace.samplers.Sampler.alwaysOn()).build();
+             var runtime = AgentTracingConfiguration.runtime(capture, 0)) {
+            var registry = ObservationRegistry.create(); registry.observationConfig().observationHandler(runtime.handler());
+            var foreign = foreignProvider.get("foreign-http").spanBuilder("sampled-http").startSpan();
+            try (var ignored = foreign.makeCurrent()) {
+                assertEquals("ok",new AgentRunObservation(registry).execute("run-zero", () ->
+                        new AgentModelObservation(registry).call(() -> "ok")));
+                assertSame(foreign,io.opentelemetry.api.trace.Span.current());
+            } finally { foreign.end(); }
+            assertTrue(runtime.provider().forceFlush().join(2,TimeUnit.SECONDS).isSuccess());
+            assertTrue(capture.spans.isEmpty());
+            assertNull(registry.getCurrentObservation());
+        }
+    }
+    @Test void unsampledForeignHttpContextCannotSuppressAdmissionAndDispatch() {
+        var capture = new Capture();
+        try (var foreignProvider = io.opentelemetry.sdk.trace.SdkTracerProvider.builder()
+                    .setSampler(io.opentelemetry.sdk.trace.samplers.Sampler.alwaysOff()).build();
+             var runtime = AgentTracingConfiguration.runtime(capture, 1)) {
+            var registry = ObservationRegistry.create(); registry.observationConfig().observationHandler(runtime.handler());
+            registry.observationConfig().observationHandler(new io.micrometer.tracing.handler.DefaultTracingObservationHandler(io.micrometer.tracing.Tracer.NOOP));
+            var foreign = foreignProvider.get("foreign-http").spanBuilder("http-request").startSpan();
+            try (var ignored = foreign.makeCurrent()) {
+                var observation = new AgentRunObservation(registry);
+                observation.admission(() -> {
+                    observation.dispatch("run-under-http", UUID.randomUUID().toString()).finish("CANCELLED");
+                    return "run-under-http";
+                }, java.util.function.Function.identity());
+                assertSame(foreign, io.opentelemetry.api.trace.Span.current());
+            } finally { foreign.end(); }
+            runtime.provider().forceFlush().join(2, TimeUnit.SECONDS);
+            assertEquals(2, capture.spans.size());
+            assertTrue(capture.spans.stream().noneMatch(span -> span.getTraceId().equals(foreign.getSpanContext().getTraceId())));
+            var admission = capture.spans.stream().filter(span -> span.getName().equals("agent.run.admit")).findFirst().orElseThrow();
+            var dispatch = capture.spans.stream().filter(span -> span.getName().equals("agent.run.dispatch")).findFirst().orElseThrow();
+            assertEquals(admission.getSpanId(), dispatch.getParentSpanId());
+            assertNull(registry.getCurrentObservation());
+        }
+    }
+    @Test void workerAttemptExportsAuthorizationAndCommitWithOneRunRoot() {
+        var capture = new Capture();
+        try (var runtime = AgentTracingConfiguration.runtime(capture, 1)) {
+            var registry = ObservationRegistry.create(); registry.observationConfig().observationHandler(runtime.handler());
+            var observations = new AgentRunObservation(registry);
+            observations.attempt("run-lifecycle", 37, () -> {
+                observations.phase(AgentRunObservation.Phase.AUTHORIZE, () -> true);
+                observations.execute("run-lifecycle", () -> new AgentModelObservation(registry).call(() -> "answer"));
+                return observations.phase(AgentRunObservation.Phase.COMMIT, () -> "saved");
+            }, () -> "COMPLETED");
+            runtime.provider().forceFlush().join(2, TimeUnit.SECONDS);
+            assertEquals(4, capture.spans.size());
+            var root = capture.spans.stream().filter(s -> s.getName().equals("agent.run.execute")).findFirst().orElseThrow();
+            assertEquals("37", root.getAttributes().get(AttributeKey.stringKey("agent.run.dispatch_wait_ms")));
+            assertEquals("COMPLETED", root.getAttributes().get(AttributeKey.stringKey("agent.run.status")));
+            assertTrue(capture.spans.stream().filter(s -> s != root).allMatch(s -> s.getParentSpanId().equals(root.getSpanId())));
+            assertNull(registry.getCurrentObservation());
+        }
+    }
+    @Test void domainTracingCoexistsWithFrameworkNoopTracingHandler() {
+        var capture = new Capture();
+        try (var runtime = AgentTracingConfiguration.runtime(capture, 1)) {
+            var registry = ObservationRegistry.create();
+            registry.observationConfig().observationHandler(runtime.handler());
+            registry.observationConfig().observationHandler(new io.micrometer.tracing.handler.DefaultTracingObservationHandler(io.micrometer.tracing.Tracer.NOOP));
+            new AgentRunObservation(registry).execute("run-with-framework-handler",()->new AgentModelObservation(registry).call(()->"ok"));
+            runtime.provider().forceFlush().join(2,TimeUnit.SECONDS);
+            assertEquals(2,capture.spans.size());
+            assertNull(registry.getCurrentObservation());
+        }
+    }
+    @Test void frameworkContextMayHaveNoNameWhenHandlersAreSelected() {
+        var capture = new Capture();
+        try (var runtime = AgentTracingConfiguration.runtime(capture, 1)) {
+            assertFalse(runtime.handler().supportsContext(new Observation.Context()));
+            var http = new Observation.Context(); http.setName("http.server.requests");
+            assertFalse(runtime.handler().supportsContext(http));
+            var registry = ObservationRegistry.create(); registry.observationConfig().observationHandler(runtime.handler());
+            assertEquals("healthy",new AgentRunObservation(registry).execute("run-after-http",()->"healthy"));
+            runtime.provider().forceFlush().join(2,TimeUnit.SECONDS);
+            assertEquals(1,capture.spans.size());
+        }
+    }
     @Test void toolWorkerKeepsRunAndNestedModelParentAndClearsScopeAfterFailure() throws Exception {
         var capture = new Capture();
         try (var runtime = AgentTracingConfiguration.runtime(capture, 1);

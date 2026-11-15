@@ -21,6 +21,23 @@ test('configuration fingerprint drops secrets even inside nested allowed section
 test('fingerprint changes on public execution switches',()=>{
   assert.notEqual(publicFingerprint({features:{answerStreaming:true}}).sha256,publicFingerprint({features:{answerStreaming:false}}).sha256)
 })
+
+test('domain sampling participates in fingerprints without exposing exporter settings',()=>{
+  const original=publicFingerprint({domainTracingPolicy:{sampleRate:0.25,automaticTracing:false,endpoint:'private',headers:{key:'secret'}}})
+  assert.deepEqual(original.configuration.domainTracingPolicy,{sampleRate:0.25,automaticTracing:false})
+  assert.doesNotMatch(JSON.stringify(original),/private|secret|headers|endpoint/)
+  assert.notEqual(original.sha256,publicFingerprint({domainTracingPolicy:{sampleRate:1,automaticTracing:false}}).sha256)
+  assert.notEqual(original.sha256,publicFingerprint({domainTracingPolicy:{sampleRate:0.25,automaticTracing:true}}).sha256)
+  for(const invalid of [-1,2,NaN,Infinity,'1'])
+    assert.deepEqual(publicFingerprint({domainTracingPolicy:{sampleRate:invalid}}).configuration.domainTracingPolicy,{})
+})
+test('history window and token safety settings participate in the configuration fingerprint',()=>{
+  const configured={contextBudgetPolicy:{contextTokens:32768,historyTokens:4096,historyTurns:8,safetyPercent:125}}
+  const first=publicFingerprint(configured)
+  assert.equal(first.configuration.contextBudgetPolicy.historyTurns,8)
+  for(const override of [{historyTurns:1},{safetyPercent:100}])
+    assert.notEqual(first.sha256,publicFingerprint({contextBudgetPolicy:{...configured.contextBudgetPolicy,...override}}).sha256)
+})
 test('preparation rejects outside evidence directory and invalid split',()=>{
   assert.throws(()=>prepare('../outside','dev'),/under artifacts/)
   assert.throws(()=>prepare('artifacts/invalid','all'),/split/)
@@ -30,6 +47,7 @@ test('diagnostics distinguish HTTP500 from connection failures without copying p
  assert.equal(collectionFailure(new Error('HTTP_500')),'HTTP_500')
  assert.equal(collectionFailure({cause:{code:'ECONNREFUSED'}}),'TRANSPORT_ECONNREFUSED')
  assert.equal(collectionFailure(new Error('private credential detail')),'COLLECTION_UNAVAILABLE')
+ assert.equal(collectionFailure(new Error('RUNTIME_COMPONENTS_UNAVAILABLE')),'RUNTIME_COMPONENTS_UNAVAILABLE')
 })
 
 test('upgrade switches are fingerprinted but arbitrary nested data is dropped',()=>{

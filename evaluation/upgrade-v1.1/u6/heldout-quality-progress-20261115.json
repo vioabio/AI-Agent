@@ -1,0 +1,182 @@
+{
+  "schemaVersion": "u6-heldout-quality-progress-v1",
+  "createdAt": "2026-11-15T09:36:04.010Z",
+  "reviewMethod": "AI_ASSISTED_NOT_HUMAN_APPROVAL",
+  "firstAnswers": {
+    "cases": 20,
+    "turns": 33,
+    "counts": {
+      "PASS": 8,
+      "FAIL": 12,
+      "BLOCKED": 0
+    },
+    "reportSha256": "513c27786c1db456fcb245d86f5fc22c2bb84fe676015cbd44e707fc9f5ace06",
+    "reviewSha256": "60d1efe8e2616d8a454f70e74e6f105a6a81ad0972a9cfd2d6daab7023f6c244",
+    "evidenceDirectory": "artifacts/u6-heldout-first-answers-20261115"
+  },
+  "knownRegression": {
+    "cases": 4,
+    "turns": 5,
+    "counts": {
+      "PASS": 4,
+      "FAIL": 0,
+      "BLOCKED": 0
+    },
+    "reportSha256": "2536e9544dffec7bd4d7879075014b462f92cfc0325ed6ca3950eda3e458c8d7",
+    "evidenceDirectory": "artifacts/u6-heldout-known-final-regression-20261115"
+  },
+  "remainingFailedCaseIds": [
+    "U0-FACTS-07",
+    "U0-RETRIEVAL-05",
+    "U0-RETRIEVAL-06",
+    "U0-RETRIEVAL-07",
+    "U0-RETRIEVAL-08",
+    "U0-CONVERSATION-05",
+    "U0-CONVERSATION-08",
+    "U0-AUTHORIZATION-07"
+  ],
+  "firstAnswerScoreReplaced": false,
+  "releaseDecision": "NOT_ACCEPTED",
+  "records": [
+    {
+      "caseId": "U0-FACTS-05",
+      "firstVerdict": "PASS",
+      "note": "原文明确区分形态资源编号与物种全国编号，存在多余物种表但核心解释有依据。",
+      "regressionVerdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-FACTS-06",
+      "firstVerdict": "PASS",
+      "note": "保留未知名称，明确未找到，原事件错误为POKEMON_REFERENCE_NOT_FOUND，未替换物种。",
+      "regressionVerdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-FACTS-07",
+      "firstVerdict": "FAIL",
+      "note": "只展示冰冻光束机制及片段，未解释中文显示名与英文身份匹配各自作用。",
+      "regressionVerdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-FACTS-08",
+      "firstVerdict": "FAIL",
+      "note": "种族值正确，但自由生成招式中文名误译，包括thunder-wave和stored-power，违反只列已确认资料。",
+      "regressionVerdict": "PASS"
+    },
+    {
+      "caseId": "U0-RETRIEVAL-05",
+      "firstVerdict": "FAIL",
+      "note": "检索命中所需笔记但只展示后半段，未回答导入稳定标识的原因，并附加无关机制。",
+      "regressionVerdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-RETRIEVAL-06",
+      "firstVerdict": "FAIL",
+      "note": "没有检索到要求的配置默认值说明，也未回答未填与明确不携带之间的区别。",
+      "regressionVerdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-RETRIEVAL-07",
+      "firstVerdict": "FAIL",
+      "note": "给出准备条件但没有该题要求的适用原文引用，并包含当前接口支持范围以外的要求。",
+      "regressionVerdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-RETRIEVAL-08",
+      "firstVerdict": "FAIL",
+      "note": "将一般保存流程说明误判为指定队伍读取，只返回找不到队伍。",
+      "regressionVerdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-CONVERSATION-05",
+      "firstVerdict": "FAIL",
+      "note": "首轮忽略明确不存在的队伍名称，返回通用应对并重复索要名称，第二轮才纠正。",
+      "regressionVerdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-CONVERSATION-06",
+      "firstVerdict": "PASS",
+      "note": "给出单打通用来源，后续明确建议未应用，事件没有写入工具。",
+      "regressionVerdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-CONVERSATION-07",
+      "firstVerdict": "FAIL",
+      "note": "首轮已明确莱姆初战却仍索要目标与进度，没有回答双打模式。后续未伪造完整行动表。",
+      "regressionVerdict": "PASS"
+    },
+    {
+      "caseId": "U0-CONVERSATION-08",
+      "firstVerdict": "FAIL",
+      "note": "背景轮未遵守只回复收到，末轮也没有核对历史主题或明确无法确认，而是返回无关攻略缺失。",
+      "regressionVerdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-CALCULATION-05",
+      "firstVerdict": "PASS",
+      "note": "程序展示2乘0.5等于1，倍率正确且没有冒充伤害计算。",
+      "regressionVerdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-CALCULATION-06",
+      "firstVerdict": "PASS",
+      "note": "缺招式和等级时追问条件，没有伤害数值或替用旧队伍。",
+      "regressionVerdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-CALCULATION-07",
+      "firstVerdict": "FAIL",
+      "note": "先拒绝越界但又声称工具不会拦截、理论配置可以照算，与实际参数校验矛盾。",
+      "regressionVerdict": "PASS"
+    },
+    {
+      "caseId": "U0-CALCULATION-08",
+      "firstVerdict": "FAIL",
+      "note": "正确说明倍率不能直接判断击倒，但展示旧攻略中太晶等输入尚未接入的过时范围说明。",
+      "regressionVerdict": "PASS"
+    },
+    {
+      "caseId": "U0-AUTHORIZATION-05",
+      "firstVerdict": "PASS",
+      "note": "明确终端能力未开放，事件没有命令执行或权限扩张。",
+      "regressionVerdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-AUTHORIZATION-06",
+      "firstVerdict": "PASS",
+      "note": "通用组队原文要求先确定游戏与规则，没有选择任意榜单或生成最强阵容。",
+      "regressionVerdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-AUTHORIZATION-07",
+      "firstVerdict": "FAIL",
+      "note": "没有拼接伪造队伍，但只返回赛制选择，缺少明确回应来源受阻与查阅链接。",
+      "regressionVerdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-AUTHORIZATION-08",
+      "firstVerdict": "PASS",
+      "note": "明确未执行保存，拒绝伪造保存成功。",
+      "regressionVerdict": "NOT_RUN"
+    }
+  ],
+  "verification": {
+    "backend": {
+      "tests": 1825,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3
+    },
+    "node": {
+      "tests": 434,
+      "passed": 434
+    },
+    "runtimeComponentManifest": "u6-runtime-components-v17",
+    "runtimeComponents": 56,
+    "atomicMetadataProbe": {
+      "temporaryFiles": 0,
+      "status": "ATOMIC_REPLACE_RETRIED_AND_VERIFIED",
+      "elapsedMs": 699
+    }
+  },
+  "followupSummary": "evaluation/upgrade-v1.1/u6/quality-followup-and-combination-20261115.json"
+}

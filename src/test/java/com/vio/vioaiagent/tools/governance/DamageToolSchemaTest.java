@@ -9,10 +9,22 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class DamageToolSchemaTest {
+    @Test void onlyAnUnambiguousExtraCalculationEnvelopeCanBeRemoved() throws Exception {
+        var json=new com.fasterxml.jackson.databind.ObjectMapper();
+        String payload="{\"generation\":9,\"attacker\":{\"species\":\"Squirtle\"},\"move\":\"Tackle\"}";
+        String wrapped="{\"request\":{\"request\":"+payload+"}}";
+        assertEquals(json.readTree("{\"request\":"+payload+"}"),json.readTree(DamageToolSchema.unwrapRequest("calculateBattleDamage",wrapped)));
+        assertEquals(wrapped,DamageToolSchema.unwrapRequest("previewTeamChanges",wrapped));
+        for(String original:List.of("{\"request\":"+payload+"}","{\"request\":{\"request\":"+payload+",\"ownerId\":\"other\"}}",
+                "{\"request\":{\"request\":"+payload+"},\"extra\":1}","{\"request\":{\"request\":null}}",
+                "{\"request\":{\"request\":{}},\"request\":{}}",wrapped+"{}","invalid"))
+            assertEquals(original,DamageToolSchema.unwrapRequest("calculateBattleDamage",original));
+    }
     @Test void optionalTeraDoesNotBlockCompleteExistingDamageRequests() throws Exception {
         var json=new com.fasterxml.jackson.databind.ObjectMapper();var engine=mock(LocalDamageEngine.class);
         var callback=DamageToolSchema.adapt(ToolCallbacks.from(new DamageEngineController.Tools(engine,null))[0]);
         var schema=json.readTree(callback.getToolDefinition().inputSchema());
+        assertTrue(schema.at("/properties/request/properties/attacker/properties/build/properties/item/description").asText().contains("none is accepted"));
         for(String side:List.of("attacker","defender"))assertFalse(schema.path("properties").path("request").path("properties").path(side).path("properties").path("build").path("required").toString().contains("teraType"));
         var request=json.createObjectNode();request.set("request",json.readTree(java.nio.file.Path.of("evaluation/campus/s01/damage-reference.json").toFile()).path("input"));
         var hitl=new HitlManager();var masker=new ParameterMasker();

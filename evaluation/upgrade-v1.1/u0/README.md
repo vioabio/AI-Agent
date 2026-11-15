@@ -29,7 +29,7 @@ publicFingerprint仅接受白名单诊断字段，丢弃Key、Cookie及嵌套任
 
 1. 人工/AI辅助复核题目判据，确认来源适用性，登记审核方式；AI复核不写成人工通过。
 2. 实现基于既有采集器的适配：隔离账号、逐轮发送、真实事件与正文、终态、事件摘要及清理，禁止只读COMPLETED判通过。
-3. 采集受保护runtime的白名单字段与依赖/producer摘要；冻结模型、profile、Prompt、语料和索引状态。禁止读取或打印.run和私有application-local.yml。
+3. 采集受保护runtime的白名单字段与依赖/producer摘要，冻结模型、profile、Prompt、语料和索引状态。模型Key由本机进程环境或用户已授权的IDEA运行配置传入隔离子进程，报告、命令行和日志只记录公开配置及脱敏状态。
 4. 使用dev采集升级前结果；每题所有轮次保持同会话，题间隔离。缺失队伍不替换为个人test1；跨账号与写入项必须使用专门fixture。
 5. 补齐相关片段标注，逐项核对正文与真实工具输出；环境失败记BLOCKED，未运行保留NOT_RUN。
 6. 冻结性能阈值与基线报告后进入U1；heldout留到U6首次验收，不提前调试。
@@ -54,3 +54,30 @@ node tools/campus/upgrade-collect.mjs artifacts/u0-新的唯一目录 http://127
 首次采集器注销路径错误，报告保留LOGOUT_UNVERIFIED，不能将该轮视为清理完整的发布基线。已修正为实际/logout接口，另用artifacts/u0-cleanup-probe-20261113的一题探针验证cleanupErrors为空；不改写原记录。旧账号无持久凭据，留待本机账户维护，不触碰其他用户数据。
 
 U0仍待：完整判据/片段标签复核、供应商usage提取、运行类指纹比对、正式清理完整的基线采集及阈值冻结。U1只启动默认不启用的代码基础，不以此绕过U0验收门禁。
+
+## 2026-11-15 封存集首次质量验收
+
+在业务回归后首次提交20道heldout题、33轮对话，使用隔离账号与独立数据库。原冻结问题、评分表和历史语料身份保持原值，当前候选语料及检索状态单独记录。
+
+AI辅助阅读全部正文并核对事件，结果8通过、12失败、0阻塞。33轮执行完成，部分正文仍有误译、路由错误、漏答或范围不明的问题。内容审核尚待人工复核，v1.1发布验收继续待办。
+
+采集器新增最后一个参数`heldout`。默认值仍为`dev`，只有`frozen`题集允许首次封存采集。
+
+```powershell
+node tools/campus/upgrade-collect.mjs artifacts/新的首答目录 http://127.0.0.1:18124/api 20 "" frozen heldout
+```
+
+已参与调试的问题使用`frozen-regression`模式，输出`KNOWN_HELDOUT_REGRESSION`标记。原首答结果保持原值，调试后的题目继续作为开发回归使用。
+
+```powershell
+node tools/campus/upgrade-collect.mjs artifacts/新的回归目录 http://127.0.0.1:18125/api 1 U0-FACTS-08 frozen-regression
+node tools/campus/upgrade-heldout-review-verify.mjs artifacts/首答目录 artifacts/首答目录/content-review.json artifacts/新的证据核对.json
+```
+
+新校验器核对冻结身份、每轮原问题、答案摘要、事件文件摘要、Run归属、事件顺序、正文拼接及终态。核对结果中的计数来自单独记录的AI辅助内容审查，仍需人工审核。详见`document/升级计划/U6封存集首次质量验收与问题修复_2026-11-15.md`。
+
+## 2026-11-15 已知缺口修复与组合回退
+
+剩余8项修复完成后，将原12个失败题在组合开启和关闭两组各执行24轮，均通过AI辅助正文复核。首次成绩继续保留为8通过、12失败、0阻塞。
+
+新组合校验器核对四项开关、其他公开配置、运行构建、实际候选语料、语义配置、独立Run及原始事件，输出继续要求内容审核。组合证据位于`artifacts/u6-quality-final-combination-verification-20261115.json`，可随仓库携带的摘要为`evaluation/upgrade-v1.1/u6/quality-followup-and-combination-20261115.json`。新增独立题及人工验收继续待办。

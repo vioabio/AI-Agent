@@ -11,6 +11,13 @@ import { parseTeamBlock } from './team-answer-block.js'
 import { parseTrainingBlock } from './training-answer-block.js'
 import { upsertModelUsage } from './model-usage.js'
 
+/** Public UI notice for a denied approval without generated answer text. */
+export function answerDisplayText(run) {
+  if (run?.answer) return run.answer
+  return run?.status === 'failed' && run.errorType === 'APPROVAL_DENIED'
+    ? '已取消待确认的操作。' : ''
+}
+
 export const RUN_STATUS = Object.freeze({
   CREATING: 'creating',
   RUNNING: 'running',
@@ -28,6 +35,12 @@ export const TERMINAL_STATUSES = new Set([
   RUN_STATUS.CANCELLED,
   RUN_STATUS.TIMED_OUT
 ])
+
+export function canSubmitRunApproval(run, approval) {
+  return run?.status === RUN_STATUS.WAITING_APPROVAL && !run.approvalSubmitting
+    && typeof approval?.approvalId === 'string' && approval.approvalId.length > 0
+    && run.approval?.approvalId === approval.approvalId
+}
 
 // AgentEvent.eventId 在 OpenAPI 中是 int64/minimum=1。浏览器收到 JSON
 // 数字后可能已经丢失大于 2^53 的精度，因此线上游标统一按十进制字符串
@@ -125,7 +138,7 @@ export function createRunViewModel(seed = {}) {
     modelUsageAttempts: (Array.isArray(seed.modelUsageAttempts) ? seed.modelUsageAttempts : []).reduce(upsertModelUsage, []),
     events: Array.isArray(seed.events) ? [...seed.events] : [],
     error: seed.error || null,
-    approval: seed.approval || null,
+    approval: TERMINAL_STATUSES.has(normalizeRunStatus(seed.status)) ? null : seed.approval || null,
     startedAt: seed.startedAt || null,
     finishedAt: seed.finishedAt || null,
     reconnectAttempts: Number(seed.reconnectAttempts || 0),
@@ -247,6 +260,8 @@ export function reduceRunEvent(model, rawEvent) {
     : next.cards
 
   if (data.modelUsage) next.modelUsageAttempts = upsertModelUsage(next.modelUsageAttempts, data.modelUsage)
+  if (['run.completed', 'run.cancelled', 'run.timed_out', 'run.failed', 'error'].includes(event.type)) next.approval = null
+  const liveStatus = next.approval ? RUN_STATUS.WAITING_APPROVAL : RUN_STATUS.RUNNING
   switch (event.type) {
     case 'usage':
       return { ...next, modelUsageAttempts: upsertModelUsage(next.modelUsageAttempts, data) }
@@ -254,7 +269,7 @@ export function reduceRunEvent(model, rawEvent) {
       return { ...next, runId: data.runId || next.runId, conversationId: data.conversationId || next.conversationId, status: RUN_STATUS.CREATING }
     case 'run.started':
     case 'run.running':
-      return { ...next, status: RUN_STATUS.RUNNING, startedAt: data.startedAt || next.startedAt || new Date().toISOString() }
+      return { ...next, status: liveStatus, startedAt: data.startedAt || next.startedAt || new Date().toISOString() }
     case 'context.confirmed':
       return { ...next, context: { ...next.context, ...data }, lineageStatus: data.lineageStatus || next.lineageStatus }
     case 'context.card':
@@ -270,14 +285,14 @@ export function reduceRunEvent(model, rawEvent) {
     case 'retrieval.started':
     case 'retrieval.completed':
     case 'retrieval.finished':
-      return { ...next, status: RUN_STATUS.RUNNING }
+      return { ...next, status: liveStatus }
     case 'fact.card': {
       if(cardPayload.answerBlock) {
         const block=parsePokemonBlock(cardPayload.answerBlock)
         if(!block || (next.context?.gameReleaseId && block.gameReleaseId!==next.context.gameReleaseId) || (next.context?.dataReleaseId && block.dataReleaseId!==next.context.dataReleaseId))return next
         return {...next,cards:{...next.cards,facts:[...next.cards.facts.filter(c=>c.answerBlock?.blockId!==block.blockId),{...cardPayload,answerBlock:block}]}}
       }
-      return { ...next, status: RUN_STATUS.RUNNING, cards: { ...next.cards, facts: [...next.cards.facts, cardPayload] } }
+      return { ...next, status: liveStatus, cards: { ...next.cards, facts: [...next.cards.facts, cardPayload] } }
     }
     case 'calculation.card': {
       if(cardPayload.answerBlock) {
@@ -285,7 +300,7 @@ export function reduceRunEvent(model, rawEvent) {
         if(!block || (next.context?.gameReleaseId && block.gameReleaseId!==next.context.gameReleaseId) || (next.context?.dataReleaseId && block.dataReleaseId!==next.context.dataReleaseId))return next
         return {...next,cards:{...next.cards,calculations:[...next.cards.calculations.filter(c=>c.answerBlock?.blockId!==block.blockId),{...cardPayload,answerBlock:block}]}}
       }
-      return { ...next, status: RUN_STATUS.RUNNING, cards: { ...next.cards, calculations: [...next.cards.calculations, cardPayload] } }
+      return { ...next, status: liveStatus, cards: { ...next.cards, calculations: [...next.cards.calculations, cardPayload] } }
     }
     case 'team.matrix':
       if(cardPayload.answerBlock) {
@@ -293,15 +308,15 @@ export function reduceRunEvent(model, rawEvent) {
         if(!block || (next.context?.gameReleaseId && block.gameReleaseId!==next.context.gameReleaseId) || (next.context?.dataReleaseId && block.dataReleaseId!==next.context.dataReleaseId) || (block.kind==='trainingPlan' && next.context?.rulesetVersionId && block.rulesetVersionId!==next.context.rulesetVersionId))return next
         return {...next,cards:{...next.cards,teams:[...next.cards.teams.filter(c=>c.answerBlock?.blockId!==block.blockId),{...cardPayload,answerBlock:block}]}}
       }
-      return { ...next, status: RUN_STATUS.RUNNING, cards: { ...next.cards, teams: [...next.cards.teams, cardPayload] } }
+      return { ...next, status: liveStatus, cards: { ...next.cards, teams: [...next.cards.teams, cardPayload] } }
     case 'activity.card':
-      return { ...next, status: RUN_STATUS.RUNNING, cards: { ...next.cards, activities: [...next.cards.activities, cardPayload] } }
+      return { ...next, status: liveStatus, cards: { ...next.cards, activities: [...next.cards.activities, cardPayload] } }
     case 'retrieval.citation.card':
-      return { ...next, status: RUN_STATUS.RUNNING, cards: { ...next.cards, citations: [...next.cards.citations, cardPayload] } }
+      return { ...next, status: liveStatus, cards: { ...next.cards, citations: [...next.cards.citations, cardPayload] } }
     case 'tool.started':
       return {
         ...next,
-        status: RUN_STATUS.RUNNING,
+        status: liveStatus,
         toolTimeline: [...next.toolTimeline, { ...data, toolName: data.toolName || event.toolName, status: 'running', eventId: event.id }]
       }
     case 'tool.completed':
@@ -327,9 +342,9 @@ export function reduceRunEvent(model, rawEvent) {
     }
     case 'answer.delta':
     case 'message':
-      return { ...next, status: RUN_STATUS.RUNNING, answer: next.answer + text }
+      return { ...next, status: liveStatus, answer: next.answer + text }
     case 'answer.completed':
-      return { ...next, status: RUN_STATUS.RUNNING, answer: data.answer ?? (text || next.answer), answerId: data.answerId || next.answerId, lineageStatus: data.lineageStatus || next.lineageStatus, lineage: data.lineage || next.lineage }
+      return { ...next, status: liveStatus, answer: data.answer ?? (text || next.answer), answerId: data.answerId || next.answerId, lineageStatus: data.lineageStatus || next.lineageStatus, lineage: data.lineage || next.lineage }
     case 'citation.added':
     case 'citation':
       return { ...next, citations: [...next.citations, data.citation || data].filter(Boolean) }
@@ -338,7 +353,7 @@ export function reduceRunEvent(model, rawEvent) {
     case 'feedback.card':
       return { ...next, cards: { ...next.cards, feedback: [...next.cards.feedback, cardPayload] } }
     case 'error.card':
-      return { ...next, status: RUN_STATUS.RUNNING, cards: { ...next.cards, errors: [...next.cards.errors, cardPayload] } }
+      return { ...next, status: liveStatus, cards: { ...next.cards, errors: [...next.cards.errors, cardPayload] } }
     case 'approval.resolved':
       // 后端拒绝审批时会先发 approval.resolved，再发唯一的 run.failed。
       // 结论事件本身不是 Run 终态；提前标记 FAILED 会让终态门禁丢掉
@@ -352,7 +367,7 @@ export function reduceRunEvent(model, rawEvent) {
       return { ...next, status: RUN_STATUS.TIMED_OUT, error: timeoutMessage, finishedAt: data.finishedAt || new Date().toISOString() }
     case 'run.failed':
     case 'error':
-      return { ...next, status: RUN_STATUS.FAILED, error: data.errorType === 'RUN_CONTEXT_BUDGET_EXCEEDED'
+      return { ...next, status: RUN_STATUS.FAILED, errorType: data.errorType || null, error: data.errorType === 'RUN_CONTEXT_BUDGET_EXCEEDED'
         ? '本次请求超过上下文或回答长度预算。请缩小问题范围，或开启新对话并重申关键限制；已显示的回答可能不完整。'
         : data.errorType === 'RUN_TASK_BUDGET_EXCEEDED'
           ? '本次任务已达到模型调用或 Token 额度上限。请缩小任务范围后重新发起；已显示的回答可能不完整。'

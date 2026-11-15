@@ -1,0 +1,114 @@
+{
+  "schemaVersion": "concise-answer-and-independent-candidate-progress-v1",
+  "date": "2026-11-15",
+  "phase": "U6_NEW_CANDIDATE_QUALITY_AND_KNOWN_REGRESSION",
+  "releaseDecision": "PENDING",
+  "backend": {
+    "summary": {
+      "tests": 1851,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3
+    },
+    "skips": [
+      {
+        "class": "com.vio.vioaiagent.mcp.McpClientStdioTest",
+        "method": "testStdioToolInvocation",
+        "reason": "需要先构建 vio-image-search-mcp-server-*.jar 到 target/ 目录"
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.McpClientStdioTest",
+        "method": "testStdioConnectionAndToolDiscovery",
+        "reason": "需要先构建 vio-image-search-mcp-server-*.jar 到 target/ 目录"
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.PokeApiReferenceTest",
+        "method": "liveSmokeOnlyWhenExplicitlyRequested",
+        "reason": null
+      }
+    ],
+    "fullLog": "artifacts/u6-concise-assumptions-final-full-20261115.log",
+    "fullLogSha256": "48aa4737d9e7a3617d1fef976bf90f11234f7dccfe01d10071c226f5eee7c1aa",
+    "supplementLog": "artifacts/u6-concise-assumptions-probes-20261115.log",
+    "supplementLogSha256": "99efaa4fccf8ceae00e0e205dea59a5f57594545c475e23fe6415f1027487c4a",
+    "supplementTests": 5
+  },
+  "node": {
+    "tests": 487,
+    "failures": 0,
+    "log": "artifacts/u6-concise-v21-final-node-20261115.log",
+    "sha256": "af9a7567b0211b2b7f57982ee06785533a4661b157cb8262d6755e869ace00b9"
+  },
+  "frontendContracts": {
+    "tests": 230,
+    "failures": 0,
+    "log": "artifacts/u6-concise-frontend-contract-20261115.log",
+    "sha256": "b81800c9cb4252f3f3326a542954c930e43a5d1de1132937848a95d8de851d64"
+  },
+  "firstCandidate": {
+    "cases": 12,
+    "turns": 16,
+    "pass": 8,
+    "fail": 4,
+    "blocked": 0,
+    "review": "evaluation/upgrade-v1.1/u6/independent-v2/first-review-20261115.json",
+    "reviewSha256": "9c93e2bab9b268284d1eb3eeb982439859fa5c23a3abc829e9817208bf2aeeb7"
+  },
+  "candidateKnownRegression": {
+    "cases": 12,
+    "turns": 16,
+    "pass": 12,
+    "fail": 0,
+    "blocked": 0,
+    "review": "evaluation/upgrade-v1.1/u6/independent-v2/regression-final-review-20261115.json",
+    "reviewSha256": "6a7e7abaff6ea8f80df0aa3a54dc2626c6dc1a91934369adee26987f81e7239c"
+  },
+  "originalKnownRegression": {
+    "cases": 12,
+    "turns": 24,
+    "pass": 12,
+    "fail": 0,
+    "blocked": 0,
+    "review": "evaluation/upgrade-v1.1/u6/concise-known-review-20261115.json"
+  },
+  "reviewMethod": "AI_ASSISTED_BODY_SOURCE_AND_TOOL_EVENT_REVIEW",
+  "humanReview": "PENDING",
+  "runtimeComponentManifest": "u6-runtime-components-v21",
+  "buildCheck": {
+    "components": 68,
+    "status": "ARTIFACTS_MATCH",
+    "file": "artifacts/u6-concise-final-server-20261115/build-check-after.json",
+    "sha256": "97c4a43b27d1896bb40ad5c2d16c61922c13f53444dbb804ed8f50f809823041"
+  },
+  "semanticState": {
+    "enabled": true,
+    "configured": true,
+    "ready": true,
+    "mode": "HYBRID",
+    "model": "text-embedding-v4",
+    "dimensions": 1024,
+    "indexedChunks": 30,
+    "state": "READY"
+  },
+  "evidenceBindings": {
+    "file": "artifacts/u6-concise-candidate-evidence-bindings-20261115.json",
+    "sha256": "c791a8adf4c9dfcdb8aa661c2135ae4e8b07a3da8c68ae536d279c42c69c15c9"
+  },
+  "environment": {
+    "backendPort": 18124,
+    "source": "ISOLATED_BUILD_AND_PUBLIC_REFERENCE_CACHE",
+    "personalBackendRebuildRequired": true,
+    "rerankEndpointConfigured": false,
+    "rerankModelConfigured": false,
+    "rerankKeyConfigured": false
+  },
+  "remaining": [
+    "REAL_RERANK_SERVICE_COMPARISON",
+    "WEB_AGENT_EXTERNAL_MCP_CANCEL_AND_SOAK",
+    "OPEN_ANSWER_RELEVANCE_AND_HUMAN_ACCEPTANCE"
+  ],
+  "observations": [
+    "U0-CALCULATION-08 may append an unrelated mechanic quote while satisfying its original numeric-condition rubric.",
+    "Candidate first answers remain 8/12, corrected known regressions do not replace that score."
+  ]
+}

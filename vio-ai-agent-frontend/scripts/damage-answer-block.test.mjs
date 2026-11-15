@@ -14,6 +14,17 @@ test('optional evidence binds to the card, copies sources and preserves legacy r
   assert.equal(parseDamageBlock({ ...block(), evidence: null }).evidence, null)
 })
 
+test('verified Pokemon slug and form URLs preserve evidence with the same bounded host policy', () => {
+  for (const key of ['squirtle','mr-mime','vulpix-alola','porygon2','10061']) {
+    const proof=evidence();proof.sources[0].url=`https://pokeapi.co/api/v2/pokemon/${key}/`
+    assert.equal(parseDamageBlock({...block(),evidence:proof}).evidence.sources[0].url,proof.sources[0].url)
+  }
+  for (const key of ['../7','%37','squirtle?token=x','Squirtle','squirtle/extra','squirtle-','a'.repeat(129)]) {
+    const proof=evidence();proof.sources[0].url=`https://pokeapi.co/api/v2/pokemon/${key}/`
+    assert.equal(parseDamageBlock({...block(),evidence:proof}),null)
+  }
+})
+
 test('cross-card, malformed and unsafe evidence falls back to readable text', () => {
   const invalid = [
     { ...evidence(), targetBlockId: `damage-${'e'.repeat(64)}` },

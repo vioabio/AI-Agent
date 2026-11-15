@@ -13,11 +13,12 @@ public final class TypeMatchupReply {
     public static Optional<String> reply(String question) {
         if(question==null||question.length()>400)return Optional.empty();
         String text=question.replaceAll("\\s+","").replaceAll("不考虑特性[、，,]道具和太晶[。]?","");
+        text=text.replaceFirst("请(?:调用|查询|使用|核对)(?:本地)?属性(?:工具|表)(?:后)?(?:用中文)?(?:简短)?回答[。]?$", "");
         text=text.replaceFirst("^(?:在)?基础属性关系下[，,]?", "");
         text=text.replaceFirst("^不考虑特性[、，,]?道具[、，,]?太晶[，,]?", "");
         text=text.replace("招式攻击", "招式打").replaceAll("超能(?!力)","超能力");
         var attack=ATTACK.matcher(text);if(!attack.matches())return Optional.empty();
-        String targets=attack.group(2).replaceFirst("(?:的)?(?:基础)?(?:属性)?(?:倍率)?(?:分别)?(?:是多少|为多少|多少)倍?[？?。]?$", "").replaceAll("[，,？?。]","");
+        String targets=attack.group(2).replaceFirst("(?:的)?(?:基础)?(?:属性)?(?:倍率)?(?:分别)?(?:是多少|为多少|多少|是几|几)倍?(?:伤害)?[？?。]?$", "").replaceAll("[，,？?。]","");
         targets=targets.replaceFirst("(?:基础)?属性倍率(?:分别)?(?:是多少|为多少|多少)$","");
         targets=targets.replaceFirst("(?:的)?(?:基础)?倍率(?:分别)?(?:是多少|为多少|多少)$","");
         // Consume the entire remaining expression. Mixed strategy/mechanics tasks

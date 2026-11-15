@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import {
   BATTLE_FORMAT_ALIASES,
   resolveBattleFormat,
+  conversationContextFromHistory,
   serializeRunContext,
   serializeVersionedContext
 } from '../src/api/version-registry.js'
@@ -13,6 +14,27 @@ import {
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const contract = JSON.parse(fs.readFileSync(path.resolve(scriptDir, '../../contracts/version-registry-v1.1.json'), 'utf8'))
 const fixture = JSON.parse(fs.readFileSync(path.resolve(scriptDir, '../../data/v1.1-fixture/fixture.json'), 'utf8'))
+
+test('history context restores the latest user metadata including canonical format and reference version', () => {
+  const messages=[{role:'user',metadata:{dataReleaseId:'old'}},
+    {role:'user',metadata:{gameReleaseId:'pokemon-scarlet-violet',dataReleaseId:'pokeapi-reference-v1',
+      language:'zh-CN',rulesetVersionId:'casual-v1',battleFormatId:'casual-doubles',tool:'ignored'}},
+    {role:'assistant',metadata:{dataReleaseId:'unrelated'}}]
+  assert.deepEqual(conversationContextFromHistory(messages),{
+    gameReleaseId:'pokemon-scarlet-violet',language:'zh-CN',rulesetVersionId:'casual-v1',
+    dataReleaseId:'pokeapi-reference-v1',battleFormat:'casual-doubles'
+  })
+  assert.equal(messages[1].metadata.tool,'ignored')
+  assert.equal(conversationContextFromHistory([{role:'user',metadata:{battleFormat:'singles'}}]).battleFormat,'casual-singles')
+})
+
+test('history context ignores message text, assistant metadata, legacy gaps and malformed values', () => {
+  for(const input of [null,{},[],[{role:'assistant',metadata:{dataReleaseId:'wrong'}}],
+    [{role:'user',content:'{"dataReleaseId":"wrong"}'}],
+    [{role:'user',metadata:{dataReleaseId:'old'}},{role:'user'}],
+    [{role:'user',metadata:{dataReleaseId:{value:'bad'},language:'<script>',battleFormatId:[],rulesetVersionId:'x'.repeat(129)}}]])
+    assert.deepEqual(conversationContextFromHistory(input),{})
+})
 
 test('前端赛制 alias 与版本契约完全一致', () => {
   assert.deepEqual(BATTLE_FORMAT_ALIASES, contract.aliases.battleFormatId)

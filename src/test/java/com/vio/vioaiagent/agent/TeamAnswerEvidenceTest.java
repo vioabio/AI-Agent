@@ -13,6 +13,32 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class TeamAnswerEvidenceTest {
+    @Test void memberSentencePunctuationDoesNotDiscardVerifiedMixedTaskEvidence() throws Exception {
+        String bundle=MAPPER.writeValueAsString(evidence());
+        for(String ending:List.of("。",".","！","?","？")){
+            var policy=new TeamAnswerEvidence();
+            policy.begin("请分析队伍，并计算伤害。\n参考成员：squirtle、charmander"+ending+"\n本次计算完整输入数据：{}");
+            policy.observe("lookupPokemonTeamReference",bundle);
+            assertTrue(policy.complete(),ending);
+        }
+    }
+    @Test void sentenceNormalizationKeepsMissingDuplicateAndExtraMemberChecks() throws Exception {
+        String bundle=MAPPER.writeValueAsString(evidence());
+        for(String line:List.of("squirtle、charmander、。","squirtle、squirtle。","squirtle、charmander、pikachu。","squirtle、charmander。再加pikachu")){
+            var policy=new TeamAnswerEvidence();
+            policy.begin("分析队伍\n参考成员："+line);
+            policy.observe("lookupPokemonTeamReference",bundle);
+            assertFalse(policy.complete(),line);
+        }
+    }
+    @Test void explicitFactsOnlyScopeDoesNotSuppressRequestedStrategyInOtherTurns(){
+        var policy=new TeamAnswerEvidence();
+        policy.begin("分析队伍，只看这两位参考成员的资料，不保存。\n参考成员：squirtle、charmander");
+        assertTrue(policy.active());assertTrue(policy.factsOnly());
+        for(String prompt:List.of("分析队伍并给出培养建议", "分析队伍，只看这些资料并给出建议", "分析队伍，只看参考成员的资料，并补充搭配建议")){
+            policy.begin(prompt);assertFalse(policy.factsOnly());
+        }
+    }
     static final ObjectMapper MAPPER = new ObjectMapper();
     static LocalPokeApiRepository.Detail detail(int id, String slug, String name, String type, int speed) {
         return new LocalPokeApiRepository.Detail(new PokemonFact(id,id,id,slug,name,slug,name,"pokeapi-reference-v1",

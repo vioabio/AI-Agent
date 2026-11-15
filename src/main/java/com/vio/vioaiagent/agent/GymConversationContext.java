@@ -14,7 +14,7 @@ final class GymConversationContext {
         return text == null ? "" : text.replaceAll("(?:不需要|不用|不要|无需|别)(?:再)?(?:推荐|分析|沿用|读取)[^，,。！？;；\\n]*", "");
     }
     static boolean savedTeamRequest(String text){return text!=null&&text.matches("(?is).*(队伍|队).*")&&text.matches("(?is).*(应对|出招|对付|能否|能不能|能打|分析|打法|如何配置|怎么配置|建议|挑战).*")
-            &&text.matches("(?is).*(我的|我当前|当前的|已保存|保存的|读取.{0,12}队伍).*");}
+            &&text.matches("(?is).*(我的|我当前|当前的|已保存|保存的|保存队伍|读取.{0,12}队伍).*");}
     static Optional<Target> resolve(String question,List<Message> history){
         // Chronological user selections only. Assistant claims cannot select a target or a challenge stage.
         String id=null,phase=null;

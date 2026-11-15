@@ -37,6 +37,21 @@ class ProjectGuideFullSourceTest {
         assertTrue(answer.contains("原文位置：第"));assertFalse(answer.contains("原文范围：完整文档"));
         for(var hit:hits)assertTrue(answer.contains("**"+hit.document().title()+"**"));
     }
+    @Test void conciseRenderingRetainsEachSourceAndSharesItsScopeNotice() throws Exception {
+        var hits=index().search(ProjectGuidePreflightTest.QUESTION,"pokemon-scarlet-violet");
+        var evidence=new GuideAnswerEvidence();evidence.begin("请检索队伍确认的攻略原文");
+        evidence.observe("searchPokemonGuides",mapper.writeValueAsString(hits));String answer=evidence.verifiedAnswer();
+        for(var hit:hits) {
+            assertTrue(answer.contains("**"+hit.document().title()+"**"));
+            assertTrue(answer.contains(hit.document().author()));assertTrue(answer.contains(hit.document().updatedAt()));
+            String returned=hit.citation()==null?hit.document().content():hit.citation().text();
+            if(returned.codePointCount(0,returned.length())<=700)assertTrue(answer.contains(EvidenceText.quote(returned)));
+        }
+        assertEquals(1,answer.split("引用以所列原文为范围",-1).length-1);
+        assertTrue(answer.contains("实际配置"));assertTrue(answer.contains("计算核对"));assertTrue(answer.contains("赛事适用性"));
+        assertFalse(answer.contains("以下是本次检索到的项目原创笔记"));
+        assertFalse(answer.contains("资料说明：项目原创"));
+    }
     @Test void oversizedProjectSourceCannotBeSilentlyTruncatedIntoAnApparentlyCompleteAnswer() throws Exception {
         var doc=new LocalGuideSearch.Document("long-source","长文","pokemon-scarlet-violet","","project","2026-10-23","","内容".repeat(1100));
         var evidence=new GuideAnswerEvidence();evidence.begin(ProjectGuidePreflightTest.QUESTION);

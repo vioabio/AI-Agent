@@ -20,7 +20,10 @@ public record GymTurnPlan(String ownerId, String conversationId, String gameRele
         boolean savedContext=context.dialogueHistory().stream().filter(org.springframework.ai.chat.messages.UserMessage.class::isInstance).anyMatch(m->GymConversationContext.savedTeamRequest(m.getText()));
         boolean tactical=question.matches("(?s).*(实际保存.{0,10}招式|现有.{0,8}(招|成员)|怎么出招|建议怎么|调整哪些成员|还是刚才那支队伍|目标是).*" );
         if(savedContext&&target.isPresent()&&tactical)intent=Intent.SAVED_TEAM_ANALYSIS;
-        boolean factualFollowup = target.isPresent() && (question.matches("(?s).*(改看重赛|改回初战|重赛呢|(?:他|她|这位馆主)的(?:太晶|王牌|成员|招式|特性|队伍)).*")
+        boolean factualFollowup = target.isPresent() && !question.matches("(?s).*(修改|保存|写入|预览|替换).*")
+                && (GymFocusedFactReply.requestsBattleMode(question)
+                || question.matches("(?s).*(改看重赛|改回初战|重赛呢|(?:他|她|这位馆主)的(?:太晶|王牌|成员|招式|特性|队伍|重赛|初战)).*")
+                || question.matches("(?s).*(初战|重赛).*") && question.matches("(?s).*(阵容|队伍|成员|招式|特性|等级|资料).*")
                 || GymOrdinalReference.requestedOrdinal(question).isPresent() && question.matches("(?s).*(配置|资料|队伍|阵容|初战|重赛).*"));
         if (factualFollowup && intent == Intent.OTHER) intent = Intent.CATALOG;
         boolean followup = question.matches("(?s).*((?:这个|该|这位)(?:馆主|道馆|对手)|这个队伍|这套阵容).*")

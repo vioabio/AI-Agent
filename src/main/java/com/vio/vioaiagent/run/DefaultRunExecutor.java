@@ -146,8 +146,14 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
     private String executeLegacy(AgentRunContext context) {
         AgentRun run = context.run();
         if(!evaluationPolicy.active()){
+            var version=com.vio.vioaiagent.agent.GameVersionRequest.clarification(run.prompt(),run.gameReleaseId());
+            if(version.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(version.get());return version.get();}
             var bypass=com.vio.vioaiagent.agent.TeamMutationIntent.confirmationBypassReply(run.prompt());
             if(bypass.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(bypass.get());return bypass.get();}
+            var foreignTeam=com.vio.vioaiagent.agent.AccountScopeReply.reply(run.prompt());
+            if(foreignTeam.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(foreignTeam.get());return foreignTeam.get();}
+            var sourceInstruction=com.vio.vioaiagent.agent.SourceInstructionReply.reply(run.prompt());
+            if(sourceInstruction.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(sourceInstruction.get());return sourceInstruction.get();}
             if(com.vio.vioaiagent.agent.TrainingIntentState.resetRequested(run.prompt())){
                 String reset="后续培养核对将从本条消息起重新收集条件。请重新说明游戏、目标、进度、练级与资源限制；本次没有删除历史消息、修改保存队伍或切换对话版本。";
                 context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(reset);return reset;
@@ -158,6 +164,10 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
             if(types.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(types.get());return types.get();}
             var training=com.vio.vioaiagent.agent.TrainingMechanicsReply.reply(run.prompt());
             if(training.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(training.get());return training.get();}
+            var conversation=com.vio.vioaiagent.agent.ConversationRecallReply.reply(context);
+            if(conversation.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(conversation.get());return conversation.get();}
+            var explanation=com.vio.vioaiagent.agent.ConfigurationExplanationRoute.reply(context,allTools);
+            if(explanation.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(explanation.get());return explanation.get();}
             var referenceRules=com.vio.vioaiagent.agent.ReferenceRulesReply.reply(context,allTools);
             if(referenceRules.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(referenceRules.get());return referenceRules.get();}
             var localGuide=com.vio.vioaiagent.agent.LocalGuideOnlyRoute.reply(context,allTools);

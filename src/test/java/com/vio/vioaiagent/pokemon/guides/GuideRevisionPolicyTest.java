@@ -27,12 +27,18 @@ class GuideRevisionPolicyTest {
             assertFalse(GuideRevisionPolicy.usable(d,"工具报告的伤害条件"));assertTrue(GuideChunks.validCitation(d,hit(d).citation()));
         }
     }
-    @Test void genericBridgeAndGeneralReferenceQueriesKeepTheirApplicableLegacySources() throws Exception {
+    @Test void onlyExplicitGenericBridgeQueriesCanUseExactLegacyScopeStatements() throws Exception {
         var d=doc("damage-assumptions-v1");
         assertTrue(GuideRevisionPolicy.usable(d,"calculateBattleDamage 支持哪些条件"));
-        assertTrue(GuideRevisionPolicy.usable(d,"伤害区间的一般解释"));
+        assertFalse(GuideRevisionPolicy.usable(d,"伤害区间的一般解释"));
         assertFalse(GuideRevisionPolicy.usable(d,"calculateGymDamage 支持哪些条件"));
         assertFalse(GuideRevisionPolicy.usable(d,"两种工具当前伤害接口的区别"));
+    }
+    @Test void genericKnockoutQuestionCannotPublishAmbiguousOldCapabilityStatements() throws Exception {
+        var evidence=new GuideAnswerEvidence();evidence.begin("属性倍率能否保证击倒？");
+        evidence.observe("searchPokemonGuides",json.writeValueAsString(List.of(hit(doc("damage-assumptions-v1")),hit(doc("damage-request-checklist-v1")))));
+        String answer=evidence.verifiedAnswer(false);
+        assertFalse(answer.contains("当前本地桥接只表达"));assertTrue(answer.contains("发起伤害计算"));
     }
     @Test void correctedRevisionOfSameLogicalDocumentIsNotPermanentlyBlacklisted() throws Exception {
         var d=doc("damage-assumptions-v1");

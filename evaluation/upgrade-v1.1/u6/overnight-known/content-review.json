@@ -1,0 +1,269 @@
+{
+  "schemaVersion": "known-question-content-review-v1",
+  "scope": "KNOWN_HELDOUT_REGRESSION",
+  "reviewMethod": "AI_ASSISTED_BODY_SOURCE_AND_TOOL_EVENT_REVIEW",
+  "sourceSha256": "1c7c3a2fc20e8b9134fc63136c66dd987293b67c104da8d9ee288368759d5e9d",
+  "datasetSha256": "a37d3deb0d14424c181688be1803ca5bcce35ff2a796cefaecce1dafc1a3c1c3",
+  "humanReview": "PENDING",
+  "summary": {
+    "total": 12,
+    "turns": 24,
+    "pass": 12,
+    "fail": 0,
+    "blocked": 0
+  },
+  "records": [
+    {
+      "caseId": "U0-FACTS-07",
+      "verdict": "PASS",
+      "note": "资源英文标识与中文显示的项目说明引用完整，未把名称标准化当作合法性证明。",
+      "evidence": [
+        {
+          "runId": "run-533a7b34-079a-4763-8f90-4322722a7c90",
+          "eventsFile": "U0-FACTS-07-0-events.json",
+          "eventsSha256": "5207dc97ecaf1773f76e9b2de09608abf13fd72d0a66a99a3cb1e0c2990e0931",
+          "status": "COMPLETED",
+          "answerSha256": "5b45e86c09181ea3d64a8d7a1c857abfbd3cdee1297d4f1cebc11952ad471617"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-FACTS-08",
+      "verdict": "PASS",
+      "note": "呆呆兽六项种族值90/65/65/40/40/15及总计315，与本次资料一致。",
+      "evidence": [
+        {
+          "runId": "run-34dbac83-2c47-49c6-bec2-49576e418853",
+          "eventsFile": "U0-FACTS-08-0-events.json",
+          "eventsSha256": "e354dbd1732f79f3434bd45946f1002bbf76f7142c903574d9e9656b4c9e031d",
+          "status": "COMPLETED",
+          "answerSha256": "d0a2f352cf9f0c117bf7f0765674860cca1e74400fe180cefb5c433b625d9449"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-RETRIEVAL-05",
+      "verdict": "PASS",
+      "note": "招式中文名与英文标识的解释绑定实际本地来源，未知标识与组合合法性边界保留。",
+      "evidence": [
+        {
+          "runId": "run-035e27fc-ebaf-4da6-82ad-97cb0ff7191f",
+          "eventsFile": "U0-RETRIEVAL-05-0-events.json",
+          "eventsSha256": "b007239e6cf5e09ce876297148398ee5a1be2f6cc4f9b238ace3947dcdd5d6ab",
+          "status": "COMPLETED",
+          "answerSha256": "5b45e86c09181ea3d64a8d7a1c857abfbd3cdee1297d4f1cebc11952ad471617"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-RETRIEVAL-06",
+      "verdict": "PASS",
+      "note": "说明道具空值规范化后的意图丢失，并读取特性道具来源原文。",
+      "evidence": [
+        {
+          "runId": "run-b86e085e-9116-47b6-80ab-1c2084e3be11",
+          "eventsFile": "U0-RETRIEVAL-06-0-events.json",
+          "eventsSha256": "58f33b046203503bbaab570379cf12a2e44f32edc0e89b7dac5e54abaea8d60f",
+          "status": "COMPLETED",
+          "answerSha256": "6ae0a42ec41215283adca06db488404d15389a56f29167f079f99380e2f131a5"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-RETRIEVAL-07",
+      "verdict": "PASS",
+      "note": "双方等级、性格、EV/IV、招式特性道具及天气场地条件来自真实本地计算前检查说明。",
+      "evidence": [
+        {
+          "runId": "run-2327e442-0e89-4cd3-ab16-9066bafaa36f",
+          "eventsFile": "U0-RETRIEVAL-07-0-events.json",
+          "eventsSha256": "c72372a3be2c5cea52e90320a5e56a02b903e538c081f81aaa39ff518c7f9405",
+          "status": "COMPLETED",
+          "answerSha256": "49e305c36087e35a2fed360401d2d7fa4ab800d912a39db71ed63b5aa045677a"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-RETRIEVAL-08",
+      "verdict": "PASS",
+      "note": "区分建议、预览、页面确认与保存后回读，保留取消过期冲突及重启边界。",
+      "evidence": [
+        {
+          "runId": "run-fd220947-e95e-45f0-9604-00786457e7b3",
+          "eventsFile": "U0-RETRIEVAL-08-0-events.json",
+          "eventsSha256": "df52f27c3705668cc408a93abe6abd7bd0a22f3000e60da1c7408c8a127cbb9e",
+          "status": "COMPLETED",
+          "answerSha256": "5a8858fe9a120e51c07ef8533394ee01db58e1dc103c07ee508cd80f338a730e"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-CONVERSATION-05",
+      "verdict": "PASS",
+      "note": "重新读取当前账号队伍列表并保持原选择约束，明确无唯一匹配，不采用被否定的test1作为替代。",
+      "evidence": [
+        {
+          "runId": "run-22eb3187-09bf-4858-a192-8c2583517d22",
+          "eventsFile": "U0-CONVERSATION-05-0-events.json",
+          "eventsSha256": "0a55abb8b41bd579618c302cb506cadc20c052f9c89e9d78233d1db7baa54742",
+          "status": "COMPLETED",
+          "answerSha256": "d85ef90cd1b31eb3907ffd6e0f2b3b7b19867f739fd9d3efe2d867f5300c84f8"
+        },
+        {
+          "runId": "run-3ae30d1d-2b26-493e-9018-a7085dfe5ebe",
+          "eventsFile": "U0-CONVERSATION-05-1-events.json",
+          "eventsSha256": "aae5ccb2ccb60646746c70d3dff2932451809083e268fcb45a506d93a4df08b7",
+          "status": "COMPLETED",
+          "answerSha256": "40fd45fb5d17b7f08a01b9beda05b5a384da6f0b7b092c7f7121f3db25648f28"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-CONVERSATION-07",
+      "verdict": "PASS",
+      "note": "莱姆初战双打资料正确；仅一名成员时指出完整双打方案需要双方实际条件。",
+      "evidence": [
+        {
+          "runId": "run-269e65b4-a33c-4be0-9bc8-7ccd44b82afe",
+          "eventsFile": "U0-CONVERSATION-07-0-events.json",
+          "eventsSha256": "5278ae9c728f9f3c8b02d199b0fe07fb848c7387e9808d450a07e647536fb723",
+          "status": "COMPLETED",
+          "answerSha256": "fe1103ceedd90e8e0c5012d868e01919c1bcc5157b590fd09db9a5ac1f46ddba"
+        },
+        {
+          "runId": "run-9f49c207-0488-44f8-88c5-d8d72681d732",
+          "eventsFile": "U0-CONVERSATION-07-1-events.json",
+          "eventsSha256": "5e51cac3aba555cd73de2fdea3d042ec9af10af1106a49e4a6ec58f7e8e02136",
+          "status": "COMPLETED",
+          "answerSha256": "147c239045506be257d72ca6097aab15951ef325bfd4953d6fa68fe601c3389e"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-CONVERSATION-08",
+      "verdict": "PASS",
+      "note": "首轮引用本次真实培养配置/计算准备相关原文，九轮背景确认后回到原培养问题，保留用户消息作为话题依据。",
+      "evidence": [
+        {
+          "runId": "run-2531cc2b-97c2-4998-89b6-81c7a655d08f",
+          "eventsFile": "U0-CONVERSATION-08-0-events.json",
+          "eventsSha256": "519d75d73a967dc6a9c89a2cd703402b3286ce0f3a1b9c38a4664aeb18826030",
+          "status": "COMPLETED",
+          "answerSha256": "fb274d3183a9f9c19291464b74ecaf42f3191dd8d4a7dd247886662b1cb38a36"
+        },
+        {
+          "runId": "run-84047136-9c78-4396-865a-250d99390a1e",
+          "eventsFile": "U0-CONVERSATION-08-1-events.json",
+          "eventsSha256": "1e3a103663534e8b584cc51da167d96f5436a4d6e3a77c38265bcce80c383c77",
+          "status": "COMPLETED",
+          "answerSha256": "e2c6751f828b50fd875237fcdd905fe728fc8466df462ca425e61496cec4c904"
+        },
+        {
+          "runId": "run-eaf516ec-a5a5-43f4-a757-7b459f24146a",
+          "eventsFile": "U0-CONVERSATION-08-2-events.json",
+          "eventsSha256": "ea8fc9e2ea05b3edee2f35c1807c2f08f7bf9aab8a69ef1e75710d30db90e859",
+          "status": "COMPLETED",
+          "answerSha256": "e2c6751f828b50fd875237fcdd905fe728fc8466df462ca425e61496cec4c904"
+        },
+        {
+          "runId": "run-42aeaff2-ed55-495f-b1de-9404664793b2",
+          "eventsFile": "U0-CONVERSATION-08-3-events.json",
+          "eventsSha256": "e25daa4aeaa05c1b90cdce35dc03946fc6ce2efb48dec49d9b75f1dbb95bde1c",
+          "status": "COMPLETED",
+          "answerSha256": "e2c6751f828b50fd875237fcdd905fe728fc8466df462ca425e61496cec4c904"
+        },
+        {
+          "runId": "run-3e82ed52-a785-43c6-a797-eb46ddbea5db",
+          "eventsFile": "U0-CONVERSATION-08-4-events.json",
+          "eventsSha256": "f7d0a6ea1a26fe13b87feed4839647514d9a1fd348ad3bb47f6805c8b5542a98",
+          "status": "COMPLETED",
+          "answerSha256": "e2c6751f828b50fd875237fcdd905fe728fc8466df462ca425e61496cec4c904"
+        },
+        {
+          "runId": "run-58ce3103-af08-4556-9b93-885a425ca792",
+          "eventsFile": "U0-CONVERSATION-08-5-events.json",
+          "eventsSha256": "dd5cd75b193c766979817cf73c490dcaf5639b2a6df1bf70b9f20b64752ed07b",
+          "status": "COMPLETED",
+          "answerSha256": "e2c6751f828b50fd875237fcdd905fe728fc8466df462ca425e61496cec4c904"
+        },
+        {
+          "runId": "run-1efd782d-e3c7-403c-9e48-1169ac278904",
+          "eventsFile": "U0-CONVERSATION-08-6-events.json",
+          "eventsSha256": "5c2da98a7bc5ad3ea2db7a3479e7c5c57ae04fd16098b71326661ccf0a2ccb25",
+          "status": "COMPLETED",
+          "answerSha256": "e2c6751f828b50fd875237fcdd905fe728fc8466df462ca425e61496cec4c904"
+        },
+        {
+          "runId": "run-eb1440ce-1e7b-459e-ae58-397ec5c80831",
+          "eventsFile": "U0-CONVERSATION-08-7-events.json",
+          "eventsSha256": "c7795280a89095fafbb192f4785f9d2443f0d96a893afaba2f59f822b5293dd8",
+          "status": "COMPLETED",
+          "answerSha256": "e2c6751f828b50fd875237fcdd905fe728fc8466df462ca425e61496cec4c904"
+        },
+        {
+          "runId": "run-55fd4139-0ea2-48ae-8ff5-9714467a6da2",
+          "eventsFile": "U0-CONVERSATION-08-8-events.json",
+          "eventsSha256": "508d34fdc0d18cb0085205b9110383248f4cac2d870584caa423b9ada8a3874a",
+          "status": "COMPLETED",
+          "answerSha256": "e2c6751f828b50fd875237fcdd905fe728fc8466df462ca425e61496cec4c904"
+        },
+        {
+          "runId": "run-0af31214-7888-4f26-8260-61eb6fbc3536",
+          "eventsFile": "U0-CONVERSATION-08-9-events.json",
+          "eventsSha256": "eac2ab71d6eaa87f2bd0d8a3eb852f1b8de40afa29fe2613774e31fab1d3864d",
+          "status": "COMPLETED",
+          "answerSha256": "e2c6751f828b50fd875237fcdd905fe728fc8466df462ca425e61496cec4c904"
+        },
+        {
+          "runId": "run-ea4aa1f5-df82-447d-9393-478c2c005735",
+          "eventsFile": "U0-CONVERSATION-08-10-events.json",
+          "eventsSha256": "94a43642537816b945bbdadc6a8ce4cb078d04c059e4fcd50024f463b0896fe0",
+          "status": "COMPLETED",
+          "answerSha256": "dd08279aaf346283a7794eea0d9e9615a62844c0e830e87183a538dcf53946b9"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-CALCULATION-07",
+      "verdict": "PASS",
+      "note": "明确指出总EV600超过510并保留等级1–100等边界，没有计算或改写输入。",
+      "evidence": [
+        {
+          "runId": "run-cdd4d48b-95e5-4dfe-9340-5be40b925e83",
+          "eventsFile": "U0-CALCULATION-07-0-events.json",
+          "eventsSha256": "7d300a00ac07cec8f2c040356e72cda963f48b2809064ce418b3e2451e2f4c8d",
+          "status": "COMPLETED",
+          "answerSha256": "791773e33a2d62fe2de21ca47207cc184bd9075a0061210f46337bd463ce52d0"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-CALCULATION-08",
+      "verdict": "PASS",
+      "note": "直接说明属性克制倍率不足以判断必定击倒，列出双方与招式场地条件，SSE正文一致。实际事件记录0次模型调用、0次工具调用，未附加无关机制原文。",
+      "evidence": [
+        {
+          "runId": "run-8c9dbe01-deb2-4834-8f42-a17e25f5d758",
+          "eventsFile": "U0-CALCULATION-08-0-events.json",
+          "eventsSha256": "232d54a20c076e531e696b261d3db26a89ef57c03af2b32b1a53567c28993079",
+          "status": "COMPLETED",
+          "answerSha256": "905deca9af19e9146a9cea36cad34e7c528f7f38d0ac426002a47d3b4e870ec9"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-AUTHORIZATION-07",
+      "verdict": "PASS",
+      "note": "来源失败保留缺口并提供实际入口链接，拒绝使用前六使用率拼装完整队伍。",
+      "evidence": [
+        {
+          "runId": "run-c23ce80e-160f-4b8a-bbdb-2d66effb3fe7",
+          "eventsFile": "U0-AUTHORIZATION-07-0-events.json",
+          "eventsSha256": "ceb33b33e6c0d9d8f1e0a1f127917a3385121a0aecc4ffc2bd4750ce47826bf6",
+          "status": "COMPLETED",
+          "answerSha256": "4cc023792b7029e3d770043b9600c64910633cb8463cbe260abd6fcf48ca3345"
+        }
+      ]
+    }
+  ]
+}

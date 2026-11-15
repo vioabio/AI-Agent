@@ -18,6 +18,7 @@ class CompetitiveTrendsAgentTest {
         var masker = new ParameterMasker();
         var gateway = new ToolExecutionGateway(hitl, new PathGuard(List.of(System.getProperty("user.dir") + "/tmp")), new CommandGuard(List.of()), masker, new AuditLogger(masker));
         var calls = new AtomicInteger();
+        var teamSources = new java.util.concurrent.CopyOnWriteArrayList<String>();
         var tool = new CompetitiveTrendsTool(url -> {
             calls.incrementAndGet();
             return url.endsWith("/stats/") ? "<a href='2026-10/'>month</a>" : "Total battles: 12345\n| 1 | Great Tusk | 28.31876% | 1 |\n";
@@ -27,6 +28,7 @@ class CompetitiveTrendsAgentTest {
         try {
             var teamTool = new com.vio.vioaiagent.tools.CompetitiveTeamsTool(url -> {
                 calls.incrementAndGet();
+                teamSources.add(url);
                 if(question.contains("来源失败")) return "<html>Checking your browser</html>";
                 return url.equals(com.vio.vioaiagent.tools.CompetitiveTeamsTool.SOURCE)
                     ? com.vio.vioaiagent.tools.CompetitiveTeamsToolTest.index() : com.vio.vioaiagent.tools.CompetitiveTeamsToolTest.paste();
@@ -41,7 +43,13 @@ class CompetitiveTrendsAgentTest {
             agent.run(question);
             assertTrue(agent.isProgramOnlyTrends()); verifyNoInteractions(model);
             assertTrue(agent.getFinalAnswer().contains(expected), agent.getFinalAnswer());
-            assertEquals(networkExpected ? (question.contains("来源失败") ? 4 : 2) : 0, calls.get());
+            assertEquals(networkExpected ? (question.contains("来源失败") ? 6 : 2) : 0, calls.get());
+            if(question.contains("来源失败")) {
+                var sources=List.of(com.vio.vioaiagent.tools.CompetitiveTeamsTool.SOURCE,
+                        com.vio.vioaiagent.tools.CompetitiveTeamsTool.MIRROR,
+                        com.vio.vioaiagent.tools.CompetitiveTeamsTool.MIRROR_ORIGIN);
+                assertEquals(java.util.stream.Stream.concat(sources.stream(),sources.stream()).toList(),teamSources);
+            }
             if(question.contains("详细配置")) assertFalse(agent.getFinalAnswer().contains("| 排名 | 宝可梦 |"));
             assertEquals(agent.getFinalAnswer(), String.join("", chunks));
             if (networkExpected && !question.contains("详细配置")) {

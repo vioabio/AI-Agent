@@ -41,7 +41,9 @@ public final class SpecialistAgentCoordinator {
     public SpecialistAgentCoordinator(AgentRunContext context, ChatModel model) {
         this.context=Objects.requireNonNull(context); this.model=Objects.requireNonNull(model);
         String question=context.run().prompt();
-        boolean damage=question.matches("(?is).*(伤害|calculateBattleDamage|calculateGymDamage|damage|几击|几下).*"),
+        String calculationRequest=question.replaceAll("(?:不要|不需要|不必|无需|别|不)(?:再)?计算","");
+        boolean damage=question.matches("(?is).*(伤害|calculateBattleDamage|calculateGymDamage|damage|几击|几下).*")
+                ||calculationRequest.matches("(?is).*计算.{0,80}(?:用|使用).{1,40}(?:攻击|打中|打向).{1,80}.*"),
                 team=question.matches("(?is).*(队伍|阵容|配队|组队|搭配|team|party).*" );
         // Mutations remain solely under the supervisor's preview/confirmation workflow.
         boolean domain=damage||team||question.matches("(?is).*(宝可梦|精灵|图鉴|种族值|努力值|性格|特性|招式|道具|攻略|培养|克制|属性|机制|馆主|项目|pokemon|pokémon).*" );
@@ -59,10 +61,16 @@ public final class SpecialistAgentCoordinator {
         if(pending!=null)throw new IllegalStateException("Previous specialist tools have not completed");
         while(stage<roles.size()) {
             check(); var role=roles.get(stage);
-            var selectedSkill=skills==null?Optional.<TaskSkillRegistry.Metadata>empty():skills.select(context.run().prompt(),role);
+            var gymPlan=skills!=null&&role==SpecialistRole.TEAM_PLANNING?GymTurnPlan.from(context):null;
+            var selectedSkill=skills==null?Optional.<TaskSkillRegistry.Metadata>empty():skills.select(context.run().prompt(),role,gymPlan);
             var permitted=selectedSkill.isPresent()?skills.permitted(selectedSkill.get(),role):role.tools();
             String skillInstruction=selectedSkill.isPresent()?"\nBundled task skill "+selectedSkill.get().id()+"@"+selectedSkill.get().version()+":\n"+skills.instruction(selectedSkill.get()):"";
+            if(selectedSkill.map(skill->skill.id().equals("gym-challenge")).orElse(false)&&gymPlan.target().isPresent()){
+                var target=gymPlan.target().orElseThrow();
+                skillInstruction+="\nProgram-resolved conversation target: gymId="+target.gymId()+", phase="+target.phase()+", defaultStage="+target.defaultStage()+". Query the exposed tools for opponent facts and the saved team before making an assessment.";
+            }
             ToolCallback[] tools=Arrays.stream(eligible).filter(t->permitted.contains(t.getToolDefinition().name())&&!failedTools.contains(t.getToolDefinition().name())).toArray(ToolCallback[]::new);
+            tools = GuideAnswerEvidence.statMeaningTools(context.run().prompt(), tools);
             if(tools.length==0) { emit(role,"agent.delegation.completed","TOOLS_UNAVAILABLE");stage++;continue; }
             if(modelCalls>=MAX_MODEL_CALLS||toolCalls>=MAX_TOOL_CALLS) {
                 emit(role,"agent.delegation.completed","BUDGET_EXHAUSTED");stage=roles.size();break;
@@ -77,9 +85,17 @@ public final class SpecialistAgentCoordinator {
             // Earlier roles contribute tool pairs only, never their private planning text.
             messages.addAll(evidence); messages.addAll(history);
             if(contextAssembler!=null){
-                var assembled=contextAssembler.assemble((SystemMessage)messages.getFirst(),context.history(),(UserMessage)messages.get(1+context.history().size()),evidence,history);
+                int sourceOmitted = ((Number) context.modelUsage().historySource().getOrDefault("omittedTurns", 0)).intValue();
+                var policy = (SystemMessage) messages.getFirst();
+                if (sourceOmitted > 0) policy = new SystemMessage(policy.getText()
+                        + "\n程序历史窗口已省略较早的" + sourceOmitted + "轮对话。仅使用当前可见消息与本次实际工具证据，缺失条件不得猜测。程序已解析的任务目标仍须通过工具核对。");
+                var assembled=contextAssembler.assemble(policy,context.history(),(UserMessage)messages.get(1+context.history().size()),evidence,history);
                 messages=new ArrayList<>(assembled.messages());
-                emit(role,"agent.delegation.context",assembled.omittedTurns()>0?"CONTEXT_HISTORY_TRIMMED":"CONTEXT_READY");
+                String status = sourceOmitted > 0 || assembled.omittedTurns() > 0 ? "CONTEXT_HISTORY_TRIMMED" : "CONTEXT_READY";
+                ToolExecutionContextHolder.peek().eventSink().accept(new ToolGovernanceEvent("agent.delegation.context",context.run().id(),
+                        role.name(),UUID.randomUUID().toString(),null,Map.of("agentRole",role.name(),"status",status,
+                        "sourceOmittedTurns",sourceOmitted,"assemblyOmittedTurns",assembled.omittedTurns(),
+                        "selectedHistoryTurns",context.history().size()/2-assembled.omittedTurns(),"estimatedTokens",assembled.estimatedTokens())));
             }
             emit(role,"agent.delegation.started","PLANNING");
             try {

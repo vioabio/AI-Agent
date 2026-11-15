@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto'
 
 // Explicit resource-hash coverage, not all classes or an attestation of JVM hot reload.
-export const componentManifestVersion='u6-runtime-components-v1'
+export const componentManifestVersion='u6-runtime-components-v26'
 export const coreComponents=Object.freeze([
  ['AccountScopeReply','agent'],['DefaultRunExecutor','run'],['ToolCallAgent','agent'],
  ['GuideAnswerEvidence','agent'],['VioManus','agent'],['PokemonAgentRunService','run']
@@ -12,7 +12,25 @@ export const additionalComponents=Object.freeze([
  ['TrainingResourceBudget','agent'],['SavedTrainingGymReview','agent'],['TrainingStatProjection','agent'],
  ['TrainingLevelConstraints','agent'],['StaticStatCalculator','pokemon/calculator'],['TrainingProgressCheck','agent'],
  ['GymResourcePolicy','pokemon/gym'],['GuideRevisionPolicy','pokemon/guides'],['TeamMutationIntent','agent'],
- ['ReferenceRulesReply','agent'],['GymFocusedFactReply','agent']
+ ['ReferenceRulesReply','agent'],['GymFocusedFactReply','agent'],['OwnedTeamReadRoute','agent'],['ExplicitDamageRequest','agent'],
+ ['AgentToolObservation','observability'],['AgentTracingConfiguration','observability'],['ToolExecutionGateway','tools/governance'],
+ ['TaskSkillRegistry','agent'],['TaskContextAssembler','agent'],['GuideReferenceIdentity','agent'],
+ ['LocalPokeApiRepository','pokemon/reference'],['RegionalFormName','pokemon/reference'],['AgentRunObservation','observability'],
+ ['DomainTracingObservationHandler','observability'],['SpecialistAgentCoordinator','agent'],
+ ['PokemonAnswerBlock','agent'],['DamageAnswerBlock','agent'],['EvidenceAnswerBlock','agent'],
+ ['EvidenceAnswerBlock$Source','agent'],['TeamSuggestionAnswerBlock','agent'],
+ ['LocalDamageEngine','pokemon/engine'],['LocalDamageEngine$Combatant','pokemon/engine'],['DamageToolSchema','tools/governance'],
+ ['TeamAnswerEvidence','agent'],['DamageAnswerEvidence','agent'],['DamageDialogueRoute','agent'],['GameVersionRequest','agent'],['CompetitiveTeamsTool','tools'],
+ ['LocalGuideSemanticSearch','pokemon/guides'],['GuideSemanticProperties','pokemon/guides'],['GuideEmbeddingClient','pokemon/guides'],
+ ['GuideApplicability','pokemon/guides'],['SqliteGuideKnowledgeRetriever','pokemon/guides'],['GuideChunks','pokemon/guides'],
+ ['TypeMatchupReply','agent'],['SpecialistRole','agent'],['GymCatalogAnswer','agent'],['TrainingMechanicsReply','agent'],['GymDialogueRouter','agent'],
+ ['ConfigurationExplanationRoute','agent'],['ConfigurationExplanationRoute$Topic','agent'],['ConversationRecallReply','agent'],
+ ['GymConversationContext','agent'],['GymTurnPlan','agent'],['SourceInstructionReply','agent'],
+ ['GuideRerankConfiguration','pokemon/guides'],['GuideRerankConfiguration$HttpReranker','pokemon/guides'],
+ ['GuideRerankConfiguration$HttpReranker$LimitedBody','pokemon/guides'],['GuideRerankPipeline','pokemon/guides'],['GuideReranker','pokemon/guides'],
+ ['McpCancellationTransport','mcp/client'],['McpCancellationTransport$Scope','mcp/client'],
+ ['McpCancellationTransport$Invocation','mcp/client'],['McpCancellationTransport$Snapshot','mcp/client'],
+ ['CancellableMcpToolCallback','mcp/client'],['McpCancellationConfiguration','config'],['McpCancellationConfiguration$1','config']
 ].map(Object.freeze))
 export const componentManifestSha256=createHash('sha256').update(JSON.stringify({version:componentManifestVersion,coreComponents,additionalComponents})).digest('hex')
 

@@ -60,7 +60,10 @@ class StreamFailureRunHttpTest {
             byte[] bytes="data: {\"id\":\"offline\",\"object\":\"chat.completion.chunk\",\"created\":1,\"model\":\"deepseek-flash\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"部分测试\"},\"finish_reason\":null}]}\n\n".getBytes(StandardCharsets.UTF_8);
             byte[] tail="data: {\"id\":\"offline\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"回答\"},\"finish_reason\":null}]}\n\n".getBytes(StandardCharsets.UTF_8);
             e.getResponseHeaders().set("Content-Type","text/event-stream");e.sendResponseHeaders(200,0);
-            try(var output=e.getResponseBody()){output.write(bytes);output.write(tail);output.flush();Thread.sleep(8000);}
+            try(var output=e.getResponseBody()){
+                output.write(bytes);output.flush();Thread.sleep(1500);
+                output.write(tail);output.flush();Thread.sleep(6500);
+            }
             catch(Exception expected){/* Intentionally end SSE without DONE/finish_reason, although HTTP framing closes normally. */}
             finally {e.close();}
         });provider.start();

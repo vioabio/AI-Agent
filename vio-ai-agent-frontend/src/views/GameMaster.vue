@@ -64,10 +64,10 @@ import { readLayoutPreference, saveLayoutPreference, groupConversations, trapFoc
 import { readableUserMessage } from '@/api/reference-prompts'
 import { useRoute, useRouter } from 'vue-router'
 import { chatWithGameApp, decideRunApproval, decideTeamChange, submitAnswerFeedback, fetchConversationMessages, fetchPokemonReferenceStatus, fetchPokemonNames, fetchRunTeamChange } from '@/api'
-import { BATTLE_FORMAT_OPTIONS, serializeRunContext } from '@/api/version-registry'
+import { BATTLE_FORMAT_OPTIONS, serializeRunContext, conversationContextFromHistory } from '@/api/version-registry'
 import { useRunStream } from '@/composables/useRunStream'
 import { getOrCreateConversationId, selectConversationId } from '@/composables/runPersistence'
-import { RUN_STATUS, TERMINAL_STATUSES } from '@/api/run-contract'
+import { RUN_STATUS, TERMINAL_STATUSES, answerDisplayText, canSubmitRunApproval } from '@/api/run-contract'
 import { useAuthSession } from '@/composables/useAuthSession'
 const { state: authState, signOut } = useAuthSession()
 
@@ -264,8 +264,8 @@ async function handleSend(message) {
 
 function bindAnswerBubble(aiMessage) {
   stopAnswerWatch?.()
-  stopAnswerWatch = watch(() => [activeRun.value?.answer, activeRun.value?.status, activeRun.value?.modelUsageAttempts], ([value]) => {
-    aiMessage.content = value || ''
+  stopAnswerWatch = watch(() => [activeRun.value?.answer, activeRun.value?.status, activeRun.value?.modelUsageAttempts], () => {
+    aiMessage.content = answerDisplayText(activeRun.value)
     if(activeRun.value) {
       aiMessage.runId=activeRun.value.runId
       if(activeRun.value.modelUsageAttempts?.length)aiMessage.metadata={ ...aiMessage.metadata, modelUsageAttempts: activeRun.value.modelUsageAttempts }
@@ -338,7 +338,7 @@ async function handleReconnectRun(runId) {
 }
 
 async function handleApproveRun(approval) {
-  if (!approval?.approvalId || !activeRun.value?.runId || activeRun.value.approvalSubmitting) return
+  if (!activeRun.value?.runId || !canSubmitRunApproval(activeRun.value, approval)) return
   if (approval.teamChange && activeRun.value.teamDecisionState?.approvalId === approval.approvalId) return
   const runId = activeRun.value.runId
   activeRun.value.approvalSubmitting = true
@@ -454,6 +454,7 @@ onMounted(async () => {
   let hasStoredUser = false
   try {
     const stored = await fetchConversationMessages(chatId.value, { signal: historyController.signal })
+    if (!historyController.signal.aborted) applyContext({ ...conversationContextFromHistory(stored), ...route.query })
     if (!historyController.signal.aborted && messages.value.length === 1 && Array.isArray(stored)) {
       const history = stored.filter(m => ['user', 'assistant'].includes(m.role) && typeof m.content === 'string')
       if (history.length) messages.value.splice(0, 1, ...history)

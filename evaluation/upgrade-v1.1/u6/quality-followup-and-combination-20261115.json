@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "u6-known-quality-and-combination-progress-v1",
+  "createdAt": "2026-11-15T11:04:37.135Z",
+  "firstAnswerScoreReplaced": false,
+  "firstAnswerCounts": {
+    "PASS": 8,
+    "FAIL": 12,
+    "BLOCKED": 0
+  },
+  "knownRegression": [
+    {
+      "mode": "enabled",
+      "evidenceDirectory": "artifacts/u6-quality-final-enabled-20261115",
+      "reportSha256": "b2a5160d22c6ba2e278c85f2f30bffd4f5f767b49ea776ea3e14dbd46d3f898a",
+      "reviewSha256": "4e27e56e62d20c84def6d601333ea513b25c696d86d9d98848857c22ab53f2cf",
+      "counts": {
+        "PASS": 12,
+        "FAIL": 0,
+        "BLOCKED": 0
+      },
+      "turns": 24,
+      "runtimeComponents": 61
+    },
+    {
+      "mode": "disabled",
+      "evidenceDirectory": "artifacts/u6-quality-final-disabled-20261115",
+      "reportSha256": "40195d24f314209f858ba6f57ecebe92f3e8f701aa872e39df7de765c2955329",
+      "reviewSha256": "f0694fadaef9409326b5e9179aa02a853ffe6230b1538c70a1f806bd208f7fb3",
+      "counts": {
+        "PASS": 12,
+        "FAIL": 0,
+        "BLOCKED": 0
+      },
+      "turns": 24,
+      "runtimeComponents": 61
+    }
+  ],
+  "remainingPreviousFailedCaseIds": [],
+  "reviewMethod": "AI_ASSISTED_NOT_HUMAN_APPROVAL",
+  "releaseDecision": "NOT_ACCEPTED",
+  "remainingWork": [
+    "NEW_FROZEN_QUALITY_SET_AND_HUMAN_REVIEW",
+    "REAL_RERANK_PROVIDER_COMPARISON",
+    "OPEN_TEAM_ADVICE_RELEVANCE",
+    "FULL_COMBINATION_UI_AND_WRITE_APPROVAL_MATRIX"
+  ],
+  "earlierRegression": [
+    {
+      "mode": "enabled",
+      "evidenceDirectory": "artifacts/u6-quality-followup-enabled-20261115",
+      "sourceSha256": "b5d751144893577f831b904007d806dbb29f53abb5f3d416a494d3fd88bbe405",
+      "reviewSha256": "7863f35398352097e47c7210656947fd339cbdfa05422e8e19849e31a5552a8e",
+      "counts": {
+        "PASS": 12,
+        "FAIL": 0,
+        "BLOCKED": 0
+      },
+      "turns": 24
+    },
+    {
+      "mode": "disabled",
+      "evidenceDirectory": "artifacts/u6-quality-followup-disabled-20261115",
+      "sourceSha256": "31c3ea46e6075615a0970740e488eeb7eb5cfcdc8da1be7c39d13ec5e891a3d2",
+      "reviewSha256": "eb21019ecbf55c941b171b24e069ba3d07f1b574d91d84c7b3e9fdd0c0c099d6",
+      "counts": {
+        "PASS": 12,
+        "FAIL": 0,
+        "BLOCKED": 0
+      },
+      "turns": 24
+    }
+  ],
+  "updatedAt": "2026-11-15T11:14:45.330Z",
+  "combinationVerification": "artifacts/u6-quality-final-combination-verification-20261115.json",
+  "verification": {
+    "backend": {
+      "tests": 1836,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3
+    },
+    "node": {
+      "tests": 437,
+      "passed": 437
+    },
+    "runtimeManifest": "u6-runtime-components-v18",
+    "runtimeComponents": 61,
+    "combinationCasesPerGroup": 12,
+    "combinationTurnsPerGroup": 24,
+    "reviewMethod": "AI_ASSISTED_NOT_HUMAN_APPROVAL"
+  }
+}

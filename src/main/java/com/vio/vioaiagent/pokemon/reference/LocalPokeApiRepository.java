@@ -29,7 +29,7 @@ public class LocalPokeApiRepository extends InMemoryPokemonFactRepository {
 
     public synchronized Detail detail(String query, String release) {
         requireRelease(release);
-        String key = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        String key = RegionalFormName.normalizeQuery(query);
         String regionalSpecies = RegionalFormName.alolanSpecies(key);
         if (regionalSpecies != null) key = regionalSpecies;
         if (!key.matches("[a-z0-9][a-z0-9-]{0,79}")) {
@@ -47,8 +47,11 @@ public class LocalPokeApiRepository extends InMemoryPokemonFactRepository {
             if (key == null) throw new IllegalArgumentException("未识别该中文名称，请尝试英文名称或全国编号");
         }
         if (regionalSpecies != null) {
-            var species = parse(client.read("pokemon-species", key).payload());
-            if (species.path("id").asLong() != Long.parseLong(key)) throw new IllegalStateException("地域形态物种不匹配");
+            long speciesId = Long.parseLong(key);
+            String speciesQuery = PokemonNameIndex.all().stream().filter(entry -> entry.nationalNo() == speciesId)
+                    .map(PokemonNameIndex.Entry::slug).findFirst().orElse(key);
+            var species = parse(client.read("pokemon-species", speciesQuery).payload());
+            if (species.path("id").asLong() != speciesId) throw new IllegalStateException("地域形态物种不匹配");
             var matches = new ArrayList<String>();
             for (var variety : species.path("varieties")) {
                 String candidate = variety.path("pokemon").path("name").asText();

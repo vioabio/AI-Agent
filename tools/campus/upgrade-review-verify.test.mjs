@@ -5,7 +5,8 @@ import {verifyDevelopmentReview} from './upgrade-review-verify.mjs'
 import {coreComponents,additionalComponents,componentManifestVersion,componentManifestSha256} from './runtime-component-manifest.mjs'
 
 function fixture(){
- const events=JSON.stringify([{type:'answer.delta',payload:{text:'已核验事实'}}])
+ const events=JSON.stringify([{eventId:1,runId:'run-test',type:'answer.delta',payload:{text:'已核验事实'}},
+  {eventId:2,runId:'run-test',type:'run.completed',payload:{}}])
  const turn={runId:'run-test',prompt:'问题',answer:'已核验事实',status:'COMPLETED',eventsFile:'U0-FACTS-01-0-events.json',eventsSha256:digest(events)}
  const baseline={schemaVersion:'upgrade-baseline-v1',split:'dev',datasetSha256:'frozen',mode:'COLLECTED_NOT_REVIEWED',cleanupErrors:[],selectedCaseIds:['U0-FACTS-01'],records:[{caseId:'U0-FACTS-01',turns:[turn]}]}
  const baselineBytes=JSON.stringify(baseline)

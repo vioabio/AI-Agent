@@ -66,6 +66,13 @@ public class PokemonAgentRunService {
     @org.springframework.beans.factory.annotation.Value("${vio.run.answer-streaming-enabled:false}")
     private boolean answerStreamingEnabled;
 
+    private io.micrometer.observation.ObservationRegistry observationRegistry = io.micrometer.observation.ObservationRegistry.NOOP;
+
+    @Autowired(required = false)
+    public void setObservationRegistry(io.micrometer.observation.ObservationRegistry registry) {
+        this.observationRegistry = registry == null ? io.micrometer.observation.ObservationRegistry.NOOP : registry;
+    }
+
     private final RunRepository runRepository;
     private final EventRepository eventRepository;
     private final ConversationRepository conversationRepository;
@@ -362,6 +369,11 @@ public class PokemonAgentRunService {
     }
 
     public RunView createRun(CreateRunCommand command) {
+        return new com.vio.vioaiagent.observability.AgentRunObservation(observationRegistry)
+                .admission(() -> createRunAdmitted(command), RunView::runId);
+    }
+
+    private RunView createRunAdmitted(CreateRunCommand command) {
         if (command == null) throw new IllegalArgumentException("创建 Run 请求不能为空");
         synchronized (idempotencyLock) {
             String idemScope = createIdempotencyScope(command.userId());
@@ -738,7 +750,7 @@ public class PokemonAgentRunService {
             AtomicReference<FutureTask<Void>> owner = new AtomicReference<>();
             ManagedRunTask task = new ManagedRunTask(run, owner);
             owner.set(task);
-            if (tasks.putIfAbsent(run.id(), task) != null) return false;
+            if (tasks.putIfAbsent(run.id(), task) != null) { task.dispatchObservation.finish("ABORTED"); return false; }
             activeRuns.putIfAbsent(run.id(), run);
             try {
                 armDeadline(run);
@@ -781,6 +793,8 @@ public class PokemonAgentRunService {
 
     private final class ManagedRunTask extends FutureTask<Void> {
         private final AgentRun run;
+        private final String observationAttemptId = UUID.randomUUID().toString();
+        private final com.vio.vioaiagent.observability.AgentRunObservation.Dispatch dispatchObservation;
         private final long queuedAtNanos = System.nanoTime();
         private volatile long workerEnteredAtNanos;
         private boolean queueExpiredAtStart;
@@ -792,6 +806,8 @@ public class PokemonAgentRunService {
         ManagedRunTask(AgentRun run, AtomicReference<FutureTask<Void>> owner) {
             super(() -> { execute(run, owner.get()); return null; });
             this.run = run;
+            this.dispatchObservation = new com.vio.vioaiagent.observability.AgentRunObservation(observationRegistry)
+                    .dispatch(run.id(), observationAttemptId);
         }
         synchronized boolean started() { return entered; }
         void bindExecutionLease(ExecutionLease lease) { this.executionLease = lease; }
@@ -823,6 +839,7 @@ public class PokemonAgentRunService {
     }
 
     private void finishTask(AgentRun run, FutureTask<Void> task) {
+        if (task instanceof ManagedRunTask managed) managed.dispatchObservation.finish(run.status().name());
         if (worker instanceof ThreadPoolExecutor pool) pool.remove(task);
         synchronized (run) {
             if (task instanceof ManagedRunTask managed) managed.cancelQueueTimer();
@@ -979,6 +996,16 @@ public class PokemonAgentRunService {
     }
 
     private void execute(AgentRun run, FutureTask<Void> ownerTask) {
+        if (ownerTask instanceof ManagedRunTask task) task.dispatchObservation.finish("STARTED");
+        long dispatchWaitMs = ownerTask instanceof ManagedRunTask task
+                ? Math.max(0, (task.workerEnteredAtNanos - task.queuedAtNanos) / 1_000_000) : 0;
+        new com.vio.vioaiagent.observability.AgentRunObservation(observationRegistry)
+                .attempt(run.id(), ownerTask instanceof ManagedRunTask task ? task.observationAttemptId : null,
+                        dispatchWaitMs, () -> { executeObserved(run, ownerTask); return null; },
+                        () -> run.status().name());
+    }
+
+    private void executeObserved(AgentRun run, FutureTask<Void> ownerTask) {
         Instant startedAt = Instant.now();
         var modelUsage=new com.vio.vioaiagent.observability.ModelUsageLedger(taskBudgets.computeIfAbsent(run.id(),
                 ignored->com.vio.vioaiagent.observability.TaskModelBudget.unavailable(taskBudgetProperties)),modelPrices);
@@ -999,13 +1026,17 @@ public class PokemonAgentRunService {
             }
             executionLease.set(lease);
             lease.requireActive();
-            boolean leaseAcquired = acquireLease(run, lease);
+            var observations = new com.vio.vioaiagent.observability.AgentRunObservation(observationRegistry);
+            boolean leaseAcquired = observations.phase(com.vio.vioaiagent.observability.AgentRunObservation.Phase.AUTHORIZE, () -> {
+                if (!acquireLease(run, lease)) return false;
+                PrincipalPolicy capturedPolicy = principalPolicies.get(run.id());
+                if (capturedPolicy != null && capturedPolicy.isExpired()) throw new RunAuthorizationExpiredException();
+                return true;
+            });
             if (!leaseAcquired) {
                 log.info("Run 租约被其他 worker 持有，跳过本地执行: runId={}", run.id());
                 return;
             }
-            PrincipalPolicy capturedPolicy = principalPolicies.get(run.id());
-            if (capturedPolicy != null && capturedPolicy.isExpired()) throw new RunAuthorizationExpiredException();
             // 取消/超时可能先于 worker 获得执行权；仍需进入 finally 清理注册表。
             // 重启恢复可能拿到已经持久化为 RUNNING 的快照；此时不重复发起状态迁移。
             if (run.status() != AgentRunStatus.RUNNING
@@ -1038,79 +1069,8 @@ public class PokemonAgentRunService {
                 modelUsageByRun.put(run.id(),modelUsage);return null;
             });
             AnswerExecution execution = executeAnswer(run,modelUsage);
-            saveCheckpoint(run, 1, "commit-answer", lease.owner);
-            if(!execution.streamed() && run.status()!=AgentRunStatus.WAITING_APPROVAL
-                    && execution.answer()!=null && !execution.answer().isBlank())recordAnswerReady(modelUsage,"BUFFERED");
-            if (run.status().isTerminal() || run.status() == AgentRunStatus.WAITING_APPROVAL) return;
-            // Lineage may call an executor extension; compute it before opening a DB transaction.
-            AnswerLineage lineage = execution.contract() == null
-                    ? AnswerLineage.empty()
-                    : (executor instanceof ContractAwareRunExecutor contractExecutor
-                    ? contractExecutor.answerLineage(new AgentRunContext(run), execution.contract())
-                    : AnswerLineage.empty());
-            // Persist the opaque, encrypted answer artifact in its own fenced
-            // transaction after the step-1 checkpoint. This leaves a durable
-            // reconciliation fact even if the later projection/event CAS fails.
-            saveStepOutput(run, 1, execution, lineage);
-            String answerId = answerId(run);
-            AnswerProjection projection = AnswerProjection.from(run, execution.contract(), answerId,
-                    Instant.now(), lineage);
-            // Decode and reconcile before opening the final persistence fence;
-            // KMS-backed codecs must never turn the lifecycle transaction into
-            // an external network call boundary.
-            verifyStepOutputConsistency(run, execution, lineage, projection);
-            workerWrite(run, () -> {
-                if (run.status().isTerminal()) return null;
-                if (run.deadlineAt() != null && !Instant.now().isBefore(run.deadlineAt())) {
-                    timeout(run.id());
-                    return null;
-                }
-                // HITL 网关已发出 approval.required；当前执行器暂停，等待审批端点恢复。
-                if (run.status() == AgentRunStatus.WAITING_APPROVAL) return null;
-                // answerId 按 Run 稳定派生，重试/恢复不会创建第二个答案。若已
-                // 装配投影仓储，先保存不可变快照，再追加终态事件；仓储故障会让
-                // 当前 Run 走 fail-closed，而不是产生无法追溯的完成结果。
-                AnswerProjection committedProjection = projection;
-                if (answerProjectionRepository != null) {
-                    committedProjection = answerProjectionRepository.save(committedProjection);
-                }
-                // Keep event order while committing projection, message, events, Run CAS and
-                // checkpoint in the same JDBC fence transaction. A losing CAS rolls all back.
-                String answer = execution.answer();
-                if (answer != null && !answer.isBlank()) {
-                    Map<String, Object> answerDelta = new LinkedHashMap<>();
-                    answerDelta.put("text", answer);
-                    answerDelta.put("answerId", committedProjection.answerId());
-                    answerDelta.put("lineageStatus", committedProjection.lineageStatus().name());
-                    if (!execution.streamed()) emitLocked(run, AgentEventType.ANSWER_DELTA, answerDelta);
-                    Map<String,Object> historyMetadata=new LinkedHashMap<>(lineagePayload(run));
-                    historyMetadata.put("modelUsageAttempts",usageHistory(run,modelUsage));
-                    historyMetadata.put("conversationConstraints", constraintsForRun(run).snapshot());
-                    messageRepository.save(new ChatMessage("message-" + UUID.randomUUID(), run.conversationId(),
-                            run.id(), run.userId(), "assistant", answer, Instant.now(), historyMetadata));
-                }
-                // ANSWER_COMPLETED 位于 RUN_COMPLETED 之前，保证非终态事件仍
-                // 可追加；它携带投影的稳定 answerId 和完整/部分血缘状态。
-                Map<String, Object> answerCompleted = new LinkedHashMap<>(committedProjection.lineagePayload());
-                answerCompleted.put("status", committedProjection.status());
-                answerCompleted.put("answerDigest", committedProjection.answerDigest());
-                emitLocked(run, AgentEventType.ANSWER_COMPLETED, answerCompleted);
-                emitLocked(run, AgentEventType.USAGE, modelUsage.freeze());
-                run.complete();
-                runRepository.save(run);
-                Map<String, Object> completed = new LinkedHashMap<>();
-                completed.put("status", run.status().name());
-                if (execution.contract() != null) {
-                    completed.put("answer", execution.contract().answer());
-                    completed.put("contractStatus", execution.contract().status().name());
-                    completed.put("citationCount", execution.contract().citations().size());
-                    completed.put("citations", execution.contract().citations().stream()
-                            .map(this::citationPayload).toList());
-                    completed.put("limitations", execution.contract().limitations());
-                }
-                completed.putAll(committedProjection.lineagePayload());
-                emitLocked(run, AgentEventType.RUN_COMPLETED, completed);
-                saveCheckpoint(run, 2, "finished", lease.owner);
+            observations.phase(com.vio.vioaiagent.observability.AgentRunObservation.Phase.COMMIT, () -> {
+                commitAnswer(run, lease, execution, modelUsage);
                 return null;
             });
         } catch (RunLeaseLostException ex) {
@@ -1163,6 +1123,85 @@ public class PokemonAgentRunService {
                 }
             }
         }
+    }
+
+    private void commitAnswer(AgentRun run, ExecutionLease lease, AnswerExecution execution,
+                              com.vio.vioaiagent.observability.ModelUsageLedger modelUsage) {
+        saveCheckpoint(run, 1, "commit-answer", lease.owner);
+        if(!execution.streamed() && run.status()!=AgentRunStatus.WAITING_APPROVAL
+                && execution.answer()!=null && !execution.answer().isBlank())recordAnswerReady(modelUsage,"BUFFERED");
+        if (run.status().isTerminal() || run.status() == AgentRunStatus.WAITING_APPROVAL) return;
+        // Lineage may call an executor extension; compute it before opening a DB transaction.
+        AnswerLineage lineage = execution.contract() == null
+                ? AnswerLineage.empty()
+                : (executor instanceof ContractAwareRunExecutor contractExecutor
+                ? contractExecutor.answerLineage(new AgentRunContext(run), execution.contract())
+                : AnswerLineage.empty());
+        // Persist the opaque, encrypted answer artifact in its own fenced
+        // transaction after the step-1 checkpoint. This leaves a durable
+        // reconciliation fact even if the later projection/event CAS fails.
+        saveStepOutput(run, 1, execution, lineage);
+        String answerId = answerId(run);
+        AnswerProjection projection = AnswerProjection.from(run, execution.contract(), answerId,
+                Instant.now(), lineage);
+        // Decode and reconcile before opening the final persistence fence;
+        // KMS-backed codecs must never turn the lifecycle transaction into
+        // an external network call boundary.
+        verifyStepOutputConsistency(run, execution, lineage, projection);
+        workerWrite(run, () -> {
+            if (run.status().isTerminal()) return null;
+            if (run.deadlineAt() != null && !Instant.now().isBefore(run.deadlineAt())) {
+                timeout(run.id());
+                return null;
+            }
+            // HITL 网关已发出 approval.required；当前执行器暂停，等待审批端点恢复。
+            if (run.status() == AgentRunStatus.WAITING_APPROVAL) return null;
+            // answerId 按 Run 稳定派生，重试/恢复不会创建第二个答案。若已
+            // 装配投影仓储，先保存不可变快照，再追加终态事件；仓储故障会让
+            // 当前 Run 走 fail-closed，而不是产生无法追溯的完成结果。
+            AnswerProjection committedProjection = projection;
+            if (answerProjectionRepository != null) {
+                committedProjection = answerProjectionRepository.save(committedProjection);
+            }
+            // Keep event order while committing projection, message, events, Run CAS and
+            // checkpoint in the same JDBC fence transaction. A losing CAS rolls all back.
+            String answer = execution.answer();
+            if (answer != null && !answer.isBlank()) {
+                Map<String, Object> answerDelta = new LinkedHashMap<>();
+                answerDelta.put("text", answer);
+                answerDelta.put("answerId", committedProjection.answerId());
+                answerDelta.put("lineageStatus", committedProjection.lineageStatus().name());
+                if (!execution.streamed()) emitLocked(run, AgentEventType.ANSWER_DELTA, answerDelta);
+                Map<String,Object> historyMetadata=new LinkedHashMap<>(lineagePayload(run));
+                historyMetadata.put("modelUsageAttempts",usageHistory(run,modelUsage));
+                historyMetadata.put("conversationConstraints", constraintsForRun(run).snapshot());
+                messageRepository.save(new ChatMessage("message-" + UUID.randomUUID(), run.conversationId(),
+                        run.id(), run.userId(), "assistant", answer, Instant.now(), historyMetadata));
+            }
+            // ANSWER_COMPLETED 位于 RUN_COMPLETED 之前，保证非终态事件仍
+            // 可追加；它携带投影的稳定 answerId 和完整/部分血缘状态。
+            Map<String, Object> answerCompleted = new LinkedHashMap<>(committedProjection.lineagePayload());
+            answerCompleted.put("status", committedProjection.status());
+            answerCompleted.put("answerDigest", committedProjection.answerDigest());
+            emitLocked(run, AgentEventType.ANSWER_COMPLETED, answerCompleted);
+            emitLocked(run, AgentEventType.USAGE, modelUsage.freeze());
+            run.complete();
+            runRepository.save(run);
+            Map<String, Object> completed = new LinkedHashMap<>();
+            completed.put("status", run.status().name());
+            if (execution.contract() != null) {
+                completed.put("answer", execution.contract().answer());
+                completed.put("contractStatus", execution.contract().status().name());
+                completed.put("citationCount", execution.contract().citations().size());
+                completed.put("citations", execution.contract().citations().stream()
+                        .map(this::citationPayload).toList());
+                completed.put("limitations", execution.contract().limitations());
+            }
+            completed.putAll(committedProjection.lineagePayload());
+            emitLocked(run, AgentEventType.RUN_COMPLETED, completed);
+            saveCheckpoint(run, 2, "finished", lease.owner);
+            return null;
+        });
     }
 
     /**

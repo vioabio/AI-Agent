@@ -44,4 +44,22 @@ class GymFocusedFactReplyTest {
         String answer=executor.execute(context("青木的太晶成员是哪只？",List.of()));
         assertTrue(answer.contains("姆克鹰"));assertTrue(answer.contains("未明确阶段"));verifyNoInteractions(model,tool);
     }
+    @Test void battleModeFollowupsReadTheSelectedRosterWithoutInventingMoveMechanics() {
+        var model=mock(org.springframework.ai.chat.model.ChatModel.class);
+        var tool=mock(org.springframework.ai.tool.ToolCallback.class);
+        var executor=new DefaultRunExecutor(model,new org.springframework.ai.tool.ToolCallback[]{tool},null,null,null,null,false);
+        String answer=executor.execute(context("这场是单打还是双打？",List.of(new UserMessage("先查莱姆的视察重赛队伍。"))));
+        assertTrue(answer.contains("莱姆的视察重赛是双打"));
+        assertTrue(answer.contains("gymrematches.shtml"));
+        assertFalse(answer.contains("破音"));
+        assertFalse(answer.contains("爆音波"));
+        verifyNoInteractions(model,tool);
+        String singles=GymDialogueRouter.reply(context("这场采用什么对战模式？",List.of(new UserMessage("青木初战资料"))),new org.springframework.ai.tool.ToolCallback[0]).orElseThrow();
+        assertTrue(singles.contains("青木的初战是单打"));
+        assertTrue(GymDialogueRouter.reply(context("这场是单打还是双打？",List.of(new AssistantMessage("莱姆重赛"))),new org.springframework.ai.tool.ToolCallback[0]).isEmpty());
+    }
+    @Test void modeQuestionsWithTacticalActionsKeepTheirExistingPlanner() {
+        for(String question:List.of("这场是单打还是双打？再推荐队伍。","为什么这场是单打还是双打？","不要回答这场是单打还是双打。"))
+            assertFalse(GymFocusedFactReply.requestsBattleMode(question),question);
+    }
 }

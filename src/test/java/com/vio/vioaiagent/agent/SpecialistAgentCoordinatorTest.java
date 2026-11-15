@@ -17,6 +17,177 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class SpecialistAgentCoordinatorTest {
+    @Test void explicitMoveAttackCalculationSelectsDamageRoleWithoutDamageKeyword() {
+        for (boolean enabled : List.of(false,true)) {
+            var chat=mock(ChatModel.class);
+            var coordinator=new SpecialistAgentCoordinator(context("按默认50级、Hardy、0 EV和31 IV，计算杰尼龟用撞击攻击杰尼龟，无道具、无天气及场地。"),chat);
+            coordinator.setSkillsEnabled(enabled);
+            when(chat.call(any(Prompt.class))).thenReturn(call("calculateBattleDamage","{}"));
+            var decision=coordinator.plan(new ToolCallback[]{tool("lookupPokemonReference"),tool("calculateBattleDamage")},"").orElseThrow();
+            assertEquals(SpecialistRole.DAMAGE_CALCULATION,decision.role());
+            assertTrue(Arrays.stream(decision.tools()).anyMatch(tool->tool.getToolDefinition().name().equals("calculateBattleDamage")));
+        }
+    }
+    @Test void statCalculationsAndAttackDescriptionsRemainResearchQuestions() {
+        for (String question : List.of("计算攻击种族值的总和", "计算宝可梦杰尼龟50级的实际能力值需要哪些条件？", "介绍宝可梦杰尼龟用撞击攻击时的动画",
+                "不要计算杰尼龟用撞击攻击杰尼龟，只查询图鉴。", "无需再计算宝可梦杰尼龟用撞击攻击杰尼龟，只介绍动画。")) {
+            var chat=mock(ChatModel.class);
+            when(chat.call(any(Prompt.class))).thenReturn(call("searchPokemonGuides","{}"));
+            var decision=new SpecialistAgentCoordinator(context(question),chat)
+                    .plan(new ToolCallback[]{tool("lookupPokemonReference"),tool("searchPokemonGuides"),tool("calculateBattleDamage")},"").orElseThrow();
+            assertEquals(SpecialistRole.POKEMON_RESEARCH,decision.role());
+            assertTrue(Arrays.stream(decision.tools()).noneMatch(tool->tool.getToolDefinition().name().equals("calculateBattleDamage")));
+        }
+    }
+    @Test void serviceWindowOmissionIsVisibleWithoutSendingFullRoutingHistoryToTheModel() {
+        var base = context("我想围绕一个核心组队，怎样检查功能角色是否重叠？");
+        var ledger = new ModelUsageLedger(); ledger.historySource(Map.of("availableTurns",9,"selectedTurns",1,"omittedTurns",8));
+        var ctx = new AgentRunContext(base.run(),null,List.of(new UserMessage("当前短历史"),new AssistantMessage("确认")),
+                base.mutations(),ledger,base.constraints(),List.of(new UserMessage("PRIVATE_OLD_ROUTING_ONLY"),new AssistantMessage("旧信息")));
+        var chat = mock(ChatModel.class); var coordinator = new SpecialistAgentCoordinator(ctx,chat);
+        coordinator.setContextAssembly(true,com.vio.vioaiagent.config.ContextBudgetProperties.defaults());
+        when(chat.call(any(Prompt.class))).thenAnswer(invocation -> {
+            String text = ((Prompt)invocation.getArgument(0)).getContents();
+            assertTrue(text.contains("程序历史窗口已省略较早的8轮"));
+            assertTrue(text.contains("当前短历史")); assertFalse(text.contains("PRIVATE_OLD_ROUTING_ONLY")); return stop();
+        });
+        coordinator.plan(new ToolCallback[]{tool("searchPokemonGuides")},"");
+        var event = events.stream().filter(e -> e.eventType().equals("agent.delegation.context")).findFirst().orElseThrow();
+        assertEquals("CONTEXT_HISTORY_TRIMMED",event.attributes().get("status"));
+        assertEquals(8,event.attributes().get("sourceOmittedTurns"));
+        assertEquals(0,event.attributes().get("assemblyOmittedTurns"));
+        assertEquals(1,event.attributes().get("selectedHistoryTurns"));
+    }
+    @Test void assemblyOmissionIsReportedSeparatelyFromThePersistedHistoryWindow() {
+        var base = context("分析队伍角色"); var ledger = new ModelUsageLedger();
+        ledger.historySource(Map.of("availableTurns",10,"selectedTurns",2,"omittedTurns",8));
+        var ctx = new AgentRunContext(base.run(),null,List.of(new UserMessage("早消息"),new AssistantMessage("早回答"),
+                new UserMessage("近消息"),new AssistantMessage("近回答")),base.mutations(),ledger);
+        var chat = mock(ChatModel.class);var coordinator = new SpecialistAgentCoordinator(ctx,chat);
+        coordinator.setContextAssembly(true,new com.vio.vioaiagent.config.ContextBudgetProperties(32768,2048,4096,1,125));
+        when(chat.call(any(Prompt.class))).thenAnswer(invocation -> {
+            String text=((Prompt)invocation.getArgument(0)).getContents();assertFalse(text.contains("早消息"));assertTrue(text.contains("近消息"));return stop();
+        });
+        coordinator.plan(new ToolCallback[]{tool("searchPokemonGuides")},"");
+        var event=events.stream().filter(e->e.eventType().equals("agent.delegation.context")).findFirst().orElseThrow();
+        assertEquals(8,event.attributes().get("sourceOmittedTurns"));assertEquals(1,event.attributes().get("assemblyOmittedTurns"));
+        assertEquals(1,event.attributes().get("selectedHistoryTurns"));
+    }
+    @Test void statMeaningResearchNeverExposesSpeciesReadsWithEitherSkillSetting() {
+        for (boolean enabled : List.of(false, true)) {
+            var chat = mock(ChatModel.class);
+            var coordinator = new SpecialistAgentCoordinator(context("大嘴鸥的种族值能否直接说明我这只的实际速度？"), chat);
+            coordinator.setSkillsEnabled(enabled);
+            when(chat.call(any(Prompt.class))).thenAnswer(invocation -> {
+                var options = (ToolCallingChatOptions) ((Prompt) invocation.getArgument(0)).getOptions();
+                assertEquals(List.of("searchPokemonGuides"), options.getToolCallbacks().stream().map(t -> t.getToolDefinition().name()).toList());
+                return call("lookupPokemonReference", "{\"query\":\"奇鲁莉安\"}");
+            });
+            var decision = coordinator.plan(new ToolCallback[]{tool("searchPokemonGuides"), tool("lookupPokemonReference")}, "").orElseThrow();
+            assertFalse(decision.response().getResult().getOutput().hasToolCalls());
+            verify(chat, times(1)).call(any(Prompt.class));
+        }
+    }
+    @Test void generalPlanningRejectsSpecialistRequestForPrivateTeamList(){
+        var coordinator=new SpecialistAgentCoordinator(context("我想围绕一个核心组成队伍，如何检查功能角色是否重复？"),model);
+        coordinator.setSkillsEnabled(true);
+        when(model.call(any(Prompt.class))).thenAnswer(inv->{
+            var prompt=(Prompt)inv.getArgument(0);assertTrue(prompt.getContents().contains("team-core-planning@1"));
+            var options=(ToolCallingChatOptions)prompt.getOptions();
+            assertEquals(Set.of("searchPokemonGuides"),options.getToolCallbacks().stream().map(t->t.getToolDefinition().name()).collect(java.util.stream.Collectors.toSet()));
+            return call("listCurrentTeams","{}");
+        });
+        var decision=coordinator.plan(new ToolCallback[]{tool("searchPokemonGuides"),tool("listCurrentTeams"),tool("readCurrentTeam")},"").orElseThrow();
+        assertFalse(decision.response().hasToolCalls());
+        assertTrue(events.stream().anyMatch(event->"TOOL_PLAN_REJECTED".equals(event.attributes().get("status"))));
+    }
+    @Test void gymFollowupUsesDialogueStateEvenWhenOldTargetIsOutsideModelHistory(){
+        var base=context("这个队伍如何应对");
+        var dialogue=List.<Message>of(new UserMessage("查看奇树重赛资料"),new AssistantMessage("收到"));
+        var bounded=new ArrayList<Message>();
+        for(int turn=0;turn<9;turn++){
+            bounded.add(new UserMessage("填充对话"+turn));bounded.add(new AssistantMessage("收到"));
+        }
+        var ctx=new AgentRunContext(base.run(),null,bounded,base.mutations(),base.modelUsage(),base.constraints(),dialogue);
+        var chat=mock(ChatModel.class);var coordinator=new SpecialistAgentCoordinator(ctx,chat);coordinator.setSkillsEnabled(true);
+        coordinator.setContextAssembly(true,com.vio.vioaiagent.config.ContextBudgetProperties.defaults());
+        when(chat.call(any(Prompt.class))).thenAnswer(inv->{
+            var prompt=(Prompt)inv.getArgument(0);
+            assertTrue(prompt.getContents().contains("gym-challenge@1"));
+            assertTrue(prompt.getContents().contains("gymId=iono, phase=rematch, defaultStage=false"));
+            assertFalse(prompt.getContents().contains("填充对话0"));assertTrue(prompt.getContents().contains("填充对话8"));
+            var options=(ToolCallingChatOptions)prompt.getOptions();
+            assertEquals(Set.of("analyzeSavedTeamForGym"),options.getToolCallbacks().stream().map(t->t.getToolDefinition().name()).collect(java.util.stream.Collectors.toSet()));
+            return stop();
+        });
+        coordinator.plan(new ToolCallback[]{tool("analyzeSavedTeamForGym"),tool("checkPokemonTeamBuild"),tool("previewTeamChanges")},"");
+        verify(chat).call(any(Prompt.class));
+    }
+    @Test void generalTeamTaskDoesNotCarryOldGymInstructions(){
+        var base=context("分析我的队伍");
+        var ctx=new AgentRunContext(base.run(),null,List.of(new UserMessage("奇树重赛资料"),new AssistantMessage("收到")));
+        var chat=mock(ChatModel.class);var coordinator=new SpecialistAgentCoordinator(ctx,chat);coordinator.setSkillsEnabled(true);
+        when(chat.call(any(Prompt.class))).thenAnswer(inv->{
+            var prompt=(Prompt)inv.getArgument(0);
+            assertTrue(prompt.getContents().contains("saved-team-review@1"));
+            assertFalse(prompt.getContents().contains("Program-resolved conversation target"));
+            return stop();
+        });
+        coordinator.plan(new ToolCallback[]{tool("checkPokemonTeamBuild"),tool("analyzeSavedTeamForGym")},"");
+        verify(chat).call(any(Prompt.class));
+    }
+    @Test void assistantOnlyAndAmbiguousGymHistoryCannotSelectChallengeSkill(){
+        for(var history:List.of(List.<Message>of(new AssistantMessage("奇树重赛")),
+                List.<Message>of(new UserMessage("奇树和阿枫的队伍"),new AssistantMessage("收到")))){
+            var base=context("这个队伍如何应对");var ctx=new AgentRunContext(base.run(),null,history);
+            var chat=mock(ChatModel.class);var coordinator=new SpecialistAgentCoordinator(ctx,chat);coordinator.setSkillsEnabled(true);
+            when(chat.call(any(Prompt.class))).thenAnswer(inv->{
+                assertTrue(((Prompt)inv.getArgument(0)).getContents().contains("saved-team-review@1"));return stop();
+            });
+            coordinator.plan(new ToolCallback[]{tool("checkPokemonTeamBuild"),tool("analyzeSavedTeamForGym")},"");
+            verify(chat).call(any(Prompt.class));
+        }
+    }
+    @Test void newUserSelectionReplacesOldGymAndAnotherConversationHasNoInheritedTarget(){
+        var base=context("这个队伍如何应对");
+        var ctx=new AgentRunContext(base.run(),null,List.of(new UserMessage("奇树重赛"),new AssistantMessage("收到"),new UserMessage("改看阿枫初战"),new AssistantMessage("收到")));
+        var chat=mock(ChatModel.class);var coordinator=new SpecialistAgentCoordinator(ctx,chat);coordinator.setSkillsEnabled(true);
+        when(chat.call(any(Prompt.class))).thenAnswer(inv->{
+            var text=((Prompt)inv.getArgument(0)).getContents();
+            assertTrue(text.contains("gymId=katy, phase=initial"));assertFalse(text.contains("gymId=iono"));return stop();
+        });
+        coordinator.plan(new ToolCallback[]{tool("analyzeSavedTeamForGym")},"");verify(chat).call(any(Prompt.class));
+        var emptyChat=mock(ChatModel.class);var empty=new SpecialistAgentCoordinator(context("这个队伍如何应对"),emptyChat);empty.setSkillsEnabled(true);
+        when(emptyChat.call(any(Prompt.class))).thenAnswer(inv->{assertTrue(((Prompt)inv.getArgument(0)).getContents().contains("saved-team-review@1"));return stop();});
+        empty.plan(new ToolCallback[]{tool("checkPokemonTeamBuild"),tool("analyzeSavedTeamForGym")},"");verify(emptyChat).call(any(Prompt.class));
+    }
+    @Test void namedGymSkillExposesChallengeToolThroughNormalCoordinator(){
+        var chat=mock(ChatModel.class);
+        var coordinator=new SpecialistAgentCoordinator(context("我的队伍如何应对奇树初战"),chat);
+        coordinator.setSkillsEnabled(true);
+        when(chat.call(any(Prompt.class))).thenAnswer(inv->{
+            var prompt=(Prompt)inv.getArgument(0);
+            assertTrue(prompt.getContents().contains("gym-challenge@1"));
+            var options=(ToolCallingChatOptions)prompt.getOptions();
+            assertEquals(Set.of("analyzeSavedTeamForGym"),options.getToolCallbacks().stream().map(t->t.getToolDefinition().name()).collect(java.util.stream.Collectors.toSet()));
+            return stop();
+        });
+        coordinator.plan(new ToolCallback[]{tool("analyzeSavedTeamForGym"),tool("previewTeamChanges"),tool("lookupCompetitiveTrends")},"");
+        verify(chat).call(any(Prompt.class));
+    }
+    @Test void englishCourtesyDoesNotReplaceTrainingSkillWithCompetitiveTools(){
+        var chat=mock(ChatModel.class);
+        var coordinator=new SpecialistAgentCoordinator(context("Could you explain 宝可梦培养？"),chat);
+        coordinator.setSkillsEnabled(true);
+        when(chat.call(any(Prompt.class))).thenAnswer(inv->{
+            var prompt=(Prompt)inv.getArgument(0);assertTrue(prompt.getContents().contains("training-build-review@1"));
+            var options=(ToolCallingChatOptions)prompt.getOptions();
+            assertEquals(Set.of("lookupPokemonLearnset"),options.getToolCallbacks().stream().map(t->t.getToolDefinition().name()).collect(java.util.stream.Collectors.toSet()));
+            return stop();
+        });
+        coordinator.plan(new ToolCallback[]{tool("lookupPokemonLearnset"),tool("lookupCompetitiveTrends")},"");
+        verify(chat).call(any(Prompt.class));
+    }
     @Test void contextAssemblyCanBeEnabledWithoutChangingToolAuthority() {
         var chat=mock(ChatModel.class);var c=new SpecialistAgentCoordinator(context("查询图鉴"),chat);
         c.setContextAssembly(true,com.vio.vioaiagent.config.ContextBudgetProperties.defaults());

@@ -98,6 +98,22 @@ export function serializeRunContext(input = {}) {
   }
 }
 
+/** Restore only structured metadata from the latest user message. */
+export function conversationContextFromHistory(messages) {
+  const metadata = Array.isArray(messages)
+    ? messages.findLast(message => message?.role === 'user')?.metadata : null
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return {}
+  const context = {}
+  for (const field of ['gameReleaseId', 'language', 'rulesetVersionId', 'dataReleaseId']) {
+    if (typeof metadata[field] === 'string' && /^[a-zA-Z0-9._:-]{1,128}$/.test(metadata[field]))
+      context[field] = metadata[field]
+  }
+  const format = metadata.battleFormatId ?? metadata.battleFormat
+  if (typeof format === 'string' && /^[a-zA-Z0-9._:-]{1,128}$/.test(format))
+    context.battleFormat = BATTLE_FORMAT_ALIASES[normalized(format)] || format
+  return context
+}
+
 export function isCanonicalBattleFormat(value) {
   const key = normalized(value)
   return Object.values(BATTLE_FORMAT_ALIASES).includes(key) && key === value

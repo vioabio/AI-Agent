@@ -15,8 +15,11 @@ import static org.mockito.ArgumentMatchers.*;
 public class DamageAnswerBlockTest {
     public static LocalDamageEngine.Request request(String move,String weather){return new LocalDamageEngine.Request(9,"pokeapi-reference-v1",new LocalDamageEngine.Combatant("squirtle",null),new LocalDamageEngine.Combatant("squirtle",null),move,new LocalDamageEngine.Field("Singles",weather,null));}
     public static JsonNode calculate(LocalDamageEngine.Request request){
+        return calculate(request,"https://pokeapi.co/api/v2/pokemon/7/");
+    }
+    private static JsonNode calculate(LocalDamageEngine.Request request,String source){
         var repository=mock(LocalPokeApiRepository.class);
-        var fact=new PokemonFact(7,7,7,"squirtle","杰尼龟","squirtle","杰尼龟","pokeapi-reference-v1","pokemon-scarlet-violet","https://pokeapi.co/api/v2/pokemon/7/","sha256:"+"a".repeat(64),"LOCAL_REFERENCE","水",null,44,48,65,50,64,43);
+        var fact=new PokemonFact(7,7,7,"squirtle","杰尼龟","squirtle","杰尼龟","pokeapi-reference-v1","pokemon-scarlet-violet",source,"sha256:"+"a".repeat(64),"LOCAL_REFERENCE","水",null,44,48,65,50,64,43);
         when(repository.detail(anyString(),anyString())).thenReturn(new LocalPokeApiRepository.Detail(fact,List.of("torrent","rain-dish"),List.of(),"2026-11-13T00:00:00Z","fixture"));
         return new VerifiedLocalDamageEngine(repository,new ObjectMapper(),"node",Path.of("tools/pokemon-engine/calculate-v2.cjs").toAbsolutePath().toString()).calculate(request);
     }
@@ -56,5 +59,26 @@ public class DamageAnswerBlockTest {
         }
         ObjectNode absent=result.deepCopy();absent.remove("defenderChecksum");
         assertNull(DamageAnswerBlock.from(request,absent).evidence());
+    }
+    @Test void actualSlugReferenceKeepsDamageEvidenceAndSafeFormNamesAreAccepted(){
+        var request=request("tackle",null);
+        var block=DamageAnswerBlock.from(request,calculate(request,"https://pokeapi.co/api/v2/pokemon/squirtle/"));
+        assertNotNull(block.evidence());
+        assertTrue(block.evidence().sources().stream().allMatch(source->source.url().equals("https://pokeapi.co/api/v2/pokemon/squirtle/")));
+        for(String key:List.of("mr-mime","vulpix-alola","porygon2","10061"))
+            assertDoesNotThrow(()->new EvidenceAnswerBlock.Source("attacker","https://pokeapi.co/api/v2/pokemon/"+key+"/","sha256:"+"a".repeat(64)));
+        for(String key:List.of("../7","%37","squirtle?token=x","Squirtle","squirtle/extra","squirtle-","a".repeat(129)))
+            assertThrows(IllegalArgumentException.class,()->new EvidenceAnswerBlock.Source("attacker","https://pokeapi.co/api/v2/pokemon/"+key+"/","sha256:"+"a".repeat(64)));
+    }
+    @Test void noItemAliasIsCanonicalizedOnlyForReadOnlyCalculationAndPreservesOtherFields(){
+        for(String alias:List.of("none","None","NONE")){
+            var saved=new com.vio.vioaiagent.pokemon.domain.TeamBuild(List.of("tackle"),"Torrent",alias,"hardy",50,null,null,"water");
+            var combatant=new LocalDamageEngine.Combatant("squirtle",saved);
+            assertEquals(alias,saved.item());assertEquals("",combatant.build().item());
+            var expected=new com.vio.vioaiagent.pokemon.domain.TeamBuild(saved.moves(),saved.ability(),"",saved.nature(),saved.level(),saved.evs(),saved.ivs(),saved.teraType());
+            assertEquals(expected,combatant.build());
+        }
+        var build=new com.vio.vioaiagent.pokemon.domain.TeamBuild(List.of(),"","Leftovers","hardy",50,null,null);
+        assertSame(build,new LocalDamageEngine.Combatant("squirtle",build).build());
     }
 }

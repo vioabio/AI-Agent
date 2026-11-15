@@ -4,6 +4,9 @@
 *.sh text eol=lf
 *.cmd text eol=crlf
 
+# U6 answer/event archives bind exact bytes across Windows and Linux checkouts.
+/evaluation/upgrade-v1.1/u6/** -text whitespace=cr-at-eol
+
 # Bundled upstream identity tables are verified against exact byte digests.
 /src/main/resources/pokemon-reference/*.csv -text
 

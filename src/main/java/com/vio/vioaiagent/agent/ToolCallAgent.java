@@ -178,6 +178,8 @@ public class ToolCallAgent extends ReActAgent {
         if (mcpTools == null || mcpTools.length == 0) {
             return availableTools;
         }
+        mcpTools = Arrays.stream(mcpTools)
+                .map(com.vio.vioaiagent.mcp.client.CancellableMcpToolCallback::wrap).toArray(ToolCallback[]::new);
         if (toolExecutionGateway != null) {
             mcpTools = toolExecutionGateway.wrap(mcpTools);
         }
@@ -192,6 +194,10 @@ public class ToolCallAgent extends ReActAgent {
     @Override
     public boolean think() {
         String currentQuestion = currentQuestion();
+        var version=GameVersionRequest.clarification(currentQuestion,guideGameReleaseId);
+        if(version.isPresent()) {finalAnswer=publishVerified(version.get());setState(AgentState.FINISHED);return false;}
+        var knockout=DamageDialogueRoute.inputSufficiencyReply(currentQuestion);
+        if(knockout.isPresent()) {finalAnswer=publishVerified(knockout.get());setState(AgentState.FINISHED);return false;}
         if(ExplicitDamageRequest.hasInput(currentQuestion)&&ExplicitDamageRequest.arguments(currentQuestion).isEmpty()){
             finalAnswer=publishVerified(ExplicitDamageRequest.INVALID_INPUT);setState(AgentState.FINISHED);return false;
         }
@@ -242,6 +248,7 @@ public class ToolCallAgent extends ReActAgent {
                             + draftIdentity.instruction() + TeamMutationIntent.instruction(currentQuestion));
             ToolCallback[] planningTools = gymMode?GymQuestionPolicy.tools(getMergedTools()):TeamMutationIntent.planningTools(currentQuestion,
                             draftIdentity.planningTools(TeamBuildAnswerEvidence.planningTools(currentQuestion,getMergedTools())));
+            planningTools = GuideAnswerEvidence.statMeaningTools(currentQuestion, planningTools);
             specialistDecision = specialistCoordinator==null?null:specialistCoordinator.plan(planningTools,planningInstruction).orElse(null);
             // Tool selection is private. A model can put planning text in content,
             // not only reasoning_content, so it must never share the answer stream.
@@ -569,6 +576,16 @@ public class ToolCallAgent extends ReActAgent {
             }).toList();
             toolCallChatResponse = new ChatResponse(generations, toolCallChatResponse.getMetadata());
         }
+        var normalizedGenerations=toolCallChatResponse.getResults().stream().map(generation -> {
+            var output=generation.getOutput();
+            var calls=output.getToolCalls().stream().map(call -> {
+                String arguments=com.vio.vioaiagent.tools.governance.DamageToolSchema.unwrapRequest(call.name(),call.arguments());
+                return java.util.Objects.equals(arguments,call.arguments())?call
+                        :new AssistantMessage.ToolCall(call.id(),call.type(),call.name(),arguments);
+            }).toList();
+            return new org.springframework.ai.chat.model.Generation(new AssistantMessage(output.getText(),output.getMetadata(),calls),generation.getMetadata());
+        }).toList();
+        toolCallChatResponse=new ChatResponse(normalizedGenerations,toolCallChatResponse.getMetadata());
         if (!toolCallChatResponse.hasToolCalls()) {
             return "没有工具需要调用";
         }
@@ -768,6 +785,8 @@ public class ToolCallAgent extends ReActAgent {
         String verifiedPrefix = (guardedSaved ? savedTeamAnswerEvidence.verifiedSummary() + "\n" : "")
                 + (guardedTeam ? teamAnswerEvidence.verifiedSummary() + "\n" : "")
                 + (guardedDamage ? (damageAnswerEvidence.complete() ? damageAnswerEvidence.verifiedSummary() : damageAnswerEvidence.missingAnswer()) + "\n" : "");
+        if (guardedTeam && teamAnswerEvidence.factsOnly() && !guardedDamage && !guardedSaved)
+            return publishVerified(verifiedPrefix);
         if (guideAnswerEvidence != null && guideAnswerEvidence.active()) {
             // Search success cannot authorize arbitrary prose to inherit citations.
             // Preserve independently checked team/calculation facts for mixed tasks.

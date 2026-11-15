@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 public final class TeamAnswerEvidence {
     private static final Pattern TEAM_REQUEST = Pattern.compile("(?:分析|检查|评估|点评|优化).{0,30}(?:队伍|阵容)|(?:队伍|阵容).{0,20}(?:分析|检查|评估|优化)");
     private static final Pattern REQUIRED = Pattern.compile("(?m)^参考成员[：:]\\s*([^\\r\\n]+)$");
+    private static final Pattern FACTS_ONLY = Pattern.compile("只(?:看|列|展示|查询|读取|返回)[^，,。；;\\r\\n]{0,30}(?:资料|事实|字段)(?=[，,。；;\\r\\n]|$)");
     // These assertions require separate verification; the model is asked for conditional
     // coaching only. Type facts and base weather factors are rendered by the program.
     private static final Pattern UNVERIFIED_MECHANICS = Pattern.compile(
@@ -18,6 +19,7 @@ public final class TeamAnswerEvidence {
     private final ObjectMapper mapper = new ObjectMapper();
     private boolean initialized;
     private boolean active;
+    private boolean factsOnly;
     private boolean validRequired = true;
     private Set<String> required = Set.of();
     private TeamReferenceTools.TeamEvidence evidence;
@@ -25,9 +27,11 @@ public final class TeamAnswerEvidence {
     public void begin(String prompt) {
         initialized = true;
         active = TEAM_REQUEST.matcher(prompt).find();
+        factsOnly = FACTS_ONLY.matcher(prompt).find() && !prompt.matches("(?s).*(?:建议|培养|搭配|攻略|配招).*");
         var match = REQUIRED.matcher(prompt);
         if (match.find()) {
-            var names = Arrays.stream(match.group(1).split("[、,，]")).map(String::trim)
+            String memberLine=match.group(1).strip().replaceFirst("[。.!！?？]$", "");
+            var names = Arrays.stream(memberLine.split("[、,，]",-1)).map(String::trim)
                     .map(name -> name.toLowerCase(Locale.ROOT)).toList();
             validRequired = !names.isEmpty() && names.size() <= 6 && new HashSet<>(names).size() == names.size()
                     && names.stream().allMatch(name -> name.matches("[a-z0-9][a-z0-9-]{0,79}"));
@@ -37,6 +41,7 @@ public final class TeamAnswerEvidence {
     }
     public boolean initialized() { return initialized; }
     public boolean active() { return active; }
+    public boolean factsOnly() { return factsOnly; }
     public String planningInstruction() {
         return active ? "\n队伍分析必须先用 lookupPokemonTeamReference 一次读取完整参考成员清单，不能用单只查询冒充完整队伍证据。参考成员："
                 + String.join("、", required) + "。读取失败时说明缺失，不反复搜索补造事实。" : "";

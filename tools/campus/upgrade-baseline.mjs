@@ -30,19 +30,24 @@ export function loadFrozenSuite(directory = suitePath) {
 
 // Never hashes arbitrary process environment or private application configuration.
 export function publicFingerprint(input) {
-  const allowed=['profiles','configuredProvider','configuredModelId','promptVersion','features','upgradeFeatures','agentCollaboration','contextBudgetPolicy','taskBudgetPolicy']
+  const allowed=['profiles','configuredProvider','configuredModelId','promptVersion','features','upgradeFeatures','agentCollaboration','contextBudgetPolicy','taskBudgetPolicy','domainTracingPolicy']
   const allowedFeature=['answerStreaming','conversationConstraints','taskBudget','contextBudget']
   const result={}
   for(const key of allowed) {
     const value=input[key]
     if(key==='features'&&value&&typeof value==='object')result.features=Object.fromEntries(allowedFeature.filter(k=>typeof value[k]==='boolean').map(k=>[k,value[k]]))
     else if(key==='upgradeFeatures'&&value&&typeof value==='object')result.upgradeFeatures=Object.fromEntries(['answerBlocks','skills','contextAssembly','rerank','domainTracing'].filter(k=>typeof value[k]==='boolean').map(k=>[k,value[k]]))
+    else if(key==='domainTracingPolicy'&&value&&typeof value==='object') {
+      result.domainTracingPolicy={}
+      if(typeof value.sampleRate==='number'&&Number.isFinite(value.sampleRate)&&value.sampleRate>=0&&value.sampleRate<=1)result.domainTracingPolicy.sampleRate=value.sampleRate
+      if(typeof value.automaticTracing==='boolean')result.domainTracingPolicy.automaticTracing=value.automaticTracing
+    }
     else if(['profiles','configuredProvider','configuredModelId','promptVersion'].includes(key)) {
       if(key==='profiles'&&Array.isArray(value))result[key]=value.filter(v=>typeof v==='string'&&/^[a-z0-9,-]{1,60}$/i.test(v))
       else if(typeof value==='string'&&/^[a-z0-9._/-]{1,100}$/i.test(value)&&!/^sk-/i.test(value))result[key]=value
     } else if(value&&typeof value==='object') {
       // Only documented scalar budget/switch fields, never pass through nested objects.
-      const keys=['specialistsEnabled','maxSpecialistModelCalls','maxSpecialistToolCalls','maxParallelAgents','contextTokens','historyTokens','outputReserve','maxModelCalls','tokenLimit']
+      const keys=['specialistsEnabled','maxSpecialistModelCalls','maxSpecialistToolCalls','maxParallelAgents','contextTokens','historyTokens','historyTurns','safetyPercent','outputReserve','maxModelCalls','tokenLimit']
       result[key]=Object.fromEntries(keys.filter(k=>typeof value[k]==='boolean'||(typeof value[k]==='number'&&Number.isFinite(value[k]))).map(k=>[k,value[k]]))
     }
   }
@@ -50,6 +55,8 @@ export function publicFingerprint(input) {
 }
 
 export function collectionFailure(error) {
+  if(error?.message==='RUNTIME_COMPONENTS_UNAVAILABLE')return 'RUNTIME_COMPONENTS_UNAVAILABLE'
+  if(error?.message==='CANDIDATE_CORPUS_MISMATCH')return 'CANDIDATE_CORPUS_MISMATCH'
   if(/^HTTP_[1-5][0-9]{2}$/.test(error?.message||''))return error.message
   if(['ECONNREFUSED','ETIMEDOUT','ENOTFOUND'].includes(error?.cause?.code))return 'TRANSPORT_'+error.cause.code
   if(error?.name==='TimeoutError')return 'TRANSPORT_TIMEOUT'
@@ -61,7 +68,15 @@ export function prepare(output,split='dev') {
   const within=relative(resolve(root,'artifacts'),destination)
   if(!within||within==='..'||within.startsWith('..\\')||within.startsWith('../')||isAbsolute(within))throw Error('Output must be a new directory under artifacts')
   if(existsSync(destination))throw Error('Refuse to overwrite evidence')
-  const git=(...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim()
+  // Evidence archives can make a staged diff exceed Node's default 1 MiB buffer.
+  // Keep an explicit bound and avoid exposing command output on failure.
+  const git=(...args)=>{
+    try {
+      return execFileSync('git',args,{cwd:root,encoding:'utf8',maxBuffer:64*1024*1024,timeout:30000,windowsHide:true}).trim()
+    } catch {
+      throw Error('SOURCE_STATE_UNAVAILABLE')
+    }
+  }
   const report={schemaVersion:'upgrade-baseline-v1',createdAt:new Date().toISOString(),candidateCommit:git('rev-parse','HEAD'),baselineCommit:git('rev-parse','v1.0.0^{}'),
     sourceStateSha256:digest(git('diff','--binary','HEAD')),datasetSha256:suite.datasetSha256,corpusSha256:suite.manifest.corpus.sha256,
     runtime:null,mode:'PREPARED_NOT_EXECUTED',split,records:suite.cases.filter(c=>c.split===split).map(c=>({caseId:c.id,verdict:'NOT_RUN',runId:null,ttftMs:null,totalMs:null,providerUsage:null,estimatedUsage:null,review:null}))}

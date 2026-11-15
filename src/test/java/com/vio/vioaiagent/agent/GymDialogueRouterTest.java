@@ -13,6 +13,55 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class GymDialogueRouterTest {
+    @Test void rematchPronounsAndStageComparisonUseTheCheckedCatalog() {
+        var history = List.<Message>of(new UserMessage("先查看奇树初战的队伍。"));
+        var model = mock(ChatModel.class);
+        var executor = new DefaultRunExecutor(model, new ToolCallback[0], null, null, null, null, false);
+        String roster = executor.execute(context("接着看她的重赛阵容。", history));
+        assertTrue(roster.contains("奇树"));
+        assertTrue(roster.contains("伦琴猫"));
+        assertTrue(roster.contains("顽皮雷弹"));
+        assertTrue(roster.contains("| 66 |"));
+        assertFalse(roster.contains("巴布土拨"));
+        var continued = List.<Message>of(history.getFirst(), new AssistantMessage("错误模型文字，最高65级"),
+                new UserMessage("接着看她的重赛阵容。"));
+        String levels = executor.execute(context("把刚才初战与重赛的最高等级分别告诉我。", continued));
+        assertTrue(levels.contains("初战**：24级"));
+        assertTrue(levels.contains("视察重赛**：66级"));
+        assertTrue(levels.contains("gymrematches.shtml"));
+        verifyNoInteractions(model);
+        assertTrue(GymDialogueRouter.reply(context("如何修改重赛队伍里的性格？", history), new ToolCallback[0]).isEmpty());
+    }
+
+    @Test void currentGymNameRespectsTheLatestUserSelection() {
+        var history = List.<Message>of(new UserMessage("先记录背景，我目前只讨论阿枫初战，本轮只回复收到。"),
+                new UserMessage("现在换成古鲁夏初战，请列出他的成员和等级。"), new AssistantMessage("阿枫"));
+        var model = mock(ChatModel.class);
+        String name = new DefaultRunExecutor(model, new ToolCallback[0], null, null, null, null, false)
+                .execute(context("当前谈的是哪位馆主？只回答名字。", history));
+        assertEquals("古鲁夏", name);
+        verifyNoInteractions(model);
+    }
+
+    @Test void battleModeFactsUseCatalogWithoutRequestingPlayerProgress() {
+        for (String question : List.of("先看莱姆初战的对战模式。", "奇树初战是单打还是双打？")) {
+            var ctx = context(question,List.of()); var model = mock(ChatModel.class);
+            var executor = new DefaultRunExecutor(model,new ToolCallback[0],null,null,null,null,false);
+            String answer = executor.execute(ctx);
+            assertTrue(answer.contains(question.contains("莱姆")?"双打":"单打"));
+            assertTrue(answer.contains("Serebii")); assertFalse(answer.contains("先确认你的冒险进度"));
+            verifyNoInteractions(model);
+        }
+    }
+    @Test void oneMemberFollowupCannotInventDoubleBattleMechanicsOrActionTables() {
+        var history=List.<Message>of(new UserMessage("莱姆初战的对战模式"));
+        var model=mock(ChatModel.class);
+        var executor=new DefaultRunExecutor(model,new ToolCallback[0],null,null,null,null,false);
+        String answer=executor.execute(context("我只有一名成员，可以据此给完整双打出招顺序吗？",history));
+        assertTrue(answer.contains("莱姆"));assertTrue(answer.contains("尚不足以"));
+        assertTrue(answer.contains("实际速度"));assertFalse(answer.contains("画皮"));verifyNoInteractions(model);
+        assertTrue(GymDialogueRouter.reply(context("我不是只有一名成员，可以给完整双打出招顺序吗？",history),new ToolCallback[0]).isEmpty());
+    }
     @Test void negativeActionsDoNotReplaceRosterAndBoundFollowupsNeverUseModelMemory() {
         var tools = new ToolCallback[0];
         var larry = List.<Message>of(new UserMessage("我只想看青木的队伍资料，不要推荐我方。"));

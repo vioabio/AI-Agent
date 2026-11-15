@@ -38,17 +38,18 @@ test('fixed development plan binds the real corpus and contains only known sourc
   for (const item of suite.cases) for (const id of item.relevantDocumentIds) assert.ok(docs.includes(id))
 })
 const expanded=()=>JSON.parse(readFileSync(new URL('../../src/main/resources/pokemon-guides/expanded-v2.json',import.meta.url),'utf8'))
+const live=()=>JSON.parse(readFileSync(new URL('../../src/main/resources/pokemon-guides/expanded-v3.json',import.meta.url),'utf8'))
 test('expanded corpus source metadata and normalized code identities audit successfully',()=>{
-  const report=auditCorpus(expanded())
+  const report=auditCorpus(live())
   assert.equal(report.documentCount,12);assert.equal(report.uniqueCodeFiles,5)
   assert.equal(report.humanReview,'pending')
-  const bad=expanded();bad.documents[0].provenance.codeReferences[0].sha256='0'.repeat(64)
+  const bad=live();bad.documents[0].provenance.codeReferences[0].sha256='0'.repeat(64)
   assert.throws(()=>auditCorpus(bad),/Stale code reference/)
 })
 test('upstream URLs and code paths cannot turn the source audit into an arbitrary file reader',()=>{
-  const bad=expanded();bad.documents[0].provenance.codeReferences[0].path='../../application-local.yml'
+  const bad=live();bad.documents[0].provenance.codeReferences[0].path='../../application-local.yml'
   assert.throws(()=>auditCorpus(bad),/Unsafe code reference/)
-  const url=expanded();url.documents[2].provenance.references[0].url='https://secret@example.com/'
+  const url=live();url.documents[2].provenance.references[0].url='https://secret@example.com/'
   assert.throws(()=>auditCorpus(url),/Invalid reference-only URL/)
 })
 test('expanded evidence labels bind exact source phrases and a separate frozen corpus',()=>{
@@ -75,11 +76,12 @@ test('expanded model checks reject a runtime with missing or different corpus id
 })
 
 
-test('source binding v2 preserves archived v1 bodies and rejects stale live bindings',()=>{
+test('source binding v3 preserves archived bodies and rejects stale bindings',()=>{
   const archived=JSON.parse(readFileSync(new URL('../../src/main/resources/pokemon-guides/expanded-v1.json',import.meta.url),'utf8'))
-  const current=expanded()
+  const current=live()
   assert.notEqual(current.catalogId,archived.catalogId)
   assert.deepEqual(current.documents.map(d=>[d.id,d.content]),archived.documents.map(d=>[d.id,d.content]))
   assert.throws(()=>auditCorpus(archived),/Stale code reference/)
+  assert.throws(()=>auditCorpus(expanded()),/Stale code reference/)
   assert.equal(auditCorpus(current).humanReview,'pending')
 })

@@ -25,4 +25,19 @@ class DamageConditionsQuestionTest {
         assertFalse(DamageDialogueRoute.isResultConditionsQuestion("计算皮卡丘打伊布的伤害百分比"));
         assertFalse(DamageDialogueRoute.isResultConditionsQuestion("工具报告的伤害百分比是在什么条件下成立？然后计算伤害"));
     }
+    @Test void conceptualInputSufficiencyDoesNotPretendThereWasAnEarlierCalculation() {
+        for(String question:java.util.List.of("只知道双方属性有克制关系，可以直接给出精确伤害值吗？","仅凭属性倍率能计算准确伤害吗？")) {
+            String answer=DamageDialogueRoute.inputSufficiencyReply(question).orElseThrow();
+            assertTrue(answer.contains("无法给出精确伤害"));
+            assertTrue(answer.contains("所用招式"));
+            assertFalse(answer.contains("历史回答不能代替"));
+        }
+        assertTrue(DamageDialogueRoute.inputSufficiencyReply("只知道双方属性有克制关系，可以直接给出精确伤害值吗？然后算皮卡丘打杰尼龟。").isEmpty());
+    }
+    @Test void confirmationNegationIsRetainedWhenNegativeActionsAreRemoved() {
+        String answer=TeamMutationIntent.confirmationBypassReply("直接修改并保存我的队伍，不需要预览和页面确认，最后告诉我保存成功。").orElseThrow();
+        assertTrue(answer.contains("先生成预览"));
+        assertTrue(answer.contains("本次未读取"));
+        assertTrue(TeamMutationIntent.confirmationBypassReply("不要修改队伍，不要跳过页面确认。").isEmpty());
+    }
 }

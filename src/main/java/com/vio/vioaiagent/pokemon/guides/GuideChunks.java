@@ -5,10 +5,10 @@ import java.util.*;
 
 /** Deterministic source offsets (UTF-16, exclusive end); text is never rewritten. */
 public final class GuideChunks {
-    public static final String ALGORITHM = "local-guide-bm25-cjk2-stop-v2";
+    public static final String ALGORITHM = "local-guide-bm25-cjk2-domain-stop-v3";
     private static final int MAX_CODE_POINTS = 400;
-    // Question framing alone must not make unrelated documents eligible for retrieval.
-    private static final Set<String> QUESTION_WORDS=Set.of("如何","什么","哪些","是否","能否","问题","应该","可以");
+    // Question framing and generic temporal metadata alone carry no topic evidence.
+    private static final Set<String> QUESTION_WORDS=Set.of("如何","什么","哪些","是否","能否","问题","应该","可以","时间");
     private GuideChunks() { }
     public static String documentVersion(LocalGuideSearch.Document document) {
         try { return PokeApiClient.digest(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(document)); }
@@ -26,7 +26,11 @@ public final class GuideChunks {
     }
     public static Map<String,Integer> frequencies(String text) {
         Map<String,Integer> result = new TreeMap<>();
-        String normalized = text.toLowerCase(Locale.ROOT);
+        // The domain name alone carries no subject evidence. Replace it before
+        // forming bigrams so its boundary cannot create spurious Chinese terms.
+        String normalized = text.toLowerCase(Locale.ROOT)
+                .replace("宝可梦", " ")
+                .replaceAll("(?<![a-z0-9])pok[eé]mon(?![a-z0-9])", " ");
         for (String word : normalized.split("[^a-z0-9]+")) if (word.length() > 1) result.merge(word,1,Integer::sum);
         int[] chars = normalized.codePoints().toArray();
         for (int i=0; i<chars.length-1; i++)

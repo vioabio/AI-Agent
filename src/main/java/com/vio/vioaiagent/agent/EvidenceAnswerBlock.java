@@ -10,8 +10,8 @@ public record EvidenceAnswerBlock(String schemaVersion, String kind, String targ
         String requestDigest, String projectionDigest, String engineVersion, String scope, List<Source> sources) {
     public record Source(String role, String url, String checksum) {
         public Source {
-            if (!Set.of("attacker", "defender").contains(role) || url == null
-                    || !url.matches("https://pokeapi\\.co/api/v2/pokemon/[1-9][0-9]{0,5}/") || !digest(checksum))
+            if (!Set.of("attacker", "defender").contains(role) || url == null || url.length() > 128
+                    || !url.matches("https://pokeapi\\.co/api/v2/pokemon/(?:[1-9][0-9]{0,5}|[a-z][a-z0-9]*(?:-[a-z0-9]+)*)/") || !digest(checksum))
                 throw new IllegalArgumentException("Invalid public damage source");
         }
     }

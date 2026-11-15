@@ -1,0 +1,3354 @@
+{
+  "schemaVersion": "u6-overnight-delivery-v1",
+  "status": "READY_FOR_USER_CONFIGURATION_AND_HUMAN_REVIEW",
+  "branch": "codex/v1.1-agent-upgrade",
+  "remoteRepository": "https://github.com/vioabio/AI-Agent.git",
+  "releaseDecision": "PENDING_REAL_RERANK_COMPARISON_AND_HUMAN_REVIEW",
+  "build": {
+    "schemaVersion": "runtime-artifact-comparison-v3",
+    "componentManifestVersion": "u6-runtime-components-v26",
+    "componentManifestSha256": "6dd3c567c42a98672911cdf940d1c153ca02084e82e2384d9f848758a9d9dad0",
+    "status": "ARTIFACTS_MATCH",
+    "classes": [
+      {
+        "name": "AccountScopeReply",
+        "expected": "6e241a8c008dce2f08fd1307733df8210ac5293de5a0128b1859d1b0d8f3584e",
+        "actual": "6e241a8c008dce2f08fd1307733df8210ac5293de5a0128b1859d1b0d8f3584e",
+        "matches": true
+      },
+      {
+        "name": "DefaultRunExecutor",
+        "expected": "4f371fd5e0b591b029e42dbed0e1e8df8d0d7bddd7ea5d0aa7b75a090f0fdaed",
+        "actual": "4f371fd5e0b591b029e42dbed0e1e8df8d0d7bddd7ea5d0aa7b75a090f0fdaed",
+        "matches": true
+      },
+      {
+        "name": "ToolCallAgent",
+        "expected": "57a0ac407f52cd812c23281436f5a9eaf18b7af780d0ae0f49e710bbae0253e9",
+        "actual": "57a0ac407f52cd812c23281436f5a9eaf18b7af780d0ae0f49e710bbae0253e9",
+        "matches": true
+      },
+      {
+        "name": "GuideAnswerEvidence",
+        "expected": "2f0662d005cf40beada8b530d7db211a12c78645cd93404139dda2e8a2ed6b33",
+        "actual": "2f0662d005cf40beada8b530d7db211a12c78645cd93404139dda2e8a2ed6b33",
+        "matches": true
+      },
+      {
+        "name": "VioManus",
+        "expected": "9616def02bf2e493d5155d9e57bd5d30306b98d3955915b08f985454c6d84ecb",
+        "actual": "9616def02bf2e493d5155d9e57bd5d30306b98d3955915b08f985454c6d84ecb",
+        "matches": true
+      },
+      {
+        "name": "PokemonAgentRunService",
+        "expected": "1b348890b7d174e17a5c69bd60c5c934738a887cadb13cc9141052dc4e89d4f1",
+        "actual": "1b348890b7d174e17a5c69bd60c5c934738a887cadb13cc9141052dc4e89d4f1",
+        "matches": true
+      }
+    ],
+    "note": "Resource hashes compare artifacts; they do not attest JVM redefinition or hot reload.",
+    "additionalComponents": [
+      {
+        "name": "LocalGuideSearch",
+        "expected": "21fbd06b8ef002e7301788d659330ba273f46189b649655c9453c6bacd844d01",
+        "actual": "21fbd06b8ef002e7301788d659330ba273f46189b649655c9453c6bacd844d01",
+        "matches": true
+      },
+      {
+        "name": "SavedTrainingRoadmap",
+        "expected": "edf97b7eb3163d34964f6a976cc32b773bf5e41e7705576765763fe99c2470a8",
+        "actual": "edf97b7eb3163d34964f6a976cc32b773bf5e41e7705576765763fe99c2470a8",
+        "matches": true
+      },
+      {
+        "name": "SavedTrainingResources",
+        "expected": "3d818c09c1c1a66e27e24f94269f5a8c7ba8ab1a975db59e52ccb189697ced86",
+        "actual": "3d818c09c1c1a66e27e24f94269f5a8c7ba8ab1a975db59e52ccb189697ced86",
+        "matches": true
+      },
+      {
+        "name": "TrainingIntentState",
+        "expected": "90f1e1b199ab9fb0a65ad7b74e37033c67fa4e13e1577eebe63560e14d215cea",
+        "actual": "90f1e1b199ab9fb0a65ad7b74e37033c67fa4e13e1577eebe63560e14d215cea",
+        "matches": true
+      },
+      {
+        "name": "TrainingTargetCheck",
+        "expected": "c4306222be6bfbadda950a1b0c2a6b5666c8408ffc22c83871c936f82889485c",
+        "actual": "c4306222be6bfbadda950a1b0c2a6b5666c8408ffc22c83871c936f82889485c",
+        "matches": true
+      },
+      {
+        "name": "TrainingLearningCheck",
+        "expected": "88d2a85a1df9019f41ff5c79bc5c99b42f0871298770216dd999d9cafc2026d2",
+        "actual": "88d2a85a1df9019f41ff5c79bc5c99b42f0871298770216dd999d9cafc2026d2",
+        "matches": true
+      },
+      {
+        "name": "TrainingResourceBudget",
+        "expected": "3865344cdfc498a88e5a4ff8539379e3a7febb41f02a8d54ed80ec7add2f999a",
+        "actual": "3865344cdfc498a88e5a4ff8539379e3a7febb41f02a8d54ed80ec7add2f999a",
+        "matches": true
+      },
+      {
+        "name": "SavedTrainingGymReview",
+        "expected": "4555a6318b8f49c3d3f88d327d0b3df5e83db50057c7f9e37bc98de33de64506",
+        "actual": "4555a6318b8f49c3d3f88d327d0b3df5e83db50057c7f9e37bc98de33de64506",
+        "matches": true
+      },
+      {
+        "name": "TrainingStatProjection",
+        "expected": "d77c9c9c6dbae9f36b05a7add7cbfd500d7ac45e9f1dcab084c0e0a5e19935fa",
+        "actual": "d77c9c9c6dbae9f36b05a7add7cbfd500d7ac45e9f1dcab084c0e0a5e19935fa",
+        "matches": true
+      },
+      {
+        "name": "TrainingLevelConstraints",
+        "expected": "de257c0d2dcba05c3f07713f1416c37133552a117cf691accfb30294938a42f5",
+        "actual": "de257c0d2dcba05c3f07713f1416c37133552a117cf691accfb30294938a42f5",
+        "matches": true
+      },
+      {
+        "name": "StaticStatCalculator",
+        "expected": "f223a2ed7abe14c53d9936e241d4e8ccc0a1de4d04d6d69cd531f4d1c4e0aa8a",
+        "actual": "f223a2ed7abe14c53d9936e241d4e8ccc0a1de4d04d6d69cd531f4d1c4e0aa8a",
+        "matches": true
+      },
+      {
+        "name": "TrainingProgressCheck",
+        "expected": "036e37945c6504fc6cf5f10e232e869d6f7a8af0456e74529900fe589ef17f4b",
+        "actual": "036e37945c6504fc6cf5f10e232e869d6f7a8af0456e74529900fe589ef17f4b",
+        "matches": true
+      },
+      {
+        "name": "GymResourcePolicy",
+        "expected": "f98d025c2ec167f308013c22465ac1f28b21c7ae50444849278bf0718571ea84",
+        "actual": "f98d025c2ec167f308013c22465ac1f28b21c7ae50444849278bf0718571ea84",
+        "matches": true
+      },
+      {
+        "name": "GuideRevisionPolicy",
+        "expected": "78f86f36f3e7ad9e73db7be4496e99809348b932ed922be8a3060bfd61fea53d",
+        "actual": "78f86f36f3e7ad9e73db7be4496e99809348b932ed922be8a3060bfd61fea53d",
+        "matches": true
+      },
+      {
+        "name": "TeamMutationIntent",
+        "expected": "648e274d3a933b0685fa67af4c46b54f0f8ef4d74ae8591c76a4beecd9f9cc7b",
+        "actual": "648e274d3a933b0685fa67af4c46b54f0f8ef4d74ae8591c76a4beecd9f9cc7b",
+        "matches": true
+      },
+      {
+        "name": "ReferenceRulesReply",
+        "expected": "353f69c9392c801fa3ca7cac3e26991a3e95909ed6bbe2416307ed5cee4dc773",
+        "actual": "353f69c9392c801fa3ca7cac3e26991a3e95909ed6bbe2416307ed5cee4dc773",
+        "matches": true
+      },
+      {
+        "name": "GymFocusedFactReply",
+        "expected": "3b789df00fbcdc2713b6ffa0a5825906c299df06231cf5162468bb7555fff546",
+        "actual": "3b789df00fbcdc2713b6ffa0a5825906c299df06231cf5162468bb7555fff546",
+        "matches": true
+      },
+      {
+        "name": "OwnedTeamReadRoute",
+        "expected": "4f72e2873dac4dc442a167aeddc579ea500e21776487be00c6d1cd8ee6f370c5",
+        "actual": "4f72e2873dac4dc442a167aeddc579ea500e21776487be00c6d1cd8ee6f370c5",
+        "matches": true
+      },
+      {
+        "name": "ExplicitDamageRequest",
+        "expected": "56126df911d8edd6c1877f1fe5e4bcfcf841220647f2bacfcc3f5d7e2d63a4b6",
+        "actual": "56126df911d8edd6c1877f1fe5e4bcfcf841220647f2bacfcc3f5d7e2d63a4b6",
+        "matches": true
+      },
+      {
+        "name": "AgentToolObservation",
+        "expected": "ac5b019d762e255ddb6a94cc91fbd35247f4824835a6bfac6e483b70fd193626",
+        "actual": "ac5b019d762e255ddb6a94cc91fbd35247f4824835a6bfac6e483b70fd193626",
+        "matches": true
+      },
+      {
+        "name": "AgentTracingConfiguration",
+        "expected": "2f1c9a6fca21e0df7166cd560722852a961872309520668d79cf370ec3368bce",
+        "actual": "2f1c9a6fca21e0df7166cd560722852a961872309520668d79cf370ec3368bce",
+        "matches": true
+      },
+      {
+        "name": "ToolExecutionGateway",
+        "expected": "e8a9aea0b13b95e45df3da6f038c1b24da80c7077ead13a0c2c9802abe5fff1b",
+        "actual": "e8a9aea0b13b95e45df3da6f038c1b24da80c7077ead13a0c2c9802abe5fff1b",
+        "matches": true
+      },
+      {
+        "name": "TaskSkillRegistry",
+        "expected": "41b438fcdc1c08f9b359fed1996f38c00d1cc30d6b0bac9c0ff6f25a0bdbe8e5",
+        "actual": "41b438fcdc1c08f9b359fed1996f38c00d1cc30d6b0bac9c0ff6f25a0bdbe8e5",
+        "matches": true
+      },
+      {
+        "name": "TaskContextAssembler",
+        "expected": "191e5c97d9651c59255d3b96df1d17d41a38006ca9c97f03b6e23f43a7f3938b",
+        "actual": "191e5c97d9651c59255d3b96df1d17d41a38006ca9c97f03b6e23f43a7f3938b",
+        "matches": true
+      },
+      {
+        "name": "GuideReferenceIdentity",
+        "expected": "7c0331f7b74434260c9cb262dcdce5e5b4b5cc9473eb4e0fdfec03596ea59d5c",
+        "actual": "7c0331f7b74434260c9cb262dcdce5e5b4b5cc9473eb4e0fdfec03596ea59d5c",
+        "matches": true
+      },
+      {
+        "name": "LocalPokeApiRepository",
+        "expected": "fd4b684e3a628745487de81a3e649cc231e4d49179ff990b9206013ca5634f2b",
+        "actual": "fd4b684e3a628745487de81a3e649cc231e4d49179ff990b9206013ca5634f2b",
+        "matches": true
+      },
+      {
+        "name": "RegionalFormName",
+        "expected": "db2b114acba013535b8a770d98f9007dc5b8f9e89a774f364422ef801b5efbaa",
+        "actual": "db2b114acba013535b8a770d98f9007dc5b8f9e89a774f364422ef801b5efbaa",
+        "matches": true
+      },
+      {
+        "name": "AgentRunObservation",
+        "expected": "26d6c1d6eec04e33ddf02be9d7017f035f813f7579784119ec74d71407a96f6b",
+        "actual": "26d6c1d6eec04e33ddf02be9d7017f035f813f7579784119ec74d71407a96f6b",
+        "matches": true
+      },
+      {
+        "name": "DomainTracingObservationHandler",
+        "expected": "8062b46767b58b36c7f44492090afc3901d592f09f5b254e4caaadc0588e022c",
+        "actual": "8062b46767b58b36c7f44492090afc3901d592f09f5b254e4caaadc0588e022c",
+        "matches": true
+      },
+      {
+        "name": "SpecialistAgentCoordinator",
+        "expected": "0b19f54fe4cdf0f30b5dc057296a6c69455b43b0afb37a3dca88fef9245f49d5",
+        "actual": "0b19f54fe4cdf0f30b5dc057296a6c69455b43b0afb37a3dca88fef9245f49d5",
+        "matches": true
+      },
+      {
+        "name": "PokemonAnswerBlock",
+        "expected": "fe67b25e9e801035622dda09be738e849163bee74e5c609945abfd9091e0758e",
+        "actual": "fe67b25e9e801035622dda09be738e849163bee74e5c609945abfd9091e0758e",
+        "matches": true
+      },
+      {
+        "name": "DamageAnswerBlock",
+        "expected": "027a458754f382c93e5d028a7509a9acfb2e69f3c277bad248fe02078313bbd0",
+        "actual": "027a458754f382c93e5d028a7509a9acfb2e69f3c277bad248fe02078313bbd0",
+        "matches": true
+      },
+      {
+        "name": "EvidenceAnswerBlock",
+        "expected": "881b7377fa818aa50c703698089f46260120bc0ad47ef4ad85e6f5e25628bfb1",
+        "actual": "881b7377fa818aa50c703698089f46260120bc0ad47ef4ad85e6f5e25628bfb1",
+        "matches": true
+      },
+      {
+        "name": "EvidenceAnswerBlock$Source",
+        "expected": "971d46dfa45b8362ec4af02a6c7d53500eec0af93f435e0fe4b571e485dae1f6",
+        "actual": "971d46dfa45b8362ec4af02a6c7d53500eec0af93f435e0fe4b571e485dae1f6",
+        "matches": true
+      },
+      {
+        "name": "TeamSuggestionAnswerBlock",
+        "expected": "7487618b5d8612f9ab2cf6ceddd82735e10d8eb4384409f14b7bf4bdc1e3ede1",
+        "actual": "7487618b5d8612f9ab2cf6ceddd82735e10d8eb4384409f14b7bf4bdc1e3ede1",
+        "matches": true
+      },
+      {
+        "name": "LocalDamageEngine",
+        "expected": "a6611763c8f9cf19680677224bfa1c6d6c6e289b4b0631ff657ab5d9e8d2eedd",
+        "actual": "a6611763c8f9cf19680677224bfa1c6d6c6e289b4b0631ff657ab5d9e8d2eedd",
+        "matches": true
+      },
+      {
+        "name": "LocalDamageEngine$Combatant",
+        "expected": "3e5d95c65a0618aaa697127c5178467a7f4cd6057238b004a3fd133413da8f9d",
+        "actual": "3e5d95c65a0618aaa697127c5178467a7f4cd6057238b004a3fd133413da8f9d",
+        "matches": true
+      },
+      {
+        "name": "DamageToolSchema",
+        "expected": "20b6a10eef67dcf9ec3bf4e5b6331569aeb9ef2232c646da100ef00bb296156b",
+        "actual": "20b6a10eef67dcf9ec3bf4e5b6331569aeb9ef2232c646da100ef00bb296156b",
+        "matches": true
+      },
+      {
+        "name": "TeamAnswerEvidence",
+        "expected": "e983a80c5e6e46d15f7b140c01e30eabe45d05cd7b3c019c7adaad0a42177593",
+        "actual": "e983a80c5e6e46d15f7b140c01e30eabe45d05cd7b3c019c7adaad0a42177593",
+        "matches": true
+      },
+      {
+        "name": "DamageAnswerEvidence",
+        "expected": "8eeb1a0db8449e8eb52e9fa3976fa7785e2554647b0cec1866482fd58e51e819",
+        "actual": "8eeb1a0db8449e8eb52e9fa3976fa7785e2554647b0cec1866482fd58e51e819",
+        "matches": true
+      },
+      {
+        "name": "DamageDialogueRoute",
+        "expected": "fe46b598c2a564ea78a8890fc999bc739b6e6bac37fe2d78d16158967749d545",
+        "actual": "fe46b598c2a564ea78a8890fc999bc739b6e6bac37fe2d78d16158967749d545",
+        "matches": true
+      },
+      {
+        "name": "GameVersionRequest",
+        "expected": "4364d5b22933dac7c0dac38db4b092d3c79bda69e0b7090dcdb167f4f1823a47",
+        "actual": "4364d5b22933dac7c0dac38db4b092d3c79bda69e0b7090dcdb167f4f1823a47",
+        "matches": true
+      },
+      {
+        "name": "CompetitiveTeamsTool",
+        "expected": "d3b29a669fb88a019d9253b6b787950e096b006e9a6f1cd03cde8ac984dd9e67",
+        "actual": "d3b29a669fb88a019d9253b6b787950e096b006e9a6f1cd03cde8ac984dd9e67",
+        "matches": true
+      },
+      {
+        "name": "LocalGuideSemanticSearch",
+        "expected": "67f6834fd70d4040d16f1e3b11f2fdcd26d223bfe12d51273435a7e3c1bb6a9d",
+        "actual": "67f6834fd70d4040d16f1e3b11f2fdcd26d223bfe12d51273435a7e3c1bb6a9d",
+        "matches": true
+      },
+      {
+        "name": "GuideSemanticProperties",
+        "expected": "5261a54df53a8b57c082321da678b3dc7b12ecaa4686bc4f64c42d2be455093d",
+        "actual": "5261a54df53a8b57c082321da678b3dc7b12ecaa4686bc4f64c42d2be455093d",
+        "matches": true
+      },
+      {
+        "name": "GuideEmbeddingClient",
+        "expected": "f85e6f95ffcaf419a7c318d36eaae1bc087b2e06fb032578c34190ff82e80858",
+        "actual": "f85e6f95ffcaf419a7c318d36eaae1bc087b2e06fb032578c34190ff82e80858",
+        "matches": true
+      },
+      {
+        "name": "GuideApplicability",
+        "expected": "c980bc26b38f32dfa5a2775aaf8e27c33e55cf83ec0dbc1492fdd382c88796d9",
+        "actual": "c980bc26b38f32dfa5a2775aaf8e27c33e55cf83ec0dbc1492fdd382c88796d9",
+        "matches": true
+      },
+      {
+        "name": "SqliteGuideKnowledgeRetriever",
+        "expected": "13a2c4c1698d885e54b82ecb4681ecd76ae9036ee430e5bbb2e42960c07f6ded",
+        "actual": "13a2c4c1698d885e54b82ecb4681ecd76ae9036ee430e5bbb2e42960c07f6ded",
+        "matches": true
+      },
+      {
+        "name": "GuideChunks",
+        "expected": "dbea9eb1a283addd8e77f0674dafb52418f9246571af6b34482e7e2360a10c97",
+        "actual": "dbea9eb1a283addd8e77f0674dafb52418f9246571af6b34482e7e2360a10c97",
+        "matches": true
+      },
+      {
+        "name": "TypeMatchupReply",
+        "expected": "6800e5ddd96b01a54bf021695c2ea061bc362881dcedd360ae78a1c2595a1899",
+        "actual": "6800e5ddd96b01a54bf021695c2ea061bc362881dcedd360ae78a1c2595a1899",
+        "matches": true
+      },
+      {
+        "name": "SpecialistRole",
+        "expected": "cd6044c17e323f391c77ef64b94bb5543d74c97697352455dd4346d4ec088ae1",
+        "actual": "cd6044c17e323f391c77ef64b94bb5543d74c97697352455dd4346d4ec088ae1",
+        "matches": true
+      },
+      {
+        "name": "GymCatalogAnswer",
+        "expected": "5c5d55dae0aedbb887301e8a156a26b62480039b29628ca8e3ae968e1e230bd7",
+        "actual": "5c5d55dae0aedbb887301e8a156a26b62480039b29628ca8e3ae968e1e230bd7",
+        "matches": true
+      },
+      {
+        "name": "TrainingMechanicsReply",
+        "expected": "a79a374bece39f674fe79d4d3beb07512513fceca7ad5761f610b37f665a23c1",
+        "actual": "a79a374bece39f674fe79d4d3beb07512513fceca7ad5761f610b37f665a23c1",
+        "matches": true
+      },
+      {
+        "name": "GymDialogueRouter",
+        "expected": "8bd91fef3a3518e946d9d66d63e9e2cfb1b72d556a2790317602b133ea7d5b91",
+        "actual": "8bd91fef3a3518e946d9d66d63e9e2cfb1b72d556a2790317602b133ea7d5b91",
+        "matches": true
+      },
+      {
+        "name": "ConfigurationExplanationRoute",
+        "expected": "bdf0165a125137c3f3bae4425ffca5c7b024118f2b01658c0821cffb9ea504cf",
+        "actual": "bdf0165a125137c3f3bae4425ffca5c7b024118f2b01658c0821cffb9ea504cf",
+        "matches": true
+      },
+      {
+        "name": "ConfigurationExplanationRoute$Topic",
+        "expected": "3d284b9bd31d0a3c1a0b30633cd38d3470dde64a96d7deaffb728706ef494be5",
+        "actual": "3d284b9bd31d0a3c1a0b30633cd38d3470dde64a96d7deaffb728706ef494be5",
+        "matches": true
+      },
+      {
+        "name": "ConversationRecallReply",
+        "expected": "bc4aa1ca41bf431ca8589b9e371e9242ebb2b2a882bd83806859386968d500a9",
+        "actual": "bc4aa1ca41bf431ca8589b9e371e9242ebb2b2a882bd83806859386968d500a9",
+        "matches": true
+      },
+      {
+        "name": "GymConversationContext",
+        "expected": "e52045962dcb7a98e75525cdfbff2898ae4d4d8ee959326b4c49cdeb9b2203b9",
+        "actual": "e52045962dcb7a98e75525cdfbff2898ae4d4d8ee959326b4c49cdeb9b2203b9",
+        "matches": true
+      },
+      {
+        "name": "GymTurnPlan",
+        "expected": "8e60547391f73cd1a74be5935b9134c62fffa3c2457b39024122122f717c2a18",
+        "actual": "8e60547391f73cd1a74be5935b9134c62fffa3c2457b39024122122f717c2a18",
+        "matches": true
+      },
+      {
+        "name": "SourceInstructionReply",
+        "expected": "dcfcd715cfd12ccaf07ae053b685288c7b0e54c34a7d8ecfb57797a748a24dee",
+        "actual": "dcfcd715cfd12ccaf07ae053b685288c7b0e54c34a7d8ecfb57797a748a24dee",
+        "matches": true
+      },
+      {
+        "name": "GuideRerankConfiguration",
+        "expected": "f1e855f5e70930b3b62cc61a906da4d511435ae42953d3c80f906d20b0e4e9c3",
+        "actual": "f1e855f5e70930b3b62cc61a906da4d511435ae42953d3c80f906d20b0e4e9c3",
+        "matches": true
+      },
+      {
+        "name": "GuideRerankConfiguration$HttpReranker",
+        "expected": "0bf7db1dbb8cebb79a6026f8b1ece2f98a7e069583a9f4feb229fa28282a23f6",
+        "actual": "0bf7db1dbb8cebb79a6026f8b1ece2f98a7e069583a9f4feb229fa28282a23f6",
+        "matches": true
+      },
+      {
+        "name": "GuideRerankConfiguration$HttpReranker$LimitedBody",
+        "expected": "a613aa6abdf94998e4a6a49ac37acff02a905b301cff3b321a885fb7844ff113",
+        "actual": "a613aa6abdf94998e4a6a49ac37acff02a905b301cff3b321a885fb7844ff113",
+        "matches": true
+      },
+      {
+        "name": "GuideRerankPipeline",
+        "expected": "14e32ad91eb5d4cf3c849e8976cd9b7177528f12102fc7789812f2c38439adb4",
+        "actual": "14e32ad91eb5d4cf3c849e8976cd9b7177528f12102fc7789812f2c38439adb4",
+        "matches": true
+      },
+      {
+        "name": "GuideReranker",
+        "expected": "c8e7207c0bb1ede18f77daf106f9f05b5ebb23232ba168ac399e86745979f698",
+        "actual": "c8e7207c0bb1ede18f77daf106f9f05b5ebb23232ba168ac399e86745979f698",
+        "matches": true
+      },
+      {
+        "name": "McpCancellationTransport",
+        "expected": "0e2ffc07dd3103d1f6297e8acb80c4de615dd6f43c766c2866a2940645e34401",
+        "actual": "0e2ffc07dd3103d1f6297e8acb80c4de615dd6f43c766c2866a2940645e34401",
+        "matches": true
+      },
+      {
+        "name": "McpCancellationTransport$Scope",
+        "expected": "577d31fd2ba9bd14eb0905f52dc5e1a03a57875b2b4722f45e4a57a18028e844",
+        "actual": "577d31fd2ba9bd14eb0905f52dc5e1a03a57875b2b4722f45e4a57a18028e844",
+        "matches": true
+      },
+      {
+        "name": "McpCancellationTransport$Invocation",
+        "expected": "64d65a86b9ca5ab7ed058cf3d53fdb127996cee408e17aa4f8281360230fa619",
+        "actual": "64d65a86b9ca5ab7ed058cf3d53fdb127996cee408e17aa4f8281360230fa619",
+        "matches": true
+      },
+      {
+        "name": "McpCancellationTransport$Snapshot",
+        "expected": "70b9d163f9471cc391f6dc46d08b5f8b483e1ef5a3b7cb435ebdfae0e5e23557",
+        "actual": "70b9d163f9471cc391f6dc46d08b5f8b483e1ef5a3b7cb435ebdfae0e5e23557",
+        "matches": true
+      },
+      {
+        "name": "CancellableMcpToolCallback",
+        "expected": "8f458e48dd95b6d9e605fe1ec9523c1a2efbfc8b99f5534cb39903044d4257f3",
+        "actual": "8f458e48dd95b6d9e605fe1ec9523c1a2efbfc8b99f5534cb39903044d4257f3",
+        "matches": true
+      },
+      {
+        "name": "McpCancellationConfiguration",
+        "expected": "1828a60623da0abf8d896e2799565c6ce6718f7a464cdfb52b1703c830494670",
+        "actual": "1828a60623da0abf8d896e2799565c6ce6718f7a464cdfb52b1703c830494670",
+        "matches": true
+      },
+      {
+        "name": "McpCancellationConfiguration$1",
+        "expected": "0752a5f28d55f74fb839bc23f8351e99003211b29795dc51eb1627c5b5af4f0b",
+        "actual": "0752a5f28d55f74fb839bc23f8351e99003211b29795dc51eb1627c5b5af4f0b",
+        "matches": true
+      }
+    ],
+    "cleanup": "LOGGED_OUT"
+  },
+  "backend": {
+    "scope": "FULL_OFFLINE_WITH_JAEGER_AND_SDK_PROBE_ENABLED",
+    "status": "PASS",
+    "totals": {
+      "tests": 1873,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3
+    },
+    "skips": [
+      {
+        "class": "com.vio.vioaiagent.mcp.McpClientStdioTest",
+        "test": "testStdioToolInvocation",
+        "reason": "需要先构建 vio-image-search-mcp-server-*.jar 到 target/ 目录"
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.McpClientStdioTest",
+        "test": "testStdioConnectionAndToolDiscovery",
+        "reason": "需要先构建 vio-image-search-mcp-server-*.jar 到 target/ 目录"
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.PokeApiReferenceTest",
+        "test": "liveSmokeOnlyWhenExplicitlyRequested",
+        "reason": null
+      }
+    ],
+    "suites": [
+      {
+        "class": "com.vio.vioaiagent.agent.AcceptanceGapRegressionTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.AccountScopeReplyTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.AdviceOnlyClarificationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.AnswerPresentationTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.AnswerRegression20261110Test",
+        "tests": 21,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.BasicFactAnswerTest",
+        "tests": 16,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.BuildCheckAgentAnswerTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.BuildCheckRequestRouteTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.BuildLearningPlanningTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.CapabilityCatalogTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.CompetitiveTrendsAgentTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.CompetitiveTrendsRequestTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.ConfigurationExplanationRouteTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.ConversationRecallReplyTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.DamageAdvicePolicyTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.DamageAnswerBlockTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.DamageAnswerEvidenceTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.DamageConditionsQuestionTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.ExplicitDamageRequestTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.GameVersionRequestTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.GuideOverviewReadyTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.GuideQueryCacheIntegrationTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.GuideReferenceRetentionTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.GuideResearchAgentTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.GymAnswerEvidenceTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.GymCatalogAnswerTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.GymDialogueRouterTest",
+        "tests": 21,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.GymFocusedFactReplyTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.GymMultiTurnAcceptanceTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.GymQuestionPolicyTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.GymTeamRecommendationRouteTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.KnockoutSufficiencyReplyTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.LearnsetAgentAnswerTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.LearnsetAnswerEvidenceTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.MachineAgentAnswerTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.MechanicAgentAnswerTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.MechanicAnswerEvidenceTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.OverviewResourceCoverageTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.OverviewResourcePreflightTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.ProjectGuideFullSourceTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.ProjectGuidePreflightTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.ProjectGuideRequestTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.ReferenceFailureAnswerTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.ReferenceRulesReplyTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.ReleaseQualityRegressionTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.ResourceAgentAnswerTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.ResourceAnswerEvidenceTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.SavedGymQuestionRouteTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.SavedTrainingGymReviewTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.SavedTrainingResourcesTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.SavedTrainingRoadmapTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.SourcedAnswerEvidenceTest",
+        "tests": 19,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.SourceUnavailableReplyTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.SpecialistAgentCoordinatorTest",
+        "tests": 25,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.SpecialistRunIntegrationTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.SpeciesGuidePreflightTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.StatMeaningQuestionTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TaskContextAssemblerTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TaskSkillRegistryTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TeamAnswerEvidenceTest",
+        "tests": 26,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TeamBuildAgentTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TeamBuildRequestRouteTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TeamBuildRouteMatrixTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TeamConfirmationBoundaryTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TeamDraftIdentityEvidenceTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TeamMemberOrderTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TeamSuggestionAnswerBlockTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TeamUnfilledDraftTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.ToolCallAgentAnswerTest",
+        "tests": 35,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.ToolHistoryIntegrityTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TrainingCalculationBoundsTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TrainingIntentStateTest",
+        "tests": 21,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TrainingLearningCheckTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TrainingLevelConstraintsTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TrainingPlanAnswerBlockTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TrainingProgressCheckTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TrainingResourceBudgetTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TrainingStatProjectionTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TrainingTargetCheckTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.TypeMatchupReplyTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.agent.VioManusMockTest",
+        "tests": 16,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.common.AgentErrorCodeTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.ContextBudgetPropertiesTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.CorsConfigTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.DashScopeContextBudgetProtocolTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.DeepSeekBillingProtocolTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.DeepSeekFailureProtocolTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.DeepSeekLocalContextTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.DeepSeekModelConfigurationTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.DeepSeekSseTerminationTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.DeepSeekToolStreamingProtocolTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.DeepSeekUsageProtocolTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.DemoPersistenceWiringTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.DemoProdParityTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.DemoProfileActivationTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.DeploymentProfileContractTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.EvaluationToolPolicyTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.LocalAccountHttpTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.LocalAccountModeTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.LocalReferenceDefaultsTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.LocalSqliteContextTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.McpRunCancellationHttpTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.ModelPricingPropertiesTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.OidcAbsoluteSessionTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.OidcBrowserLoginHttpTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.OidcBrowserSessionHttpTest",
+        "tests": 15,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.OidcOriginFilterTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.OidcPropertiesTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.OidcRoleAuthoritiesMapperTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.OidcSessionWebServerCustomizerTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.PartialOutputDisabledRunHttpTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.PartialOutputEnabledRunHttpTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.PokemonLocalModulesContextTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.RedisGlobalQuotaConfigurationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.ResourceDownloadPropertiesTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.RunAdmissionPropertiesTest",
+        "tests": 20,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.SecurityConfigTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.SecurityRouteCoverageTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.StartupContractValidatorTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.StreamFailureRunHttpTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.TaskBudgetPropertiesTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.TeamWorkflowHttpIntegrationTest",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.config.UpgradeEnabledHttpBrowserTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.ActivityNoticeControllerTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.AgentRunAdmissionHttpTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.AgentRunControllerTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.AgentRunVersionContextControllerTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.AnswerProjectionControllerTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.AuthSessionControllerTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.ConversationConstraintsControllerTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.EffectLedgerReconciliationControllerTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.EvaluationReportControllerTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.HitlControllerConsistencyTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.KnowledgeLifecycleControllerContractTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.LocalRuntimeControllerTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.PokemonResourceControllerTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.ReadyControllerTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.ResourceControllerConversationDeletionTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.ResourceControllerCursorTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.ResourceIdentityHttpTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.controller.TeamWorkflowHttpErrorsTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.exception.RequestValidationHttpTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.feedback.FeedbackServiceTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.feedback.FeedbackStateMachineTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.bridge.CustomToolCallbackAdapterTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.bridge.SpringAiMpcBridgeTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.client.McpCancellationTransportTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.gateway.McpGatewayTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.gateway.McpSessionManagerTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.integration.McpFullStackIntegrationTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.jsonrpc.JsonRpcCodecTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.jsonrpc.JsonRpcErrorCodeTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.McpClientConfigTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.McpClientSseTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.McpClientStdioTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 2
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.McpDomainEquivalenceTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.McpWireControlTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.protocol.McpProtocolHandlerTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.protocol.ProtocolMapperTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.ReadOnlyMcpAdapterTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.ReadOnlyMcpCatalogTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.ReadOnlyMcpStdioTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.SdkMcpCompatibilityTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.transport.McpEndpointPolicyTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.transport.SseTransportTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.transport.StdioTransportTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.memory.ContextCompressorTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.memory.LongTermMemoryTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.memory.MemoryEntryTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.memory.MemoryIntegrationTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.memory.MemoryRetrieverTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.memory.ShortTermMemoryTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.memory.TieredMemoryIntegrationTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.memory.UserMemoryServiceTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.memory.WorkingMemoryTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.multiagent.MultiAgentIntegrationTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.multiagent.MultiAgentStreamTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.multiagent.OrchestratorTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.multiagent.PlannerAgentTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.multiagent.ReviewerAgentTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.multiagent.TaskDagTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.multiagent.WorkerAgentTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.AgentLogContextTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.AgentMetricsTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.AgentModelObservationTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.AgentRunObservationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.AgentToolDispatchObservationTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.AgentTracingConfigurationTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.AgentTracingOverheadTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.JaegerCollectorTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.LoggingProfileTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.MetricsControllerTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.ModelContextBudgetTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.ModelCostEstimateTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.ModelFailureDiagnosticsTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.ModelUsageLedgerTest",
+        "tests": 14,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.ObservabilityIntegrationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.RunAttemptTimingTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.TaskModelBudgetTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.observability.TokenEstimateComparisonTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.orchestration.AgentConcurrencyGuardTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.orchestration.IdempotencyManagerTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.orchestration.OrchestrationIntegrationTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.orchestration.SessionStateMachineTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.orchestration.ThreadPoolIsolationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.orchestration.ToolRetryStrategyTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.orchestration.ToolTimeoutManagerTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.ActivityNoticeFixtureInitializerTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.ActivityNoticeRepositoryTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.ActivityNoticeServiceTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.BattleCalculationServiceTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.calculator.SpeedLineCalculatorTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.calculator.StaticStatCalculatorTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.calculator.TypeEffectivenessCalculatorTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.DamageResultContractTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.GuideProvenanceTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.guides.GuideApplicabilityWorkflowTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.guides.GuideRerankHttpTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.guides.GuideRerankObservationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.guides.GuideRerankPipelineTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.guides.GuideRevisionPolicyTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.guides.LocalGuideSemanticSearchTest",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.gym.GymAgentToolsTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.gym.GymBattleCalculatorTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.gym.GymChallengeServiceTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.gym.GymTeamCoreToolTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.LocalDamageEngineTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.LocalDamageFieldTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.LocalGuideIndexTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.LocalPokemonInputErrorsTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.PokeApiReferenceTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.PokemonFixtureInitializerTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.PokemonLocalModulesTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.PokemonResourceServiceTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.PokemonVersionContextValidatorTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.reference.BuildLearningNotesTest",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.reference.IndependentMechanicCatalogTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.reference.LocalBuildCheckServiceTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.reference.LocalBuildOptionsTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.reference.LocalLearnsetReferencesTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.reference.LocalResourceReferencesTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.reference.MachineAcquisitionCatalogTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.reference.MachineCraftingGuideTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.reference.MachineRecipeCatalogTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.reference.MachineReferenceTest",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.reference.PokeApiDeadlineTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.reference.PokeApiProxyTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.reference.PokemonNameIndexTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.reference.PokemonReferenceFailureTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.reference.TeamBuildCheckTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.reference.TeamDocumentControllerTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.RunToolScopeTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.SpeciesGuideRetrievalTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.TeamChangePresentationTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.TeamTeraPersistenceTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.TeamWorkflowTest",
+        "tests": 14,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.rag.catalog.InMemoryKnowledgeCatalogReleaseTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.rag.GameAppDocumentLoaderTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.rag.GameAppVectorStoreConfigTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.rag.ingestion.KnowledgeIndexingServiceTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.rag.ingestion.KnowledgeIngestionJobServiceTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.rag.ingestion.KnowledgeIngestionMigrationContractTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.rag.ingestion.KnowledgeIngestionServiceTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.rag.ingestion.KnowledgeIngestionWorkerTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.rag.ingestion.KnowledgeLifecycleServiceTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.rag.promotion.EvaluationReportArtifactDecoderTest",
+        "tests": 20,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.rag.promotion.JdbcEvaluationReportRepositoryTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.rag.promotion.KnowledgePromotionMigrationContractTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.rag.promotion.N1bPromotionTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.rag.retrieval.HybridKnowledgeRetrieverTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.rag.retrieval.KnowledgeRetrievalQueryLineageTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.AgentEventContractRegistryTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.AgentRunLifecycleSnapshotTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.AgentRunLineageTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.AgentRunStateMachineTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.AnswerProjectionTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.AnswerProjectionTimestampPrecisionTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.ConversationConstraintsRepositoryTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.ConversationHistoryTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.DamageBlockRunIntegrationTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.DefaultRunExecutorEvaluationTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.DefaultRunExecutorHistoryTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.DefaultRunExecutorIntentTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.DurableRunStateTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.EventRetentionServiceTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.FavoriteRepositoryTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.IdempotencyStoreTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.JdbcConversationRepositoryLifecycleTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.JdbcEventRepositoryLifecycleTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.JdbcRunRepositoryLifecycleTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.ModelInvocationCacheServiceTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceAdmissionFailureTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceAdmissionTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceAnswerProjectionTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceAnswerVisibilityTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceApprovalAdmissionTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceApprovalTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceConstraintsTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceContextBudgetTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceContractTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceConversationDeletionTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceCostTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceDurableConfigurationTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceIdempotencyTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceLeaseFencingTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceModelUsageTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceObservationTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceOidcPolicyTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceRecoveryTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceRunStepOutputTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceStreamingTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceTaskBudgetTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceTimingTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceToolInputTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonAgentRunServiceToolOutcomeTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PokemonBlockRunIntegrationTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.PostgresMigrationCatalogTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.ResourceCursorCodecTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.RunAdmissionControllerTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.RunConcurrencyTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.RunLeaseFenceTest",
+        "tests": 16,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.RunOutboxDispatcherTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.RunOutboxRepositoryTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.RunRecoveryPolicyTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.RunStepOutputRepositoryTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.RunStepOutputRetentionServiceTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.SqliteLocalHistoryRepositoryTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.TeamBlockRunIntegrationTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.TrainingBlockRunIntegrationTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.run.VersionedKnowledgeRunFacadeTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.ApiKeyAuthInterceptorTest",
+        "tests": 14,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.AuditLoggerTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.AuthorizationSnapshotTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.CommandGuardTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.GlobalQuotaStoreTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.HitlConcurrencyTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.HitlExpiryTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.HitlManagerTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.InternalPrincipalKeyTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.JdbcToolAuditSinkTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.LocalAccountDataTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.LocalAccountServiceTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.OidcPolicyInterceptorTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.OidcPrincipalPolicyAdapterTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.ParameterMaskerTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.PathGuardTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.PersistentHitlManagerTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.RedisGlobalQuotaStoreTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.SecurityIntegrationTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.TokenBindingTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.TokenStoreOidcRefreshTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.security.ToolSecurityAuditTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.CompetitiveTeamsToolTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.CompetitiveTrendsToolTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.governance.BoundedToolExecutorTest",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.governance.DamageResultEvidenceTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.governance.DamageToolSchemaTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.governance.LearnsetResultEvidenceTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.governance.MechanicResultEvidenceTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.governance.OidcPolicyGatewayTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.governance.PreviewInputEvidenceTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.governance.ToolAttemptTimingTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.governance.ToolCatalogValidatorTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.governance.ToolExecutionGatewayTest",
+        "tests": 18,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.governance.ToolExecutionResourceTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.governance.ToolGatewayTimingTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.governance.ToolInputEvidenceGatewayTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.governance.ToolInputEvidenceTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.governance.ToolResultCacheTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.governance.ToolSchemaReferencesTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.PokeTypeToolTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.ResourceDownloadToolTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.ToolOutputTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.tools.WebSearchToolAvailabilityTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "com.vio.vioaiagent.VioAiAgentApplicationTests",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ]
+  },
+  "mcpSetupFinal": {
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "log": "artifacts/u6-night-closure-mcp-setup-final-20261115.log"
+  },
+  "nodeTools": {
+    "tests": 492,
+    "failures": 0
+  },
+  "calculationBridge": {
+    "tests": 13,
+    "failures": 0
+  },
+  "frontend": {
+    "contracts": 230,
+    "lint": "PASS",
+    "typecheck": "PASS",
+    "securityContract": "PASS",
+    "productionBuild": "PASS",
+    "browserChannel": "chrome",
+    "browserStats": {
+      "startTime": "2026-11-15T15:02:58.146Z",
+      "duration": 376204.32899999997,
+      "expected": 113,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "browserScope": "MOCKED_HTTP_FRONTEND_CONTRACT_SCENARIOS",
+    "aggregateRunner": "ENVIRONMENT_PENDING_BUNDLED_CHROMIUM",
+    "aggregateLog": "artifacts/v1.1/test/frontend-quality-report.json"
+  },
+  "quality": {
+    "status": "VERIFIED",
+    "reviewMethod": "AI_ASSISTED_BODY_SOURCE_AND_TOOL_EVENT_REVIEW",
+    "scope": "KNOWN_REGRESSIONS_NOT_NEW_FIRST_ANSWERS",
+    "rows": [
+      {
+        "suite": "independent-v3",
+        "cases": 20,
+        "turns": 24,
+        "baselineSha256": "30a0dc1fa96cbaf7598b16f941ec0f6314f00ba97768759970e4384c8fa68be7",
+        "runtimeBuildSha256": "6f4d4277e301ef5ddac9e4014c169967f45fbfc01ed58e92e385c6eda35d30d2",
+        "semanticState": {
+          "enabled": true,
+          "configured": true,
+          "ready": true,
+          "mode": "BM25",
+          "model": "text-embedding-v4",
+          "dimensions": 1024,
+          "indexedChunks": 30,
+          "state": "NOT_INDEXED"
+        },
+        "status": "PASS",
+        "humanReview": "PENDING"
+      },
+      {
+        "suite": "overnight-known",
+        "cases": 12,
+        "turns": 24,
+        "baselineSha256": "1c7c3a2fc20e8b9134fc63136c66dd987293b67c104da8d9ee288368759d5e9d",
+        "runtimeBuildSha256": "6f4d4277e301ef5ddac9e4014c169967f45fbfc01ed58e92e385c6eda35d30d2",
+        "semanticState": {
+          "enabled": true,
+          "configured": true,
+          "ready": true,
+          "mode": "BM25",
+          "model": "text-embedding-v4",
+          "dimensions": 1024,
+          "indexedChunks": 30,
+          "state": "NOT_INDEXED"
+        },
+        "status": "PASS",
+        "humanReview": "PENDING"
+      },
+      {
+        "suite": "overnight-v2",
+        "cases": 12,
+        "turns": 16,
+        "baselineSha256": "a6d1400d293f6982758b2feddb01f8f1fdea4f58c4fb9dadf001c961f8c6bbd8",
+        "runtimeBuildSha256": "6f4d4277e301ef5ddac9e4014c169967f45fbfc01ed58e92e385c6eda35d30d2",
+        "semanticState": {
+          "enabled": true,
+          "configured": true,
+          "ready": true,
+          "mode": "BM25",
+          "model": "text-embedding-v4",
+          "dimensions": 1024,
+          "indexedChunks": 30,
+          "state": "NOT_INDEXED"
+        },
+        "status": "PASS",
+        "humanReview": "PENDING"
+      }
+    ]
+  },
+  "firstV3Score": {
+    "cases": 20,
+    "turns": 24,
+    "pass": 15,
+    "fail": 5,
+    "blocked": 0,
+    "humanReview": "PENDING"
+  },
+  "mcpHttp": {
+    "status": "PASS",
+    "scope": "RUN_HTTP_GATEWAY_SPRING_AI_SDK_STDIO_CONTROLLED_PUBLIC_FIXTURE",
+    "model": "CONTROLLED_NO_PROVIDER_CALLS",
+    "mapping": "TEST_ONLY_WEB_SEARCH_ALIAS_EXISTING_READ_ONLY_CAPABILITY",
+    "cancellation": {
+      "requested": 3,
+      "written": 3,
+      "failed": 0
+    },
+    "workerStops": {
+      "70": true,
+      "71": true,
+      "72": true
+    },
+    "records": [
+      {
+        "file": "run-39635ac4-8b93-4099-a24f-25a7dde1b7a8-events.json",
+        "artifactSha256": "4897e21dc8682df96c9018816f8f8fbcb24214682cbaecea86d7dfe3a09bd1b8",
+        "terminal": [
+          "run.timed_out"
+        ]
+      },
+      {
+        "file": "run-3ffa8a0e-4885-437c-8953-8f32eca38cae-events.json",
+        "artifactSha256": "a0cde7cc40c24534e48b57e05ffbab3ad3d7eaf660a73542a1feebd6c3955607",
+        "terminal": [
+          "run.completed"
+        ]
+      },
+      {
+        "file": "run-865ff87d-5377-4969-b28b-cbae822c9703-events.json",
+        "artifactSha256": "b51864a9e7c9a76e00bc003cce35062ad5ad5628aa988fa259d9f7f4e8971962",
+        "terminal": [
+          "run.cancelled"
+        ]
+      },
+      {
+        "file": "run-bfdd7742-9c65-4755-9760-1f9cf0104fbc-events.json",
+        "artifactSha256": "e5b3bba7d7aa9bd03485563e98f6a65ae84650fce335caa27c6c68c8c215c25f",
+        "terminal": [
+          "run.completed"
+        ]
+      },
+      {
+        "file": "run-d221d230-5eb4-4d63-b5df-e41e738d1671-events.json",
+        "artifactSha256": "6217171c510a40fd18100beb9979570b1f3c5ad093713de2cd53f9a3033715ba",
+        "terminal": [
+          "run.completed"
+        ]
+      },
+      {
+        "file": "run-d74eac9f-2566-4060-a010-a3736e90c5ef-events.json",
+        "artifactSha256": "9c99110707f6581b5e8cbd743e69b3d091d520e26169d833ba717ac03cecc303",
+        "terminal": [
+          "run.completed"
+        ]
+      }
+    ]
+  },
+  "soak": {
+    "status": "PASS",
+    "durationSeconds": 3600.3936201,
+    "pings": 7102,
+    "lookups": 60,
+    "calculations": 60,
+    "observation": {
+      "invalidFrames": 0,
+      "duplicateResponses": 0,
+      "stderrBytes": 6300,
+      "forcedTermination": false
+    },
+    "scope": "PRODUCTION_STDIO_BOUNDED_RATE_SOAK",
+    "memoryThresholdApplied": false,
+    "archive": "evaluation/upgrade-v1.1/u6/mcp-hour-soak-20261115.json"
+  },
+  "scanning": {
+    "state": "COMPLETE",
+    "gitleaksVersion": "8.24.3",
+    "stagedScan": "PASS",
+    "strictDocumentScan": "PASS",
+    "localConfiguredValues": "PASS",
+    "knownConfiguredValuesChecked": 2,
+    "findings": 0,
+    "allowlistBoundaryFixtures": 4
+  },
+  "cleanup": {
+    "OwnedPid": 30488,
+    "OwnedStartTicks": 639303540334478357,
+    "Status": "STOPPED",
+    "RemainingPorts": [
+      {
+        "LocalPort": 8123,
+        "OwningProcess": 35792
+      },
+      {
+        "LocalPort": 3000,
+        "OwningProcess": 39184
+      }
+    ]
+  },
+  "remaining": [
+    "用户重建并启动日常后端",
+    "用户配置真实精排服务，开发侧随后测效果与性能门槛",
+    "用户人工复核正文、来源、卡片及队伍确认流程"
+  ],
+  "evidencePortability": "U6_ARCHIVES_PRESERVE_EXACT_BYTES_WITH_GIT_ATTRIBUTES",
+  "testSetupFollowup": "McpRunCancellationHttpTest creates its artifacts parent directory for fresh checkouts; latest three tests passed after recompilation."
+}

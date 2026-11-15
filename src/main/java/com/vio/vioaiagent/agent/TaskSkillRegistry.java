@@ -23,12 +23,31 @@ public final class TaskSkillRegistry {
     }
     public List<Metadata> metadata(){return entries.values().stream().sorted(Comparator.comparing(Metadata::id)).toList();}
     public Optional<Metadata> select(String question,SpecialistRole role) {
-        if(question==null||question.length()>8000)return Optional.empty();
-        String id=role==SpecialistRole.DAMAGE_CALCULATION?"damage-verification":role==SpecialistRole.TEAM_PLANNING
-            ?question.matches("(?s).*(馆主|道馆).*" )?"gym-challenge":"saved-team-review"
-            :question.matches("(?is).*(热门|OU|使用率|竞技|赛事).*" )?"competitive-team-reference"
-            :question.matches("(?s).*(培养|努力值|个体值|性格|学习器|养成).*" )?"training-build-review":null;
-        return Optional.ofNullable(entries.get(id==null?"":id)).filter(m->m.role().equals(role.name()));
+        return select(question,role,null);
+    }
+    public Optional<Metadata> select(String question,SpecialistRole role,GymTurnPlan plan) {
+        if(question==null||question.isBlank()||question.length()>8000||role==null)return Optional.empty();
+        String id;
+        switch(role){
+            case DAMAGE_CALCULATION -> id="damage-verification";
+            case TEAM_PLANNING -> {
+                boolean boundFollowup=plan!=null&&"pokemon-scarlet-violet".equals(plan.gameReleaseId())&&plan.target().isPresent()
+                        &&Set.of(GymTurnPlan.Intent.SAVED_TEAM_ANALYSIS,GymTurnPlan.Intent.RECOMMEND_TEAM,GymTurnPlan.Intent.GENERAL_ADVICE).contains(plan.intent());
+                boolean gym=question.matches("(?s).*(馆主|道馆).*")||!GymConversationContext.names(question).isEmpty()||boundFollowup;
+                boolean saved=question.matches("(?s).*(我的(?:当前|已保存)?(?:队伍|阵容|配置)|当前(?:的)?队伍|已保存|保存的|队伍ID|teamId|这个队伍|这套阵容).*")
+                        ||java.util.regex.Pattern.compile("(?i)\\bmy (?:saved )?team\\b").matcher(question).find();
+                id=gym?"gym-challenge":saved?"saved-team-review":"team-core-planning";
+            }
+            case POKEMON_RESEARCH -> {
+                boolean competitive=question.matches("(?s).*(热门|使用率|竞技|赛事).*")
+                        ||java.util.regex.Pattern.compile("(?i)(?<![a-z0-9_-])(?:gen9ou|ou)(?![a-z0-9_-])").matcher(question).find();
+                if(competitive)id="competitive-team-reference";
+                else if(question.matches("(?s).*(培养|努力值|个体值|性格|学习器|养成).*"))id="training-build-review";
+                else return Optional.empty();
+            }
+            default -> {return Optional.empty();}
+        }
+        return Optional.ofNullable(entries.get(id)).filter(m->m.role().equals(role.name()));
     }
     public String instruction(Metadata m) {
         if(!Objects.equals(entries.get(m.id()),m))throw new IllegalArgumentException("Unregistered skill");

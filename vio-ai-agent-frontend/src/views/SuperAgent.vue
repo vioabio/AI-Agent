@@ -36,7 +36,7 @@ import { chatWithManus, stopManus, decideRunApproval, decideTeamChange, submitAn
 import { serializeRunContext } from '@/api/version-registry'
 import { useRunStream } from '@/composables/useRunStream'
 import { getOrCreateConversationId } from '@/composables/runPersistence'
-import { RUN_STATUS, TERMINAL_STATUSES, statusLabel as runStatusLabel } from '@/api/run-contract'
+import { RUN_STATUS, TERMINAL_STATUSES, statusLabel as runStatusLabel, answerDisplayText, canSubmitRunApproval } from '@/api/run-contract'
 
 const messages = ref([])
 const historyController = new AbortController()
@@ -183,8 +183,8 @@ async function handleSend(message) {
 
 function bindAnswerBubble(aiMessage) {
   stopAnswerWatch?.()
-  stopAnswerWatch = watch(() => [activeRun.value?.answer, activeRun.value?.status, activeRun.value?.modelUsageAttempts], ([value]) => {
-    aiMessage.content = value || ''
+  stopAnswerWatch = watch(() => [activeRun.value?.answer, activeRun.value?.status, activeRun.value?.modelUsageAttempts], () => {
+    aiMessage.content = answerDisplayText(activeRun.value)
     if(activeRun.value) {
       aiMessage.runId=activeRun.value.runId
       if(activeRun.value.modelUsageAttempts?.length)aiMessage.metadata={ ...aiMessage.metadata, modelUsageAttempts: activeRun.value.modelUsageAttempts }
@@ -266,7 +266,7 @@ async function handleReconnectRun(runId) {
 }
 
 async function handleApproveRun(approval) {
-  if (!approval?.approvalId || !activeRun.value?.runId || activeRun.value.approvalSubmitting) return
+  if (!activeRun.value?.runId || !canSubmitRunApproval(activeRun.value, approval)) return
   const runId = activeRun.value.runId
   activeRun.value.approvalSubmitting = true
   try {

@@ -19,7 +19,7 @@ public final class GuideReferenceIdentity {
         try {
             var root=JSON.readTree(arguments);
             if(!root.isObject()||root.size()!=2||!"pokeapi-reference-v1".equals(root.path("dataReleaseId").asText())||!root.path("query").isTextual())return Optional.empty();
-            String query=root.path("query").asText().trim().toLowerCase(Locale.ROOT);
+            String query=com.vio.vioaiagent.pokemon.reference.RegionalFormName.normalizeQuery(root.path("query").asText());
             if(query.isBlank()||query.length()>80)return Optional.empty();
             String regional = com.vio.vioaiagent.pokemon.reference.RegionalFormName.alolanSpecies(query);
             if (regional != null) { Long species = NAMES.get(regional); return species == null ? Optional.empty() : Optional.of(new Target(species,"-alola")); }

@@ -1070,7 +1070,8 @@ public class ToolExecutionGateway {
     private String callWithTimeout(ToolCallback callback, String input, long timeoutMs,
                                    ToolCapabilityCard card, String toolName,
                                    ToolExecutionContext context,ToolAttemptTiming timing) {
-        return executor.call(() -> {
+        var observation = new com.vio.vioaiagent.observability.AgentToolObservation(observationRegistry);
+        return observation.dispatch(toolName,timing,() -> executor.call(() -> {
             // This runs in the executor immediately before every real callback,
             // including retries. Caller-side authorization can expire while a
             // task waits for scheduling, HITL, locks or the effect ledger.
@@ -1081,7 +1082,7 @@ public class ToolExecutionGateway {
             } catch (RuntimeException ex) {
                 throw new ToolAuthorizationException(safeMessage(ex), ex);
             }
-        }, new com.vio.vioaiagent.observability.AgentToolObservation(observationRegistry).capture(toolName, () -> {
+        }, observation.capture(toolName, () -> {
             ToolExecutionContext previous = ToolExecutionContextHolder.peek();
             ToolExecutionContextHolder.set(context);
             try { return callback.call(input); }
@@ -1089,7 +1090,7 @@ public class ToolExecutionGateway {
                 if (previous == null) ToolExecutionContextHolder.clear();
                 else ToolExecutionContextHolder.set(previous);
             }
-        }), timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT_MS,timing);
+        }), timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT_MS,timing));
     }
 
     private static final class ToolAuthorizationException extends SecurityException {

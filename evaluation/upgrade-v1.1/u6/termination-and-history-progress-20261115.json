@@ -1,0 +1,223 @@
+{
+  "schemaVersion": "u6-termination-history-progress-v1",
+  "date": "2026-11-15",
+  "scope": "FRONTEND_LIFECYCLE_AND_COMBINATION_FOLLOWUP",
+  "fixes": [
+    "CLEAR_TERMINAL_APPROVALS",
+    "RESTORE_STRUCTURED_HISTORY_CONTEXT",
+    "MONITOR_PENDING_APPROVAL_TERMINALS",
+    "KEEP_APPROVAL_WAIT_DURING_TOOL_RECEIPTS",
+    "GUARD_TEST_PERSONAL_PORT_BEFORE_NETWORK"
+  ],
+  "browserRuns": 18,
+  "records": [
+    {
+      "mode": "enabled",
+      "kind": "termination",
+      "status": "cancelled",
+      "runId": "run-219da8b7-620a-4df8-a432-342188695be2",
+      "versionRestored": true,
+      "lateDecisionStatus": 409
+    },
+    {
+      "mode": "enabled",
+      "kind": "termination",
+      "status": "timed_out",
+      "runId": "run-f6143fe0-944b-412f-944a-ca4f9c6f84fa",
+      "versionRestored": true,
+      "lateDecisionStatus": 410
+    },
+    {
+      "mode": "enabled",
+      "kind": "hitl",
+      "approved": false,
+      "runId": "run-68dc1996-fa44-4a82-9018-dd3182284200"
+    },
+    {
+      "mode": "enabled",
+      "kind": "hitl",
+      "approved": true,
+      "runId": "run-d0cad3a0-ab5e-435b-9c8a-93d01b9ffff3"
+    },
+    {
+      "mode": "enabled",
+      "kind": "cards",
+      "caseId": "U2-LIVE-FACT",
+      "runId": "run-cbe6067d-e137-4e06-bfba-593a524e75de",
+      "answerSha256": "feccd81ef7fc73bb4a17732efaa107135ed235484fb93978e6f9bc731792c489"
+    },
+    {
+      "mode": "enabled",
+      "kind": "cards",
+      "caseId": "U2-LIVE-DAMAGE",
+      "runId": "run-4fa1ee76-a74b-4cf3-97f2-97b9091b4275",
+      "answerSha256": "952fc87bbe17e29ce30bf4509c4f6169113c38557311285cc96e54a7152d2842"
+    },
+    {
+      "mode": "enabled",
+      "kind": "cards",
+      "caseId": "U2-LIVE-TEAM",
+      "runId": "run-1759ce80-9a27-447f-a878-1395fdf5e1e9",
+      "answerSha256": "943453d77f8efe704fc9961baa1567308edddb34bb54dccd441d66c898f65c0f"
+    },
+    {
+      "mode": "enabled",
+      "kind": "cards",
+      "caseId": "U2-LIVE-MISSING",
+      "runId": "run-5ff30bd8-b472-4fde-a532-828d4bd028b0",
+      "answerSha256": "d998a6089e25571e351dd692a4a93bfbed8aa20808b296f8f8485b4589c567d9"
+    },
+    {
+      "mode": "enabled",
+      "kind": "cancel",
+      "runId": "run-cedbb38e-b3d4-4672-8750-ccb47027eed2",
+      "partialAnswerObserved": false
+    },
+    {
+      "mode": "disabled",
+      "kind": "termination",
+      "status": "cancelled",
+      "runId": "run-a6ed06f1-d832-4291-b02a-7e547a40ff66",
+      "versionRestored": true,
+      "lateDecisionStatus": 409
+    },
+    {
+      "mode": "disabled",
+      "kind": "termination",
+      "status": "timed_out",
+      "runId": "run-350c89f0-92a6-4f07-bd52-a6cfc68564d0",
+      "versionRestored": true,
+      "lateDecisionStatus": 410
+    },
+    {
+      "mode": "disabled",
+      "kind": "hitl",
+      "approved": false,
+      "runId": "run-1c107099-eb18-4a57-b12f-8a96d8335e12"
+    },
+    {
+      "mode": "disabled",
+      "kind": "hitl",
+      "approved": true,
+      "runId": "run-7ce204c8-9816-400b-90aa-29aebab84527"
+    },
+    {
+      "mode": "disabled",
+      "kind": "cards",
+      "caseId": "U2-LIVE-FACT",
+      "runId": "run-a0597c3b-5cf2-4ab0-bc12-81d93179054a",
+      "answerSha256": "feccd81ef7fc73bb4a17732efaa107135ed235484fb93978e6f9bc731792c489"
+    },
+    {
+      "mode": "disabled",
+      "kind": "cards",
+      "caseId": "U2-LIVE-DAMAGE",
+      "runId": "run-cdc8d15f-07b7-45c0-b469-4b5ac9003cf7",
+      "answerSha256": "467ca0a0958c38d878fd3975fedf6280c32f66125496230bd928baaafdbcad89"
+    },
+    {
+      "mode": "disabled",
+      "kind": "cards",
+      "caseId": "U2-LIVE-TEAM",
+      "runId": "run-4974fbd1-b08d-4b7b-9ce7-7a974d43a0e8",
+      "answerSha256": "943453d77f8efe704fc9961baa1567308edddb34bb54dccd441d66c898f65c0f"
+    },
+    {
+      "mode": "disabled",
+      "kind": "cards",
+      "caseId": "U2-LIVE-MISSING",
+      "runId": "run-db464616-704a-4c03-acbd-6337984c279c",
+      "answerSha256": "d998a6089e25571e351dd692a4a93bfbed8aa20808b296f8f8485b4589c567d9"
+    },
+    {
+      "mode": "disabled",
+      "kind": "cancel",
+      "runId": "run-bfcda216-41af-4a9e-ad80-9030421f5f27",
+      "partialAnswerObserved": false
+    }
+  ],
+  "buildChecks": [
+    {
+      "mode": "on",
+      "componentCount": 66,
+      "status": "ARTIFACTS_MATCH"
+    },
+    {
+      "mode": "off",
+      "componentCount": 66,
+      "status": "ARTIFACTS_MATCH"
+    }
+  ],
+  "validation": {
+    "frontendTests": 230,
+    "nodeTests": 475,
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "build": "PASS",
+    "backendBuild": "REUSED_PREVIOUS_VERIFIED_1838_TEST_BUILD",
+    "runtimeComponents": 66
+  },
+  "sourceCodeSha256": {
+    "vio-ai-agent-frontend/src/api/run-contract.js": "9bd5d74be89a647fa497c1803ddb9bd9c1a8167bad621dbd2a221fdfb1a93a66",
+    "vio-ai-agent-frontend/src/api/version-registry.js": "91be27316737baff48232a40b930fc3a8629d0ddf887f0aa4e81fde9e82e78b4",
+    "vio-ai-agent-frontend/src/composables/useRunStream.js": "9d0b8b4e7e3c11a0adc86cf1a2ce57e868686bc3a19e36293ecfc1a027ef047c",
+    "vio-ai-agent-frontend/src/components/RunTimeline.vue": "5cd16419a8c6559544c9ff0938daf3018c0b378e11fa50fc4dce431ea88064c8",
+    "vio-ai-agent-frontend/src/views/GameMaster.vue": "55948ad10b9fe46b402aa5c576f462afec8e0642b2d163d1488174928dedabbd",
+    "vio-ai-agent-frontend/src/views/SuperAgent.vue": "8b776f0b567c6c3fe4f0ffd921ed798482cdcc412cb7e1dc68b55eb5fed1da64",
+    "tools/campus/stage6-termination-evidence.mjs": "ed1cb248e7ef22e9ad0b19d0b91da2c6403a8a3c67a603244361110f59a56e00",
+    "tools/campus/upgrade-termination-combination-verify.mjs": "099f74d959398867569978ef43076fba962a5f9095cc2c63e5bae96cf052303e"
+  },
+  "evidence": {
+    "artifacts/u6-termination-on-guarded-browser-20261115/browser-result.json": "d9cdf967ecfb085a28fc49fd3f79bf2f6d81af589bd5d8498e0572fb07aaf665",
+    "artifacts/u6-termination-on-guarded-browser-20261115/cancelled-events.json": "cadbba891848e89913922e3559c69ce047179293a5164219ba1e663d8847a58f",
+    "artifacts/u6-termination-on-guarded-browser-20261115/timed_out-events.json": "f68a3aee72c15ee1e7b12dccb2383f0e0d81be7d3ceecee5c309cd713c2f29e1",
+    "artifacts/u6-termination-on-hitl-20261115/browser-result.json": "a19e13ae0b32d3e885459d6ee865a6befd6e34770652435eccc29a69172fc097",
+    "artifacts/u6-termination-on-hitl-20261115/rejected-events.json": "401ee458660197c0201fb096815fb7013b5ecc70dff71b65986423dd4fc10bd1",
+    "artifacts/u6-termination-on-hitl-20261115/accepted-events.json": "698d1d99a4665926f777549c38a6e138dd808199d0004d65f6c016c97f45c30f",
+    "artifacts/u6-termination-on-cards-20261115/browser-result.json": "0774c3bd91f41057f23eafb9f7c3745eb5dd442e2f3af1d210eec3d8bdc57dee",
+    "artifacts/u6-termination-on-cards-20261115/U2-LIVE-FACT-0-events.json": "4778badf8444b4c613e1e69e8a6f38bf34f70e0cf933ff2c09d2a8b13545eae2",
+    "artifacts/u6-termination-on-cards-20261115/U2-LIVE-DAMAGE-0-events.json": "f6c6f3194bfd17526409ee631ed263978eb59f7c38fae2b0aa16c580aa1e07d8",
+    "artifacts/u6-termination-on-cards-20261115/U2-LIVE-TEAM-0-events.json": "df1a6048f39e1d72d7c7b853670f81103fe2c42f503ed44be25107a08299babb",
+    "artifacts/u6-termination-on-cards-20261115/U2-LIVE-MISSING-0-events.json": "d3315cb785423e3e8b9a12a909f5f34802fa273fcd137ac66627b191b3d4de66",
+    "artifacts/u6-termination-on-running-cancel-20261115/browser-result.json": "319915474624cabdeee18235e3ecda5e588d6e0eb6c79ebe823730d995ac1b26",
+    "artifacts/u6-termination-on-running-cancel-20261115/cancel-events.json": "764c63bbeeb47433b715b024bade92c9bd7a8904207ee10135fd6638aa8b8e27",
+    "artifacts/u6-termination-off-final-browser-20261115/browser-result.json": "cd41247955ec006848a47c08a04a26c26100bef23df723949c738ca330757a69",
+    "artifacts/u6-termination-off-final-browser-20261115/cancelled-events.json": "9372bffb721640a4b8f9efc1258120bd5db0768bc901b7940f87674bc3a2c029",
+    "artifacts/u6-termination-off-final-browser-20261115/timed_out-events.json": "f502c46bb600a5dd07bce132555b859fb0f7f6849b704ff9275bfbbdd71e2a93",
+    "artifacts/u6-termination-off-hitl-20261115/browser-result.json": "9480ae5a08656c107ff00fd94cb6fd98ec3e6b695bb2af715e75908325c92a63",
+    "artifacts/u6-termination-off-hitl-20261115/rejected-events.json": "e4803237ca8a2eb6e9ee906f72e818152e3b37eeed049f5ff5228c14b17bc703",
+    "artifacts/u6-termination-off-hitl-20261115/accepted-events.json": "471b6d564585ee81769d06443a7bdf3007b12349aeced1e7d85671484d060e4c",
+    "artifacts/u6-termination-off-cards-20261115/browser-result.json": "efea4116e3a5d7e7b1fb4ca071d0a205676524570c42254b2e6f9eb496136952",
+    "artifacts/u6-termination-off-cards-20261115/U2-LIVE-FACT-0-events.json": "915d170a005694c3dbc464e5439b4163213576ce6880709da0c10803063eb133",
+    "artifacts/u6-termination-off-cards-20261115/U2-LIVE-DAMAGE-0-events.json": "48259117ef8cf907043887cf534867ffe1bd1c14a4cbfe9368e63b41f6eb7bea",
+    "artifacts/u6-termination-off-cards-20261115/U2-LIVE-TEAM-0-events.json": "30da52ea014f8145c1a3fe72ac350c7e49fa1e48bba99c99e9d17d928563bb37",
+    "artifacts/u6-termination-off-cards-20261115/U2-LIVE-MISSING-0-events.json": "53506640cba3fbff8da5c294e846fff21f3533e9e6357ec3fe8df2e4f1bd0648",
+    "artifacts/u6-termination-off-running-cancel-20261115/browser-result.json": "2a2e4ae0b9b11fce6ee5950d5d72202a8f3770b5eccc9cfb4613f9c88fb67e16",
+    "artifacts/u6-termination-off-running-cancel-20261115/cancel-events.json": "96e8c2b5ce7fe41b9741fbac68d383ee042c330052d86ed5d5be6eb79e5e554e",
+    "artifacts/u6-termination-on-server-20261115/build-check.json": "87b1f02de737d09eeb3870ca342eaa89ab11cba6c31a0aaf1506bd0e35389169",
+    "artifacts/u6-termination-off-server-20261115/build-check.json": "87b1f02de737d09eeb3870ca342eaa89ab11cba6c31a0aaf1506bd0e35389169",
+    "artifacts/u6-termination-combination-verified-20261115.json": "b37b6cecb6813f46ea7a1c268c4852048504e7a68a74f1c6bfa7cade7ccfdb87",
+    "artifacts/u6-termination-verified-node-20261115.log": "f8c0d335684ac2fdc632e90b73bc38189c5e75d216dbd0d74180c9d38001437d",
+    "artifacts/u6-termination-final-frontend-20261115.log": "bf89675f7ebbef4b1c1b2a0fc15f63dd8e30085edb9e7731934d8d08bb5e6de3",
+    "artifacts/u6-termination-final-typecheck-20261115.log": "06e059649a47ae58eee167e54d3234ee80acdf04878c0c9adadac41cd5d65f17",
+    "artifacts/u6-termination-final-lint-20261115.log": "28841550c6c0b7ca0d87126822260d7da738fbb2a01fbbe9d341a8910ef40c6b",
+    "artifacts/u6-termination-final-build-20261115.log": "210a2b5e4e67c2419c4a266e4bd957bfebb157933b1e141cac1492edf6618437"
+  },
+  "retainedAttempts": [
+    "artifacts/u6-terminal-approval-before-fix-20261115.log",
+    "artifacts/u6-termination-on-browser-20261115/browser-result.json",
+    "artifacts/u6-termination-on-fixed-browser-20261115/browser-result.json",
+    "artifacts/u6-termination-on-monitor-browser-20261115/browser-result.json",
+    "artifacts/u6-termination-guard-first-20261115/browser-result.json"
+  ],
+  "review": "AI_ASSISTED_DEVELOPMENT_CHECKS",
+  "humanReview": "PENDING",
+  "releaseDecision": "PENDING",
+  "pending": [
+    "REAL_PROVIDER_RERANK_CONFIGURATION_AND_EFFECT_TEST",
+    "PARTIAL_ANSWER_CANCELLATION_COMBINATIONS",
+    "MCP_AND_TIMEOUT_COMBINATIONS_AND_SOAK",
+    "ANSWER_CONCISION",
+    "NEW_INDEPENDENT_QUESTIONS_AND_HUMAN_REVIEW"
+  ]
+}

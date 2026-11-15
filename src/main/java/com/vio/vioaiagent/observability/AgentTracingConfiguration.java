@@ -1,6 +1,5 @@
 package com.vio.vioaiagent.observability;
 
-import io.micrometer.observation.Observation;
 import io.micrometer.tracing.handler.DefaultTracingObservationHandler;
 import io.micrometer.tracing.otel.bridge.*;
 import io.opentelemetry.api.common.*;
@@ -68,11 +67,7 @@ public class AgentTracingConfiguration {
         var sdk = OpenTelemetrySdk.builder().setTracerProvider(provider).build();
         var current = new OtelCurrentTraceContext();
         var tracer = new OtelTracer(sdk.getTracer("vio-agent-domain"), current, event -> { }, new OtelBaggageManager(current, List.of(), List.of()));
-        var handler = new DefaultTracingObservationHandler(tracer) {
-            @Override public boolean supportsContext(Observation.Context context) {
-                return Set.of("agent.run.execute", "agent.model.call", "agent.model.stream", "agent.tool.callback").contains(context.getName()) && super.supportsContext(context);
-            }
-        };
+        var handler = new DomainTracingObservationHandler(tracer);
         return new AgentTracingRuntime(provider, handler);
     }
 

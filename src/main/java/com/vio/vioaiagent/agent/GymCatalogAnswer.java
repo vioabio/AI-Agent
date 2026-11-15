@@ -23,7 +23,7 @@ final class GymCatalogAnswer {
         // These require the player's real conditions; merely asking for NPC information does not.
         if(intent.matches("(?is).*(伤害|计算|打法|策略|攻略|怎么打|如何打|能打|可以打|帮我打|配队|配一队|配置队伍|组队|(?:配|组|推荐).{0,4}(?:队伍|阵容)|培养|TM\\d|奖励|获取|领取|商店|请分析|帮我分析|模块|接口|API).*"))return Optional.empty();
         boolean namedFollowup=intent.matches("(?is)\\s*(?:那|说说|看看|改看)?\\s*(?:阿枫|寇沙|奇树|海岱|青木|莱姆|莉普|古鲁夏|katy|brassius|iono|kofu|larry|ryme|tulip|grusha)\\s*(?:呢|吧|[，,?？。！!])*\\s*");
-        if(!namedFollowup&&!GymOrdinalReference.countQuestion(intent)&&!intent.matches("(?is).*(有哪些|哪些|了解|介绍|查询|查看|看看|改问|改看|阵容|队伍|配置|太晶|成员|招式|特性|等级|资料|名单|什么|是谁).*"))return Optional.empty();
+        if(!namedFollowup&&!GymOrdinalReference.countQuestion(intent)&&!intent.matches("(?is).*(有哪些|哪些|了解|介绍|查询|查看|看看|改问|改看|阵容|队伍|配置|太晶|成员|招式|特性|等级|资料|名单|什么|是谁|对战模式|单打|双打).*"))return Optional.empty();
         boolean namesOnly=(GymOrdinalReference.countQuestion(intent)||intent.matches("(?s).*(有哪些|哪些|名单|是谁).*"))&&!intent.matches("(?s).*(队伍|阵容|招式|等级|特性).*");
         boolean both=intent.contains("初战")&&intent.contains("重赛")&&!intent.matches("(?s).*(只看初战|不要重赛|不看重赛).*" );
         List<String> phases=both?List.of("initial","rematch"):List.of(intent.contains("重赛")&&!intent.matches("(?s).*(只看初战|不要重赛|不看重赛).*" )?"rematch":"initial");

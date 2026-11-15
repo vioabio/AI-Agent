@@ -13,13 +13,15 @@ public final class McpStdioFixtureMain {
     static PokeApiClient client(Path cache) {
         return new PokeApiClient(new ObjectMapper(), cache, url -> {
             if(url.endsWith("pokemon_species_names.csv"))return "pokemon_species_id,local_language_id,name,genus\n7,12,杰尼龟,小龟宝可梦\n";
-            if (url.contains("/slow/")) {
+            var slow = java.util.regex.Pattern.compile("/(slow(?:-\\d{1,3})?)/$").matcher(url);
+            if (slow.find()) {
+                String marker = slow.group(1);
                 try {
-                    java.nio.file.Files.writeString(cache.resolve("slow-started"), "started");
+                    java.nio.file.Files.writeString(cache.resolve(marker + "-started"), "started");
                     Thread.sleep(20000);
                 } catch (InterruptedException cancelled) {
                     Thread.currentThread().interrupt();
-                    try { java.nio.file.Files.writeString(cache.resolve("slow-stopped"), "stopped"); }
+                    try { java.nio.file.Files.writeString(cache.resolve(marker + "-stopped"), "stopped"); }
                     catch (java.io.IOException failure) { throw new IllegalStateException("FIXTURE_MARKER_FAILED"); }
                     throw new IllegalStateException("FIXTURE_INTERRUPTED");
                 } catch (java.io.IOException failure) { throw new IllegalStateException("FIXTURE_MARKER_FAILED"); }

@@ -19,6 +19,13 @@ class PokeApiReferenceTest {
         var fact = new LocalPokeApiRepository(mapper, client).detail("阿罗拉六尾", LocalPokeApiRepository.RELEASE).fact();
         assertEquals(10103, fact.formId()); assertEquals(37, fact.speciesId());
         assertEquals("冰", fact.type1()); assertEquals("阿罗拉六尾", RegionalFormName.display(fact));
+        assertTrue(Files.exists(directory.resolve("pokemon-species-vulpix.json")));
+        assertFalse(Files.exists(directory.resolve("pokemon-species-37.json")));
+        var offline = new LocalPokeApiRepository(mapper, new PokeApiClient(mapper, directory,
+                url -> { throw new AssertionError("Cached regional forms must not access the network"); }));
+        for (String alias : java.util.List.of("阿罗拉六尾", "Alolan Vulpix", "alolan-vulpix", "vulpix-alola")) {
+            assertEquals(10103, offline.detail(alias, LocalPokeApiRepository.RELEASE).fact().formId(), alias);
+        }
         var missing = new LocalPokeApiRepository(mapper, new PokeApiClient(mapper, directory.resolve("missing"), url -> url.endsWith(".csv") ? "pokemon_species_id,local_language_id,name,genus\n7,12,杰尼龟,龟\n" : species()));
         assertThrows(IllegalArgumentException.class, () -> missing.detail("阿罗拉杰尼龟", LocalPokeApiRepository.RELEASE));
     }

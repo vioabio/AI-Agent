@@ -10,6 +10,15 @@ import static org.mockito.Mockito.*;
 
 class TypeMatchupReplyTest {
     static final String ORIGINAL="地面招式打水属性，以及水／超能力双属性，基础属性倍率分别是多少？不考虑特性、道具和太晶。";
+    @Test void colloquialTimesDamageAndPresentationInstructionStillUseTheTypeChart() {
+        for (String question : List.of("火属性招式攻击草属性是几倍伤害？请查询属性工具后用中文简短回答。",
+                "冰打地面/龙几倍伤害？", "火打草是几倍？")) {
+            String answer = TypeMatchupReply.reply(question).orElseThrow();
+            assertTrue(answer.contains(question.startsWith("冰") ? "4.0×" : "2.0×"));
+            assertFalse(answer.contains("宝可梦查询结果"));
+        }
+        assertTrue(TypeMatchupReply.reply("火打草是几倍伤害？然后推荐队伍").isEmpty());
+    }
     @Test void prefixAndTimesWordingUsesDualProduct(){
         assertTrue(TypeMatchupReply.reply("基础属性关系下，冰招式打草/钢是多少倍？").orElseThrow().contains("2.0× × 0.5× | 1.0×"));
         assertTrue(TypeMatchupReply.reply("不考虑特性道具太晶，电属性招式打水/飞行的倍率是多少？").orElseThrow().contains("4.0×"));

@@ -134,7 +134,7 @@
 
     </div>
 
-    <div v-if="run.approval" class="approval-card">
+    <div v-if="run.approval && run.status === 'waiting_approval'" class="approval-card">
       <strong>{{ run.approval.teamChange ? '队伍修改预览' : '需要人工审批' }}</strong>
       <template v-if="run.approval.teamChange">
         <div class="proposal-content">

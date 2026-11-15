@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url'
 import {digest} from './evaluation.mjs'
 import {loadFrozenSuite,root} from './upgrade-baseline.mjs'
 import {matchesCurrentBuild} from './runtime-component-manifest.mjs'
+import {verifyTurnEvents} from './upgrade-event-evidence.mjs'
 
 /** Evidence integrity only: does not judge answer quality or confer release approval. */
 export function verifyDevelopmentReview({baselineBytes,review,readEvents,expectedCases,datasetSha256,comparison}){
@@ -45,6 +46,7 @@ export function verifyDevelopmentReview({baselineBytes,review,readEvents,expecte
     const bytes=readEvents(turn.eventsFile);check(digest(bytes)===turn.eventsSha256,'EVENT_HASH_MISMATCH')
     const events=JSON.parse(bytes);if(!Array.isArray(events))throw Error()
     check(events.filter(event=>event.type==='answer.delta').map(event=>event.payload?.text||'').join('')===turn.answer,'ANSWER_EVENT_MISMATCH')
+    if(currentFormat)verifyTurnEvents(turn,record.caseId,i,bytes)
    }catch{errors.push('EVENT_FILE_INVALID_OR_UNAVAILABLE')}
   }
  }

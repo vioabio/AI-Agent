@@ -13,8 +13,33 @@ public final class DamageDialogueRoute {
     static boolean isResultConditionsQuestion(String q) {
         return q!=null&&q.strip().matches("(?:请问|请解释)?工具报告的伤害百分比是在什么条件下成立[？?。]?");
     }
+    static boolean isKnockoutSufficiencyQuestion(String question) {
+        if (question == null || question.length() > 300) return false;
+        // Match the entire conceptual question so an additional task keeps its planner.
+        return question.strip().matches("(?i)^(?:知道了|已知|只知道|仅凭|只凭|只看)?"
+                + "(?:属性)?(?:[1248一二两四八]倍克制|属性克制)[，, ]*"
+                + "(?:可以(?:断言|认为)?|能否(?:保证)?|是否(?:意味着)?|能(?:保证)?|就能|就可以)"
+                + "(?:一定|必定|保证)?(?:一击击倒|一击必杀|秒杀|OHKO)(?:吗|么)?[？?。]?$" );
+    }
+    static Optional<String> knockoutSufficiencyReply(String question) {
+        if (!isKnockoutSufficiencyQuestion(question)) return Optional.empty();
+        return Optional.of("仅凭属性克制倍率无法判断是否必定一击击倒。需要双方等级、实际攻防与HP、招式威力，以及特性、道具、天气、场地和太晶等条件，再核对实际计算的伤害区间。\n\n"
+                + "依据为本地伤害引擎的输入契约。当前只明确了属性倍率，尚未进行伤害计算。可以提供双方配置与招式后继续核对。");
+    }
+    static Optional<String> inputSufficiencyReply(String question) {
+        var knockout = knockoutSufficiencyReply(question);
+        if (knockout.isPresent()) return knockout;
+        if (question == null || question.length() > 300 || !question.strip().matches(
+                "^(?:只知道|仅知道|只凭|仅凭|只看)(?:双方)?(?:的)?属性(?:有)?(?:克制(?:关系)?|倍率)?[，, ]*"
+                + "(?:可以|能否|能|是否可以)(?:直接)?(?:给出|得到|计算|算)(?:精确|具体|准确)(?:的)?伤害(?:值|数值)?(?:吗|么)?[？?。]?$"))
+            return Optional.empty();
+        return Optional.of("仅凭双方属性或克制倍率无法给出精确伤害。还需双方物种与形态、等级、实际攻防和HP、所用招式，以及特性、道具、天气、场地和太晶等条件，再交给伤害引擎核对区间。\n\n"
+                + "这是伤害计算输入条件的说明。本次尚未执行计算，也没有引用历史数值或读取保存队伍。");
+    }
     public static Optional<String> reply(AgentRunContext context, ToolCallback[] tools) {
         String question=context.run().prompt();
+        var knockout = inputSufficiencyReply(question);
+        if (knockout.isPresent()) return knockout;
         if(isResultConditionsQuestion(question))return Optional.of(resultConditionsReply(context, tools));
         if(question.strip().matches("(?:请|帮我)?(?:计算|算)(?:一下)?伤害[。！？?\\s]*"))
             return Optional.of("请明确本次攻击方、防御方、所用招式及等级、特性、道具、性格、努力值、个体值和场地条件。本次尚未计算，不自动选择保存队伍、招式或默认配置。");

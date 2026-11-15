@@ -8,11 +8,61 @@ import {
   normalizeRunStatus,
   normalizeCursorId
 } from '../src/api/run-contract.js'
-import { toolFailureLabel } from '../src/api/run-contract.js'
+import { toolFailureLabel, answerDisplayText, canSubmitRunApproval } from '../src/api/run-contract.js'
+
+test('denied approvals display a public notice without rewriting the answer evidence', () => {
+  const run = replay([{eventId:'1',runId:'denied',type:'run.failed',payload:{errorType:'APPROVAL_DENIED'}}])
+  assert.equal(run.answer,'')
+  assert.equal(answerDisplayText(run),'已取消待确认的操作。')
+  assert.equal(answerDisplayText({...run,answer:'已有部分回答'}),'已有部分回答')
+  assert.equal(answerDisplayText({...run,errorType:'UNKNOWN_PROVIDER_ERROR'}),'')
+  assert.equal(answerDisplayText({status:'running',errorType:'APPROVAL_DENIED',answer:''}),'')
+})
 
 function replay(events, seed = {}) {
   return events.reduce((model, event) => reduceRunEvent(model, event), createRunViewModel(seed))
 }
+
+test('terminal events and restored snapshots clear pending approvals while retaining evidence', () => {
+  const approval = { approvalId: 'pending-1', teamChange: { teamName: 'test1' } }
+  for (const [eventType, status] of [['run.completed', 'completed'], ['run.failed', 'failed'],
+    ['run.cancelled', 'cancelled'], ['run.timed_out', 'timed_out']]) {
+    const events = [{ id: '1', type: 'approval.required', data: approval },
+      { id: '2', type: 'answer.delta', data: { text: '已有资料' } },
+      { id: '3', type: eventType, data: {} }]
+    const ended = replay(events)
+    assert.equal(ended.status, status)
+    assert.equal(ended.approval, null)
+    assert.equal(ended.answer, '已有资料')
+    assert.equal(ended.events[0].data.approvalId, 'pending-1')
+    assert.equal(createRunViewModel({status: status.toUpperCase(), approval}).approval, null)
+    assert.deepEqual(reduceRunEvent(ended, {id:'4', type:'approval.required', data:approval}), ended)
+  }
+  assert.deepEqual(createRunViewModel({status:'WAITING_APPROVAL',approval}).approval, approval)
+})
+
+test('approval submissions require the current pending identity and exclude duplicate submissions', () => {
+  const approval={approvalId:'current-preview'}
+  const waiting={status:'waiting_approval',approval}
+  assert.equal(canSubmitRunApproval(waiting,approval),true)
+  for(const status of ['creating','running','reconnecting','completed','failed','cancelled','timed_out'])
+    assert.equal(canSubmitRunApproval({...waiting,status},approval),false)
+  for(const stale of [null,{}, {approvalId:'old-preview'}, {approvalId:1}])
+    assert.equal(canSubmitRunApproval(waiting,stale),false)
+  assert.equal(canSubmitRunApproval({...waiting,approvalSubmitting:true},approval),false)
+  assert.equal(canSubmitRunApproval({...waiting,approval:null},approval),false)
+})
+
+test('tool receipts and source events keep pending approvals until an explicit resolution', () => {
+  const approval={approvalId:'pending-1'}
+  let model=replay([{id:'1',type:'approval.required',data:approval}])
+  for(const [index,type] of ['tool.finished','route.selected','retrieval.finished','fact.card','answer.delta','usage'].entries()) {
+    model=reduceRunEvent(model,{id:String(index+2),type,data:{text:'资料',toolName:'previewTeamChanges',status:'SUCCEEDED'}})
+    assert.equal(model.status,'waiting_approval')
+    assert.deepEqual(model.approval,approval)
+  }
+  assert.equal(reduceRunEvent(model,{id:'8',type:'approval.resolved',data:{approved:true}}).status,'running')
+})
 
 test('上下文或输出预算不足保留部分正文并显示可读提示', () => {
   const model = replay([{ id: '1', type: 'answer.delta', data: '已有部分内容' },

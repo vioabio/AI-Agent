@@ -38,6 +38,14 @@ class SavedGymQuestionRouteTest {
   ToolExecutionContextHolder.set(new ToolExecutionContext(run.userId(),run.id(),Set.of("trainer"),"trace",null,event->{}));
  }
  @AfterEach void close(){ToolExecutionContextHolder.clear();hitl.shutdown();}
+ @Test void plainSavedTeamWordingCannotBecomeGeneralGymAdviceOrAnExistingTeamSubstitution(){
+  String question="介绍保存队伍u0-no-team-43如何应对海岱。";
+  var requested=AgentRun.create(run.id(),"s","conversation","owner-a",question,"pokemon-scarlet-violet","casual-singles","casual-v1","zh-CN","trace",null,Instant.now().plusSeconds(30));
+  var model=mock(org.springframework.ai.chat.model.ChatModel.class);
+  var answer=new DefaultRunExecutor(model,callbacks,null,null,null,null,false).execute(new AgentRunContext(requested));
+  assertTrue(answer.contains("没有唯一匹配你指定的队伍"));assertFalse(answer.contains("已读取队伍：test1"));
+  assertFalse(answer.contains("通用应对方向"));assertFalse(answer.contains("烈咬陆鲨"));verifyNoInteractions(model);
+ }
  @Test void exactReportedMultiturnQuestionReadsSavedTeamAndNeverReturnsGymOverview(){
   var before=teams.snapshotForOwner(team.id(),"owner-a");var response=SavedGymQuestionRoute.reply(new AgentRunContext(run,null,history()),callbacks).orElseThrow();
   assertTrue(response.contains("已读取队伍：test1"));assertTrue(response.contains("阿枫初战"));assertTrue(response.contains("烈咬陆鲨"));assertTrue(response.contains("燕返"));assertTrue(response.contains("槽位3"));assertTrue(response.contains("具备属性覆盖条件"));assertTrue(response.contains("队伍与当前会话资料版本不同"));assertFalse(response.contains("馆主 | 擅长属性"));assertEquals(before,teams.snapshotForOwner(team.id(),"owner-a"));

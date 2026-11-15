@@ -76,6 +76,13 @@ public class LocalGuideSearch {
     public List<RetrievedKnowledgeChunk> retrieve(KnowledgeRetrievalQuery query) {
         java.util.function.Function<KnowledgeRetrievalQuery,List<RetrievedKnowledgeChunk>> base=q->{
             var candidates=semantic==null?retriever.retrieve(q):semantic.retrieve(q,index);
+            var context=com.vio.vioaiagent.tools.governance.ToolExecutionContextHolder.peek();
+            if(semantic!=null&&context!=null)try {
+                var sources=candidates.stream().map(hit->new BaseSource(hit.view().documentId(),hit.view().chunk().id(),hit.lexicalRank(),hit.semanticRank())).toList();
+                context.eventSink().accept(new com.vio.vioaiagent.tools.governance.ToolGovernanceEvent(
+                        "retrieval.finished",context.runId(),"searchPokemonGuides",UUID.randomUUID().toString(),null,
+                        Map.of("retrievalStage","BASE_RETRIEVAL","semanticCandidates",sources.stream().filter(hit->hit.semanticRank()>0).count(),"sources",sources)));
+            }catch(RuntimeException ignored){/* Observation failures must not change the retrieval result. */}
             return candidates.stream().filter(chunk->GuideRevisionPolicy.usable(index.hit(chunk).document(),q.text())).toList();
         };
         if(reranking==null)return base.apply(query);
@@ -87,6 +94,7 @@ public class LocalGuideSearch {
         return result.chunks();
     }
     public LocalGuideSemanticSearch.Status semanticStatus(){return semantic==null?new LocalGuideSemanticSearch.Status(false,false,false,"BM25","none",0,0,"DISABLED"):semantic.status(index);}
+    public record BaseSource(String documentId,String chunkId,int lexicalRank,int semanticRank) { }
     public LocalGuideSemanticSearch.Status buildSemanticIndex(){return semantic==null?semanticStatus():semantic.build(index);}
     public SqliteGuideKnowledgeRetriever.Status status() { return index.status(); }
     public Catalog catalog() {return catalog;}

@@ -6,10 +6,11 @@ import {createHash} from 'node:crypto'
 import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,realpathSync,rmSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join,resolve} from 'node:path'
+import {coreComponents,additionalComponents,componentManifestVersion} from './runtime-component-manifest.mjs'
 
 async function compareFixture(change,{logoutStatus=204,runtimeStatus=200}={}){
  const parent=realpathSync(tmpdir()),directory=mkdtempSync(join(parent,'vio-runtime-build-')),classes=join(directory,'classes'),output=join(directory,'report.json')
- const components=[['AccountScopeReply','agent'],['DefaultRunExecutor','run'],['ToolCallAgent','agent'],['GuideAnswerEvidence','agent'],['VioManus','agent'],['PokemonAgentRunService','run'],['LocalGuideSearch','pokemon/guides'],['SavedTrainingRoadmap','agent'],['SavedTrainingResources','agent'],['TrainingIntentState','agent'],['TrainingTargetCheck','agent'],['TrainingLearningCheck','agent'],['TrainingResourceBudget','agent'],['SavedTrainingGymReview','agent'],['TrainingStatProjection','agent'],['TrainingLevelConstraints','agent'],['StaticStatCalculator','pokemon/calculator'],['TrainingProgressCheck','agent'],['GymResourcePolicy','pokemon/gym'],['GuideRevisionPolicy','pokemon/guides'],['TeamMutationIntent','agent'],['ReferenceRulesReply','agent'],['GymFocusedFactReply','agent']]
+ const components=[...coreComponents,...additionalComponents]
  const hashes={}
  for(const [name,folder]of components){const path=join(classes,'com/vio/vioaiagent',folder);mkdirSync(path,{recursive:true});const bytes=Buffer.from('synthetic class fixture '+name);writeFileSync(join(path,name+'.class'),bytes);hashes[name]=createHash('sha256').update(bytes).digest('hex')}
  change?.(hashes)
@@ -40,7 +41,8 @@ test('CLI compares six core classes plus guide and all training components',{tim
  const report=await compareFixture()
  assert.equal(report.status,'ARTIFACTS_MATCH');assert.equal(report.classes.length,6)
  assert.equal(report.schemaVersion,'runtime-artifact-comparison-v3');assert.equal(report.cleanup,'LOGGED_OUT')
- assert.deepEqual(report.additionalComponents.map(row=>row.name),['LocalGuideSearch','SavedTrainingRoadmap','SavedTrainingResources','TrainingIntentState','TrainingTargetCheck','TrainingLearningCheck','TrainingResourceBudget','SavedTrainingGymReview','TrainingStatProjection','TrainingLevelConstraints','StaticStatCalculator','TrainingProgressCheck','GymResourcePolicy','GuideRevisionPolicy','TeamMutationIntent','ReferenceRulesReply','GymFocusedFactReply'])
+ assert.deepEqual(report.additionalComponents.map(row=>row.name),additionalComponents.map(([name])=>name))
+ assert.equal(report.componentManifestVersion,componentManifestVersion)
  assert.ok(report.additionalComponents.every(row=>row.matches))
 })
 
@@ -51,10 +53,34 @@ test('logout and diagnostic failures are blocked rather than successful build ch
  assert.equal(unavailable.status,'CHECK_BLOCKED');assert.equal(unavailable.reason,'HTTP_503')
  assert.equal(unavailable.cleanup,'LOGGED_OUT')
 })
-test('missing or stale training helper cannot pass because core classes match',{timeout:30000},async()=>{
- for(const change of [hashes=>delete hashes.SavedTrainingResources,hashes=>delete hashes.TrainingIntentState,hashes=>delete hashes.TrainingTargetCheck,hashes=>delete hashes.TrainingLearningCheck,hashes=>delete hashes.TrainingResourceBudget,hashes=>delete hashes.SavedTrainingGymReview,hashes=>delete hashes.TrainingStatProjection,hashes=>delete hashes.TrainingLevelConstraints,hashes=>delete hashes.StaticStatCalculator,hashes=>delete hashes.TrainingProgressCheck,hashes=>delete hashes.GymResourcePolicy,hashes=>delete hashes.GuideRevisionPolicy,hashes=>delete hashes.TeamMutationIntent,hashes=>delete hashes.ReferenceRulesReply,hashes=>delete hashes.GymFocusedFactReply,hashes=>hashes.SavedTrainingRoadmap='0'.repeat(64)]){
-  const report=await compareFixture(change)
-  assert.equal(report.status,'STALE_OR_DIFFERENT_ARTIFACTS');assert.ok(report.classes.every(row=>row.matches))
-  assert.ok(report.additionalComponents.some(row=>!row.matches))
+
+test('nested damage source validator is required for current card evidence coverage',async()=>{
+ for(const name of ['EvidenceAnswerBlock$Source','LocalDamageEngine$Combatant']){
+  const report=await compareFixture(hashes=>delete hashes[name])
+  assert.equal(report.status,'STALE_OR_DIFFERENT_ARTIFACTS')
+  assert.equal(report.additionalComponents.find(row=>row.name===name).matches,false)
  }
+})
+const requiredHelpers = [
+ 'SavedTrainingResources', 'TrainingIntentState', 'TrainingTargetCheck', 'TrainingLearningCheck',
+ 'TrainingResourceBudget', 'SavedTrainingGymReview', 'TrainingStatProjection', 'TrainingLevelConstraints',
+ 'StaticStatCalculator', 'TrainingProgressCheck', 'GymResourcePolicy', 'GuideRevisionPolicy',
+ 'TeamMutationIntent', 'ReferenceRulesReply', 'GymFocusedFactReply', 'AgentToolObservation',
+ 'AgentTracingConfiguration', 'ToolExecutionGateway', 'TaskSkillRegistry', 'TaskContextAssembler',
+ 'GuideReferenceIdentity', 'LocalPokeApiRepository', 'RegionalFormName'
+]
+// Give each child-process check its own deadline and failure identity.
+for (const name of requiredHelpers) {
+ test('missing '+name+' cannot pass when core classes match', {timeout:30000}, async()=>{
+  const report=await compareFixture(hashes=>delete hashes[name])
+  assert.equal(report.status,'STALE_OR_DIFFERENT_ARTIFACTS')
+  assert.ok(report.classes.every(row=>row.matches))
+  assert.equal(report.additionalComponents.find(row=>row.name===name).matches,false)
+ })
+}
+test('stale training roadmap cannot pass when core classes match', {timeout:30000}, async()=>{
+ const report=await compareFixture(hashes=>hashes.SavedTrainingRoadmap='0'.repeat(64))
+ assert.equal(report.status,'STALE_OR_DIFFERENT_ARTIFACTS')
+ assert.ok(report.classes.every(row=>row.matches))
+ assert.equal(report.additionalComponents.find(row=>row.name==='SavedTrainingRoadmap').matches,false)
 })

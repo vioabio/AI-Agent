@@ -1,15 +1,28 @@
 import { computed, reactive } from 'vue'
 import { clearApiKey, fetchAuthSession, invalidateAuthenticationRequests, logoutSession,
   setAuthenticationFailureHandler } from '@/api'
-import { canUseApplication, createSessionController } from '@/auth/session-state'
+import { canUseApplication, createSessionController, workspaceRouteWithoutConversation } from '@/auth/session-state'
 import { clearAllRunResume, syncRunResumeScope } from '@/composables/runPersistence'
+import router from '@/router'
 
 const state = reactive({})
 let channel = null
+let clearWorkspaceContext = false
 const session = createSessionController({
   state, fetchSession: fetchAuthSession, logout: logoutSession,
-  prepareIdentity: syncRunResumeScope,
-  clearIdentity: () => { invalidateAuthenticationRequests(); clearApiKey(); clearAllRunResume() },
+  prepareIdentity: async (snapshot, guard) => {
+    if (clearWorkspaceContext) {
+      const route = router.currentRoute.value
+      if (Object.hasOwn(route.query, 'conversation')) await router.replace(workspaceRouteWithoutConversation(route))
+      if (!guard.isCurrent()) return
+      clearWorkspaceContext = false
+    }
+    await syncRunResumeScope(snapshot, guard)
+  },
+  clearIdentity: () => {
+    if (state.snapshot?.authenticated) clearWorkspaceContext = true
+    invalidateAuthenticationRequests(); clearApiKey(); clearAllRunResume()
+  },
   navigate: url => window.location.assign(url),
   broadcast: reason => channel?.postMessage({ type: 'session-ended', reason })
 })

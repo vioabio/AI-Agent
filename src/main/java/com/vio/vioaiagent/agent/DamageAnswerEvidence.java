@@ -92,6 +92,7 @@ public final class DamageAnswerEvidence {
         }
         var defaults=evidence.path("conditionValidation").path("engineDefaultAbilitySides");
         if(defaults.isArray()&&!defaults.isEmpty())text.append("注意：未指定的特性采用了引擎默认特性（见上方实际条件），请确认该假设；这不表示用户已经选择了该特性。\n");
+        else text.append("上方特性等配置为本次计算假设，请核对未明确提供的条件。\n");
         if(gym()){
             text.append("招式：").append(safe(PokemonDisplayNames.calculationLabel("move",assumptions.path("move").asText()))).append("；场地：").append(safe(PokemonDisplayNames.condition(assumptions.path("field").path("gameType").asText()))).append("。\n");
             for(String side:List.of("attacker","defender")){var state=assumptions.path(side).path("state");text.append(side.equals("attacker")?"攻击方状态：":"防御方状态：").append("剩余HP ").append(state.path("hpPercent").asInt()).append("%；太晶 ").append(state.path("teraActive").asBoolean()?safe(PokemonDisplayNames.type(state.path("activeTeraType").asText())):"未激活").append("；异常状态 ").append(safe(PokemonDisplayNames.condition(state.path("status").asText()))).append("；能力变化 ").append(boosts(state.path("boosts"))).append("。\n");}

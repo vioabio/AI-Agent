@@ -18,6 +18,16 @@ class SpeciesGuideRetrievalTest {
     final ObjectMapper mapper=new ObjectMapper();
     LocalGuideSearch index(){return new LocalGuideSearch(mapper,new DefaultResourceLoader(),"classpath:pokemon-strategy/overview-v1.json",directory.resolve("guides.sqlite").toString());}
     List<LocalGuideSearch.Hit> search(LocalGuideSearch index,String query){return index.search(query,"pokemon-scarlet-violet");}
+    @Test void domainNameAloneCannotRetrieveUnrelatedFactsButTopicAndCitationArePreserved() {
+        var index = index();
+        for (String query : List.of("宝可梦2049无人区时间钥匙在哪里", "Pokémon XYZ999", "Pokemon XYZ999"))
+            assertTrue(search(index, query).isEmpty(), query);
+        var hits = search(index, "宝可梦努力值培养");
+        assertFalse(hits.isEmpty());
+        assertTrue(hits.stream().allMatch(hit -> GuideChunks.validCitation(hit.document(), hit.citation())));
+        assertEquals(GuideChunks.tokens("努力值培养"), GuideChunks.tokens("宝可梦努力值培养"));
+        assertTrue(GuideChunks.tokens("pokemon2 培养").contains("pokemon2"));
+    }
     @Test void matchingSpeciesIsPrioritizedAndUnrequestedSaveOrDamageTopicsAreExcluded() {
         var index=index();assertEquals(14,index.status().documentCount());
         for(String species:List.of("雪妖女","杰尼龟")) {

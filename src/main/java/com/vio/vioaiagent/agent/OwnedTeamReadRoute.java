@@ -50,7 +50,10 @@ public final class OwnedTeamReadRoute {
         if (status.isPresent()) return status;
         String writeIntent=TrainingIntentState.normalizeConditionUpdates(question);
         if(ProjectGuideRequest.requiresSource(question)||TeamMutationIntent.requested(question)||writeIntent.matches("(?s).*(确认修改|保存修改|改成|改为|生成预览).*"))return Optional.empty();
-        boolean contextual=question.matches("(?s).*(这个队伍|刚才.{0,8}队伍|队伍的等级|现有两招).*" );
+        boolean replacementConstraint=question.length()<=300 && question.matches(
+                "(?:这支|这套|这个)(?:队伍|阵容)(?:不存在|没找到|没有找到)(?:就明确说|就直说|请说明|请明确说)[，,]"
+                + "(?:不要|别|不用)(?:换成|替换为|改成)[^。！？?\\n]{1,60}[。！!？?]?" );
+        boolean contextual=replacementConstraint||question.matches("(?s).*(这个队伍|刚才.{0,8}队伍|队伍的等级|现有两招).*" );
         if(!contextual&&!(question.matches("(?s).*(读取|我的|已保存|保存的|实际保存).*" )&&question.matches("(?s).*(队伍|阵容|(?:我保存的|已保存).{0,80}配置).*")))return Optional.empty();
         var list=Arrays.stream(tools).filter(t->t.getToolDefinition().name().equals("listCurrentTeams")).findFirst();
         var read=Arrays.stream(tools).filter(t->t.getToolDefinition().name().equals("readCurrentTeam")).findFirst();
@@ -59,7 +62,8 @@ public final class OwnedTeamReadRoute {
         String stage="list";
         try {
             var teams=JSON.readTree(list.get().call("{}"));if(!teams.isArray())return Optional.of("当前账号队伍列表未能读取，本次未分析或修改队伍。");
-            var chosen=select(teams,question,context.dialogueHistory(),contextual);
+            // A rejected replacement name cannot become the selected private record.
+            var chosen=select(teams,replacementConstraint?"":question,context.dialogueHistory(),contextual);
             if(chosen.isEmpty())return Optional.of("当前账号没有唯一匹配本次名称的队伍。请确认队伍名称，或在队伍页选择后重试；本次不读取其他队伍的配置作为替代。");
             stage="read";
             String output=read.get().call(JSON.createObjectNode().put("teamId",chosen.get().path("id").asLong()).toString());
