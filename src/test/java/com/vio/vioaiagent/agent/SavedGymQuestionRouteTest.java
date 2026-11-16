@@ -23,6 +23,32 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class SavedGymQuestionRouteTest {
+ @Test void nonKnockoutMovesCannotBecomeCandidatesInSummaryFocusedOrPerMemberAnswers(){
+  var member=new TeamMember(0,445,1,new TeamBuild(List.of("false-swipe"),"rough-skin","","hardy",51,null,null));
+  teams.create(new SavedTeam(0,"owner-a","capture-only","casual-v1","saved-sv-release",List.of(member)));
+  for(String question:List.of("我的capture-only队伍能应对海岱吗", "我的capture-only队伍如何出招应对海岱", "请读取我的capture-only队伍，逐个说明成员如何应对海岱")){
+   var requested=AgentRun.create(run.id(),"s","conversation","owner-a",question,"pokemon-scarlet-violet","casual-singles","casual-v1","zh-CN","trace",null,Instant.now().plusSeconds(30));
+   String answer=SavedGymQuestionRoute.reply(new AgentRunContext(requested),callbacks).orElseThrow();
+   assertTrue(answer.contains("至少1HP"));
+   assertFalse(answer.contains("具备属性覆盖条件"));
+   assertFalse(answer.contains("可考虑点到为止"));
+   assertFalse(answer.contains("可优先考虑"));
+   assertFalse(answer.contains("槽位1 点到为止（"));
+   assertTrue(answer.contains("缺少可用于击倒的已核对攻击候选"));
+   assertFalse(answer.contains("无法评估或无法命中的对手"));
+  }
+ }
+ @Test void explicitPerMemberReviewIncludesEverySavedSlotAndItsActualMoves(){
+  var second = new TeamMember(0,149,6,new TeamBuild(List.of("aerial-ace"),"multiscale","","hardy",50,null,null));
+  var expanded = teams.create(new SavedTeam(0,"owner-a","manual-review","casual-v1","saved-sv-release",List.of(team.members().getFirst(),second)));
+  var before = teams.snapshotForOwner(expanded.id(),"owner-a");
+  var requested=AgentRun.create(run.id(),"s","conversation","owner-a","我当前账号保存的manual-review队伍能应对这位馆主吗？请读取实际队伍，逐个说明适合出场的成员和出招思路。先给分析建议。","pokemon-scarlet-violet","casual-singles","casual-v1","zh-CN","trace",null,Instant.now().plusSeconds(30));
+  String answer=GymDialogueRouter.reply(new AgentRunContext(requested,null,List.of(new UserMessage("查看海岱的初战队伍"))),callbacks).orElseThrow();
+  String perMember=answer.substring(answer.indexOf("### 逐个成员的出招候选"),answer.indexOf("### 当前配置的建议"));
+  assertTrue(perMember.contains("槽位3 烈咬陆鲨"));assertTrue(perMember.contains("槽位6 快龙"));
+  assertTrue(perMember.contains("燕返"));assertTrue(perMember.contains("轻身鳕"));assertTrue(perMember.contains("三海地鼠"));assertTrue(perMember.contains("好胜毛蟹"));
+  assertEquals(before,teams.snapshotForOwner(expanded.id(),"owner-a"));
+ }
  @TempDir Path directory;
  final InMemorySavedTeamRepository teams=new InMemorySavedTeamRepository();final InMemoryRunRepository runs=new InMemoryRunRepository();final PokemonFactRepository facts=mock(PokemonFactRepository.class);final HitlManager hitl=new HitlManager();
  SavedTeamGymTool tool;ToolCallback[] callbacks;SavedTeam team;AgentRun run;

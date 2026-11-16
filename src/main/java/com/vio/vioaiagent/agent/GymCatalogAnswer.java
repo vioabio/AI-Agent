@@ -8,6 +8,47 @@ import java.util.*;
 /** Reading NPC facts does not require a player's party, progress or eligibility to fight. */
 final class GymCatalogAnswer {
     private GymCatalogAnswer() { }
+    static boolean requestsOverview(String question) {
+        return question != null && question.length() <= 800
+                && question.matches("(?s).*((?:八|8)位(?:道馆)?馆主|全部(?:道馆)?馆主|所有(?:道馆)?馆主).*")
+                && question.matches("(?s).*(介绍|列出|查看|查询).*(队伍|阵容).*")
+                && question.matches("(?s).*(逐位|分别|每位).*(核对|确认|条件|注意).*")
+                && !question.matches("(?s).*(我的|我当前|已保存|保存修改|应用修改|生成预览|推荐|计算|不要介绍|无需介绍).*" );
+    }
+
+    static Optional<String> overview(String question) {
+        if (!requestsOverview(question)) return Optional.empty();
+        if (question.contains("重赛") && question.contains("初战")
+                && !question.matches("(?s).*(只看初战|不要重赛|不看重赛|只看重赛|不要初战|不看初战).*"))
+            return Optional.of(overview("介绍八位馆主的初战队伍，逐位说明需要核对的条件。").orElseThrow()
+                    + "\n\n" + overview("介绍八位馆主的视察重赛队伍，逐位说明需要核对的条件。").orElseThrow());
+        String phase = question.contains("重赛") && !question.matches("(?s).*(只看初战|不要重赛|不看重赛).*") ? "rematch" : "initial";
+        var roster = reply("查询八位馆主的" + (phase.equals("initial") ? "初战" : "重赛") + "队伍", "pokemon-scarlet-violet");
+        if (roster.isEmpty()) return Optional.empty();
+        try {
+            var catalog = load(phase);
+            var answer = new StringBuilder(roster.get());
+            answer.append("\n\n### 逐位核对对战条件\n\n| 馆主 | 需要核对的条件 |\n| --- | --- |\n");
+            for (var gym : catalog.path("gyms")) {
+                var checks = new ArrayList<String>();
+                checks.add("我方对" + gym.path("theme").asText() + "属性及对手其他招式的攻防覆盖");
+                for (var opponent : gym.path("opponents")) {
+                    if (opponent.hasNonNull("teraType"))
+                        checks.add(name(opponent) + "太晶为" + opponent.path("teraType").asText() + "后的招式相性");
+                    if (opponent.path("ability").asText().equals("Levitate"))
+                        checks.add(name(opponent) + "的飘浮特性对地面招式的影响");
+                }
+                if (gym.path("battleMode").asText().equals("Doubles"))
+                    checks.add("双打两位首发、队友招式影响及行动顺序");
+                answer.append("| ").append(gym.path("name").asText()).append(" | ")
+                        .append(String.join("，", checks)).append(" |\n");
+            }
+            answer.append("\n制定具体打法还需我方成员、实际等级和招式、特性、道具、徽章与获得等级、可用资源。精确伤害需补齐培养配置和场面条件，再调用计算工具。\n");
+            return Optional.of(answer.toString());
+        } catch (Exception unavailable) {
+            return Optional.of("八位馆主的对战资料暂时无法完整核对，请稍后重试。");
+        }
+    }
     static Optional<String> reply(String question,String gameReleaseId){
         return reply(question,gameReleaseId,List.of());
     }

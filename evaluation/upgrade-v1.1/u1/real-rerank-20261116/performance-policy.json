@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "local-development-performance-policy-v1",
+  "retrieval": {
+    "candidateK": 12,
+    "topK": 5,
+    "minimumSimilarity": 0.55,
+    "rounds": 3,
+    "clock": "MONOTONIC",
+    "scope": "RETRIEVAL_WITH_REMOTE_WAIT_EXCLUDES_SOURCE_VALIDATION",
+    "quantile": "NEAREST_RANK",
+    "productionSlaMs": null
+  },
+  "chat": {
+    "ttft": "POST_START_TO_FIRST_NONEMPTY_ANSWER_DELTA",
+    "total": "POST_START_TO_TERMINAL_EVENT_BOUNDARY_INCLUDES_POLLING",
+    "billingUsage": "PROVIDER_REPORTED_OR_NULL"
+  },
+  "decision": {
+    "rerank": "KEEP_DEFAULT_OFF_EQUAL_DEVELOPMENT_QUALITY",
+    "latency": "REPORT_BOTH_COLLECTIONS_NO_SIGNIFICANCE_CLAIM"
+  }
+}

@@ -24,7 +24,7 @@ async function fixture(page, mode = 'save') {
     ]
   }
   let conversationId = 'conversation-team'
-  const terminal = () => state.decision !== null
+  const terminal = () => state.decision !== null && (mode !== 'deny-refresh' || state.deliverTerminal)
   const answer = () => mode === 'conflict' ? '队伍已被修改，本次预览未保存。' : '已保存并回读队伍「练习队」。'
   await page.route(url => url.pathname.startsWith('/api/'), async route => {
     const url = new URL(route.request().url()), method = route.request().method()
@@ -113,6 +113,20 @@ for (const mode of ['deny', 'expired', 'conflict']) {
     expect(team.members[0].build.level).toBe(50)
   })
 }
+
+test('取消队伍预览终态跨刷新后展示已取消', async ({ page }) => {
+  const { state, team } = await fixture(page, 'deny-refresh')
+  await page.getByRole('button', { name: '取消修改', exact: true }).click()
+  await expect.poll(() => state.decision).toBe(false)
+  state.deliverTerminal = true
+  await page.reload()
+  await expect(page.locator('.run-status.cancelled')).toHaveText('已取消')
+  await expect(page.locator('.run-error')).toHaveCount(0)
+  await expect(page.locator('.assistant-bubble').filter({ hasText: '已取消待确认的操作。' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '确认保存', exact: true })).toHaveCount(0)
+  expect(state.submissions).toBe(1)
+  expect(team.members[0].build.level).toBe(50)
+})
 
 test('决定已提交但尚未收到终态时禁止再次决定，保留刷新入口', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 900 })

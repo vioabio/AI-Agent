@@ -10,6 +10,45 @@ import static org.mockito.Mockito.*;
 
 class TypeMatchupReplyTest {
     static final String ORIGINAL="地面招式打水属性，以及水／超能力双属性，基础属性倍率分别是多少？不考虑特性、道具和太晶。";
+    static final String MULTIPLE_ATTACKS="电和草属性招式攻击水／超能力双属性，各是多少倍？";
+    @Test void reportedMultipleAttackQuestionUsesTheCorrectFactorForEachDefendingType(){
+        for(String question:List.of(MULTIPLE_ATTACKS,
+                "电属性和草属性招式攻击水/超能力双属性，分别是多少倍？",
+                "电系与草系对水/超能各自为多少倍？",
+                "电、草招式分别攻击水/超能力，倍率各是多少？")){
+            String answer=TypeMatchupReply.reply(question).orElseThrow();
+            assertTrue(answer.contains("| 电 | 水／超能力 | 2.0× × 1.0× | 2.0× |"),question);
+            assertTrue(answer.contains("| 草 | 水／超能力 | 2.0× × 1.0× | 2.0× |"),question);
+            assertFalse(answer.contains("0.5"),question);
+        }
+    }
+    @Test void multipleAttacksAndTargetsKeepImmunityResistanceAndWeaknessSeparate(){
+        String answer=TypeMatchupReply.reply("地面和草打电/飞行以及火/岩石，分别是多少倍？").orElseThrow();
+        assertTrue(answer.contains("| 地面 | 电／飞行 | 2.0× × 0.0× | 0.0× |"));
+        assertTrue(answer.contains("| 地面 | 火／岩石 | 2.0× × 2.0× | 4.0× |"));
+        assertTrue(answer.contains("| 草 | 电／飞行 | 1.0× × 0.5× | 0.5× |"));
+        assertTrue(answer.contains("| 草 | 火／岩石 | 0.5× × 2.0× | 1.0× |"));
+    }
+    @Test void multipleAttackParsingRequiresACompleteUnambiguousPureTypeQuestion(){
+        for(String question:List.of("电和草攻击水/超能力，考虑避雷针特性各是多少倍？",
+                "电和草攻击水/超能力，各是多少倍？再推荐一支队伍。",
+                "电和未知属性攻击水/超能力，各是多少倍？",
+                "电和草攻击水和超能力双属性，各是多少倍？",
+                "火/飞行打草的倍率是多少？",
+                "火、水、电、草、冰、地面、飞行对草各是多少倍？"))
+            assertTrue(TypeMatchupReply.reply(question).isEmpty(),question);
+    }
+    @Test void finalAnswerReplacesInconsistentModelExplanationWithComputedFactors(){
+        var model=mock(ChatModel.class);var agent=new ToolCallAgent(new ToolCallback[0]);
+        agent.setChatClient(ChatClient.builder(model).build());clearInvocations(model);
+        agent.setCurrentUserRequest(MULTIPLE_ATTACKS);
+        agent.getMessageList().add(new org.springframework.ai.chat.messages.AssistantMessage("电和草对超能力0.5倍，2×0.5=2倍。"));
+        var deltas=new ArrayList<String>();agent.setAnswerDeltaSink(deltas::add);
+        String answer=agent.summarizeAnswer();
+        assertEquals(TypeMatchupReply.reply(MULTIPLE_ATTACKS).orElseThrow(),answer);
+        assertEquals(answer,String.join("",deltas));assertFalse(answer.contains("0.5"));
+        verifyNoInteractions(model);
+    }
     @Test void colloquialTimesDamageAndPresentationInstructionStillUseTheTypeChart() {
         for (String question : List.of("火属性招式攻击草属性是几倍伤害？请查询属性工具后用中文简短回答。",
                 "冰打地面/龙几倍伤害？", "火打草是几倍？")) {

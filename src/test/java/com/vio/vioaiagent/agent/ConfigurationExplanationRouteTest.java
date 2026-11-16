@@ -17,6 +17,27 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class ConfigurationExplanationRouteTest {
+    @Test void onePrincipleKeepsVerifiedAttributionWithoutExpandingTheWholeDocument() {
+        var json = new ObjectMapper();
+        var search = new LocalGuideSearch(json, new DefaultResourceLoader(), "classpath:pokemon-strategy/overview-v1.json", directory.resolve("brief.sqlite").toString());
+        var tool = mock(ToolCallback.class);
+        when(tool.getToolDefinition()).thenReturn(ToolDefinition.builder().name("searchPokemonGuides").description("lookup").inputSchema("{}").build());
+        when(tool.call(anyString())).thenAnswer(invocation -> {
+            var input = json.readTree((String) invocation.getArgument(0));
+            return json.writeValueAsString(search.search(input.path("query").asText(), input.path("gameReleaseId").asText()));
+        });
+        String answer = new DefaultRunExecutor(mock(ChatModel.class), new ToolCallback[]{tool}, null, null, null, null, false)
+                .execute(context("请只给一条通用组队原则，无需读取我的私人队伍。"));
+        assertTrue(answer.contains("核心成员的角色"));
+        assertTrue(answer.contains("围绕核心成员构建队伍"));
+        assertTrue(answer.contains("VIO project"));
+        assertFalse(answer.contains("本地说明原文"));
+        assertTrue(answer.length() < 200);
+        doReturn("[]").when(tool).call(anyString());
+        String missing = ConfigurationExplanationRoute.reply(context("请只给一条通用组队原则，无需读取我的私人队伍。"), new ToolCallback[]{tool}).orElseThrow();
+        assertTrue(missing.contains("引用暂缺"));
+        assertFalse(missing.contains("作者 VIO project"));
+    }
     @TempDir Path directory;
     AgentRunContext context(String question) {
         var run=AgentRun.create("concept-run","s","c","owner",question,"pokemon-scarlet-violet","casual-singles","casual-v1","zh-CN","trace",null,Instant.now().plusSeconds(30));

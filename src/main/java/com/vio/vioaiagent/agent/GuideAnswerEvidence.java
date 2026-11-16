@@ -22,6 +22,7 @@ public final class GuideAnswerEvidence {
     private boolean initialized, requested, attempted, projectExplanation, partialReferenceFailure, resourceAttempted;
     private String question="";
     private List<LocalGuideSearch.Hit> hits = List.of();
+    private final Map<String,List<LocalGuideSearch.Hit>> guideReads = new LinkedHashMap<>();
     private final Map<String,Boolean> referenceFailures = new LinkedHashMap<>();
     private final Map<Long,PokemonFact> references = new LinkedHashMap<>();
     private final ResourceAnswerEvidence resources=new ResourceAnswerEvidence();
@@ -31,7 +32,7 @@ public final class GuideAnswerEvidence {
     private final BuildCheckAnswerEvidence buildChecks=new BuildCheckAnswerEvidence();
     private final TeamBuildAnswerEvidence teamBuildChecks=new TeamBuildAnswerEvidence();
     private final MachineAnswerEvidence machines=new MachineAnswerEvidence();
-    public void begin(String prompt) { referenceFailures.clear();question=prompt;teamBuildChecks.begin(prompt); initialized = true; projectExplanation = ProjectGuideRequest.requiresSource(prompt); requested = GUIDE_REQUEST.matcher(prompt).find() || projectExplanation || statMeaningQuestion(prompt) || (!TeamMutationIntent.requested(prompt) && (java.util.regex.Pattern.compile("培养|搭配|对战策略").matcher(prompt).find() || genericTeamRoles(prompt))); }
+    public void begin(String prompt) { guideReads.clear();hits=List.of();attempted=false;referenceFailures.clear();question=prompt;teamBuildChecks.begin(prompt); initialized = true; projectExplanation = ProjectGuideRequest.requiresSource(prompt); requested = GUIDE_REQUEST.matcher(prompt).find() || projectExplanation || statMeaningQuestion(prompt) || (!TeamMutationIntent.requested(prompt) && (java.util.regex.Pattern.compile("培养|搭配|对战策略").matcher(prompt).find() || genericTeamRoles(prompt))); }
     /** Conceptual interpretation does not require a live species read or a fabricated calculation. */
     public static boolean statMeaningQuestion(String prompt) {
         return prompt != null && prompt.length() <= 600 && !prompt.contains("\n")
@@ -167,7 +168,11 @@ public final class GuideAnswerEvidence {
             return;
         }
         if (!"searchPokemonGuides".equals(tool)) return;
-        attempted = true; hits = List.of();
+        attempted = true;
+        String readKey = guideReadKey(arguments);
+        if (readKey == null) guideReads.clear();
+        else guideReads.remove(readKey);
+        refreshGuideHits();
         if (output == null || output.length() > 120_000) return;
         try {
             var root = mapper.readTree(output);
@@ -190,10 +195,37 @@ public final class GuideAnswerEvidence {
                         || !"casual-v1".equals(d.rulesetVersionId()) || !GuideChunks.validCitation(d,hit.citation()))) return;
                 if(com.vio.vioaiagent.pokemon.guides.GuideRevisionPolicy.usable(d,question))checked.add(hit);
             }
-            hits = List.copyOf(checked);
+            if (guideReads.size() >= 8) guideReads.remove(guideReads.keySet().iterator().next());
+            guideReads.put(readKey == null ? "UNBOUND" : readKey, List.copyOf(checked));
+            refreshGuideHits();
         } catch (Exception ignored) { /* failed, malformed or truncated output is not a source */ }
     }
+    private String guideReadKey(String arguments) {
+        if (arguments == null || arguments.length() > 4000) return null;
+        try {
+            var input = mapper.readTree(arguments);
+            if (!input.isObject() || !input.path("query").isTextual()
+                    || !"pokemon-scarlet-violet".equals(input.path("gameReleaseId").asText())) return null;
+            String query = input.path("query").asText().strip();
+            if (query.isEmpty() || query.length() > 2000) return null;
+            return PokeApiClient.digest(query);
+        } catch (Exception invalid) { return null; }
+    }
+    private void refreshGuideHits() {
+        var documents = new LinkedHashMap<String,LocalGuideSearch.Hit>();
+        for (var read : guideReads.values())
+            for (var hit : read) documents.put(hit.document().id(), hit);
+        hits = documents.values().stream().sorted(Comparator.comparingInt(hit ->
+                hit.document().applicability() != null && !hit.document().applicability().subjects().isEmpty()
+                        && hit.document().applicability().matchesSubject(question) ? 0 : 1)).limit(4).toList();
+    }
     public boolean hasGuideSources(){return !hits.isEmpty();}
+    public Optional<String> documentAttribution(String documentId) {
+        return hits.stream().filter(hit -> documentId.equals(hit.document().id()))
+                .findFirst().map(hit -> "来源：项目攻略《" + EvidenceText.inline(hit.document().title())
+                        + "》，作者 " + EvidenceText.inline(hit.document().author())
+                        + "，更新 " + hit.document().updatedAt() + "。");
+    }
     /** Only an actual, validated matching source can be expanded to its complete bounded text. */
     public Optional<String> fullDocumentAnswer(String documentId) {
         return hits.stream().filter(hit->documentId.equals(hit.document().id()))

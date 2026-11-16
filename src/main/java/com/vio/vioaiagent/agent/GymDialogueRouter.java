@@ -17,7 +17,9 @@ public final class GymDialogueRouter {
             return Optional.of("目前只有一名成员的信息，尚不足以制定应对"+plan.target().orElseThrow().name()+"的完整双打行动方案。请补充双方首发、我方成员的实际等级与招式、特性、道具和当前场面；出手先后还需实际速度、优先度及状态。资料齐全后可核对行动候选和计算条件，具体对局仍需随对手行动调整。");
         if(context.run().prompt().matches("(?s).*(剑盾|剑／盾|剑/盾|绿宝石|火红|叶绿|究极之日|究极之月).*")&&!context.run().prompt().contains("不要混用"))return GymQuestionPolicy.clarification(context.run().prompt());
         Optional<String> response;
-        if (plan.intent() == GymTurnPlan.Intent.CATALOG) {
+        if (plan.intent() == GymTurnPlan.Intent.CATALOG && GymCatalogAnswer.requestsOverview(prompt)) {
+            response = GymCatalogAnswer.overview(prompt);
+        } else if (plan.intent() == GymTurnPlan.Intent.CATALOG) {
             var focused=GymFocusedFactReply.reply(plan,context.run().prompt());
             if(focused.isPresent())response=focused;
             else {

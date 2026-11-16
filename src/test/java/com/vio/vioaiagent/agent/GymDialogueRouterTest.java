@@ -13,6 +13,43 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class GymDialogueRouterTest {
+    @Test void allGymsWithPerGymConditionsDoesNotRequireSelectingOneGym() {
+        String question = "请介绍八位馆主的初战队伍，并逐位说明应对时需要核对哪些条件。";
+        var history = List.<Message>of(new UserMessage("读取我的test1队伍分析海岱"));
+        var ctx = context(question, history);
+        assertEquals(GymTurnPlan.Intent.CATALOG, GymTurnPlan.from(ctx).intent());
+        assertTrue(GymTurnPlan.from(ctx).target().isEmpty());
+        var model = mock(ChatModel.class);
+        var tool = mock(ToolCallback.class);
+        var deltas = new ArrayList<String>();
+        var executor = new DefaultRunExecutor(model, new ToolCallback[]{tool}, null, null, null, null, false);
+        String answer = executor.execute(new AgentRunContext(ctx.run(), deltas::add, history));
+        for (String name : GymConversationContext.NAMES) assertTrue(answer.contains(name), name);
+        assertTrue(answer.contains("轻身鳕 Lv.29"));
+        assertTrue(answer.contains("逐位核对对战条件"));
+        assertTrue(answer.contains("双打两位首发"));
+        assertTrue(answer.contains("飘浮"));
+        assertTrue(answer.contains("徽章与获得等级"));
+        assertTrue(answer.contains("gyms.shtml"));
+        assertFalse(answer.contains("你想为哪位馆主"));
+        assertEquals(answer, String.join("", deltas));
+        verifyNoInteractions(model, tool);
+    }
+    @Test void rosterOverviewRetainsRequestedRematchStageAndItsSource() {
+        String question = "列出所有馆主的视察重赛阵容，分别说明需要确认的条件。";
+        String answer = GymDialogueRouter.reply(context(question, List.of()), new ToolCallback[0]).orElseThrow();
+        assertTrue(answer.contains("主线后视察重赛"));
+        assertTrue(answer.contains("gymrematches.shtml"));
+        assertFalse(answer.contains("Lv.14"));
+        String both = GymDialogueRouter.reply(context("介绍八位馆主的初战与重赛队伍，逐位说明需要核对的条件。", List.of()), new ToolCallback[0]).orElseThrow();
+        assertTrue(both.contains("轻身鳕 Lv.29"));
+        assertTrue(both.contains("gymrematches.shtml"));
+        String initial = GymDialogueRouter.reply(context("介绍八位馆主的队伍，只看初战不要重赛，逐位说明需要核对的条件。", List.of()), new ToolCallback[0]).orElseThrow();
+        assertFalse(initial.contains("gymrematches.shtml"));
+        assertFalse(GymCatalogAnswer.requestsOverview("不要介绍八位馆主的队伍，只回答阿枫擅长什么属性。"));
+        assertFalse(GymCatalogAnswer.requestsOverview("读取我的队伍，逐位分析应对八位馆主的条件。"));
+        assertEquals(GymTurnPlan.Intent.DAMAGE, GymTurnPlan.classify("介绍八位馆主初战队伍，逐位说明核对条件，再帮我计算伤害。"));
+    }
     @Test void rematchPronounsAndStageComparisonUseTheCheckedCatalog() {
         var history = List.<Message>of(new UserMessage("先查看奇树初战的队伍。"));
         var model = mock(ChatModel.class);

@@ -20,6 +20,36 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class TeamWorkflowTest {
+    @Test void explicitOldLevelMismatchIsVisibleInThePreviewAndStillRequiresConfirmation() {
+        try (var f=fixture()) {
+            f.run=f.newRun(OWNER,Instant.now().plusSeconds(60),"请把我保存的练习队第一位成员等级从51改为52，先生成修改预览。");f.bind();
+            var before=f.teams.snapshotForOwner(f.team.id(),OWNER);
+            f.workflow.readCurrentTeam(f.team.id());
+            var change=new TeamWorkflowService.BuildChange(1,null,null,null,null,52,null,null);
+            var preview=f.workflow.previewTeamChanges(f.team.id(),List.of(change),"按请求调整等级");
+            assertTrue(preview.rationale().contains("起始等级不一致"));
+            assertTrue(preview.rationale().contains("请求中为51级，当前保存为50级"));
+            assertTrue(preview.limitations().stream().anyMatch(line->line.contains("50→52")));
+            assertEquals(before,f.teams.snapshotForOwner(f.team.id(),OWNER));
+            assertThrows(IllegalStateException.class,()->f.workflow.finishIfPending(f.context()));
+            f.approve(preview);f.workflow.finishIfPending(f.context());
+            assertEquals(52,f.teams.findByIdForOwner(f.team.id(),OWNER).orElseThrow().members().getFirst().build().level());
+        }
+    }
+    @Test void aMatchingBaselineHasNoWarningAndADifferentTargetCannotAcquireApproval() {
+        try (var f=fixture()) {
+            f.run=f.newRun(OWNER,Instant.now().plusSeconds(60),"将槽位1等级从50改为51，请预览");f.bind();
+            var preview=f.preview();
+            assertFalse(preview.rationale().contains("起始等级不一致"));
+        }
+        try (var f=fixture()) {
+            f.run=f.newRun(OWNER,Instant.now().plusSeconds(60),"将第一位成员等级从50改为52，请预览");f.bind();
+            f.workflow.readCurrentTeam(f.team.id());
+            assertThrows(IllegalArgumentException.class,()->f.workflow.previewTeamChanges(f.team.id(),List.of(CHANGE),"模型误选51"));
+            assertEquals(AgentRunStatus.RUNNING,f.run.status());
+            assertEquals(50,f.teams.findByIdForOwner(f.team.id(),OWNER).orElseThrow().members().getFirst().build().level());
+        }
+    }
     @TempDir Path directory;
     static final String RELEASE="pokeapi-reference-v1", OWNER="local:trainer-a";
     static final TeamWorkflowService.BuildChange CHANGE=new TeamWorkflowService.BuildChange(1,null,null,null,null,51,null,null);

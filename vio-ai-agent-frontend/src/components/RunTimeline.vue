@@ -1,7 +1,7 @@
 <template>
   <section v-if="run" class="run-panel" :class="{ 'has-team-preview': !!run.approval?.teamChange, 'compact-run': compact }" aria-live="polite">
     <div class="run-summary">
-      <span class="run-status" :class="run.status">{{ statusLabel(run.status) }}</span>
+      <span class="run-status" :class="displayStatus">{{ statusLabel(displayStatus) }}</span>
       <span v-if="!compact" class="transport-badge" title="事件快照 · 游标可重连；按游标补读，支持断线重连">回答与资料记录</span>
       <button v-if="compact" class="run-details-toggle" type="button" :aria-expanded="detailsOpen" @click="detailsOpen = !detailsOpen"><UiIcon name="info" />{{ sourceCount ? `来源 ${sourceCount}` : '来源与详情' }}<UiIcon name="chevron" /></button>
       <span v-if="run.streamError === 'UNREGISTERED_EVENT_TYPE'" class="protocol-warning" role="status">
@@ -173,7 +173,7 @@
 
     </div>
 
-    <p v-if="run.error" class="run-error">{{ run.error }}</p>
+    <p v-if="run.error && (run.status !== 'failed' || displayStatus !== 'cancelled')" class="run-error">{{ run.error }}</p>
   </section>
 </template>
 
@@ -189,7 +189,7 @@ import ModelUsageDetails from '@/components/ModelUsageDetails.vue'
 import UiIcon from '@/components/UiIcon.vue'
 import { formatToolTiming } from '@/api/response-timing'
 import { fetchAnswerFeedback } from '@/api'
-import { statusLabel, toolFailureLabel } from '@/api/run-contract'
+import { statusLabel, toolFailureLabel, runDisplayStatus } from '@/api/run-contract'
 import { useAuthSession } from '@/composables/useAuthSession'
 
 const { state: authState } = useAuthSession()
@@ -209,6 +209,7 @@ const sourceCount = computed(() => new Set([...(props.run?.citations || []), ...
 
 
 const canCancel = computed(() => ['creating', 'running', 'waiting_approval', 'reconnecting'].includes(props.run?.status))
+const displayStatus = computed(() => runDisplayStatus(props.run))
 const teamDecisionMessage = computed(() => props.run?.approval?.teamChange
   && props.run.teamDecisionState?.approvalId === props.run.approval.approvalId
   ? props.run.teamDecisionState.message : '')

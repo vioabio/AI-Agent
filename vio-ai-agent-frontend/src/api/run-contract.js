@@ -36,6 +36,12 @@ export const TERMINAL_STATUSES = new Set([
   RUN_STATUS.TIMED_OUT
 ])
 
+/** Presentation of an explicit declined approval, backed by the terminal event. */
+export function runDisplayStatus(run) {
+  return run?.status === RUN_STATUS.FAILED && run.errorType === 'APPROVAL_DENIED'
+    ? RUN_STATUS.CANCELLED : run?.status
+}
+
 export function canSubmitRunApproval(run, approval) {
   return run?.status === RUN_STATUS.WAITING_APPROVAL && !run.approvalSubmitting
     && typeof approval?.approvalId === 'string' && approval.approvalId.length > 0
@@ -138,6 +144,7 @@ export function createRunViewModel(seed = {}) {
     modelUsageAttempts: (Array.isArray(seed.modelUsageAttempts) ? seed.modelUsageAttempts : []).reduce(upsertModelUsage, []),
     events: Array.isArray(seed.events) ? [...seed.events] : [],
     error: seed.error || null,
+    errorType: seed.errorType || null,
     approval: TERMINAL_STATUSES.has(normalizeRunStatus(seed.status)) ? null : seed.approval || null,
     startedAt: seed.startedAt || null,
     finishedAt: seed.finishedAt || null,

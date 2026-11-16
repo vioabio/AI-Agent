@@ -34,6 +34,17 @@ class AnswerRegression20261110Test {
         assertEquals(TypeMatchupReply.reply(TypeMatchupReplyTest.ORIGINAL).orElseThrow(),answer);
         verifyNoInteractions(model);verify(tool,never()).call(anyString());
     }
+    @Test void multipleAttackQuestionUsesChartAndStreamsItsExactFactorsBeforeAnyModelCall(){
+        var tool=calculator();var model=mock(org.springframework.ai.chat.model.ChatModel.class);
+        var executor=new DefaultRunExecutor(model,new ToolCallback[]{tool},null,null,null,null,false);clearInvocations(model);
+        var current=context(TypeMatchupReplyTest.MULTIPLE_ATTACKS,List.of(new AssistantMessage("对超能力0.5倍，2×0.5=2倍")));
+        var deltas=new ArrayList<String>();
+        var streamed=new AgentRunContext(current.run(),deltas::add,current.dialogueHistory(),RunMutationBoundary.denied(),current.modelUsage());
+        String answer=executor.execute(streamed);
+        assertEquals(TypeMatchupReply.reply(TypeMatchupReplyTest.MULTIPLE_ATTACKS).orElseThrow(),answer);
+        assertEquals(answer,String.join("",deltas));assertFalse(answer.contains("0.5"));
+        verifyNoInteractions(model);verify(tool,never()).call(anyString());
+    }
     @Test void namedMatchupWithoutBuildNeverSelectsSavedTeamOrReusesHistory() throws Exception {
         var saved=calculator();when(saved.getToolDefinition()).thenReturn(ToolDefinition.builder().name("readCurrentTeam").description("saved team").inputSchema("{}").build());
         var calc=calculator();var model=mock(org.springframework.ai.chat.model.ChatModel.class);

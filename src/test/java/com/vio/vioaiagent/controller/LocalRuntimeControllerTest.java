@@ -38,7 +38,7 @@ class LocalRuntimeControllerTest {
         assertTrue(((java.util.Map<?,?>)metadata.get("implementationSha256")).containsKey("AccountScopeReply"));
         assertTrue(((java.util.Map<?,?>)metadata.get("implementationSha256")).containsKey("DamageAdvicePolicy"));
         assertTrue(((java.util.Map<?,?>)metadata.get("implementationSha256")).containsKey("ModelFailureDiagnostics"));
-        for(Class<?> component:java.util.List.of(com.vio.vioaiagent.agent.TaskSkillRegistry.class,com.vio.vioaiagent.agent.TaskContextAssembler.class)){
+        for(Class<?> component:java.util.List.of(com.vio.vioaiagent.agent.TaskSkillRegistry.class,com.vio.vioaiagent.agent.TaskContextAssembler.class,com.vio.vioaiagent.agent.TypeMatchupReply.class)){
             try(var bytes=component.getResourceAsStream("/"+component.getName().replace('.','/')+".class")){
                 assertNotNull(bytes);
                 String expected=java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes.readAllBytes()));

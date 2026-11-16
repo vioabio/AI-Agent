@@ -68,6 +68,8 @@ public class TeamWorkflowService {
             throw new IllegalStateException("本任务要求计算伤害，请先单独完成 calculateBattleDamage；计算失败时不能生成保存预览");
         String reason=new com.vio.vioaiagent.agent.TeamAnswerEvidence().checkedAdvice(bounded(rationale,1200));
         if(changes==null||changes.isEmpty()||changes.size()>6) throw new IllegalArgumentException("请选择1至6名成员的明确修改");
+        var baselineWarnings = levelBaselineWarnings(run.prompt(), read.snapshot().team(), changes);
+        if (!baselineWarnings.isEmpty()) reason = String.join("\n", baselineWarnings) + "\n" + reason;
         Set<Integer> slots=new HashSet<>(); List<TeamMember> members=new ArrayList<>(read.snapshot().team().members());
         for(var change:changes) {
             if(change==null||!slots.add(change.slot())) throw new IllegalArgumentException("修改槽位不能重复");
@@ -91,9 +93,12 @@ public class TeamWorkflowService {
             var decision=hitl.evaluate(run.userId(),run.id(),ACTION,VERSION,digest,true);
             if(!decision.waiting()) throw new IllegalStateException("预览审批已处理，不能重新生成或替换");
             Instant expires=decision.expiresAt().isBefore(run.deadlineAt())?decision.expiresAt():run.deadlineAt();
+            var limitations = new ArrayList<>(baselineWarnings);
+            limitations.add("仅保存预览列出的培养配置；理由是策略建议");
+            limitations.add("图鉴存在与参数通过不代表招式合法或当前环境强势");
             var preview=new Preview(decision.approvalId(),teamId,before.name(),lines,reason,expires,
                     calculations.getOrDefault(run.id(),"未获得本 Run 的有效伤害计算。不能据此给出伤害、胜率或最优配置结论。"),
-                    List.of("仅保存预览列出的培养配置；理由是策略建议", "图鉴存在与参数通过不代表招式合法或当前环境强势"));
+                    List.copyOf(limitations));
             Proposal proposal=existing==null?new Proposal(run.userId(),run.id(),read.snapshot(),after,digest,preview):existing;
             proposals.put(run.id(),proposal);
             var context=ToolExecutionContextHolder.peek();
@@ -163,6 +168,28 @@ public class TeamWorkflowService {
         }
     }
     private String publish(AgentRunContext context,String answer) { if(context.answerDeltaSink()!=null) context.answerDeltaSink().accept(answer); return answer; }
+    private static List<String> levelBaselineWarnings(String prompt, SavedTeam team, List<BuildChange> changes) {
+        var warnings = new ArrayList<String>();
+        var pattern = java.util.regex.Pattern.compile("(?:第([一二三四五六1-6])(?:位|个|只)(?:成员|宝可梦)?|槽位\\s*([1-6]))[^。！？?\\n]{0,25}?等级\\s*从\\s*([0-9]{1,3})\\s*级?\\s*(?:改为|改成|调整为|调为|改到|升到)\\s*([0-9]{1,3})");
+        var matcher = pattern.matcher(prompt);
+        while (matcher.find()) {
+            String position = matcher.group(1) == null ? matcher.group(2) : matcher.group(1);
+            int chinese = "一二三四五六".indexOf(position);
+            int slot = chinese >= 0 ? chinese + 1 : Integer.parseInt(position);
+            int expected = Integer.parseInt(matcher.group(3));
+            int target = Integer.parseInt(matcher.group(4));
+            for (var change : changes) {
+                if (change == null || change.slot() != slot || change.level() == null) continue;
+                if (change.level() != target) throw new IllegalArgumentException("等级修改目标与本次请求不一致，请核对后重新生成预览");
+                for (var member : team.members()) {
+                    if (member.slot() == slot && member.build().level() != expected)
+                        warnings.add("起始等级不一致。槽位" + slot + "在请求中为" + expected + "级，当前保存为"
+                                + member.build().level() + "级。本次预览为" + member.build().level() + "→" + target + "级，请核对后再确认。");
+                }
+            }
+        }
+        return List.copyOf(warnings);
+    }
     private AgentRun currentRun() {
         var context=ToolExecutionContextHolder.peek();
         if(context==null||!context.runId().startsWith("run-")||context.userId().equals("anonymous")) throw new SecurityException("仅支持登录账号的正式 Run");

@@ -8,7 +8,26 @@ import {
   normalizeRunStatus,
   normalizeCursorId
 } from '../src/api/run-contract.js'
-import { toolFailureLabel, answerDisplayText, canSubmitRunApproval } from '../src/api/run-contract.js'
+import { toolFailureLabel, answerDisplayText, canSubmitRunApproval, runDisplayStatus, statusLabel } from '../src/api/run-contract.js'
+
+test('declined approval presentation survives snapshots and terminal replay', () => {
+  const run = replay([
+    { id: 1, type: 'approval.required', data: { approvalId: 'approval-test' } },
+    { id: 2, type: 'approval.resolved', data: { approved: false } },
+    { id: 3, type: 'run.failed', data: { errorType: 'APPROVAL_DENIED', reason: '用户取消队伍修改' } }
+  ])
+  const restored = createRunViewModel(run)
+  for (const view of [run, restored]) {
+    assert.equal(view.status, RUN_STATUS.FAILED)
+    assert.equal(view.errorType, 'APPROVAL_DENIED')
+    assert.equal(statusLabel(runDisplayStatus(view)), '已取消')
+    assert.equal(answerDisplayText(view), '已取消待确认的操作。')
+    assert.equal(view.approval, null)
+    assert.equal(canSubmitRunApproval(view, {approvalId:'approval-test'}), false)
+  }
+  assert.equal(runDisplayStatus({...run,errorType:'SERVICE_RESTARTED'}), RUN_STATUS.FAILED)
+  assert.equal(runDisplayStatus({...run,status:RUN_STATUS.RUNNING}), RUN_STATUS.RUNNING)
+})
 
 test('denied approvals display a public notice without rewriting the answer evidence', () => {
   const run = replay([{eventId:'1',runId:'denied',type:'run.failed',payload:{errorType:'APPROVAL_DENIED'}}])

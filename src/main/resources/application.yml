@@ -343,3 +343,14 @@ vio:
     enabled: ${VIO_LOCAL_ACCOUNTS_ENABLED:true}
   local-history:
     enabled: true
+
+---
+# Local developer overrides live outside the distributable classpath.
+spring:
+  config:
+    activate:
+      on-profile: "local & !prod & !demo"
+    import:
+      - optional:file:./src/main/resources/application-local.yml
+      - optional:file:./src/main/resources/application-local.yaml
+      - optional:file:./src/main/resources/application-local.properties

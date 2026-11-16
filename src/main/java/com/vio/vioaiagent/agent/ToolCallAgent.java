@@ -498,7 +498,7 @@ public class ToolCallAgent extends ReActAgent {
         });
         // Existing registered callback, same gateway/context/lease; no second registration or ungoverned invocation.
         String output=toolExecutionGateway.execute(guide,input,marked).toModelText();
-        guideAnswerEvidence.observe("searchPokemonGuides",output);
+        guideAnswerEvidence.observe("searchPokemonGuides",output,input);
         String id=purpose+"-guide-"+java.util.UUID.randomUUID();
         getMessageList().add(new AssistantMessage("",java.util.Map.of("selectionOrigin",origin),List.of(
                 new AssistantMessage.ToolCall(id,"function","searchPokemonGuides",input))));

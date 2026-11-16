@@ -53,6 +53,12 @@ public final class ConfigurationExplanationRoute {
             String input=new ObjectMapper().writeValueAsString(Map.of("query",topic.query,"gameReleaseId",context.run().gameReleaseId()));
             var evidence=new GuideAnswerEvidence();evidence.begin(context.run().prompt());
             evidence.observe("searchPokemonGuides",tool.get().call(input),input);
+            String question = context.run().prompt();
+            if (topic == Topic.TEAM_ROLES && has(question,"只|仅|一条|一句|简短|简要")
+                    && !has(question,"完整原文|全文|附上原文|给出原文")) {
+                return Optional.of("先确定核心成员的角色，再用队友补齐它难以处理的弱点和对局。\n\n"
+                        + evidence.documentAttribution(topic.documentId).orElse(unavailable));
+            }
             return Optional.of(topic.summary+"\n\n"+evidence.fullDocumentAnswer(topic.documentId).orElse(unavailable));
         }catch(com.vio.vioaiagent.observability.TaskBudgetExceededException|com.vio.vioaiagent.observability.ContextBudgetExceededException|java.util.concurrent.CancellationException stop){throw stop;}
         catch(Exception unavailableSource){return Optional.of(topic.summary+unavailable);}

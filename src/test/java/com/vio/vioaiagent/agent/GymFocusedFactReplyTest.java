@@ -9,6 +9,51 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class GymFocusedFactReplyTest {
+    @Test void specialtyOnlyAnswersTheRequestedFieldAfterAnOverview() {
+        var model = mock(org.springframework.ai.chat.model.ChatModel.class);
+        var tool = mock(org.springframework.ai.tool.ToolCallback.class);
+        var executor = new DefaultRunExecutor(model, new org.springframework.ai.tool.ToolCallback[]{tool}, null, null, null, null, false);
+        var history = List.<Message>of(new UserMessage("请介绍八位馆主的初战队伍，并逐位说明应对时需要核对哪些条件。"));
+        String answer = executor.execute(context("只回答阿枫擅长什么属性。", history));
+        assertTrue(answer.contains("阿枫擅长**虫属性**"));
+        assertTrue(answer.contains("gyms.shtml"));
+        assertFalse(answer.contains("| 成员 |"));
+        assertFalse(answer.contains("豆蟋蟀"));
+        assertTrue(answer.length() < 180);
+        verifyNoInteractions(model, tool);
+        String followup = GymDialogueRouter.reply(context("他擅长什么属性？", List.of(new UserMessage("海岱初战队伍"))), new org.springframework.ai.tool.ToolCallback[0]).orElseThrow();
+        assertTrue(followup.contains("海岱擅长**水属性**"));
+    }
+    @Test void specialtyDoesNotShortenMixedTasksOrAcquireAnUnselectedGym() {
+        assertFalse(GymFocusedFactReply.requestsSpecialty("阿枫擅长什么属性，并列出全部招式？"));
+        assertFalse(GymFocusedFactReply.requestsSpecialty("不要回答阿枫擅长什么属性。"));
+        assertTrue(GymDialogueRouter.reply(context("他擅长什么属性？", List.of(new AssistantMessage("阿枫"))), new org.springframework.ai.tool.ToolCallback[0]).isEmpty());
+    }
+    @Test void highestMemberFollowupKeepsTheNpcAfterBattleModeQuestion() {
+        var model = mock(org.springframework.ai.chat.model.ChatModel.class);
+        var tool = mock(org.springframework.ai.tool.ToolCallback.class);
+        var executor = new DefaultRunExecutor(model, new org.springframework.ai.tool.ToolCallback[]{tool}, null, null, null, null, false);
+        var history = List.<Message>of(new UserMessage("查看莱姆的视察重赛队伍。"),
+                new AssistantMessage("莱姆的视察重赛队伍资料"), new UserMessage("这场是单打还是双打？"),
+                new AssistantMessage("莱姆的视察重赛是双打。"));
+        for (String question : List.of("队伍里等级最高的成员是谁？", "这支队伍的最高等级是多少？")) {
+            String answer = executor.execute(context(question, history));
+            assertTrue(answer.contains("莱姆"));
+            assertTrue(answer.contains("颤弦蝾螈"));
+            assertTrue(answer.contains("66级"));
+            assertTrue(answer.contains("gymrematches.shtml"));
+            assertFalse(answer.contains("当前选择的队伍"));
+        }
+        verifyNoInteractions(model, tool);
+    }
+    @Test void privateTeamTopicAndMissingNpcContextCannotBecomeNpcLevelFacts() {
+        var history = List.<Message>of(new UserMessage("查看莱姆的视察重赛队伍。"),
+                new UserMessage("读取我保存的test1队伍。"));
+        assertEquals(GymTurnPlan.Intent.OTHER, GymTurnPlan.from(context("队伍里等级最高的成员是谁？", history)).intent());
+        assertEquals(GymTurnPlan.Intent.OTHER, GymTurnPlan.from(context("我的队伍里等级最高的成员是谁？",
+                List.of(new UserMessage("莱姆重赛资料")))).intent());
+        assertTrue(GymDialogueRouter.reply(context("队伍里等级最高的成员是谁？", List.of()), new org.springframework.ai.tool.ToolCallback[0]).isEmpty());
+    }
     @Test void resettingTrainingConditionsUsesNoModelOrTools() throws Exception {
         var model=mock(org.springframework.ai.chat.model.ChatModel.class);
         var tool=mock(org.springframework.ai.tool.ToolCallback.class);

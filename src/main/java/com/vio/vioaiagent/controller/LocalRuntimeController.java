@@ -116,6 +116,7 @@ public class LocalRuntimeController {
         hashes.put("GuideEmbeddingClient",classDigest("com.vio.vioaiagent.pokemon.guides.GuideEmbeddingClient"));
         hashes.put("GymCatalogAnswer",classDigest("com.vio.vioaiagent.agent.GymCatalogAnswer"));
         hashes.put("GymDialogueRouter",classDigest(GymDialogueRouter.class));
+        hashes.put("TypeMatchupReply",classDigest(TypeMatchupReply.class));
         hashes.put("ConfigurationExplanationRoute",classDigest(ConfigurationExplanationRoute.class));
         hashes.put("ConfigurationExplanationRoute$Topic",classDigest("com.vio.vioaiagent.agent.ConfigurationExplanationRoute$Topic"));
         hashes.put("ConversationRecallReply",classDigest(ConversationRecallReply.class));

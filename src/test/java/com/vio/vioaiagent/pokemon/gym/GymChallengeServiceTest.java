@@ -9,6 +9,15 @@ import java.nio.file.Path;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 class GymChallengeServiceTest {
+ @Test void falseSwipeRemainsInTheTypeMatrixButCannotBecomeAKnockoutCandidate(){
+  var report=service().analyze(request("kofu","initial",List.of("false-swipe","bite","agility")));
+  assertTrue(report.matchups().stream().anyMatch(row->row.move().equals("点到为止")));
+  assertTrue(report.plan().stream().noneMatch(line->line.contains("可优先考虑")&&line.contains("点到为止")));
+  assertTrue(report.missing().stream().anyMatch(line->line.contains("至少1HP")));
+  assertTrue(report.plan().stream().anyMatch(line->line.contains("高速移动")&&line.contains("变化招式")));
+  var only=service().analyze(request("kofu","initial",List.of("false-swipe")));
+  assertTrue(only.plan().stream().noneMatch(line->line.contains("可优先考虑")));
+ }
  @TempDir Path directory;
  GymChallengeService service(){var mapper=new ObjectMapper();return new GymChallengeService(new LocalBuildOptions(mapper,new DefaultResourceLoader(),new PokeApiClient(mapper,directory,url->{throw new AssertionError("Gym planning must work offline");})),mapper);}
  GymChallengeService.Request request(String gym,String phase,List<String> moves){return new GymChallengeService.Request("scarlet","pokemon-scarlet-violet",phase,gym,2,false,"仅使用当前队伍",List.of(new GymChallengeService.Member(445,new TeamBuild(moves,"rough-skin","","hardy",23,null,null))));}

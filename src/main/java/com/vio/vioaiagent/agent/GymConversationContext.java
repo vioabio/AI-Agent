@@ -24,6 +24,7 @@ final class GymConversationContext {
             if(message instanceof AssistantMessage){var shown=GymOrdinalReference.displayedOrder(List.of(message));if(!shown.isEmpty())order=shown;continue;}
             if(!(message instanceof UserMessage))continue;
             String turn=message.getText();
+            if (GymCatalogAnswer.requestsOverview(turn)) { id=null; phase=null; continue; }
             var choices=names(turn);
             var ordinal=GymOrdinalReference.requestedOrdinal(turn);
             if(ordinal.isPresent()){

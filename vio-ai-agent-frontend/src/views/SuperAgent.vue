@@ -36,7 +36,7 @@ import { chatWithManus, stopManus, decideRunApproval, decideTeamChange, submitAn
 import { serializeRunContext } from '@/api/version-registry'
 import { useRunStream } from '@/composables/useRunStream'
 import { getOrCreateConversationId } from '@/composables/runPersistence'
-import { RUN_STATUS, TERMINAL_STATUSES, statusLabel as runStatusLabel, answerDisplayText, canSubmitRunApproval } from '@/api/run-contract'
+import { RUN_STATUS, TERMINAL_STATUSES, statusLabel as runStatusLabel, answerDisplayText, canSubmitRunApproval, runDisplayStatus } from '@/api/run-contract'
 
 const messages = ref([])
 const historyController = new AbortController()
@@ -58,7 +58,7 @@ function applyRunStatus(status) {
   if (!status) return
   if (TERMINAL_STATUSES.has(status)) {
     connectionStatus.value = 'done'
-    statusLabel.value = status === RUN_STATUS.CANCELLED ? '已停止' : runStatusLabel(status)
+    statusLabel.value = status === RUN_STATUS.CANCELLED ? '已停止' : runStatusLabel(runDisplayStatus(activeRun.value))
   } else if (status === RUN_STATUS.RECONNECTING) {
     connectionStatus.value = 'reconnecting'
     statusLabel.value = '重连中'
@@ -71,7 +71,7 @@ function applyRunStatus(status) {
   }
 }
 
-watch(() => activeRun.value?.status, applyRunStatus)
+watch(() => [activeRun.value?.status, activeRun.value?.errorType], ([status]) => applyRunStatus(status))
 let bubbleBuffer = ''
 let lastBubbleTime = 0
 
