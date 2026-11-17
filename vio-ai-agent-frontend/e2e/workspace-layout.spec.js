@@ -8,7 +8,7 @@ const answer = '### 图鉴事实\n烈咬陆鲨是龙／地面属性宝可梦，�
 const usage = { schemaVersion: 'model-usage-v1', scope: 'EXECUTION_ATTEMPT', attemptId: 'a1111111-1111-4111-a111-111111111111',
   coverage: 'INSTRUMENTED', modelCallCount: 0, callsWithUsage: 0, usageStatus: 'COMPLETE',
   totals: { inputTokens: 0, outputTokens: 0, totalTokens: 0 }, calls: [], modelDurationMs: 0, recordsTruncated: false, cost: { status: 'UNKNOWN' } }
-async function fixture(page) {
+async function fixture(page, { multipleFacts = false } = {}) {
   const errors = []
   page.on('pageerror', error => errors.push(error.message))
   let run
@@ -19,7 +19,9 @@ async function fixture(page) {
       csrf: { enabled: false, available: false, cookieName: 'CSRF-TOKEN', headerName: 'X-CSRF-TOKEN' } } })
     if (path === '/api/pokemon/reference/status') return route.fulfill({ json: { enabled: true, status: 'LOCAL_REFERENCE', dataReleaseId: 'pokeapi-reference-v1' } })
     if (path === '/api/pokemon/reference/names') return route.fulfill({ json: [{ nationalNo: 445, nameZh: '烈咬陆鲨', slug: 'garchomp', aliases: ['烈咬陆鲨'] }] })
-    if (path === '/api/pokemon/facts') return route.fulfill({ json: { items: [fact] } })
+    if (path === '/api/pokemon/facts') return route.fulfill({ json: { items: multipleFacts ? [fact,
+      { ...fact, nationalNo:25, formId:25, speciesNameZh:'皮卡丘', slug:'pikachu', type1:'电', type2:null,
+        hp:35, attack:55, defense:40, spAttack:50, spDefense:50, speed:90 }] : [fact] } })
     if (path.endsWith('/messages')) return route.fulfill({ json: [] })
     if (path === '/api/conversations') return route.fulfill({ json: { items: [{ id: 'ui-layout', title: '烈咬陆鲨的培养与搭配', updatedAt: new Date().toISOString() }] } })
     if (path === '/api/chat/runs') {
@@ -158,3 +160,78 @@ test('网页缩窄后关闭的导航内容不遮挡对话，资料抽屉保持�
   await expect(drawer).toBeHidden()
   await expect(page.getByRole('textbox', { name: '输入消息' })).toBeEnabled()
 })
+
+async function expectDexFits(sidebar, height) {
+  const bounds = await sidebar.boundingBox()
+  expect(bounds.y + bounds.height).toBeLessThanOrEqual(height + 1)
+  const overflow = await sidebar.evaluate(element => [element, ...element.querySelectorAll('.workbench-page, .workbench-content, .facts-panel, .fact-card, .fact-empty')]
+    .filter(node => node.getBoundingClientRect().height > 0)
+    .map(node => ({ name:node.className, excess:node.scrollHeight - node.clientHeight })))
+  for (const item of overflow) expect(item.excess, item.name).toBeLessThanOrEqual(2)
+  for (const selector of ['.fact-search-form', '.draft-preview', '.trust-banner']) {
+    const box = await sidebar.locator(selector).boundingBox()
+    expect(box.y).toBeGreaterThanOrEqual(bounds.y)
+    expect(box.y + box.height).toBeLessThanOrEqual(bounds.y + bounds.height + 1)
+  }
+  await expect(sidebar.locator('.draft-preview-slots>button')).toHaveCount(6)
+}
+
+for (const viewport of [
+  { width:1920, height:998 }, { width:1440, height:780 }, { width:1280, height:665 },
+  { width:1366, height:560 }, { width:1080, height:665 }, { width:390, height:700 }
+]) {
+  test(`${viewport.width}×${viewport.height}图鉴侧栏：初始状态和查询卡片完整展示`, async ({ page }) => {
+    await page.setViewportSize(viewport)
+    const errors = await fixture(page)
+    const sidebar = page.locator('.resource-sidebar')
+    if (viewport.width < 1280) await page.getByRole('button', { name:'打开资料', exact:true }).click()
+    await expect(sidebar.locator('.fact-empty')).toBeVisible()
+    await expectDexFits(sidebar, viewport.height)
+    await page.screenshot({ path:`../artifacts/dex-fit-20261117/${viewport.width}-${viewport.height}-home.png`, animations:'disabled' })
+    await sidebar.getByLabel('宝可梦名称或编号').fill('烈咬陆鲨')
+    await sidebar.getByRole('button', { name:'查询', exact:true }).click()
+    await expect(sidebar.locator('.fact-card h3')).toHaveText('烈咬陆鲨')
+    await expectDexFits(sidebar, viewport.height)
+    await expect(sidebar.locator('.base-stat-bars>div')).toHaveCount(6)
+    const hero = await sidebar.locator('.fact-hero').boundingBox()
+    for (const child of await sidebar.locator('.fact-hero>div').all()) {
+      const box = await child.boundingBox()
+      expect(box.y).toBeGreaterThanOrEqual(hero.y - 1)
+      expect(box.y + box.height).toBeLessThanOrEqual(hero.y + hero.height + 1)
+    }
+    const before = await sidebar.locator('.draft-preview').boundingBox()
+    await sidebar.locator('.fact-provenance summary').click()
+    await expect(sidebar.locator('.fact-provenance-content')).toBeVisible()
+    await expectDexFits(sidebar, viewport.height)
+    expect((await sidebar.locator('.draft-preview').boundingBox()).y).toBe(before.y)
+    await page.keyboard.press('Escape')
+    await expect(sidebar.locator('.fact-provenance')).not.toHaveAttribute('open')
+    await expect(sidebar).toBeVisible()
+    await page.screenshot({ path:`../artifacts/dex-fit-20261117/${viewport.width}-${viewport.height}.png`, animations:'disabled' })
+    if (viewport.width < 1280) {
+      await page.keyboard.press('Escape')
+      await expect(sidebar).toBeHidden()
+    }
+    expect(errors).toEqual([])
+  })
+}
+
+for (const height of [665, 560]) {
+  test(`${height}px图鉴侧栏多个结果逐条切换，重新搜索回到首条`, async ({ page }) => {
+    await page.setViewportSize({ width:1280, height })
+    await fixture(page, { multipleFacts:true })
+    const sidebar = page.locator('.resource-sidebar')
+    await sidebar.getByLabel('宝可梦名称或编号').fill('25')
+    await sidebar.getByRole('button', { name:'查询', exact:true }).click()
+    await expect(sidebar.locator('.fact-card')).toHaveCount(1)
+    await expect(sidebar.locator('.fact-card h3')).toHaveText('烈咬陆鲨')
+    await expectDexFits(sidebar, height)
+    await sidebar.getByRole('button', { name:'下一条', exact:true }).click()
+    await expect(sidebar.locator('.fact-card h3')).toHaveText('皮卡丘')
+    await expectDexFits(sidebar, height)
+    await expect(sidebar.getByRole('button', { name:'下一条', exact:true })).toBeDisabled()
+    await sidebar.getByRole('button', { name:'查询', exact:true }).click()
+    await expect(sidebar.locator('.fact-card h3')).toHaveText('烈咬陆鲨')
+    await expect(sidebar.getByRole('button', { name:'上一条', exact:true })).toBeDisabled()
+  })
+}

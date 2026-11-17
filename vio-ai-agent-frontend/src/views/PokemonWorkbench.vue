@@ -103,7 +103,7 @@
           <div v-else-if="factsState.status === 'error'" class="state-box error" role="alert">事实读取失败：{{ factsState.error }}<button type="button" @click="searchFacts">重试</button></div>
           <div v-else-if="factsState.status === 'empty'" class="state-box empty">该 data release 没有可展示的事实；候选/未审核数据不会被前端猜测。</div>
           <div v-else-if="facts.length" class="fact-list">
-            <article v-for="fact in facts" :key="`${fact.dataReleaseId}:${fact.formId}`" class="fact-card">
+            <article v-for="fact in displayedFacts" :key="`${fact.dataReleaseId}:${fact.formId}`" class="fact-card">
               <button class="fact-favorite" type="button" :aria-label="isFactFavorite(fact) ? '该资料已收藏' : '收藏该资料'" :aria-pressed="isFactFavorite(fact)" :disabled="favoritesState.status === 'saving' || isFactFavorite(fact)" @click="favoriteFact(fact)"><UiIcon name="star" /></button>
               <div class="fact-hero">
                 <div>
@@ -122,7 +122,8 @@
                 <button class="primary-btn" type="button" :disabled="teamsState.status === 'saving'" @click="addFactToTeam(fact)"><UiIcon name="plus" />加入队伍</button>
                 <button class="secondary-btn" type="button" :disabled="busy" @click="askAboutFact(fact)"><UiIcon name="chat" />询问 AI</button>
               </div>
-              <details class="fact-provenance"><summary><UiIcon name="book" />{{ fact.releaseStatus === 'LOCAL_REFERENCE' ? 'PokéAPI · 本地参考' : '资料来源与版本' }}<UiIcon name="chevron" /></summary>
+              <details class="fact-provenance" @keydown.esc="closeFactProvenance"><summary><UiIcon name="book" />{{ fact.releaseStatus === 'LOCAL_REFERENCE' ? 'PokéAPI · 本地参考' : '资料来源与版本' }}<UiIcon name="chevron" /></summary>
+              <div class="fact-provenance-content">
               <div class="lineage-block">
                 <span>data release：<code>{{ fact.dataReleaseId || '未返回' }}</code></span>
                 <span>game release：<code>{{ fact.gameReleaseId || '未返回' }}</code></span>
@@ -135,10 +136,16 @@
                 <span v-else class="muted">服务端未返回可验证 HTTP(S) 来源</span>
                 <span class="evidence-text">证据摘录：{{ fact.evidenceText || '当前 Fact DTO 未提供 evidenceText，不能由前端补写。' }}</span>
               </div>
+              </div>
               </details>
             </article>
           </div>
           <div v-else class="state-box idle fact-empty"><PokemonPortrait form-id="7" name="杰尼龟" /><strong>从一位伙伴开始</strong><p>输入“杰尼龟”、squirtle 或编号 7，<br />看看它的属性与种族值。</p></div>
+          <nav v-if="embedded && facts.length > 1 && factsState.status === 'ready'" class="fact-pagination" aria-label="图鉴查询结果翻页">
+            <button type="button" :disabled="factIndex === 0" @click="selectFactPage(factIndex - 1)">上一条</button>
+            <span aria-live="polite">{{ factIndex + 1 }} / {{ facts.length }}</span>
+            <button type="button" :disabled="factIndex === facts.length - 1" @click="selectFactPage(factIndex + 1)">下一条</button>
+          </nav>
           <section class="draft-preview" aria-label="当前队伍预览"><div><strong>当前队伍 · {{ teamForm.members.filter(Boolean).length }}/6</strong><button type="button" @click="showSection('teams')">编辑队伍 →</button></div><div class="draft-preview-slots"><button v-for="(id, index) in teamForm.members" :key="index" type="button" :aria-label="id ? `编辑第 ${index + 1} 位成员` : `添加第 ${index + 1} 位成员`" @click="id ? selectMember(index) : factSearchInput?.focus()"><PokemonPortrait v-if="id" :form-id="id" :name="memberName(index)" /><UiIcon v-else name="plus" /></button></div></section>
         </section>
 
@@ -606,6 +613,19 @@ const context = props.scenario || reactive({
 const factQuery = ref('')
 const nameSuggestions = computed(() => matchingPokemonNames(factQuery.value, props.pokemonNames))
 const facts = ref([])
+const factIndex = ref(0)
+const displayedFacts = computed(() => props.embedded ? facts.value.slice(factIndex.value, factIndex.value + 1) : facts.value)
+function selectFactPage(index) {
+  if (index < 0 || index >= facts.value.length) return
+  factIndex.value = index
+  emit('fact-selected', facts.value[index])
+}
+function closeFactProvenance(event) {
+  if (!event.currentTarget.open) return
+  event.stopPropagation()
+  event.currentTarget.open = false
+  event.currentTarget.querySelector('summary')?.focus()
+}
 const teams = ref([])
 const activities = ref([])
 const favorites = ref([])
@@ -1006,6 +1026,7 @@ async function searchFacts() {
     })
     if (requestWasSuperseded(controller)) return
     facts.value = resourceItems(result)
+    factIndex.value = 0
     emit('fact-selected', facts.value[0] || null)
     facts.value.forEach(rememberFact)
     markCollection(factsState, facts.value)

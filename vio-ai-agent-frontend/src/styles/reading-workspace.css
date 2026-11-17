@@ -156,6 +156,133 @@
 .reference-layout .reading-workspace .draft-preview { padding:10px; margin-top:8px; }
 .reference-layout .reading-workspace .draft-preview-slots>button { height:58px; }
 .reference-layout .reading-workspace .draft-preview-slots .pokemon-portrait { height:48px; }
+/* Keep the dex's search, current card and six team slots within the available panel height. */
+.reference-layout .reading-workspace .resource-sidebar.dex-sidebar {
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  scrollbar-gutter:auto;
+  container:dex-panel / size;
+}
+.reading-workspace .dex-sidebar>.resource-sidebar-heading { flex-shrink:0; }
+.reading-workspace .dex-sidebar .workbench-page.embedded {
+  display:flex;
+  flex-direction:column;
+  flex:1;
+  min-height:0;
+}
+.reading-workspace .dex-sidebar .resource-tabs { flex-shrink:0; }
+.reading-workspace .dex-sidebar .resource-tabs>button { white-space:nowrap; }
+.reference-layout .reading-workspace .dex-sidebar .workbench-content {
+  flex:1;
+  min-height:0;
+  gap:8px;
+  padding:10px 12px;
+}
+.reading-workspace .dex-sidebar .trust-banner { flex-shrink:0; line-height:1.4; }
+.reading-workspace .dex-sidebar .workbench-grid { display:flex; flex:1; min-height:0; }
+.reading-workspace .dex-sidebar .facts-panel {
+  display:flex;
+  flex-direction:column;
+  flex:1;
+  min-height:0;
+  gap:8px;
+}
+.reading-workspace .dex-sidebar .fact-search-form { flex-shrink:0; margin:0; min-height:44px; padding-block:3px; }
+.reading-workspace .dex-sidebar .fact-list { flex:1; min-height:0; grid-template-rows:minmax(0,1fr); }
+.reference-layout .reading-workspace .dex-sidebar .fact-card {
+  display:grid;
+  grid-template-rows:minmax(72px,1fr) auto auto auto auto;
+  gap:8px;
+  min-height:0;
+  padding:8px 10px;
+}
+.reference-layout .reading-workspace .dex-sidebar .fact-hero { min-height:0; height:100%; }
+.reference-layout .reading-workspace .dex-sidebar .fact-hero>.pokemon-portrait { height:100%; max-height:210px; }
+.reference-layout .reading-workspace .dex-sidebar .fact-hero .pokemon-portrait img { max-height:100%; }
+.reference-layout .reading-workspace .dex-sidebar .fact-hero h3 { font-size:24px; margin:4px 0; }
+.reading-workspace .dex-sidebar .type-tags { margin:6px 0 0; }
+.reading-workspace .dex-sidebar .base-stat-bars dt { white-space:nowrap; }
+.reference-layout .reading-workspace .dex-sidebar .base-stats-heading { margin:0; }
+.reference-layout .reading-workspace .dex-sidebar .base-stat-bars { gap:6px; line-height:1.4; }
+.reference-layout .reading-workspace .dex-sidebar .fact-actions { margin:0; }
+.reference-layout .reading-workspace .dex-sidebar .fact-actions button { height:36px; }
+.reference-layout .reading-workspace .dex-sidebar .fact-provenance { margin:0; padding-top:5px; }
+.reading-workspace .dex-sidebar .fact-provenance[open] { position:relative; z-index:5; }
+.reading-workspace .dex-sidebar .fact-provenance-content {
+  position:absolute;
+  bottom:calc(100% + 6px);
+  left:0;
+  right:0;
+  max-height:min(320px,60dvh);
+  overflow:auto;
+  overscroll-behavior:contain;
+  padding:12px;
+  border:1px solid #d6e2da;
+  border-radius:10px;
+  background:#fff;
+  box-shadow:0 8px 28px #17382725;
+}
+.reference-layout .reading-workspace .dex-sidebar .fact-empty {
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  flex:1;
+  min-height:0;
+  padding:12px;
+  gap:8px;
+}
+.reference-layout .reading-workspace .dex-sidebar .fact-empty .pokemon-portrait {
+  flex:0 1 210px;
+  width:min(180px,65%);
+  height:auto;
+  margin:0;
+}
+.reading-workspace .dex-sidebar .fact-empty strong { margin:0; flex-shrink:0; }
+.reading-workspace .dex-sidebar .fact-empty p { margin:0; font-size:12px; line-height:1.6; flex-shrink:0; }
+.reference-layout .reading-workspace .dex-sidebar .draft-preview { flex-shrink:0; margin:0; padding:8px; }
+.reading-workspace .dex-sidebar .draft-preview-slots { margin-top:7px; }
+.reference-layout .reading-workspace .dex-sidebar .draft-preview-slots>button { height:46px; }
+.reference-layout .reading-workspace .dex-sidebar .draft-preview-slots .pokemon-portrait { height:40px; }
+.reading-workspace .fact-pagination { display:flex; align-items:center; justify-content:space-between; flex-shrink:0; font-size:12px; }
+.reading-workspace .fact-pagination button { min-height:32px; padding:5px 10px; color:#326b55; border:1px solid #d6e2da; border-radius:6px; }
+.reading-workspace .fact-pagination button:disabled { opacity:.45; }
+@container dex-panel (max-height:620px) {
+  .reference-layout .reading-workspace .resource-sidebar-heading { padding:10px 14px 4px; }
+  .reference-layout .reading-workspace .resource-sidebar-heading h2 { font-size:17px; }
+  .reference-layout .reading-workspace .resource-tabs { padding:2px 8px 6px; }
+  .reference-layout .reading-workspace .resource-tabs>button { font-size:13px; padding:7px 4px; }
+  .reference-layout .reading-workspace .dex-sidebar .fact-card { gap:6px; grid-template-rows:minmax(64px,1fr) auto auto auto auto; }
+  .reference-layout .reading-workspace .dex-sidebar .base-stat-bars { grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px 12px; }
+  .reference-layout .reading-workspace .dex-sidebar .base-stat-bars>div { grid-template-columns:40px minmax(0,1fr); font-size:12px; }
+  .reference-layout .reading-workspace .dex-sidebar .base-stat-bars strong { font-size:12px; }
+  .reading-workspace .dex-sidebar .base-stat-bars dd { gap:5px; }
+  .reference-layout .reading-workspace .dex-sidebar .base-stats-heading { font-size:13px; }
+  .reference-layout .reading-workspace .dex-sidebar .fact-hero h3 { font-size:21px; }
+}
+@container dex-panel (max-height:540px) {
+  .reference-layout .reading-workspace .resource-sidebar-heading { padding:6px 12px 2px; }
+  .reference-layout .reading-workspace .resource-tabs>button { padding-block:5px; }
+  .reference-layout .reading-workspace .dex-sidebar .workbench-content { padding:6px 10px; gap:6px; }
+  .reading-workspace .dex-sidebar .facts-panel { gap:6px; }
+  .reading-workspace .dex-sidebar .fact-hero { line-height:1.2; }
+  .reference-layout .reading-workspace .dex-sidebar .fact-hero h3 { font-size:20px; margin:3px 0; }
+  .reading-workspace .dex-sidebar .type-tags { margin-top:4px; }
+  .reference-layout .reading-workspace .dex-sidebar .base-stat-bars { gap:4px 12px; }
+  .reference-layout .reading-workspace .dex-sidebar .fact-card { gap:4px; grid-template-rows:minmax(96px,1fr) auto auto auto auto; }
+  .reference-layout .reading-workspace .dex-sidebar .draft-preview { padding:6px; }
+  .reading-workspace .dex-sidebar .draft-preview-slots { margin-top:5px; }
+  .reference-layout .reading-workspace .dex-sidebar .draft-preview-slots>button { height:38px; }
+  .reference-layout .reading-workspace .dex-sidebar .draft-preview-slots .pokemon-portrait { height:34px; }
+  .reference-layout .reading-workspace .dex-sidebar .facts-panel:has(.fact-pagination) .base-stat-bars { grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px 6px; }
+  .reference-layout .reading-workspace .dex-sidebar .facts-panel:has(.fact-pagination) .fact-card { gap:3px; padding:6px 8px; }
+  .reference-layout .reading-workspace .dex-sidebar .facts-panel:has(.fact-pagination) .fact-actions button { height:32px; }
+  .reference-layout .reading-workspace .dex-sidebar .facts-panel:has(.fact-pagination) .draft-preview { padding:4px; }
+  .reading-workspace .dex-sidebar .facts-panel:has(.fact-pagination) .draft-preview-slots { margin-top:3px; }
+  .reference-layout .reading-workspace .dex-sidebar .facts-panel:has(.fact-pagination) .draft-preview-slots>button { height:32px; }
+  .reference-layout .reading-workspace .dex-sidebar .facts-panel:has(.fact-pagination) .draft-preview-slots .pokemon-portrait { height:28px; }
+}
 .reference-layout .reading-workspace.team-mode .workspace-body { grid-template-columns:minmax(0,1fr) 330px; gap:0; }
 .reference-layout .reading-workspace.team-mode .workspace-body.resources-hidden { grid-template-columns:minmax(0,1fr); }
 .reference-layout .reading-workspace.team-mode .resource-sidebar { border-right:1px solid #e1e8e2; }
