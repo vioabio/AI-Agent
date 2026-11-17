@@ -6,9 +6,13 @@ import java.util.Optional;
 public final class GymFocusedFactReply {
     private GymFocusedFactReply() { }
     static boolean requestsSpecialty(String question) {
-        return question != null && question.length() <= 100 && question.strip().matches(
+        return question != null && question.length() <= 100 && focusedText(question).matches(
                 "^(?:请)?(?:(?:只|仅)(?:回答|告诉我))?(?:阿枫|寇沙|奇树|海岱|青木|莱姆|莉普|古鲁夏|这位馆主|这个馆主|他|她)"
-                + "(?:的)?(?:擅长|使用|主打)(?:什么|哪种|哪一类)?属性(?:是什么)?[？?。！!\\s]*$");
+                + "(?:的道馆|的|道馆)?(?:擅长|使用|主打)(?:什么|哪种|哪一种|哪一类)?属性(?:是什么)?[？?。！!\\s]*$");
+    }
+    private static String focusedText(String question) {
+        return question.strip().replaceFirst("^(?:请)?(?:只|仅)(?:用)?(?:一|1)(?:句话|句)(?:回答)?[，,：:]?", "")
+                .replaceFirst("[。？?；;](?:不要|不用|无需)(?:列出|列|展开)(?:队伍|阵容|其他内容)[。！!]*$", "");
     }
     static boolean requestsHighestLevel(String question) {
         return question != null && question.length() <= 150
@@ -30,15 +34,23 @@ public final class GymFocusedFactReply {
         return false;
     }
     static boolean requestsBattleMode(String question) {
-        return question != null && question.length() <= 100 && question.strip().matches(
+        if (question == null || question.length() > 100) return false;
+        String focused = question.strip()
+                .replaceFirst("^(?:现在|当前)?(?:切回|切换到|改看)(?:初战|视察重赛|重赛)[，,。 ]*", "")
+                .replaceFirst("[？?，,。 ]*(?:只|仅)给结论[。！!]*$", "");
+        return focused.matches("(?s).*(?:只|仅)回答对战模式[。？?！!]*")
+                || focused.matches(
                 "^(?:请问)?(?:这场|这次对战|这场对战|这个馆主|这位馆主|他|她|阿枫|寇沙|奇树|海岱|青木|莱姆|莉普|古鲁夏)"
-                + "(?:的)?(?:初战|视察重赛|重赛)?(?:是|采用|使用)(?:单打还是双打|单打或双打|什么对战模式)(?:呢|吗)?[？?。]?$" );
+                + "(?:的)?(?:初战|视察重赛|重赛)?(?:是|采用|使用)(?:单打还是双打|单打或双打|什么对战模式|哪种对战模式)(?:呢|吗)?[？?。]?$" );
     }
     public static Optional<String> reply(GymTurnPlan plan,String question){
         if(plan.intent()!=GymTurnPlan.Intent.CATALOG||plan.target().isEmpty()||question==null||question.length()>300
                 ||question.contains("\n")||question.contains("```"))return Optional.empty();
         if(question.matches("(?:当前|现在|刚才)(?:谈的|讨论的|说的|看的)(?:是)?(?:哪位|哪个)馆主[？?，,。 ]*(?:只回答名字[。！! ]*)?"))
             return Optional.of(plan.target().orElseThrow().name());
+        if (question.matches("(?s).*(前面|上文|之前|刚才).*(目标|馆主).*(名字|姓名|属性).*")) return specialty(plan);
+        if (question.matches("(?s).*(王牌|太晶成员).*(多少级|几级|等级).*") && GymConversationContext.comparesStages(question))
+            return compareAceLevels(plan);
         if (requestsBattleMode(question)) return battleMode(plan);
         if (requestsSpecialty(question)) return specialty(plan);
         if(requestsHighestLevel(question))
@@ -65,6 +77,22 @@ public final class GymFocusedFactReply {
         }catch(Exception unavailable){return Optional.of("本次未能从已校验的目标馆主资料唯一确认太晶成员，不使用模型记忆补写。");}
     }
 
+    private static Optional<String> compareAceLevels(GymTurnPlan plan) {
+        try {
+            var answer = new StringBuilder(plan.target().orElseThrow().name() + "的王牌等级对比\n\n");
+            for (String phase : java.util.List.of("initial", "rematch")) {
+                var catalog = GymCatalogAnswer.load(phase);
+                for (var gym : catalog.path("gyms")) {
+                    if (!gym.path("id").asText().equals(plan.target().orElseThrow().gymId())) continue;
+                    for (var foe : gym.path("opponents")) if (foe.hasNonNull("teraType"))
+                        answer.append(phase.equals("initial") ? "初战" : "视察重赛").append("：")
+                                .append(foe.path("nameZh").asText()).append(" ").append(foe.path("level").asInt()).append("级。\n");
+                }
+            }
+            return Optional.of(answer + "\n来源 [初战资料](https://www.serebii.net/scarletviolet/gyms.shtml)及[视察重赛资料](https://www.serebii.net/scarletviolet/gymrematches.shtml)。");
+        } catch (Exception unavailable) { return Optional.of("本次未取得两阶段可核对的王牌资料，请重试。"); }
+    }
+
     private static Optional<String> specialty(GymTurnPlan plan) {
         var target = plan.target().orElseThrow();
         try {
@@ -73,7 +101,7 @@ public final class GymFocusedFactReply {
                 if (!target.gymId().equals(gym.path("id").asText())) continue;
                 String type = gym.path("theme").asText();
                 if (type.isBlank()) break;
-                return Optional.of(target.name() + "擅长**" + EvidenceText.inline(type) + "属性**。\n\n"
+                return Optional.of(target.name() + "擅长**" + EvidenceText.inline(type) + "属性**。"
                         + "来源 [Serebii馆主资料](https://www.serebii.net/scarletviolet/"
                         + (target.phase().equals("rematch") ? "gymrematches" : "gyms")
                         + ".shtml)，随包核对日期 " + catalog.path("reviewedAt").asText() + "。");

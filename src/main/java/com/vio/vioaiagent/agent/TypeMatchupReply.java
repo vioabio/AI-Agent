@@ -22,7 +22,17 @@ public final class TypeMatchupReply {
         var attack=ATTACK.matcher(text);if(!attack.matches())return Optional.empty();
         var attacks=Arrays.stream(attack.group(1).split(ATTACK_SEPARATOR))
                 .map(type->type.replaceFirst("(?:属性|系)$", "")).distinct().toList();
-        String targets=attack.group(2).replaceFirst("(?:的)?(?:基础)?(?:属性)?(?:倍率)?(?:分别|各自|各)?(?:是多少|为多少|多少|是几|几)倍?(?:伤害)?[？?。]?$", "").replaceAll("[，,？?。]","");
+        String expression = attack.group(2);
+        String unit = "(?:" + TYPE + ")(?:[／/+＋](?:" + TYPE + "))?(?:双属性|属性)?";
+        var structured = Pattern.compile("^(" + unit + "(?:(?:以及|还有|和|与|及|、)" + unit + ")*)(.*)$").matcher(expression);
+        if (structured.matches()) {
+            String suffix = structured.group(2);
+            String mathWords = "对(?:" + TYPE + ")|目标|宝可梦|基础|各项|最终|分别|每一步|多少|怎么|是多少|倍率|乘积|乘法|过程|相乘|抵抗|免疫|还是|写清楚|写出|逐项|请把|只看|属性表|结果|和|与|各|都|的|时|是|倍|乘";
+            if (suffix.matches("(?s).*(乘|逐项|抵抗|免疫).*")
+                    && suffix.replaceAll("(?:" + mathWords + ")", "").matches("[，,、。？?：:；;\\s]*"))
+                expression = structured.group(1);
+        }
+        String targets=expression.replaceFirst("(?:的)?(?:基础)?(?:属性)?(?:倍率)?(?:分别|各自|各)?(?:是多少|为多少|多少|是几|几)倍?(?:伤害)?[？?。]?$", "").replaceAll("[，,？?。]","");
         targets=targets.replaceFirst("(?:基础)?属性倍率(?:分别|各自|各)?(?:是多少|为多少|多少)$","");
         targets=targets.replaceFirst("(?:的)?(?:基础)?倍率(?:分别|各自|各)?(?:是多少|为多少|多少)$","");
         // Consume the entire remaining expression. Mixed strategy/mechanics tasks

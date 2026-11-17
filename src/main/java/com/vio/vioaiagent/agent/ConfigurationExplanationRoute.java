@@ -20,7 +20,7 @@ public final class ConfigurationExplanationRoute {
         TEAM_ROLES("team-roles-v1","围绕核心成员构建队伍",
                 "一条通用原则是先确定核心成员的角色，再用队友补齐它难以处理的弱点和对局。不要只挑六只攻击高的成员，还应考虑速度控制、耐久支点与可靠输出。当前只讨论通用思路，没有读取或修改你的私人队伍。"),
         SAVE_WORKFLOW("team-change-confirmation-v1","队伍 修改预览 用户确认 实际保存",
-                "AI提出的调整是建议。实际保存应有本次变更预览、页面确认结果和保存后的配置回读，可在队伍页核对。预览尚未确认、被取消、过期或发生版本冲突时，不能把聊天中的完成措辞当成保存回执。本次只解释流程，没有读取或修改任何队伍。");
+                "AI提出的调整是建议。实际保存应有本次变更预览、页面确认结果和保存后的配置回读，可在队伍页核对。用户拒绝或取消时，保存配置保持原值。预览尚未确认、过期或发生版本冲突时，不能把聊天中的完成措辞当成保存回执。本次只解释流程，没有读取或修改任何队伍。");
         final String documentId,query,summary;
         Topic(String documentId,String query,String summary){this.documentId=documentId;this.query=query;this.summary=summary;}
         boolean matches(String q) {
@@ -29,7 +29,7 @@ public final class ConfigurationExplanationRoute {
                 case ITEM_INTENT -> q.contains("道具") && has(q,"未填|没填|不填|空") && has(q,"不带|不携带|不持有|未选择") && has(q,"区别|相同|一样|是不是|是否|能区分|能否区分");
                 case DAMAGE_INPUTS -> has(q,"伤害|互相打") && has(q,"哪些信息|什么信息|准备|提供哪些|需要哪些|补齐哪些|条件清单");
                 case TEAM_ROLES -> has(q,"通用.{0,6}(?:组队|配队).{0,4}(?:原则|思路)|(?:组队|配队).{0,4}通用原则") && has(q,"不用|不要|无需|不必|别");
-                case SAVE_WORKFLOW -> has(q,"AI|建议|预览|流程") && has(q,"队伍|配置|调整") && has(q,"保存|写入|应用") && has(q,"误认|误以|以为|如何确认|怎样确认|区分|区别|怎么判断|如何避免|怎样避免|是否自动");
+                case SAVE_WORKFLOW -> has(q,"AI|建议|预览|流程") && has(q,"队伍|配置|调整|修改") && has(q,"保存|写入|应用|落盘") && has(q,"误认|误以|以为|如何确认|怎样确认|区分|区别|怎么判断|如何避免|怎样避免|是否自动|哪些动作|哪些步骤|拒绝|没有.{0,8}确认|是不是");
             };
         }
     }

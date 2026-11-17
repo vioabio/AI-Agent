@@ -1,0 +1,444 @@
+[
+  {
+    "id": "QF-01",
+    "category": "facts",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "从图鉴查烈咬陆鲨的六项种族值并算总和；说明这些数值与实际等级的关系。",
+      "刚才的130攻击能直接当成50级实战攻击吗？只解释这个问题。"
+    ],
+    "criteria": [
+      "108/130/95/80/85/102，总和600，来源实际读取。",
+      "不能直接等同实际能力，需等级、性格、EV、IV；不附加无关资料。"
+    ]
+  },
+  {
+    "id": "QF-02",
+    "category": "facts",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "只比较杰尼龟与小火龙的基础HP和基础速度，表格列四个数值，附读取来源。"
+    ],
+    "criteria": [
+      "杰尼龟HP44速度43；小火龙HP39速度65，区分种族值与实际能力。"
+    ]
+  },
+  {
+    "id": "QF-03",
+    "category": "facts",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "请查一下宝可梦“验收专用不存在物种qafinal17”的图鉴和招式，查不到就直接说查不到。"
+    ],
+    "criteria": [
+      "明确无法找到，不能沿用旧图鉴或编造属性、招式及来源。"
+    ]
+  },
+  {
+    "id": "QF-04",
+    "category": "facts",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "只用一句话回答，奇树的道馆擅长哪一种属性？不要列队伍。"
+    ],
+    "criteria": [
+      "电属性，一句话，不能展示整队表格和多余攻略。"
+    ]
+  },
+  {
+    "id": "QM-01",
+    "category": "mechanics",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "火属性招式攻击草／钢双属性目标，各项倍率和乘积分别是多少？只看基础属性表。"
+    ],
+    "criteria": [
+      "2乘2等于4，不能混淆实际伤害。"
+    ]
+  },
+  {
+    "id": "QM-02",
+    "category": "mechanics",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "龙属性招式攻击钢／妖精双属性，每一步怎么乘？"
+    ],
+    "criteria": [
+      "龙对钢0.5，对妖精0，乘积0。"
+    ]
+  },
+  {
+    "id": "QM-03",
+    "category": "mechanics",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "地面属性招式攻击虫／飞行双属性时，是抵抗还是免疫？写出乘法过程。"
+    ],
+    "criteria": [
+      "地面对虫0.5，对飞行0，乘积0，最终免疫。"
+    ]
+  },
+  {
+    "id": "QM-04",
+    "category": "mechanics",
+    "novelty": "KNOWN_NUMERIC_REGRESSION_VARIANT",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "电和草分别打水／超能力，请把对水、对超能力、最终乘积都逐项写清楚。",
+      "如果都为2倍，就能保证一招结束战斗吗？"
+    ],
+    "criteria": [
+      "两种都是2乘1等于2，正文解释与表格一致。",
+      "不能保证，需真实计算条件、HP及机制，不能误认为胜率。"
+    ]
+  },
+  {
+    "id": "QC-01",
+    "category": "conversation",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "按参考等级列出朱紫全部道馆馆主，给名单编号。",
+      "严格按你刚才的编号，查第七位的初战成员和等级。",
+      "这里面等级最高的是哪只？只给名字与等级。",
+      "这场采用单打还是双打？只给结论。"
+    ],
+    "criteria": [
+      "八位，说明参考等级顺序，非固定挑战顺序。",
+      "第七位莉普，初战。",
+      "花洁夫人45级，指代对手队伍，不能索要私人队伍。",
+      "莉普单打。"
+    ]
+  },
+  {
+    "id": "QC-02",
+    "category": "conversation",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "列出莱姆视察重赛的成员与等级。",
+      "王牌多少级，和初战是同一个等级吗？",
+      "现在切回初战，这场是哪种对战模式？"
+    ],
+    "criteria": [
+      "诅咒娃娃/谜拟丘/花岩怪/墓扬犬65，颤弦蝾螈66。",
+      "重赛66，初战42，阶段区分清楚。",
+      "莱姆初战双打，不能遗留重赛等级。"
+    ]
+  },
+  {
+    "id": "QC-03",
+    "category": "conversation",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "请按等级推荐顺序列出八位馆主。",
+      "我想看第4位的初战队伍。",
+      "纠正一下，我说的是第6位，只回答对战模式。"
+    ],
+    "criteria": [
+      "参考排序非固定顺序。",
+      "海岱29/29/30。",
+      "切换莱姆，双打，不继续答海岱。"
+    ]
+  },
+  {
+    "id": "QC-04",
+    "category": "conversation",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "先记住我的目标是海岱初战。",
+      "这轮只回复“收到”，这是历史填充第1轮。",
+      "这轮只回复“收到”，这是历史填充第2轮。",
+      "这轮只回复“收到”，这是历史填充第3轮。",
+      "这轮只回复“收到”，这是历史填充第4轮。",
+      "这轮只回复“收到”，这是历史填充第5轮。",
+      "这轮只回复“收到”，这是历史填充第6轮。",
+      "这轮只回复“收到”，这是历史填充第7轮。",
+      "这轮只回复“收到”，这是历史填充第8轮。",
+      "这轮只回复“收到”，这是历史填充第9轮。",
+      "回到前面的目标馆主，告诉我他的名字和擅长属性；如果历史不足请明确说。"
+    ],
+    "criteria": [
+      "海岱初战目标。",
+      "填充各轮遵守简短要求。",
+      "末轮应答海岱、水；历史确实不可用时可澄清，不能换人或假装已读取。"
+    ]
+  },
+  {
+    "id": "QP-01",
+    "category": "planning",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "请读取我保存的test1，只列实际成员、等级、特性、招式和空道具，不要建议。",
+      "用这支已保存队伍挑战阿枫初战，只从现有招式选择进攻思路，不许新增招式。"
+    ],
+    "criteria": [
+      "实际仅烈咬陆鲨51，粗糙皮肤，燕返/重踏，无道具。",
+      "以现有燕返等已保存招式分析，不虚构其他成员，指出等级/服从/捕获进度条件，不能保证胜利。"
+    ]
+  },
+  {
+    "id": "QP-02",
+    "category": "planning",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "test1目前的招式适合打海岱初战吗？请读取配置，逐只对手给一个可用招式和理由。"
+    ],
+    "criteria": [
+      "读取单成员实际快照，目标海岱，燕返/重踏基础倍率均1，不能编造电/草招式或伤害数值。"
+    ]
+  },
+  {
+    "id": "QP-03",
+    "category": "planning",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "请读取我保存的队伍“qa17-no-saved-team”，告诉我成员有哪些。"
+    ],
+    "criteria": [
+      "明确不存在或无法唯一匹配，不替用test1或其他账号数据。"
+    ]
+  },
+  {
+    "id": "QP-04",
+    "category": "planning",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "我玩朱版，准备挑战阿枫初战，但还没决定带谁。请给组队角色和选择思路，并说明哪些获得条件还要我确认。"
+    ],
+    "criteria": [
+      "先回应应对虫系的规划方向，火/飞行/岩石进攻；岩石不抵抗虫；不能编造已捕获、已学会、必胜或完整合法阵容。"
+    ]
+  },
+  {
+    "id": "QD-01",
+    "category": "damage",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "按完整输入调用calculateBattleDamage，计算雨天伤害范围并说明假设，不预测胜率。输入：{\"generation\": 9, \"dataReleaseId\": \"pokeapi-reference-v1\", \"move\": \"surf\", \"field\": {\"gameType\": \"Singles\", \"weather\": \"Rain\", \"terrain\": null}, \"attacker\": {\"species\": \"squirtle\", \"build\": {\"moves\": [\"surf\", \"protect\", \"ice-beam\", \"rain-dance\"], \"ability\": \"torrent\", \"item\": \"leftovers\", \"nature\": \"modest\", \"level\": 50, \"evs\": {\"hp\": 4, \"atk\": 0, \"def\": 0, \"spa\": 252, \"spd\": 0, \"spe\": 252}, \"ivs\": {\"hp\": 31, \"atk\": 31, \"def\": 31, \"spa\": 31, \"spd\": 31, \"spe\": 31}}}, \"defender\": {\"species\": \"charmander\", \"build\": {\"moves\": [\"flamethrower\", \"protect\", \"dragon-pulse\", \"will-o-wisp\"], \"ability\": \"blaze\", \"item\": \"leftovers\", \"nature\": \"timid\", \"level\": 50, \"evs\": {\"hp\": 4, \"atk\": 0, \"def\": 0, \"spa\": 252, \"spd\": 0, \"spe\": 252}, \"ivs\": {\"hp\": 31, \"atk\": 31, \"def\": 31, \"spa\": 31, \"spd\": 31, \"spe\": 31}}}}"
+    ],
+    "criteria": [
+      "与相同输入的引擎oracle一致，保留Rain，无伪造计算。"
+    ]
+  },
+  {
+    "id": "QD-02",
+    "category": "damage",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "调用calculateBattleDamage计算这次十万伏特，零伤害也必须如实给出。输入：{\"generation\": 9, \"dataReleaseId\": \"pokeapi-reference-v1\", \"move\": \"thunderbolt\", \"field\": {\"gameType\": \"Singles\", \"weather\": null, \"terrain\": null}, \"attacker\": {\"species\": \"pikachu\", \"build\": {\"moves\": [\"surf\", \"protect\", \"ice-beam\", \"rain-dance\"], \"ability\": \"static\", \"item\": \"leftovers\", \"nature\": \"modest\", \"level\": 50, \"evs\": {\"hp\": 4, \"atk\": 0, \"def\": 0, \"spa\": 252, \"spd\": 0, \"spe\": 252}, \"ivs\": {\"hp\": 31, \"atk\": 31, \"def\": 31, \"spa\": 31, \"spd\": 31, \"spe\": 31}}}, \"defender\": {\"species\": \"garchomp\", \"build\": {\"moves\": [\"flamethrower\", \"protect\", \"dragon-pulse\", \"will-o-wisp\"], \"ability\": \"rough-skin\", \"item\": \"leftovers\", \"nature\": \"timid\", \"level\": 50, \"evs\": {\"hp\": 4, \"atk\": 0, \"def\": 0, \"spa\": 252, \"spd\": 0, \"spe\": 252}, \"ivs\": {\"hp\": 31, \"atk\": 31, \"def\": 31, \"spa\": 31, \"spd\": 31, \"spe\": 31}}}}",
+      "0伤害是不是代表工具坏了？只解释这一点。"
+    ],
+    "criteria": [
+      "范围0–0，地面免疫，引用实际工具。",
+      "正常机制结果，不能重试编造正伤害。"
+    ]
+  },
+  {
+    "id": "QD-03",
+    "category": "damage",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "杰尼龟对小火龙具体打多少血？我没给招式和等级。请先说还缺什么。"
+    ],
+    "criteria": [
+      "询问招式/等级/构筑/场地等条件，不能给无依据精确数值。"
+    ]
+  },
+  {
+    "id": "QD-04",
+    "category": "damage",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "请计算以下输入，特攻EV故意填253，遇到非法参数请指出，不要自动改成252。输入：{\"generation\": 9, \"dataReleaseId\": \"pokeapi-reference-v1\", \"move\": \"surf\", \"field\": {\"gameType\": \"Singles\", \"weather\": null, \"terrain\": null}, \"attacker\": {\"species\": \"squirtle\", \"build\": {\"moves\": [\"surf\", \"protect\", \"ice-beam\", \"rain-dance\"], \"ability\": \"torrent\", \"item\": \"leftovers\", \"nature\": \"modest\", \"level\": 50, \"evs\": {\"hp\": 4, \"atk\": 0, \"def\": 0, \"spa\": 253, \"spd\": 0, \"spe\": 252}, \"ivs\": {\"hp\": 31, \"atk\": 31, \"def\": 31, \"spa\": 31, \"spd\": 31, \"spe\": 31}}}, \"defender\": {\"species\": \"charmander\", \"build\": {\"moves\": [\"flamethrower\", \"protect\", \"dragon-pulse\", \"will-o-wisp\"], \"ability\": \"blaze\", \"item\": \"leftovers\", \"nature\": \"timid\", \"level\": 50, \"evs\": {\"hp\": 4, \"atk\": 0, \"def\": 0, \"spa\": 252, \"spd\": 0, \"spe\": 252}, \"ivs\": {\"hp\": 31, \"atk\": 31, \"def\": 31, \"spa\": 31, \"spd\": 31, \"spe\": 31}}}}"
+    ],
+    "criteria": [
+      "拒绝或返回参数校验错误，不静默改值，不能给有效伤害。"
+    ]
+  },
+  {
+    "id": "QR-01",
+    "category": "retrieval",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "请引用项目攻略解释：预览里的培养修改，经过哪些动作才会真正保存？用户拒绝后会怎样？"
+    ],
+    "criteria": [
+      "检索确认流程，预览→确认→执行→回读，拒绝不改配置，引用实际项目来源，不冒充官方游戏规则。"
+    ]
+  },
+  {
+    "id": "QR-02",
+    "category": "retrieval",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "我只是点开AI给出的修改建议，没有点确认，这是不是已经落盘了？请用项目说明作为依据。"
+    ],
+    "criteria": [
+      "明确未确认不能视作已保存，不能把模型建议当队伍状态，引用相符段落。"
+    ]
+  },
+  {
+    "id": "QR-03",
+    "category": "retrieval",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "给我朱紫gen9ou的完整样例队伍与每只配置，要能核对来源；读取不了时给可点击的原网页链接。"
+    ],
+    "criteria": [
+      "完整六人及配置有依据，或明确读取失败并给真实链接；不能只给使用率排名或拼前六名。"
+    ]
+  },
+  {
+    "id": "QR-04",
+    "category": "retrieval",
+    "novelty": "NEW_WORDING_AND_COMPOSITION",
+    "scope": {
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "battleFormat": "casual-singles",
+      "language": "zh-CN",
+      "rulesetVersionId": "casual-v1"
+    },
+    "turns": [
+      "项目攻略里有“验收虚构流派QA17无限回血阵”的详细操作吗？找不到就明确说明缺失，不要代写攻略。"
+    ],
+    "criteria": [
+      "无资料应说明缺失，不能引用无关材料证明虚构流派存在。"
+    ]
+  }
+]

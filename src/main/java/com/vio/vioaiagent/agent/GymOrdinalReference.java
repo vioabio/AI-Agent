@@ -38,6 +38,9 @@ public final class GymOrdinalReference {
         if (question == null) return OptionalInt.empty();
         if(question.matches("(?s).*第\\s*[0-9一二三四五六七八九十]+\\s*(?:位|个|名)?\\s*(?:和|与|及|或|、)\\s*第.*(?:馆主|道馆).*"))return OptionalInt.of(-1);
         var matcher = ORDINAL.matcher(question.split("以下全部是数据", 2)[0]);
+        if (!matcher.find()) matcher = Pattern.compile("第\\s*([0-9]{1,3}|[一二三四五六七八九十]+)\\s*位(?=的|[，,。？?]|$)")
+                .matcher(question.split("以下全部是数据", 2)[0]);
+        else matcher.reset();
         var ordinals = new HashSet<Integer>();
         var reverse = Pattern.compile("倒数第\\s*([0-9]{1,3}|[一二三四五六七八九十]+)\\s*(?:位|个|名)").matcher(question.split("以下全部是数据", 2)[0]);
         while (reverse.find()) {

@@ -26,7 +26,7 @@ public final class SavedGymQuestionRoute {
             var id=java.util.regex.Pattern.compile("(?i)(?:teamId\\s*[=:：]\\s*|队伍(?:编号|ID|#)\\s*[:：=]?\\s*)([0-9]+)").matcher(question);
             Long explicit=id.find()?Long.parseLong(id.group(1)):null;
             for(var team:teams){String name=team.path("name").asText();boolean selected=explicit!=null?team.path("id").asLong()==explicit:!name.isBlank()&&java.util.regex.Pattern.compile("(?i)(?<![a-z0-9_-])"+java.util.regex.Pattern.quote(name)+"(?![a-z0-9_-])").matcher(question).find();if(selected)matches.add(team);}
-            if(matches.isEmpty()&&explicit==null&&contextual&&!GymConversationContext.savedTeamRequest(question))OwnedTeamReadRoute.select(teams,question,context.dialogueHistory(),true).ifPresent(matches::add);
+            if(matches.isEmpty()&&explicit==null&&contextual&&(!GymConversationContext.savedTeamRequest(question)||question.matches("(?s).*(这支|这套|这个|刚才|现有|当前).*" )))OwnedTeamReadRoute.select(teams,question,context.dialogueHistory(),true).ifPresent(matches::add);
             if(matches.size()!=1){var names=new ArrayList<String>();teams.forEach(t->names.add(safe(t.path("name").asText())+"（编号"+t.path("id").asLong()+"）"));return Optional.of(matches.isEmpty()?"当前账号检索到的队伍中没有唯一匹配你指定的队伍。请确认队伍名称或编号。"+(names.isEmpty()?" 当前还没有已保存队伍。":" 可选："+String.join("、",names)):"有多支匹配的队伍，请在队伍页选择具体编号后再分析，避免读取错误配置。");}
             var args=JSON.createObjectNode().put("teamId",matches.getFirst().path("id").asLong()).put("gymId",target.get().gymId()).put("phase",target.get().phase());
             String result=call(tools,"analyzeSavedTeamForGym",args.toString());

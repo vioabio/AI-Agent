@@ -49,12 +49,13 @@ public final class OwnedTeamReadRoute {
         var status = saveStatusReply(question);
         if (status.isPresent()) return status;
         String writeIntent=TrainingIntentState.normalizeConditionUpdates(question);
-        if(ProjectGuideRequest.requiresSource(question)||TeamMutationIntent.requested(question)||writeIntent.matches("(?s).*(确认修改|保存修改|改成|改为|生成预览).*"))return Optional.empty();
+        if(CompetitiveTrendsRequest.select(question,context.dialogueHistory()).isPresent()||ProjectGuideRequest.requiresSource(question)||TeamMutationIntent.requested(question)||writeIntent.matches("(?s).*(确认修改|保存修改|改成|改为|生成预览).*"))return Optional.empty();
         boolean replacementConstraint=question.length()<=300 && question.matches(
                 "(?:这支|这套|这个)(?:队伍|阵容)(?:不存在|没找到|没有找到)(?:就明确说|就直说|请说明|请明确说)[，,]"
                 + "(?:不要|别|不用)(?:换成|替换为|改成)[^。！？?\\n]{1,60}[。！!？?]?" );
         boolean contextual=replacementConstraint||question.matches("(?s).*(这个队伍|刚才.{0,8}队伍|队伍的等级|现有两招).*" );
-        if(!contextual&&!(question.matches("(?s).*(读取|我的|已保存|保存的|实际保存).*" )&&question.matches("(?s).*(队伍|阵容|(?:我保存的|已保存).{0,80}配置).*")))return Optional.empty();
+        boolean namedSavedRead=question.matches("(?is).*(读取|查看).{0,15}(我保存的|已保存的?)[a-z0-9_-]{1,64}.*");
+        if(!contextual&&!namedSavedRead&&!(question.matches("(?s).*(读取|我的|已保存|保存的|实际保存).*" )&&question.matches("(?s).*(队伍|阵容|(?:我保存的|已保存).{0,80}配置).*")))return Optional.empty();
         var list=Arrays.stream(tools).filter(t->t.getToolDefinition().name().equals("listCurrentTeams")).findFirst();
         var read=Arrays.stream(tools).filter(t->t.getToolDefinition().name().equals("readCurrentTeam")).findFirst();
         if(list.isEmpty()||read.isEmpty())return Optional.empty();
@@ -82,7 +83,7 @@ public final class OwnedTeamReadRoute {
                 java.util.function.Function<String,String> gymCheck=gateway==null||execution==null||gymTool.isEmpty()?null:args->gateway.execute(gymTool.get(),args,execution).toModelText();
                 return Optional.of(evidence.verifiedSummary()+SavedTrainingRoadmap.create(saved,check,intent,gymCheck));
             }
-            return Optional.of(evidence.verifiedSummary()+(question.matches("(?s).*(只用中文|仅列出|只列出).*" )?"":evidence.verifiedClarification().substring(evidence.verifiedSummary().length())));
+            return Optional.of(evidence.verifiedSummary()+(question.matches("(?s).*(只用中文|仅列出|只列(?:出)?).*" )?"":evidence.verifiedClarification().substring(evidence.verifiedSummary().length())));
         }catch(com.vio.vioaiagent.observability.TaskBudgetExceededException|java.util.concurrent.CancellationException stop){throw stop;}
         catch(Exception unavailable){LOG.warn("Owned team read route failed: stage={}, category={}",stage,unavailable.getClass().getSimpleName());return Optional.of("当前保存队伍读取失败，未分析或修改任何配置。");}
     }

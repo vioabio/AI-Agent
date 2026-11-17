@@ -23,6 +23,7 @@ public record GymTurnPlan(String ownerId, String conversationId, String gameRele
         boolean factualFollowup = target.isPresent() && !question.matches("(?s).*(修改|保存|写入|预览|替换).*")
                 && (GymFocusedFactReply.requestsBattleMode(question)
                 || GymFocusedFactReply.requestsSpecialty(question)
+                || question.matches("(?s).*(王牌|太晶成员).*(多少级|几级|等级).*" )
                 || GymFocusedFactReply.npcLevelFollowup(context)
                 || question.matches("(?s).*(改看重赛|改回初战|重赛呢|(?:他|她|这位馆主)的(?:太晶|王牌|成员|招式|特性|队伍|重赛|初战)).*")
                 || question.matches("(?s).*(初战|重赛).*") && question.matches("(?s).*(阵容|队伍|成员|招式|特性|等级|资料).*")
@@ -43,7 +44,7 @@ public record GymTurnPlan(String ownerId, String conversationId, String gameRele
         if (GymConversationContext.savedTeamRequest(text)) return Intent.SAVED_TEAM_ANALYSIS;
         if (GymCatalogAnswer.requestsOverview(text)) return Intent.CATALOG;
         if (text.matches("(?s).*(队伍|阵容|配队|组队).*")
-                && text.matches("(?s).*(推荐|克制|应对|对付|合适|适合|配一|组一|配个|组个).*")) return Intent.RECOMMEND_TEAM;
+                && text.matches("(?s).*(推荐|克制|应对|对付|合适|适合|配一|组一|配个|组个|角色|选择思路).*")) return Intent.RECOMMEND_TEAM;
         if (text.matches("(?s).*(克制|应对|对付|打法|怎么打|如何打|怎样打|打得过|打不过|战术|策略).*")) return Intent.GENERAL_ADVICE;
         if (GymQuestionPolicy.matches(text)) return Intent.CATALOG;
         return Intent.OTHER;

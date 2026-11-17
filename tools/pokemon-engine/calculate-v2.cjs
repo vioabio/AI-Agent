@@ -37,7 +37,7 @@ function calculateInput(input) {
   const result=calculate(gen,attacker,defender,move,field)
   const [minimum,maximum]=result.range(),hp=defender.maxHP()
   return {engine:'@smogon/calc',engineVersion,generation:9,dataReleaseId:input.dataReleaseId,
-    range:{minimum,maximum},defenderHp:hp,percent:{minimum:100*minimum/hp,maximum:100*maximum/hp},
+    range:{minimum,maximum},defenderHp:hp,moveType:move.type,defenderTypes:defender.types,percent:{minimum:100*minimum/hp,maximum:100*maximum/hp},
     // calc's KO-description formatter can throw on an all-zero damage array.
     // Preserve the computed numeric result without asking it for KO odds.
     description:maximum===0 ? `${attacker.name} ${move.name} vs. ${defender.name}: 0-0 (0%)` : result.desc(),

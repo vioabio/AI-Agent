@@ -50,7 +50,8 @@ class AnswerRegression20261110Test {
         var calc=calculator();var model=mock(org.springframework.ai.chat.model.ChatModel.class);
         var executor=new DefaultRunExecutor(model,new ToolCallback[]{saved,calc},null,null,null,null,false);
         clearInvocations(model);
-        for(String q:List.of("帮我算一下杰尼龟打小火龙的伤害。","请计算Squirtle对Charmander的伤害范围？")) {
+        for(String q:List.of("帮我算一下杰尼龟打小火龙的伤害。","请计算Squirtle对Charmander的伤害范围？",
+                "杰尼龟对小火龙具体打多少血？我没给招式和等级。请先说还缺什么。")) {
             var c=context(q,List.of(new UserMessage("我的test1队伍"),new UserMessage(prompt(input()))));
             String answer=executor.execute(c);
             assertTrue(answer.contains("杰尼龟攻击小火龙"));assertTrue(answer.contains("本次尚未计算"));assertTrue(answer.contains("所用招式"));
@@ -67,7 +68,13 @@ class AnswerRegression20261110Test {
         var tool=calculator();
         for(var bad:List.of(missing,version,ev)) {
             String answer=DamageDialogueRoute.reply(context(prompt(bad),List.of()),new ToolCallback[]{tool}).orElseThrow();
-            assertTrue(answer.contains("本次未计算"));assertFalse(answer.contains("164"));
+            if (bad == ev) {
+                assertTrue(answer.contains("攻击方特攻努力值EV超出0～252范围"));
+                assertTrue(answer.contains("本次输入已拒绝"));
+            } else {
+                assertTrue(answer.contains("本次未计算"));
+            }
+            assertFalse(answer.contains("164"));
         }verify(tool,never()).call(anyString());
     }
     @Test void changedEvsAlwaysExecuteExactCurrentInputInsteadOfRememberedNumbers() throws Exception {

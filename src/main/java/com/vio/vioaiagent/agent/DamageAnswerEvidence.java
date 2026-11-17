@@ -119,6 +119,16 @@ public final class DamageAnswerEvidence {
         String comparison;
         if (max == 0) {
             comparison = "本次计算结果为零伤害；仅凭这个结果不能认定是属性、特性或其他机制导致。";
+            if (!gym() && evidence.path("defenderTypes").isArray() && !evidence.path("moveType").asText().isBlank()) {
+                var defending = new ArrayList<String>();
+                evidence.path("defenderTypes").forEach(type -> defending.add(PokemonDisplayNames.type(type.asText())));
+                String attack = PokemonDisplayNames.type(evidence.path("moveType").asText());
+                try {
+                    if (new com.vio.vioaiagent.pokemon.calculator.TypeEffectivenessCalculator().calculate(attack, defending.toArray(String[]::new)) == 0)
+                        comparison = "已核对本次引擎回读的" + attack + "属性招式及目标" + String.join("／", defending)
+                                + "属性，基础属性表的倍率为0，符合属性免疫。本次引擎结果为0～0，零伤害本身属于有效计算结果。其他特性和状态以所列计算条件为准。";
+                } catch (IllegalArgumentException unsupported) { /* Older or unsupported metadata retains the bounded numerical explanation. */ }
+            }
             if(gym()&&"Ground".equals(evidence.path("moveType").asText())&&"Levitate".equals(evidence.path("assumptions").path("defender").path("ability").asText())&&!evidence.path("assumptions").path("field").path("isGravity").asBoolean()
                     &&!Set.of("Mold Breaker","Teravolt","Turboblaze").contains(evidence.path("assumptions").path("attacker").path("ability").asText()))comparison="本次计算为零伤害：在当前无重力、无破格类特性等所列条件下，地面招式受到防御方飘浮免疫；电太晶不会移除其特性。不能把这个零伤害当作整场胜负结论。";
         } else if (min >= hp) {

@@ -38,7 +38,7 @@ test('fixed development plan binds the real corpus and contains only known sourc
   for (const item of suite.cases) for (const id of item.relevantDocumentIds) assert.ok(docs.includes(id))
 })
 const expanded=()=>JSON.parse(readFileSync(new URL('../../src/main/resources/pokemon-guides/expanded-v2.json',import.meta.url),'utf8'))
-const live=()=>JSON.parse(readFileSync(new URL('../../src/main/resources/pokemon-guides/expanded-v4.json',import.meta.url),'utf8'))
+const live=()=>JSON.parse(readFileSync(new URL('../../src/main/resources/pokemon-guides/expanded-v5.json',import.meta.url),'utf8'))
 test('expanded corpus source metadata and normalized code identities audit successfully',()=>{
   const report=auditCorpus(live())
   assert.equal(report.documentCount,12);assert.equal(report.uniqueCodeFiles,5)
@@ -76,7 +76,7 @@ test('expanded model checks reject a runtime with missing or different corpus id
 })
 
 
-test('source binding v4 preserves archived bodies and rejects stale bindings',()=>{
+test('source binding v5 preserves archived bodies and rejects stale bindings',()=>{
   const archived=JSON.parse(readFileSync(new URL('../../src/main/resources/pokemon-guides/expanded-v1.json',import.meta.url),'utf8'))
   const current=live()
   assert.notEqual(current.catalogId,archived.catalogId)

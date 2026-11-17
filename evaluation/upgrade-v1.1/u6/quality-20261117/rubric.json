@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "answer-quality-rubric-v1",
+  "dimensions": [
+    "事实正确",
+    "问题相关",
+    "回答完整",
+    "来源适用",
+    "数值与解释一致",
+    "授权与状态一致"
+  ],
+  "reviewMethod": "AI_ASSISTED",
+  "passPolicy": "逐轮检查完整正文与实际事件，任何关键错误则整组失败；终态完成不等于内容通过。",
+  "novelty": "新措辞和组合与既有领域场景存在重叠，QM-04明确为已知数值锚点；题目在首答前冻结。"
+}

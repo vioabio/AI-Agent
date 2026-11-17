@@ -111,3 +111,50 @@ test('1080窗口：默认收起资料，抽屉焦点、关闭返回、导航折�
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   expect(errors).toEqual([])
 })
+
+for (const width of [390, 640, 760, 820, 1080, 1280, 1440, 1920]) {
+  test(`${width}网页宽度：导航收起无残留文字，筛选标签单行，输入框保持可见`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 })
+    const errors = await fixture(page)
+    if (width < 768) await expect(page.locator('.workspace-nav')).toBeHidden()
+    const header = page.locator('.workspace-header')
+    expect((await header.boundingBox()).height).toBeLessThanOrEqual(width < 768 ? 110 : 64)
+    const labels = await page.locator('.scenario-bar label>span').evaluateAll(elements =>
+      elements.map(element => ({ height: element.getBoundingClientRect().height, fontSize: parseFloat(getComputedStyle(element).fontSize) })))
+    for (const label of labels) expect(label.height).toBeLessThanOrEqual(label.fontSize * 1.6)
+    for (const selector of ['.navigation-toggle', '.scenario-bar', '.preferences-toggle', '.resource-toggle']) {
+      const box = await page.locator(selector).boundingBox()
+      expect(box.x).toBeGreaterThanOrEqual(0)
+      expect(box.x + box.width).toBeLessThanOrEqual(width + 1)
+    }
+    const composer = await page.locator('.input-area').boundingBox()
+    expect(composer.y + composer.height).toBeLessThanOrEqual(800)
+    expect((await page.locator('.message-list').boundingBox()).height).toBeGreaterThan(500)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight)).toBe(true)
+    if (width < 768) {
+      await page.locator('.navigation-toggle').click()
+      await expect(page.locator('.workspace-nav')).toBeVisible()
+      await page.locator('.nav-scrim').click({ position: { x: width - 5, y: 20 } })
+      await expect(page.locator('.workspace-nav')).toBeHidden()
+    }
+    await page.screenshot({ path: `../artifacts/web-adaptation-20261117/${width}.png`, animations: 'disabled' })
+    expect(errors).toEqual([])
+  })
+}
+
+test('网页缩窄后关闭的导航内容不遮挡对话，资料抽屉保持在视口内', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await fixture(page)
+  await page.setViewportSize({ width: 715, height: 665 })
+  await expect(page.locator('.workspace-nav')).toBeHidden()
+  await page.getByRole('button', { name: '查看图鉴 · 烈咬陆鲨', exact: true }).click()
+  const drawer = page.getByRole('dialog', { name: '资料与队伍侧栏' })
+  await expect(drawer).toBeVisible()
+  const box = await drawer.boundingBox()
+  const header = await page.locator('.workspace-header').boundingBox()
+  expect(box.y).toBeGreaterThanOrEqual(header.y + header.height - 1)
+  expect(box.y + box.height).toBeLessThanOrEqual(665)
+  await page.keyboard.press('Escape')
+  await expect(drawer).toBeHidden()
+  await expect(page.getByRole('textbox', { name: '输入消息' })).toBeEnabled()
+})

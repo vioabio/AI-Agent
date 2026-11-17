@@ -1,7 +1,7 @@
 <template>
   <div class="game-master-page workspace-shell reading-workspace" :class="{ 'team-mode': workspaceMode === 'team', 'nav-collapsed': navCollapsed, 'drawer-open': resourcesOpen && !wideViewport }" :style="{ '--resource-width': resourceWidth + 'px' }" :inert="settingsOpen || undefined">
     <button v-if="mobileNavOpen" class="nav-scrim" aria-label="关闭历史菜单" @click="mobileNavOpen = false"></button>
-    <aside class="workspace-nav" :class="{ 'mobile-open': mobileNavOpen }" aria-label="工作区导航">
+    <aside class="workspace-nav" :class="{ 'mobile-open': mobileNavOpen }" aria-label="工作区导航" :inert="smallViewport && !mobileNavOpen || undefined" :aria-hidden="smallViewport && !mobileNavOpen || undefined">
       <RouterLink to="/" class="workspace-brand" title="VIO 宝可梦助手"><VioMark /><span><strong>VIO</strong></span></RouterLink>
       <button class="new-chat" type="button" title="新对话" aria-label="新对话" :disabled="workspaceBusy || historyLoading" @click="newConversation"><UiIcon name="plus" /><span>新对话</span></button>
       <button class="workspace-entry" type="button" title="对话" aria-label="助手工作区" @click="mobileNavOpen = false"><UiIcon name="chat" /><span>对话</span></button>

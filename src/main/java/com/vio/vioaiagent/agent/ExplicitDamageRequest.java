@@ -27,7 +27,31 @@ public final class ExplicitDamageRequest {
         int start=inputStart(question);
         if(start<0||start>1000)return false;
         String head=question.substring(0,start);
-        return head.matches("(?s).*(calculateBattleDamage|伤害|重新计算|特攻努力值).*" )&&!head.matches("(?s).*(以下为资料|以下是资料|引用以下|解释以下资料|示例文本).*" );
+        return head.matches("(?s).*(calculateBattleDamage|伤害|重新计算|特攻努力值|计算.{0,120}输入).*" )&&!head.matches("(?s).*(以下为资料|以下是资料|引用以下|解释以下资料|示例文本).*" );
+    }
+
+    public static String invalidInputReply(String question) {
+        try {
+            if (!hasInput(question)) return INVALID_INPUT;
+            var data = JSON.readTree(question.substring(inputStart(question)));
+            if (data.has("request")) data = data.path("request");
+            String[] keys = {"hp", "atk", "def", "spa", "spd", "spe"};
+            String[] labels = {"HP", "攻击", "防御", "特攻", "特防", "速度"};
+            for (String side : List.of("attacker", "defender")) {
+                for (String kind : List.of("evs", "ivs")) {
+                    var stats = data.path(side).path("build").path(kind);
+                    int maximum = kind.equals("evs") ? 252 : 31;
+                    for (int i = 0; i < keys.length; i++) {
+                        var value = stats.path(keys[i]);
+                        if (value.isIntegralNumber() && (value.asLong() < 0 || value.asLong() > maximum))
+                            return (side.equals("attacker") ? "攻击方" : "防御方") + labels[i]
+                                    + (kind.equals("evs") ? "努力值EV" : "个体值IV") + "超出0～" + maximum
+                                    + "范围。本次输入已拒绝，请修正后再计算，原值保持不变。";
+                    }
+                }
+            }
+        } catch (Exception invalid) { /* Keep malformed input and arbitrary fields out of the public message. */ }
+        return INVALID_INPUT;
     }
 
     public static Optional<String> arguments(String question) {

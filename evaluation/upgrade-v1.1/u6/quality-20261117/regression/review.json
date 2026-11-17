@@ -1,0 +1,349 @@
+{
+  "schemaVersion": "answer-quality-regression-review-v1",
+  "date": "2026-11-17",
+  "reviewMethod": "AI_ASSISTED",
+  "collectionKind": "KNOWN_QUESTION_REGRESSION",
+  "summary": {
+    "groups": 24,
+    "turns": 45,
+    "passed": 24,
+    "failed": 0,
+    "blocked": 0,
+    "notRun": 0
+  },
+  "firstAnswerBaseline": {
+    "reviewFile": "../review.json",
+    "passed": 11,
+    "failed": 13
+  },
+  "datasetSha256": "8e86b2b80dba14c6adeaf0809a25d426785a68b9e7c0cd86735db63ffa4ad9d3",
+  "rubricSha256": "869f5815f0004e2da14f311de6dc7a1dd0a314d7471579fb3fe99f022e875312",
+  "rawAnswersSha256": "89e46b61c9959b4a1770b44ace574d84c08edd7183e433de6b5f12d90ddf280b",
+  "versionedAnswersSha256": "ab5f7ba4f29c9fff5f0d51627592a3a9531e26ed225401c1c1e201cf17fee928",
+  "projection": "CLASS_FINGERPRINT_MAPS_TO_NAME_SHA256_ARRAYS_ONLY_ANSWERS_AND_EVENTS_UNCHANGED",
+  "integrity": {
+    "uniqueRuns": 45,
+    "events": 1302,
+    "streamFinalEquality": 45,
+    "rerankStates": {
+      "RRF_FALLBACK": 3
+    },
+    "comparableClasses": 172,
+    "differentClasses": [],
+    "teamUnchanged": true,
+    "configurationUnchanged": true
+  },
+  "records": [
+    {
+      "caseId": "QF-01",
+      "verdict": "PASS",
+      "reason": "六项种族值与600总和正确，后续明确130不能等同50级实战攻击。",
+      "criteria": [
+        "108/130/95/80/85/102，总和600，来源实际读取。",
+        "不能直接等同实际能力，需等级、性格、EV、IV；不附加无关资料。"
+      ],
+      "runIds": [
+        "run-ab22bb42-de80-4b34-916f-f8e4cea4f88e",
+        "run-343e9ac7-2ea7-4b00-b899-da2b32ed71eb"
+      ],
+      "observation": "后续解释超出简短回答需求，包含近似公式和额外建议，仍可精简。"
+    },
+    {
+      "caseId": "QF-02",
+      "verdict": "PASS",
+      "reason": "HP44/39、速度43/65与实际参考读取相符，区分基础值和个体能力。",
+      "criteria": [
+        "杰尼龟HP44速度43；小火龙HP39速度65，区分种族值与实际能力。"
+      ],
+      "runIds": [
+        "run-44c3b1a1-dd21-4941-851b-112a939b2801"
+      ],
+      "observation": "四个数值正确，附加说明偏长。"
+    },
+    {
+      "caseId": "QF-03",
+      "verdict": "PASS",
+      "reason": "未取得虚构物种资料，未编造属性、招式或引用。",
+      "criteria": [
+        "明确无法找到，不能沿用旧图鉴或编造属性、招式及来源。"
+      ],
+      "runIds": [
+        "run-c301a74e-935e-4cbd-a4a3-f9e14b9310b5"
+      ],
+      "observation": "未找到物种与上游读取故障的提示仍可进一步区分。"
+    },
+    {
+      "caseId": "QF-04",
+      "verdict": "PASS",
+      "reason": "直接回答奇树擅长电属性，未展开队伍表格。",
+      "criteria": [
+        "电属性，一句话，不能展示整队表格和多余攻略。"
+      ],
+      "runIds": [
+        "run-8c78a474-4df7-4590-b7da-1dc2d4d45ec3"
+      ]
+    },
+    {
+      "caseId": "QM-01",
+      "verdict": "PASS",
+      "reason": "火对草/钢按2×2得到4倍，逐项过程与结论一致。",
+      "criteria": [
+        "2乘2等于4，不能混淆实际伤害。"
+      ],
+      "runIds": [
+        "run-bcaaa7e4-73d1-4fe4-bae2-2befb6c07f9f"
+      ]
+    },
+    {
+      "caseId": "QM-02",
+      "verdict": "PASS",
+      "reason": "龙对钢/妖精按0.5×0得到0倍，保留免疫。",
+      "criteria": [
+        "龙对钢0.5，对妖精0，乘积0。"
+      ],
+      "runIds": [
+        "run-006525c4-2bbb-4107-988a-6e2ad1171412"
+      ]
+    },
+    {
+      "caseId": "QM-03",
+      "verdict": "PASS",
+      "reason": "地面对虫/飞行按0.5×0得到0倍，未以抵抗替代免疫。",
+      "criteria": [
+        "地面对虫0.5，对飞行0，乘积0，最终免疫。"
+      ],
+      "runIds": [
+        "run-306992a9-1a17-48cc-8d07-e759af3e5ab2"
+      ]
+    },
+    {
+      "caseId": "QM-04",
+      "verdict": "PASS",
+      "reason": "电、草对水/超能力均为2×1=2，后续明确倍率不能保证击倒。",
+      "criteria": [
+        "两种都是2乘1等于2，正文解释与表格一致。",
+        "不能保证，需真实计算条件、HP及机制，不能误认为胜率。"
+      ],
+      "runIds": [
+        "run-ebb71069-722c-4400-9832-95b20f6c5069",
+        "run-3592bb21-619e-4a4a-9ed9-15611a18618a"
+      ]
+    },
+    {
+      "caseId": "QC-01",
+      "verdict": "PASS",
+      "reason": "使用实际展示名单解析第七位为莉普，最高成员花洁夫人45级，初战单打。",
+      "criteria": [
+        "八位，说明参考等级顺序，非固定挑战顺序。",
+        "第七位莉普，初战。",
+        "花洁夫人45级，指代对手队伍，不能索要私人队伍。",
+        "莉普单打。"
+      ],
+      "runIds": [
+        "run-36a08123-3b73-4695-af7d-de3dc1a2d862",
+        "run-a312de6f-d69f-4567-8dd1-70b895d0bca1",
+        "run-03702900-a85d-4a70-9516-be495dbc0bd0",
+        "run-615d7296-33df-4cda-9f83-dc27e81747f7"
+      ]
+    },
+    {
+      "caseId": "QC-02",
+      "verdict": "PASS",
+      "reason": "莱姆王牌初战42、重赛66，比较问句保留阶段，切回初战后回答双打。",
+      "criteria": [
+        "诅咒娃娃/谜拟丘/花岩怪/墓扬犬65，颤弦蝾螈66。",
+        "重赛66，初战42，阶段区分清楚。",
+        "莱姆初战双打，不能遗留重赛等级。"
+      ],
+      "runIds": [
+        "run-68ef8d3c-f770-4003-9959-574be9e44509",
+        "run-17cffdbd-ea51-4542-85ba-d1b3cd739e31",
+        "run-15ebaa53-43b1-4124-9218-1952f83673a2"
+      ]
+    },
+    {
+      "caseId": "QC-03",
+      "verdict": "PASS",
+      "reason": "先选择海岱，纠正第六位后切换莱姆并回答双打。",
+      "criteria": [
+        "参考排序非固定顺序。",
+        "海岱29/29/30。",
+        "切换莱姆，双打，不继续答海岱。"
+      ],
+      "runIds": [
+        "run-b232f5d4-0263-4cd9-82fc-0ba9431d2b00",
+        "run-8c457207-55d2-4179-9e4f-640df89a033c",
+        "run-ab3c6483-c00b-4bfe-9fbd-f0adc1da273d"
+      ]
+    },
+    {
+      "caseId": "QC-04",
+      "verdict": "PASS",
+      "reason": "九轮填充均简短回复，末轮仍承接海岱和水属性。",
+      "criteria": [
+        "海岱初战目标。",
+        "填充各轮遵守简短要求。",
+        "末轮应答海岱、水；历史确实不可用时可澄清，不能换人或假装已读取。"
+      ],
+      "runIds": [
+        "run-09676f37-1270-40ad-b509-af4ba068f39d",
+        "run-a9084746-d3c2-4387-8618-5ceaf3afa81f",
+        "run-1d1364c1-1b74-4a08-be24-6a4593f23799",
+        "run-c64900e5-0046-4024-b07c-1191b8eecd53",
+        "run-d8edd418-39f3-4e4e-8ab3-6fba3ea94bb0",
+        "run-1e998d3a-f4ec-483c-815a-6a21741551b3",
+        "run-3e90c43c-20bc-4b7a-93b8-819ac6476f20",
+        "run-421d7308-b8cc-41c7-a1d9-4c3a04f03f86",
+        "run-4370290e-56db-4a45-8eb1-c1baac404c33",
+        "run-71b71aaa-5b26-4797-8f71-c6b456784a53",
+        "run-f5b78574-d472-40f0-a602-5ee547311945"
+      ]
+    },
+    {
+      "caseId": "QP-01",
+      "verdict": "PASS",
+      "reason": "真实读取单成员烈咬陆鲨51级、粗糙皮肤、燕返/重踏和空道具，后续只用已保存招式分析阿枫。",
+      "criteria": [
+        "实际仅烈咬陆鲨51，粗糙皮肤，燕返/重踏，无道具。",
+        "以现有燕返等已保存招式分析，不虚构其他成员，指出等级/服从/捕获进度条件，不能保证胜利。"
+      ],
+      "runIds": [
+        "run-3f507a6c-5ac8-49f9-8e0b-3f7307a6fd8f",
+        "run-6e2132a0-5967-4d5f-8cdd-4b3799b2d9fd"
+      ],
+      "observation": "只列配置时仍附加图鉴种族值表，可继续收紧展示范围。"
+    },
+    {
+      "caseId": "QP-02",
+      "verdict": "PASS",
+      "reason": "读取test1并逐只对应海岱对手，燕返当前倍率1，保留好胜毛蟹太晶前2到太晶后1的变化。",
+      "criteria": [
+        "读取单成员实际快照，目标海岱，燕返/重踏基础倍率均1，不能编造电/草招式或伤害数值。"
+      ],
+      "runIds": [
+        "run-ebc2abf1-0133-4924-96c6-8088483a151c"
+      ]
+    },
+    {
+      "caseId": "QP-03",
+      "verdict": "PASS",
+      "reason": "不存在名称未改读test1或其他账号队伍。",
+      "criteria": [
+        "明确不存在或无法唯一匹配，不替用test1或其他账号数据。"
+      ],
+      "runIds": [
+        "run-1f3ca63f-1643-4ee8-aaca-22f0f468894b"
+      ]
+    },
+    {
+      "caseId": "QP-04",
+      "verdict": "PASS",
+      "reason": "回应阿枫进攻覆盖和承伤方向，指出岩石不抵抗虫，未编造捕获或学习条件。",
+      "criteria": [
+        "先回应应对虫系的规划方向，火/飞行/岩石进攻；岩石不抵抗虫；不能编造已捕获、已学会、必胜或完整合法阵容。"
+      ],
+      "runIds": [
+        "run-c34d93ef-50f6-49a4-b86a-5194ddc5b27d"
+      ],
+      "observation": "用户已说明朱版，仍重复询问朱或紫，属于条件复述和体验问题。"
+    },
+    {
+      "caseId": "QD-01",
+      "verdict": "PASS",
+      "reason": "实际引擎雨天246～290 HP，与冻结输入oracle一致，保留天气及双方假设。",
+      "criteria": [
+        "与相同输入的引擎oracle一致，保留Rain，无伪造计算。"
+      ],
+      "runIds": [
+        "run-9c464d50-4174-425d-abcb-cfd9a643d553"
+      ]
+    },
+    {
+      "caseId": "QD-02",
+      "verdict": "PASS",
+      "reason": "两轮实际计算均0～0，读取电招与龙/地面属性并解释免疫。",
+      "criteria": [
+        "范围0–0，地面免疫，引用实际工具。",
+        "正常机制结果，不能重试编造正伤害。"
+      ],
+      "runIds": [
+        "run-83606877-05b8-4b1d-9233-20727026bd35",
+        "run-bc2a2ba3-b640-477f-aad8-925dd0190190"
+      ],
+      "observation": "只解释零伤害时仍重复完整计算表，结果正确但较冗长。"
+    },
+    {
+      "caseId": "QD-03",
+      "verdict": "PASS",
+      "reason": "先列招式、等级、配置和场地缺口，未读取私人队伍或给精确伤害。",
+      "criteria": [
+        "询问招式/等级/构筑/场地等条件，不能给无依据精确数值。"
+      ],
+      "runIds": [
+        "run-33c9edeb-c890-4237-a046-e6ec11c8fe54"
+      ]
+    },
+    {
+      "caseId": "QD-04",
+      "verdict": "PASS",
+      "reason": "定位攻击方特攻EV253越界，拒绝本次输入且未静默改为252。",
+      "criteria": [
+        "拒绝或返回参数校验错误，不静默改值，不能给有效伤害。"
+      ],
+      "runIds": [
+        "run-245ae5ee-633e-484d-abb3-4f04d2db898d"
+      ]
+    },
+    {
+      "caseId": "QR-01",
+      "verdict": "PASS",
+      "reason": "归纳预览、页面确认、保存回读及拒绝后的状态，引用实际确认流程说明。",
+      "criteria": [
+        "检索确认流程，预览→确认→执行→回读，拒绝不改配置，引用实际项目来源，不冒充官方游戏规则。"
+      ],
+      "runIds": [
+        "run-7c02c859-14e3-458a-9e85-29fd294639db"
+      ]
+    },
+    {
+      "caseId": "QR-02",
+      "verdict": "PASS",
+      "reason": "说明未确认不能视为落盘，依据实际项目说明，未执行队伍写入。",
+      "criteria": [
+        "明确未确认不能视作已保存，不能把模型建议当队伍状态，引用相符段落。"
+      ],
+      "runIds": [
+        "run-373792fe-9c64-4cf2-9b80-ea8d0c3267df"
+      ]
+    },
+    {
+      "caseId": "QR-03",
+      "verdict": "PASS",
+      "reason": "公开gen9ou样例走公开来源，返回三个六人配置及来源时间，无私有队伍替代。",
+      "criteria": [
+        "完整六人及配置有依据，或明确读取失败并给真实链接；不能只给使用率排名或拼前六名。"
+      ],
+      "runIds": [
+        "run-2b07b103-fe89-4e3e-b90b-b0342233a529"
+      ],
+      "observation": "读取第三方镜像的公开样例，未确认逐队更新时间与当前赛事合法性。"
+    },
+    {
+      "caseId": "QR-04",
+      "verdict": "PASS",
+      "reason": "明确未找到指定虚构流派，未用无关近似片段生成攻略。",
+      "criteria": [
+        "无资料应说明缺失，不能引用无关材料证明虚构流派存在。"
+      ],
+      "runIds": [
+        "run-1c07ca3e-8cb9-4851-8572-57bc0968e970"
+      ]
+    }
+  ],
+  "limits": [
+    "同题修复回归，首答失败原文与原评分完整保留。",
+    "逐轮核对正文、工具事件与预先冻结判据，评分由AI辅助完成。",
+    "本轮精排事件为RRF_FALLBACK，按实际降级路径复核，未将其登记为真实精排成功。",
+    "图鉴与外部样例以实际来源范围为准，尚需持续扩展独立题与人工领域复核。"
+  ]
+}

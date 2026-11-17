@@ -13,6 +13,11 @@ public final class ConversationRecallReply {
     public static Optional<String> reply(AgentRunContext context) {
         String question=context.run().prompt();
         if(question==null||question.length()>400||question.contains("\n")||question.contains("```"))return Optional.empty();
+        if (question.strip().matches("(?:这|本)(?:一)?轮(?:只|仅)回复[“\"]?收到[”\"]?[，,](?:这是)?历史填充第[0-9]{1,3}轮[。.!！]?")) return Optional.of("收到");
+        if (question.matches("(?:先)?(?:记住|记录)(?:我)?的?目标是[^。！？\\n]{1,40}[。]?") ) {
+            var target = GymConversationContext.resolve(question, java.util.List.of());
+            if (target.isPresent()) return Optional.of("已记录目标为" + target.get().name() + (target.get().phase().equals("rematch") ? "视察重赛。" : "初战。"));
+        }
         if(BACKGROUND.matcher(question.strip()).matches() || TOPIC_BACKGROUND.matcher(question.strip()).matches())return Optional.of("收到");
         if(!Pattern.compile("之前|刚才|此前|上文").matcher(question).find()
                 ||!Pattern.compile("(?:问的是|问过|讨论的是|话题是)").matcher(question).find()
