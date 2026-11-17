@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {createServer} from 'node:http'
 import {spawn} from 'node:child_process'
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, realpathSync} from 'node:fs'
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, realpathSync} from 'node:fs'
 import {join, resolve} from 'node:path'
 import {coreComponents,additionalComponents} from './runtime-component-manifest.mjs'
 import {stage2Team} from './stage2-regression.mjs'
@@ -60,8 +60,9 @@ async function collect(mode) {
     let code
     try {code=await new Promise((done,reject)=>{child.once('error',reject);child.once('close',done)})}
     finally {clearTimeout(timeout)}
-    const report=JSON.parse(readFileSync(join(directory,'baseline.json'),'utf8'))
     assert.notEqual(code,null,stderr)
+    assert.ok(existsSync(join(directory,'baseline.json')),stderr)
+    const report=JSON.parse(readFileSync(join(directory,'baseline.json'),'utf8'))
     assert.equal(logouts,1)
     return {code,report,runsCreated,teamsCreated}
   } finally {

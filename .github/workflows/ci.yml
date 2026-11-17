@@ -39,6 +39,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Evaluation collectors bind the v1.0.0 baseline tag and current source state.
+          fetch-depth: 0
 
       - name: Prepare Maven wrapper
         shell: bash
