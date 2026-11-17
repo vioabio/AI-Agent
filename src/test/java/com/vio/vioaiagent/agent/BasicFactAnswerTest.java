@@ -15,6 +15,24 @@ import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.any;
 
 class BasicFactAnswerTest {
+    @Test void focusedHpSpeedComparisonContainsOnlyTheRequestedValuesAndSources() throws Exception {
+        var evidence = new GuideAnswerEvidence();
+        evidence.begin("只比较杰尼龟与小火龙的基础HP和基础速度，表格列四个数值，附读取来源。");
+        evidence.observe("lookupPokemonReference", detail(43));
+        var other = new ObjectMapper().readTree(detail(65));
+        var fact = (com.fasterxml.jackson.databind.node.ObjectNode) other.path("fact");
+        fact.put("formId",4).put("speciesId",4).put("nationalNo",4).put("slug","charmander")
+            .put("speciesNameZh","小火龙").put("hp",39).put("sourceUrl","https://pokeapi.co/api/v2/pokemon/4/");
+        evidence.observe("lookupPokemonReference", other.toString());
+        String answer = evidence.focusedStatComparisonAnswer().orElseThrow();
+        assertTrue(answer.contains("| 杰尼龟 | 44 | 43 |"));
+        assertTrue(answer.contains("| 小火龙 | 39 | 65 |"));
+        assertFalse(answer.contains("提示"));
+        assertFalse(answer.contains("先手"));
+        assertTrue(answer.length() < 280);
+        evidence.begin("比较杰尼龟与小火龙并推荐队伍");
+        assertTrue(evidence.focusedStatComparisonAnswer().isEmpty());
+    }
     @Test void aRequestedStatTotalSurvivesAdditionalGuideReads() throws Exception {
         var evidence=new GuideAnswerEvidence();
         evidence.begin("请帮我核对杰尼龟的六项种族值和总和，并说明它们是不是50级的实际能力。");

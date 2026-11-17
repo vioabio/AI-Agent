@@ -32,6 +32,12 @@ class ReferenceFailureAnswerTest {
             assertTrue(e.verifiedAnswer().contains("未能读取宝可梦"));assertFalse(e.verifiedAnswer().contains("未找到宝可梦"));
         }
     }
+    @Test void soleMissingTargetUsesOneBoundedExplanation() {
+        String answer = missing().verifiedAnswer();
+        assertTrue(answer.contains("未找到"));
+        assertFalse(answer.contains("资料读取提醒"));
+        assertFalse(answer.contains("请稍后重试"));
+    }
     @Test void resourceOnlyErrorsAndUnboundTargetsCannotCreateSpeciesAbsence(){
         var e=new GuideAnswerEvidence();e.begin("解释激流特性");e.observe("lookupPokemonResource","[tool.error] POKEMON_REFERENCE_NOT_FOUND",ARGS);
         assertFalse(e.verifiedAnswer().contains("未找到宝可梦"));

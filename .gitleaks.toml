@@ -17,13 +17,13 @@ regexes = [
   '''replace-with-[a-z0-9-]+'''
 ]
 
-# Runtime component attestations contain class SHA-256 values, including "Api" in this class name.
+# Runtime component attestations contain class SHA-256 values, including Api/Token class names.
 # Match both the archive location and this exact metadata shape, retaining the default key rule.
 [[rules]]
 id = "generic-api-key"
   [[rules.allowlists]]
-  description = "U6 LocalPokeApiRepository class SHA-256 metadata"
+  description = "U6 named runtime class SHA-256 metadata"
   condition = "AND"
   paths = ['''^evaluation/upgrade-v1\.1/u6/.*\.json$''']
   regexTarget = "match"
-  regexes = ['''^LocalPokeApiRepository"\s*:\s*"[a-f0-9]{64}"$''']
+  regexes = ['''^(LocalPokeApiRepository|ProviderTokenUsage|TokenEstimateComparison|ContextTokenEstimator)"\s*:\s*"[a-f0-9]{64}"$''']

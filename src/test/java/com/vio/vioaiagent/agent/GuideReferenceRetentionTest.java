@@ -10,6 +10,18 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class GuideReferenceRetentionTest {
+    @Test void missingSpeciesDoesNotAppendUnrequestedGeneralGuides() throws Exception {
+        var e = evidence();
+        e.begin("请查不存在物种qa-final-absent的图鉴和招式，查不到就直接说查不到。");
+        var search = new LocalGuideSearch(mapper,new DefaultResourceLoader(),"classpath:pokemon-strategy/overview-v1.json",directory.resolve("absent.sqlite").toString());
+        e.observe("searchPokemonGuides",mapper.writeValueAsString(search.search("围绕核心成员构建队伍","pokemon-scarlet-violet")));
+        assertTrue(e.hasGuideSources());
+        e.observe("lookupPokemonReference","[tool.error] POKEMON_REFERENCE_NOT_FOUND",input("qa-final-absent"));
+        String answer = e.verifiedAnswer();
+        assertTrue(answer.contains("未找到"));
+        assertFalse(answer.contains("攻略参考"));
+        assertFalse(answer.contains("围绕核心成员"));
+    }
     @Test void speciesEvidenceSurvivesALaterGeneralSearchAndSameQueryFailureInvalidatesIt() throws Exception {
         var search = new LocalGuideSearch(mapper,new DefaultResourceLoader(),"classpath:pokemon-strategy/overview-v1.json",directory.resolve("merged.sqlite").toString());
         String speciesArgs = mapper.writeValueAsString(java.util.Map.of("query","杰尼龟 培养 搭配","gameReleaseId","pokemon-scarlet-violet"));

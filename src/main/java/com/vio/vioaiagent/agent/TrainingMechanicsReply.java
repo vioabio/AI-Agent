@@ -8,6 +8,9 @@ public final class TrainingMechanicsReply {
     public static Optional<String> reply(String question) {
         if (question == null || question.length() > 500 || question.contains("\n")
                 || question.matches("(?s).*(读取|保存|修改|输入：|本地原文|引用|项目说明|当前项目|本项目|这个项目).*")) return Optional.empty();
+        String statQuestion = question.strip().replaceFirst("[？?]只解释这个问题[。]?$", "？");
+        if (statQuestion.matches("^(?:刚才的?|图鉴(?:中的?|里的?)?)?(?:\\d{1,3}(?:攻击|防御|特攻|特防|速度)(?:种族值)?|(?:攻击|防御|特攻|特防|速度)?种族值(?:\\d{1,3})?)(?:能|可以|能否)(?:直接)?(?:当成|作为|等同于)(?:\\d{1,3}级)?(?:实战|实际)(?:攻击|防御|特攻|特防|速度|能力值?)(?:吗)?[？?。]?$"))
+            return Optional.of("图鉴种族值不能直接当作该等级的实际能力。实际数值还由等级、个体值、努力值、性格和取整共同决定，应查看游戏内面板或按完整配置计算。依据为本地伤害引擎的能力值公式。");
         if (!question.contains("{") && !question.contains("```")
                 && question.matches("(?is).*(EV|努力值).*") && question.matches("(?s).*(配置|输入).*")
                 && question.matches("(?s).*(可以|能否|允许|校验|越界|上限).*") && question.contains("计算")) {

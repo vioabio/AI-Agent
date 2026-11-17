@@ -13,6 +13,32 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class QualityAcceptanceRoutingTest {
+    @Test void conditionalMultiplierFollowupUsesTheBoundedDamageExplanation() {
+        String answer = DamageDialogueRoute.knockoutSufficiencyReply("如果都为2倍，就能保证一招结束战斗吗？").orElseThrow();
+        assertTrue(answer.contains("无法判断"));
+        assertFalse(answer.contains("替身"));
+        assertTrue(answer.length() < 220);
+        assertTrue(DamageDialogueRoute.knockoutSufficiencyReply("如果都为2倍，就能保证一招结束战斗吗？顺便保存队伍。").isEmpty());
+    }
+    @Test void focusedStatExplanationDoesNotExpandIntoTrainingAdvice() {
+        String answer = TrainingMechanicsReply.reply("刚才的130攻击能直接当成50级实战攻击吗？只解释这个问题。").orElseThrow();
+        assertTrue(answer.contains("种族值"));
+        assertTrue(answer.contains("等级"));
+        assertTrue(answer.length() < 180);
+        assertFalse(answer.contains("150"));
+        assertTrue(TrainingMechanicsReply.reply("种族值130能直接当成50级实际攻击吗？再给我配招。").isEmpty());
+    }
+
+    @Test void versionDeclarationsRemoveOnlyAlreadySuppliedGymQuestions() {
+        String current = GymGeneralAdviceRoute.reply(context("朱版图鉴里有没有克制阿枫的应对队伍？", List.of())).orElseThrow();
+        assertTrue(current.contains("声明的朱版"));
+        assertFalse(current.contains("补充朱或紫"));
+        String historical = GymGeneralAdviceRoute.reply(context("有什么克制阿枫的队伍？", List.of(new UserMessage("我玩的是紫版。")))).orElseThrow();
+        assertTrue(historical.contains("声明的紫版"));
+        assertFalse(historical.contains("朱或紫"));
+        String unknown = GymGeneralAdviceRoute.reply(context("有什么克制阿枫的队伍？", List.of())).orElseThrow();
+        assertTrue(unknown.contains("朱或紫"));
+    }
     private AgentRunContext context(String question, List<Message> history) {
         return new AgentRunContext(AgentRun.create(UUID.randomUUID().toString(), "s", "c", "owner", question,
                 "pokemon-scarlet-violet", "casual-singles", "casual-v1", "zh-CN", "trace", null,

@@ -1,0 +1,1104 @@
+[
+  {
+    "schemaVersion": "1",
+    "eventId": 1,
+    "type": "run.created",
+    "sessionId": "25237259-2282-4479-91c3-9c85434c53bc",
+    "runId": "run-3e08dfac-6ebc-4eed-b75c-88ba62ca3511",
+    "traceId": "c4ceab39",
+    "timestamp": "2026-11-17T07:25:44.292667900Z",
+    "payload": {
+      "principalId": "local-2a422d0f-2581-4d9b-90c6-5c6aa28cfb93",
+      "dlcId": "",
+      "rulesetVersionId": "casual-v1",
+      "policyFingerprint": "1c70aa54c2abe97f5fd2a5a0a17a85c637ed68ea5a4062e69779362f13d2f629",
+      "language": "zh-CN",
+      "battleFormatId": "casual-singles",
+      "status": "CREATED",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "contractVersion": "v1",
+      "roles": [
+        "trainer"
+      ],
+      "policyExpiresAt": "2026-11-17T15:25:19.230156200Z",
+      "allowedTools": [
+        "analyzeSavedTeamForGym",
+        "calculateBattleDamage",
+        "calculateGymDamage",
+        "checkPokemonBuild",
+        "checkPokemonTeamBuild",
+        "checkTypeEffectiveness",
+        "doTerminate",
+        "getTypeChart",
+        "listCurrentTeams",
+        "lookupCompetitiveTeams",
+        "lookupCompetitiveTrends",
+        "lookupPokemonLearnset",
+        "lookupPokemonMachine",
+        "lookupPokemonMechanics",
+        "lookupPokemonReference",
+        "lookupPokemonResource",
+        "lookupPokemonTeamReference",
+        "planGymChallenge",
+        "previewTeamChanges",
+        "readCurrentTeam",
+        "recommendGymTeamCore",
+        "searchPokemonGuides",
+        "searchWeb",
+        "web_search"
+      ],
+      "knowledgeReleaseId": "",
+      "indexReleaseId": "",
+      "tenantId": "local",
+      "policyVersion": "local-account-v1-1",
+      "bindingId": "oidc:f9bf2d4c797136ca57e445109d10049358ff6ec1c392e552d7270e0cabc9af83"
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 2,
+    "type": "run.started",
+    "sessionId": "25237259-2282-4479-91c3-9c85434c53bc",
+    "runId": "run-3e08dfac-6ebc-4eed-b75c-88ba62ca3511",
+    "traceId": "c4ceab39",
+    "timestamp": "2026-11-17T07:25:44.293667600Z",
+    "payload": {
+      "contractVersion": "v1",
+      "dlcId": "",
+      "status": "RUNNING",
+      "indexReleaseId": "",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "rulesetVersionId": "casual-v1",
+      "knowledgeReleaseId": "",
+      "battleFormatId": "casual-singles",
+      "language": "zh-CN"
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 3,
+    "type": "context.confirmed",
+    "sessionId": "25237259-2282-4479-91c3-9c85434c53bc",
+    "runId": "run-3e08dfac-6ebc-4eed-b75c-88ba62ca3511",
+    "traceId": "c4ceab39",
+    "timestamp": "2026-11-17T07:25:44.412289Z",
+    "payload": {
+      "contractVersion": "v1",
+      "dlcId": "",
+      "battleFormat": "casual-singles",
+      "indexReleaseId": "",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "rulesetVersionId": "casual-v1",
+      "knowledgeReleaseId": "",
+      "battleFormatId": "casual-singles",
+      "language": "zh-CN"
+    }
+  },
+  {
+    "schemaVersion": "v1.1",
+    "eventId": 4,
+    "type": "context.card",
+    "sessionId": "25237259-2282-4479-91c3-9c85434c53bc",
+    "runId": "run-3e08dfac-6ebc-4eed-b75c-88ba62ca3511",
+    "traceId": "c4ceab39",
+    "timestamp": "2026-11-17T07:25:44.412289Z",
+    "payload": {
+      "contractVersion": "v1",
+      "dlcId": "",
+      "battleFormat": "casual-singles",
+      "indexReleaseId": "",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "rulesetVersionId": "casual-v1",
+      "knowledgeReleaseId": "",
+      "battleFormatId": "casual-singles",
+      "language": "zh-CN"
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 5,
+    "type": "route.selected",
+    "sessionId": "25237259-2282-4479-91c3-9c85434c53bc",
+    "runId": "run-3e08dfac-6ebc-4eed-b75c-88ba62ca3511",
+    "traceId": "c4ceab39",
+    "timestamp": "2026-11-17T07:25:44.412289Z",
+    "payload": {
+      "contractVersion": "v1",
+      "dlcId": "",
+      "indexReleaseId": "",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "rulesetVersionId": "casual-v1",
+      "knowledgeReleaseId": "",
+      "battleFormatId": "casual-singles",
+      "language": "zh-CN",
+      "route": "controlled-agent"
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 6,
+    "type": "tool.started",
+    "sessionId": "25237259-2282-4479-91c3-9c85434c53bc",
+    "runId": "run-3e08dfac-6ebc-4eed-b75c-88ba62ca3511",
+    "traceId": "c4ceab39",
+    "timestamp": "2026-11-17T07:25:44.506247900Z",
+    "payload": {
+      "knowledgeReleaseId": "",
+      "selectionOrigin": "PROGRAM_BOUND_EXPLICIT_DAMAGE",
+      "language": "zh-CN",
+      "toolName": "calculateBattleDamage",
+      "indexReleaseId": "",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "rulesetVersionId": "casual-v1",
+      "dlcId": "",
+      "battleFormatId": "casual-singles",
+      "inputEvidence": {
+        "fields": {
+          "/request/generation": {
+            "kind": "LITERAL",
+            "value": 9
+          },
+          "/request/dataReleaseId": {
+            "kind": "LITERAL",
+            "value": "pokeapi-reference-v1"
+          },
+          "/request/move": {
+            "sha256": "36b421d64d052ecb3fab79519878626bec674564cea275c6767ab6a4966400cb",
+            "kind": "SHA256_JSON"
+          },
+          "/request/field/gameType": {
+            "kind": "LITERAL",
+            "value": "Singles"
+          },
+          "/request/field/weather": {
+            "kind": "LITERAL",
+            "value": null
+          },
+          "/request/field/terrain": {
+            "kind": "LITERAL",
+            "value": null
+          },
+          "/request/attacker/species": {
+            "sha256": "b97d0d9c615d71415dba79c65fd9d1334e9dc99569c5f0187c46868cf0fd099b",
+            "kind": "SHA256_JSON"
+          },
+          "/request/attacker/build/moves/length": {
+            "kind": "LITERAL",
+            "value": 4
+          },
+          "/request/attacker/build/moves/0": {
+            "sha256": "4a0a0ca857887531c9098f6407f8ebf03c9ffc5e1698106952abd172067cc16f",
+            "kind": "SHA256_JSON"
+          },
+          "/request/attacker/build/moves/1": {
+            "sha256": "79b354696815b1239272be96e392712f095b8944768f5065bde1ce2e137260c5",
+            "kind": "SHA256_JSON"
+          },
+          "/request/attacker/build/moves/2": {
+            "sha256": "af1b9a286abd7c075bd718d8db25f9dc1ec9b12fba1d8d4ae6e5a0a41c878c5b",
+            "kind": "SHA256_JSON"
+          },
+          "/request/attacker/build/moves/3": {
+            "sha256": "a04582945b751da09d9a89153125193f1bc0264d9274220d4639edbd6dd7132b",
+            "kind": "SHA256_JSON"
+          },
+          "/request/attacker/build/ability": {
+            "sha256": "0105cca0b4e4175ee86cced2876e6009aab92d4ce406be9c4975b194ea455c0c",
+            "kind": "SHA256_JSON"
+          },
+          "/request/attacker/build/item": {
+            "sha256": "876998813251f83d77e7b03c6a6c3b739d82ad3f3a572aeb48083e4419ef6ccf",
+            "kind": "SHA256_JSON"
+          },
+          "/request/attacker/build/nature": {
+            "sha256": "1b95a9211b0b56dd87741dfa7e5dda180b6a48045419a51676c85ce847475e89",
+            "kind": "SHA256_JSON"
+          },
+          "/request/attacker/build/level": {
+            "kind": "LITERAL",
+            "value": 50
+          },
+          "/request/attacker/build/evs/hp": {
+            "kind": "LITERAL",
+            "value": 4
+          },
+          "/request/attacker/build/evs/atk": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/attacker/build/evs/def": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/attacker/build/evs/spa": {
+            "kind": "LITERAL",
+            "value": 252
+          },
+          "/request/attacker/build/evs/spd": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/attacker/build/evs/spe": {
+            "kind": "LITERAL",
+            "value": 252
+          },
+          "/request/attacker/build/ivs/hp": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/attacker/build/ivs/atk": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/attacker/build/ivs/def": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/attacker/build/ivs/spa": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/attacker/build/ivs/spd": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/attacker/build/ivs/spe": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/species": {
+            "sha256": "6687a75f340d359aa21e41f7792287899876827b0448ffeaf146f543de4c295d",
+            "kind": "SHA256_JSON"
+          },
+          "/request/defender/build/moves/length": {
+            "kind": "LITERAL",
+            "value": 4
+          },
+          "/request/defender/build/moves/0": {
+            "sha256": "9107cd727c0f7ce1547b641cd6973400627695ddf1f04dbbd476e1257f35ae2e",
+            "kind": "SHA256_JSON"
+          },
+          "/request/defender/build/moves/1": {
+            "sha256": "79b354696815b1239272be96e392712f095b8944768f5065bde1ce2e137260c5",
+            "kind": "SHA256_JSON"
+          },
+          "/request/defender/build/moves/2": {
+            "sha256": "b76d0c404a87a8046da520dafd1b3ab066b360f86061862e4e317fe723364688",
+            "kind": "SHA256_JSON"
+          },
+          "/request/defender/build/moves/3": {
+            "sha256": "ed195c249606024189b9db95ac58e02afa3812260a77ba084766be7ad622868e",
+            "kind": "SHA256_JSON"
+          },
+          "/request/defender/build/ability": {
+            "sha256": "5544ad7aa08e23c02f2044fbeaed967de3653cb31549c67bff88ad25ee830b94",
+            "kind": "SHA256_JSON"
+          },
+          "/request/defender/build/item": {
+            "sha256": "876998813251f83d77e7b03c6a6c3b739d82ad3f3a572aeb48083e4419ef6ccf",
+            "kind": "SHA256_JSON"
+          },
+          "/request/defender/build/nature": {
+            "sha256": "0a7982e99961bfb801299550f90813f6f4f3c65fcffeb2b325f729ed3ac4c92c",
+            "kind": "SHA256_JSON"
+          },
+          "/request/defender/build/level": {
+            "kind": "LITERAL",
+            "value": 50
+          },
+          "/request/defender/build/evs/hp": {
+            "kind": "LITERAL",
+            "value": 4
+          },
+          "/request/defender/build/evs/atk": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/defender/build/evs/def": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/defender/build/evs/spa": {
+            "kind": "LITERAL",
+            "value": 252
+          },
+          "/request/defender/build/evs/spd": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/defender/build/evs/spe": {
+            "kind": "LITERAL",
+            "value": 252
+          },
+          "/request/defender/build/ivs/hp": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/build/ivs/atk": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/build/ivs/def": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/build/ivs/spa": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/build/ivs/spd": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/build/ivs/spe": {
+            "kind": "LITERAL",
+            "value": 31
+          }
+        },
+        "coverage": "COMPLETE",
+        "parameterDigest": "8cdf601427a3ea702b35581bbe12afdd492894186eee38b6730210ffa65f598c",
+        "schemaVersion": "tool-input-evidence-v1",
+        "toolVersion": "1.0.0",
+        "scope": "SUPPLIED_ARGUMENTS_ONLY",
+        "typedRequestDigest": "1ce5e5a2b45dd068d5f18ae3e311d178db34f87a4871da299e092c759c045265"
+      },
+      "agentRole": "DAMAGE_CALCULATION",
+      "governanceEventId": "4c27d22d-3aa3-4e8b-a53e-cc21922f5b71",
+      "contractVersion": "v1",
+      "attempt": 1
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 7,
+    "type": "tool.finished",
+    "sessionId": "25237259-2282-4479-91c3-9c85434c53bc",
+    "runId": "run-3e08dfac-6ebc-4eed-b75c-88ba62ca3511",
+    "traceId": "c4ceab39",
+    "timestamp": "2026-11-17T07:25:45.051180100Z",
+    "payload": {
+      "agentRole": "DAMAGE_CALCULATION",
+      "traceId": "c4ceab39",
+      "parameterDigest": "8cdf601427a3ea702b35581bbe12afdd492894186eee38b6730210ffa65f598c",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "governanceEventId": "4c27d22d-3aa3-4e8b-a53e-cc21922f5b71",
+      "approvalId": "",
+      "indexReleaseId": "",
+      "rulesetVersionId": "casual-v1",
+      "durationMs": 538,
+      "outputEvidence": {
+        "schemaVersion": "damage-result-evidence-v1",
+        "status": "VERIFIED",
+        "scope": "SUPPORTED_CONDITIONS_AND_RANGE_ONLY",
+        "parameterDigest": "8cdf601427a3ea702b35581bbe12afdd492894186eee38b6730210ffa65f598c",
+        "toolVersion": "1.0.0",
+        "typedRequestDigest": "1ce5e5a2b45dd068d5f18ae3e311d178db34f87a4871da299e092c759c045265",
+        "outputDigest": "88aa60ad9adfa38648054770dbab02f339f729cc937bfbd130ceb79220cb26be",
+        "resolvedFields": {
+          "/request/generation": {
+            "kind": "LITERAL",
+            "value": 9
+          },
+          "/request/dataReleaseId": {
+            "kind": "LITERAL",
+            "value": "pokeapi-reference-v1"
+          },
+          "/request/attacker/species": {
+            "sha256": "23a22f23a5856c026f46f7ac83bb3ea88f1608ecf3b92cae2c4ed2bdb8f1a7d8",
+            "kind": "SHA256_JSON"
+          },
+          "/request/attacker/build/level": {
+            "kind": "LITERAL",
+            "value": 50
+          },
+          "/request/attacker/build/nature": {
+            "sha256": "fc0262a456aebc57710069dedac5e2091b058b4f4a2b9eea810b64be1b177d80",
+            "kind": "SHA256_JSON"
+          },
+          "/request/attacker/build/ability": {
+            "sha256": "7ab285ce72a056a26617f9710b11c57d1c9af39f6f1da90e771bd0a227b04ddd",
+            "kind": "SHA256_JSON"
+          },
+          "/request/attacker/build/item": {
+            "sha256": "a26e5e9230210f6d7bc811105ecd443013928166660fce67b9669c7019824d04",
+            "kind": "SHA256_JSON"
+          },
+          "/request/attacker/build/evs/hp": {
+            "kind": "LITERAL",
+            "value": 4
+          },
+          "/request/attacker/build/evs/atk": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/attacker/build/evs/def": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/attacker/build/evs/spa": {
+            "kind": "LITERAL",
+            "value": 252
+          },
+          "/request/attacker/build/evs/spd": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/attacker/build/evs/spe": {
+            "kind": "LITERAL",
+            "value": 252
+          },
+          "/request/attacker/build/ivs/hp": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/attacker/build/ivs/atk": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/attacker/build/ivs/def": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/attacker/build/ivs/spa": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/attacker/build/ivs/spd": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/attacker/build/ivs/spe": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/species": {
+            "sha256": "ea5f2d94b42587c73143d60372ae51cd9f8c6bcbe54530364e57e323f697bbc9",
+            "kind": "SHA256_JSON"
+          },
+          "/request/defender/build/level": {
+            "kind": "LITERAL",
+            "value": 50
+          },
+          "/request/defender/build/nature": {
+            "sha256": "22f5772b66e220a2a726211c54f4e39d51a5d09963b12ef5673ee1eed687ec0d",
+            "kind": "SHA256_JSON"
+          },
+          "/request/defender/build/ability": {
+            "sha256": "da78187908ba4a147be83ae78178a68c156b6cbe310dd6d57f87d2a3f1d8c278",
+            "kind": "SHA256_JSON"
+          },
+          "/request/defender/build/item": {
+            "sha256": "a26e5e9230210f6d7bc811105ecd443013928166660fce67b9669c7019824d04",
+            "kind": "SHA256_JSON"
+          },
+          "/request/defender/build/evs/hp": {
+            "kind": "LITERAL",
+            "value": 4
+          },
+          "/request/defender/build/evs/atk": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/defender/build/evs/def": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/defender/build/evs/spa": {
+            "kind": "LITERAL",
+            "value": 252
+          },
+          "/request/defender/build/evs/spd": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/defender/build/evs/spe": {
+            "kind": "LITERAL",
+            "value": 252
+          },
+          "/request/defender/build/ivs/hp": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/build/ivs/atk": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/build/ivs/def": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/build/ivs/spa": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/build/ivs/spd": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/build/ivs/spe": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/move": {
+            "sha256": "8abd3edbe9e85543f4e56049a94ee44406a9212dd2942de46018d6cd7072e446",
+            "kind": "SHA256_JSON"
+          },
+          "/request/field/gameType": {
+            "kind": "LITERAL",
+            "value": "Singles"
+          },
+          "/request/field/weather": {
+            "kind": "LITERAL",
+            "value": null
+          },
+          "/request/field/terrain": {
+            "kind": "LITERAL",
+            "value": null
+          }
+        },
+        "omittedFields": [],
+        "explicitNullFields": [
+          "/request/field/weather",
+          "/request/field/terrain"
+        ],
+        "engineDefaultAbilityFields": [],
+        "range": {
+          "minimum": 0,
+          "maximum": 0
+        },
+        "percent": {
+          "minimum": 0,
+          "maximum": 0
+        },
+        "defenderHp": 184
+      },
+      "battleFormatId": "casual-singles",
+      "selectionOrigin": "PROGRAM_BOUND_EXPLICIT_DAMAGE",
+      "toolName": "calculateBattleDamage",
+      "knowledgeReleaseId": "",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "toolVersion": "1.0.0",
+      "retryCount": 0,
+      "language": "zh-CN",
+      "status": "SUCCEEDED",
+      "contractVersion": "v1",
+      "dlcId": ""
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 8,
+    "type": "tool.finished",
+    "sessionId": "25237259-2282-4479-91c3-9c85434c53bc",
+    "runId": "run-3e08dfac-6ebc-4eed-b75c-88ba62ca3511",
+    "traceId": "c4ceab39",
+    "timestamp": "2026-11-17T07:25:45.054176200Z",
+    "payload": {
+      "agentRole": "DAMAGE_CALCULATION",
+      "parameterDigest": "8cdf601427a3ea702b35581bbe12afdd492894186eee38b6730210ffa65f598c",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "governanceEventId": "4c27d22d-3aa3-4e8b-a53e-cc21922f5b71",
+      "timing": {
+        "schemaVersion": "tool-timing-v1",
+        "scope": "CALLBACK_ATTEMPTS",
+        "attempts": [
+          {
+            "accepted": true,
+            "callbackStarted": true,
+            "callbackCompleted": true,
+            "queueWaitMs": 0,
+            "authorizationMs": 0,
+            "executionMs": 533,
+            "observedMs": 533
+          }
+        ],
+        "complete": true,
+        "queueWaitMs": 0,
+        "authorizationMs": 0,
+        "executionMs": 533,
+        "observedMs": 533
+      },
+      "approvalId": "",
+      "indexReleaseId": "",
+      "rulesetVersionId": "casual-v1",
+      "durationMs": 538,
+      "outputEvidence": {
+        "schemaVersion": "damage-result-evidence-v1",
+        "status": "VERIFIED",
+        "scope": "SUPPORTED_CONDITIONS_AND_RANGE_ONLY",
+        "parameterDigest": "8cdf601427a3ea702b35581bbe12afdd492894186eee38b6730210ffa65f598c",
+        "toolVersion": "1.0.0",
+        "typedRequestDigest": "1ce5e5a2b45dd068d5f18ae3e311d178db34f87a4871da299e092c759c045265",
+        "outputDigest": "88aa60ad9adfa38648054770dbab02f339f729cc937bfbd130ceb79220cb26be",
+        "resolvedFields": {
+          "/request/generation": {
+            "kind": "LITERAL",
+            "value": 9
+          },
+          "/request/dataReleaseId": {
+            "kind": "LITERAL",
+            "value": "pokeapi-reference-v1"
+          },
+          "/request/attacker/species": {
+            "sha256": "23a22f23a5856c026f46f7ac83bb3ea88f1608ecf3b92cae2c4ed2bdb8f1a7d8",
+            "kind": "SHA256_JSON"
+          },
+          "/request/attacker/build/level": {
+            "kind": "LITERAL",
+            "value": 50
+          },
+          "/request/attacker/build/nature": {
+            "sha256": "fc0262a456aebc57710069dedac5e2091b058b4f4a2b9eea810b64be1b177d80",
+            "kind": "SHA256_JSON"
+          },
+          "/request/attacker/build/ability": {
+            "sha256": "7ab285ce72a056a26617f9710b11c57d1c9af39f6f1da90e771bd0a227b04ddd",
+            "kind": "SHA256_JSON"
+          },
+          "/request/attacker/build/item": {
+            "sha256": "a26e5e9230210f6d7bc811105ecd443013928166660fce67b9669c7019824d04",
+            "kind": "SHA256_JSON"
+          },
+          "/request/attacker/build/evs/hp": {
+            "kind": "LITERAL",
+            "value": 4
+          },
+          "/request/attacker/build/evs/atk": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/attacker/build/evs/def": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/attacker/build/evs/spa": {
+            "kind": "LITERAL",
+            "value": 252
+          },
+          "/request/attacker/build/evs/spd": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/attacker/build/evs/spe": {
+            "kind": "LITERAL",
+            "value": 252
+          },
+          "/request/attacker/build/ivs/hp": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/attacker/build/ivs/atk": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/attacker/build/ivs/def": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/attacker/build/ivs/spa": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/attacker/build/ivs/spd": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/attacker/build/ivs/spe": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/species": {
+            "sha256": "ea5f2d94b42587c73143d60372ae51cd9f8c6bcbe54530364e57e323f697bbc9",
+            "kind": "SHA256_JSON"
+          },
+          "/request/defender/build/level": {
+            "kind": "LITERAL",
+            "value": 50
+          },
+          "/request/defender/build/nature": {
+            "sha256": "22f5772b66e220a2a726211c54f4e39d51a5d09963b12ef5673ee1eed687ec0d",
+            "kind": "SHA256_JSON"
+          },
+          "/request/defender/build/ability": {
+            "sha256": "da78187908ba4a147be83ae78178a68c156b6cbe310dd6d57f87d2a3f1d8c278",
+            "kind": "SHA256_JSON"
+          },
+          "/request/defender/build/item": {
+            "sha256": "a26e5e9230210f6d7bc811105ecd443013928166660fce67b9669c7019824d04",
+            "kind": "SHA256_JSON"
+          },
+          "/request/defender/build/evs/hp": {
+            "kind": "LITERAL",
+            "value": 4
+          },
+          "/request/defender/build/evs/atk": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/defender/build/evs/def": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/defender/build/evs/spa": {
+            "kind": "LITERAL",
+            "value": 252
+          },
+          "/request/defender/build/evs/spd": {
+            "kind": "LITERAL",
+            "value": 0
+          },
+          "/request/defender/build/evs/spe": {
+            "kind": "LITERAL",
+            "value": 252
+          },
+          "/request/defender/build/ivs/hp": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/build/ivs/atk": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/build/ivs/def": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/build/ivs/spa": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/build/ivs/spd": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/defender/build/ivs/spe": {
+            "kind": "LITERAL",
+            "value": 31
+          },
+          "/request/move": {
+            "sha256": "8abd3edbe9e85543f4e56049a94ee44406a9212dd2942de46018d6cd7072e446",
+            "kind": "SHA256_JSON"
+          },
+          "/request/field/gameType": {
+            "kind": "LITERAL",
+            "value": "Singles"
+          },
+          "/request/field/weather": {
+            "kind": "LITERAL",
+            "value": null
+          },
+          "/request/field/terrain": {
+            "kind": "LITERAL",
+            "value": null
+          }
+        },
+        "omittedFields": [],
+        "explicitNullFields": [
+          "/request/field/weather",
+          "/request/field/terrain"
+        ],
+        "engineDefaultAbilityFields": [],
+        "range": {
+          "minimum": 0,
+          "maximum": 0
+        },
+        "percent": {
+          "minimum": 0,
+          "maximum": 0
+        },
+        "defenderHp": 184
+      },
+      "battleFormatId": "casual-singles",
+      "selectionOrigin": "PROGRAM_BOUND_EXPLICIT_DAMAGE",
+      "toolName": "calculateBattleDamage",
+      "knowledgeReleaseId": "",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "toolVersion": "1.0.0",
+      "retryCount": 0,
+      "language": "zh-CN",
+      "status": "SUCCEEDED",
+      "contractVersion": "v1",
+      "dlcId": ""
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 9,
+    "type": "answer.delta",
+    "sessionId": "25237259-2282-4479-91c3-9c85434c53bc",
+    "runId": "run-3e08dfac-6ebc-4eed-b75c-88ba62ca3511",
+    "traceId": "c4ceab39",
+    "timestamp": "2026-11-17T07:25:45.055179100Z",
+    "payload": {
+      "contractVersion": "v1",
+      "dlcId": "",
+      "text": "### 对局解读（程序核对）\n已核对本次引擎回读的电属性招式及目标龙／地面属性，基础属性表的倍率为0，符合属性免疫。本次引擎结果为0～0，零伤害本身属于有效计算结果。其他特性和状态以所列计算条件为准。\n百分比以防御方最大HP为分母，不是胜率；区间上下界也不代表每个伤害值等概率出现。\n",
+      "indexReleaseId": "",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "rulesetVersionId": "casual-v1",
+      "knowledgeReleaseId": "",
+      "battleFormatId": "casual-singles",
+      "language": "zh-CN"
+    }
+  },
+  {
+    "schemaVersion": "v1.1",
+    "eventId": 10,
+    "type": "answer.completed",
+    "sessionId": "25237259-2282-4479-91c3-9c85434c53bc",
+    "runId": "run-3e08dfac-6ebc-4eed-b75c-88ba62ca3511",
+    "traceId": "c4ceab39",
+    "timestamp": "2026-11-17T07:25:45.143479500Z",
+    "payload": {
+      "knowledgeReleaseId": "",
+      "language": "zh-CN",
+      "answerId": "answer-run-3e08dfac-6ebc-4eed-b75c-88ba62ca3511",
+      "indexReleaseId": "",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "rulesetVersionId": "casual-v1",
+      "lineageStatus": "PARTIAL",
+      "dlcId": "",
+      "traceId": "c4ceab39",
+      "battleFormatId": "casual-singles",
+      "status": "ANSWERED",
+      "runId": "run-3e08dfac-6ebc-4eed-b75c-88ba62ca3511",
+      "answerDigest": "ec4bc8d16c749e269bf3127019a04f2d99bccbe1899fc5ddf528d6dd9db44cd9",
+      "contractVersion": "v1"
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 11,
+    "type": "usage",
+    "sessionId": "25237259-2282-4479-91c3-9c85434c53bc",
+    "runId": "run-3e08dfac-6ebc-4eed-b75c-88ba62ca3511",
+    "traceId": "c4ceab39",
+    "timestamp": "2026-11-17T07:25:45.144995900Z",
+    "payload": {
+      "streamAggregation": "LAST_REPORTED_SNAPSHOT",
+      "contractVersion": "v1",
+      "callsWithUsage": 0,
+      "usageStatus": "COMPLETE",
+      "knowledgeReleaseId": "",
+      "calls": [],
+      "recordsTruncated": false,
+      "totals": {
+        "inputTokens": 0,
+        "source": "PROVIDER_REPORTED_SUM",
+        "totalTokens": 0,
+        "outputTokens": 0
+      },
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "language": "zh-CN",
+      "cost": {
+        "schemaVersion": "model-cost-v1",
+        "status": "UNKNOWN",
+        "kind": "REFERENCE_ESTIMATE_NOT_INVOICE",
+        "reason": "NO_MODEL_CALLS",
+        "currency": null,
+        "amount": null
+      },
+      "dlcId": "",
+      "toolTimingsTruncated": false,
+      "taskBudget": {
+        "schemaVersion": "task-budget-v1",
+        "scope": "RUN",
+        "budgetId": "9ed73b99-aff4-449f-961c-be7f83895787",
+        "accounting": "MAX_RESERVATION_OR_PROVIDER_V1",
+        "maxModelCalls": 16,
+        "tokenLimit": 131072,
+        "stateKnown": true,
+        "modelCalls": 0,
+        "reservedTokens": 0,
+        "chargedTokens": 0,
+        "remainingModelCalls": 16,
+        "remainingTokens": 131072,
+        "status": "ACTIVE",
+        "closed": false,
+        "blockReason": null
+      },
+      "responseTiming": {
+        "schemaVersion": "response-timing-v1",
+        "scope": "EXECUTION_ATTEMPT",
+        "origin": "TASK_REGISTERED",
+        "dispatchWaitMs": 0,
+        "firstAnswerReadyMs": 762,
+        "answerPath": "DELTA",
+        "observedMs": 797,
+        "deliveryMeasured": false
+      },
+      "rulesetVersionId": "casual-v1",
+      "knownSubtotal": {
+        "inputTokens": 0,
+        "source": "COMPLETE_CALLS_ONLY",
+        "totalTokens": 0,
+        "outputTokens": 0
+      },
+      "battleFormatId": "casual-singles",
+      "modelDurationMs": 0,
+      "dataReleaseId": "pokeapi-reference-v1",
+      "httpRequestCount": "UNKNOWN",
+      "toolTimings": [
+        {
+          "timing": {
+            "schemaVersion": "tool-timing-v1",
+            "scope": "CALLBACK_ATTEMPTS",
+            "attempts": [
+              {
+                "accepted": true,
+                "callbackStarted": true,
+                "callbackCompleted": true,
+                "queueWaitMs": 0,
+                "authorizationMs": 0,
+                "executionMs": 533,
+                "observedMs": 533
+              }
+            ],
+            "complete": true,
+            "queueWaitMs": 0,
+            "authorizationMs": 0,
+            "executionMs": 533,
+            "observedMs": 533
+          },
+          "eventId": "4c27d22d-3aa3-4e8b-a53e-cc21922f5b71",
+          "toolName": "calculateBattleDamage"
+        }
+      ],
+      "scope": "EXECUTION_ATTEMPT",
+      "schemaVersion": "model-usage-v1",
+      "coverage": "INSTRUMENTED",
+      "modelCallCount": 0,
+      "indexReleaseId": "",
+      "attemptId": "940acac5-e6a8-4f7e-b2c5-78357ca11695"
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 12,
+    "type": "run.completed",
+    "sessionId": "25237259-2282-4479-91c3-9c85434c53bc",
+    "runId": "run-3e08dfac-6ebc-4eed-b75c-88ba62ca3511",
+    "traceId": "c4ceab39",
+    "timestamp": "2026-11-17T07:25:45.144995900Z",
+    "payload": {
+      "traceId": "c4ceab39",
+      "answerId": "answer-run-3e08dfac-6ebc-4eed-b75c-88ba62ca3511",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "modelUsage": {
+        "schemaVersion": "model-usage-v1",
+        "attemptId": "940acac5-e6a8-4f7e-b2c5-78357ca11695",
+        "scope": "EXECUTION_ATTEMPT",
+        "coverage": "INSTRUMENTED",
+        "modelCallCount": 0,
+        "callsWithUsage": 0,
+        "usageStatus": "COMPLETE",
+        "totals": {
+          "inputTokens": 0,
+          "source": "PROVIDER_REPORTED_SUM",
+          "totalTokens": 0,
+          "outputTokens": 0
+        },
+        "knownSubtotal": {
+          "inputTokens": 0,
+          "source": "COMPLETE_CALLS_ONLY",
+          "totalTokens": 0,
+          "outputTokens": 0
+        },
+        "modelDurationMs": 0,
+        "calls": [],
+        "recordsTruncated": false,
+        "streamAggregation": "LAST_REPORTED_SNAPSHOT",
+        "httpRequestCount": "UNKNOWN",
+        "cost": {
+          "schemaVersion": "model-cost-v1",
+          "status": "UNKNOWN",
+          "kind": "REFERENCE_ESTIMATE_NOT_INVOICE",
+          "reason": "NO_MODEL_CALLS",
+          "currency": null,
+          "amount": null
+        },
+        "taskBudget": {
+          "schemaVersion": "task-budget-v1",
+          "scope": "RUN",
+          "budgetId": "9ed73b99-aff4-449f-961c-be7f83895787",
+          "accounting": "MAX_RESERVATION_OR_PROVIDER_V1",
+          "maxModelCalls": 16,
+          "tokenLimit": 131072,
+          "stateKnown": true,
+          "modelCalls": 0,
+          "reservedTokens": 0,
+          "chargedTokens": 0,
+          "remainingModelCalls": 16,
+          "remainingTokens": 131072,
+          "status": "ACTIVE",
+          "closed": false,
+          "blockReason": null
+        },
+        "responseTiming": {
+          "schemaVersion": "response-timing-v1",
+          "scope": "EXECUTION_ATTEMPT",
+          "origin": "TASK_REGISTERED",
+          "dispatchWaitMs": 0,
+          "firstAnswerReadyMs": 762,
+          "answerPath": "DELTA",
+          "observedMs": 797,
+          "deliveryMeasured": false
+        },
+        "toolTimings": [
+          {
+            "timing": {
+              "schemaVersion": "tool-timing-v1",
+              "scope": "CALLBACK_ATTEMPTS",
+              "attempts": [
+                {
+                  "accepted": true,
+                  "callbackStarted": true,
+                  "callbackCompleted": true,
+                  "queueWaitMs": 0,
+                  "authorizationMs": 0,
+                  "executionMs": 533,
+                  "observedMs": 533
+                }
+              ],
+              "complete": true,
+              "queueWaitMs": 0,
+              "authorizationMs": 0,
+              "executionMs": 533,
+              "observedMs": 533
+            },
+            "eventId": "4c27d22d-3aa3-4e8b-a53e-cc21922f5b71",
+            "toolName": "calculateBattleDamage"
+          }
+        ],
+        "toolTimingsTruncated": false
+      },
+      "citationCount": 0,
+      "citations": [],
+      "indexReleaseId": "",
+      "rulesetVersionId": "casual-v1",
+      "answer": "### 对局解读（程序核对）\n已核对本次引擎回读的电属性招式及目标龙／地面属性，基础属性表的倍率为0，符合属性免疫。本次引擎结果为0～0，零伤害本身属于有效计算结果。其他特性和状态以所列计算条件为准。\n百分比以防御方最大HP为分母，不是胜率；区间上下界也不代表每个伤害值等概率出现。\n",
+      "limitations": [
+        "v1 版本化知识门面未启用"
+      ],
+      "lineageStatus": "PARTIAL",
+      "battleFormatId": "casual-singles",
+      "knowledgeReleaseId": "",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "runId": "run-3e08dfac-6ebc-4eed-b75c-88ba62ca3511",
+      "language": "zh-CN",
+      "status": "COMPLETED",
+      "contractStatus": "ANSWERED",
+      "answerDigest": "ec4bc8d16c749e269bf3127019a04f2d99bccbe1899fc5ddf528d6dd9db44cd9",
+      "contractVersion": "v1",
+      "dlcId": ""
+    }
+  }
+]

@@ -1,0 +1,178 @@
+{
+  "schemaVersion": "vio-release-verification-v1",
+  "release": "v1.1.0",
+  "date": "2026-11-17",
+  "sourceRef": "refs/tags/v1.1.0",
+  "sourceIdentity": "COMMITTED_SOURCE_IN_DISTRIBUTION_MANIFEST",
+  "backend": {
+    "tests": 1913,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 8
+  },
+  "conditionalSkippedTests": [
+    {
+      "class": "com.vio.vioaiagent.mcp.McpClientStdioTest",
+      "test": "testStdioToolInvocation",
+      "reason": "需要先构建 vio-image-search-mcp-server-*.jar 到 target/ 目录"
+    },
+    {
+      "class": "com.vio.vioaiagent.mcp.McpClientStdioTest",
+      "test": "testStdioConnectionAndToolDiscovery",
+      "reason": "需要先构建 vio-image-search-mcp-server-*.jar 到 target/ 目录"
+    },
+    {
+      "class": "com.vio.vioaiagent.observability.AgentTracingOverheadTest",
+      "test": "recordsRepeatedSdkWorkloadsWithSamplingAndFailedExport",
+      "reason": "System property [vio.tracing.probe] does not exist"
+    },
+    {
+      "class": "com.vio.vioaiagent.observability.JaegerCollectorTest",
+      "test": "collectorStoresSanitizedFailures",
+      "reason": "System property [vio.jaeger.integration] does not exist"
+    },
+    {
+      "class": "com.vio.vioaiagent.observability.JaegerCollectorTest",
+      "test": "admissionDispatchAndResumedAttemptIdentitiesAreQueryable",
+      "reason": "System property [vio.jaeger.integration] does not exist"
+    },
+    {
+      "class": "com.vio.vioaiagent.observability.JaegerCollectorTest",
+      "test": "collectorReceivesWorkerTreeAndQueryUiIsAvailable",
+      "reason": "System property [vio.jaeger.integration] does not exist"
+    },
+    {
+      "class": "com.vio.vioaiagent.observability.JaegerCollectorTest",
+      "test": "cancelledStreamExportsOneChildAndPreservesRunParent",
+      "reason": "System property [vio.jaeger.integration] does not exist"
+    },
+    {
+      "class": "com.vio.vioaiagent.pokemon.PokeApiReferenceTest",
+      "test": "liveSmokeOnlyWhenExplicitlyRequested",
+      "reason": ""
+    }
+  ],
+  "buildJdk": "JetBrains Runtime 25.0.4",
+  "javaTarget": 21,
+  "backendProjectVersion": "0.0.1-SNAPSHOT",
+  "jarSha256": "704351ae5708665f2c8a4846088a6d288513c301cfe9c2d2c5064d17a3cd768b",
+  "compiledJarClassesMatched": 966,
+  "runtimeFingerprintClassesMatched": 172,
+  "differentClasses": [],
+  "privateJarResourceNames": [],
+  "exactConfiguredCredentialMatches": 0,
+  "frontend": {
+    "contractTests": 231,
+    "chromeTests": 131,
+    "unexpected": 0,
+    "flaky": 0,
+    "skipped": 0,
+    "lint": "PASS",
+    "typecheck": "PASS",
+    "securityContract": "PASS",
+    "build": "PASS",
+    "browser": "INSTALLED_CHROME",
+    "testSource": "FRONTEND_FIXTURES"
+  },
+  "nodeTools": {
+    "tests": 497,
+    "failures": 0
+  },
+  "damageBridge": {
+    "tests": 13,
+    "failures": 0
+  },
+  "answerQuality": {
+    "groups": 24,
+    "turns": 45,
+    "passedGroups": 24,
+    "failedGroups": 0,
+    "blockedGroups": 0,
+    "events": 532,
+    "completedAnswerMatches": 45,
+    "modelCalls": 8,
+    "runsWithModelCalls": 4,
+    "reviewMethod": "AI_ASSISTED",
+    "humanDomainReview": "PENDING",
+    "collectionKind": "KNOWN_QUESTION_REGRESSION",
+    "review": "../u6/release-v1.1.0-20261117/review.json",
+    "answersSha256": "8473266a73096c52a120e86fe5ca8e5a5c8cea099324e7f4bb0e70d7c1a91f3e",
+    "runtime": {
+      "configuration": {
+        "profiles": [
+          "local",
+          "deepseek"
+        ],
+        "configuredProvider": "deepseek",
+        "configuredModelId": "deepseek-flash",
+        "promptVersion": "campus-s4-intent-v2",
+        "features": {
+          "answerStreaming": true,
+          "conversationConstraints": true,
+          "taskBudget": true,
+          "contextBudget": true
+        },
+        "upgradeFeatures": {
+          "answerBlocks": true,
+          "skills": true,
+          "contextAssembly": true,
+          "rerank": false,
+          "domainTracing": false
+        },
+        "agentCollaboration": {
+          "specialistsEnabled": true,
+          "maxSpecialistModelCalls": 6,
+          "maxSpecialistToolCalls": 8,
+          "maxParallelAgents": 1
+        },
+        "contextBudgetPolicy": {
+          "contextTokens": 32768,
+          "historyTokens": 4096,
+          "historyTurns": 8,
+          "safetyPercent": 125,
+          "outputReserve": 2048
+        },
+        "taskBudgetPolicy": {
+          "maxModelCalls": 16,
+          "tokenLimit": 131072
+        },
+        "domainTracingPolicy": {
+          "sampleRate": 1,
+          "automaticTracing": false
+        }
+      },
+      "sha256": "9d7d1306108c9905b3d985ef995a33a32f25c023654ad93e235337ab2f872cfb"
+    },
+    "embedding": {
+      "enabled": true,
+      "configured": true,
+      "ready": true,
+      "mode": "HYBRID",
+      "model": "text-embedding-v4",
+      "dimensions": 1024,
+      "indexedChunks": 30,
+      "state": "READY"
+    }
+  },
+  "previousBusinessRegression": {
+    "cases": 68,
+    "date": "2026-11-17",
+    "rerunInThisReleaseBatch": false
+  },
+  "gitleaks": "STAGED_ZERO_FINDINGS",
+  "remainingObservations": [
+    "QP-01保存配置仍附加种族值表，展示范围继续优化。",
+    "公开样例逐队更新时间与当前赛制合法性需另外核对。",
+    "人工领域审核和更多独立问答继续验收。"
+  ],
+  "changedGitBlobSha256": {
+    "src/main/java/com/vio/vioaiagent/agent/AnswerPresentation.java": "a71a184caf224209270257610f72aa72cfab31d6c03fe866dbe6ee7a46fb0de3",
+    "src/main/java/com/vio/vioaiagent/agent/DamageAnswerEvidence.java": "ff08785e6d2fe578d3e08b09b6ed6a0b458aa9d013ad2c6f7cc36a6e8becb763",
+    "src/main/java/com/vio/vioaiagent/agent/DamageDialogueRoute.java": "a0ecb7393aa4dd6fe740e779848bf8127e3fb00a2c75f6e74a57274dec574fcb",
+    "src/main/java/com/vio/vioaiagent/agent/GuideAnswerEvidence.java": "d84d4799e651f1bdb07a1f0c2253aa3ac1f953c2817e9185dc00d22dafc49817",
+    "src/main/java/com/vio/vioaiagent/agent/GymGeneralAdviceRoute.java": "865c3b2dec61dc7fe4b2d2ebd9433cbfa7261f24b57c4bdf16e822739676f42f",
+    "src/main/java/com/vio/vioaiagent/agent/ToolCallAgent.java": "be65d876436587221980b1d82b37e53bfc2e0e2fd21b46405b1108a3885bbf7f",
+    "src/main/java/com/vio/vioaiagent/agent/TrainingMechanicsReply.java": "dc29619041b71376660e14225c0d4a81c7a0545b3c593b793b306ff2b136be55",
+    "src/main/java/com/vio/vioaiagent/pokemon/reference/PokemonReferenceTools.java": "0c77a27be936a59ad9ca540e5a784a537c5f9d414d74435a379d3304cacc0a4e"
+  }
+}

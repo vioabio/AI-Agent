@@ -767,6 +767,8 @@ public class ToolCallAgent extends ReActAgent {
         if (!guarded && guideAnswerEvidence != null) {
             var forms = guideAnswerEvidence.formComparisonAnswer();
             if (forms.isPresent()) return publishVerified(forms.get());
+            var focusedComparison=guideAnswerEvidence.focusedStatComparisonAnswer();
+            if(focusedComparison.isPresent())return publishVerified(focusedComparison.get());
             var comparison=guideAnswerEvidence.speedComparisonAnswer();
             if(comparison.isPresent())return publishVerified(comparison.get());
             var basicFacts = guideAnswerEvidence.basicFactAnswer();

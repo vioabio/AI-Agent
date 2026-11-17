@@ -112,6 +112,9 @@ public final class DamageAnswerEvidence {
     }
     /** Arithmetic interpretation only; never infer mechanics, turn counts or a win probability. */
     public String verifiedInterpretation() {
+        return verifiedInterpretation(true);
+    }
+    public String verifiedInterpretation(boolean includeAdvice) {
         if (!complete()) return missingAnswer();
         double min = evidence.path("range").path("minimum").asDouble();
         double max = evidence.path("range").path("maximum").asDouble();
@@ -138,9 +141,10 @@ public final class DamageAnswerEvidence {
         } else {
             comparison = "本次区间包含低于和达到防御方满HP参考阈值的结果；仅有上下界不足以给出击倒概率。";
         }
-        return "### 对局解读（程序核对）\n" + comparison
-                + "\n百分比以防御方最大HP为分母，不是胜率；区间上下界也不代表每个伤害值等概率出现。\n"
-                + "\n### 下一步验证建议\n"
+        String interpretation = "### 对局解读（程序核对）\n" + comparison
+                + "\n百分比以防御方最大HP为分母，不是胜率；区间上下界也不代表每个伤害值等概率出现。\n";
+        if (!includeAdvice) return interpretation;
+        return interpretation + "\n### 下一步验证建议\n"
                 + "- 将上方双方配置与场地保留为比较基线。若要优化培养，先明确目标对局，一次只改变一个配置项并重新计算；新结果出来前不认定改动更优。\n"
                 + "- 如需讨论队伍搭配，还要提供其他成员和具体赛制，并分别核对资料与目标对局；单次伤害不能证明整队强度或配招合法性。\n";
     }

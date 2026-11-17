@@ -12,6 +12,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class AnswerPresentationTest {
+    @Test void focusedOutputInstructionsOverrideVerbosePreferences() {
+        for (String question : List.of("刚才的130攻击能直接当成50级实战攻击吗？只解释这个问题。",
+                "只比较杰尼龟与小火龙的基础HP和基础速度，表格列四个数值，附读取来源。"))
+            assertEquals(AnswerPresentation.Mode.CONCISE, AnswerPresentation.resolve(question, ResponseStyle.DETAILED));
+        assertEquals(AnswerPresentation.Mode.DETAILED, AnswerPresentation.resolve("示例“只比较两个数值”，请详细解释培养步骤。", ResponseStyle.STANDARD));
+    }
     @Test void currentExplicitFormatOverridesSavedStyleInBothDirections() {
         assertEquals(AnswerPresentation.Mode.ONE_SENTENCE,AnswerPresentation.resolve("你好，请用一句话说明能做什么，不调用工具。",ResponseStyle.DETAILED));
         assertEquals(AnswerPresentation.Mode.DETAILED,AnswerPresentation.resolve("请详细解释培养步骤",ResponseStyle.CONCISE));

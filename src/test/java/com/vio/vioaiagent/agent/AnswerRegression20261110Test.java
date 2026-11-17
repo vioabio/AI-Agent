@@ -15,6 +15,22 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class AnswerRegression20261110Test {
+    @Test void zeroDamageFollowupExplainsValidatedMechanismWithoutRepeatingTheReport() throws Exception {
+        var result = DamageAnswerEvidenceTest.result();
+        ((ObjectNode)result.path("range")).put("minimum",0).put("maximum",0);
+        ((ObjectNode)result.path("percent")).put("minimum",0).put("maximum",0);
+        result.put("moveType","Electric");
+        result.putArray("defenderTypes").add("Dragon").add("Ground");
+        var tool = calculator(); when(tool.call(anyString())).thenReturn(result.toString());
+        var history = List.<Message>of(new UserMessage(prompt(input())));
+        String answer = DamageDialogueRoute.reply(context("0伤害是不是工具坏了？请用本次招式和目标属性说明原因。",history),new ToolCallback[]{tool}).orElseThrow();
+        assertTrue(answer.contains("属性免疫"));
+        assertTrue(answer.contains("0～0"));
+        assertFalse(answer.contains("| 项目 |"));
+        assertFalse(answer.contains("努力值"));
+        assertFalse(answer.contains("下一步验证建议"));
+        verify(tool).call(anyString());
+    }
     final ObjectMapper json=new ObjectMapper();
     ObjectNode input() throws Exception{return (ObjectNode)json.readTree(Path.of("evaluation/campus/s01/damage-reference.json").toFile()).path("input").deepCopy();}
     String prompt(JsonNode input){return "请调用calculateBattleDamage计算本次伤害。输入："+input;}

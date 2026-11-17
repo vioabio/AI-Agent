@@ -220,6 +220,23 @@ public final class GuideAnswerEvidence {
                         && hit.document().applicability().matchesSubject(question) ? 0 : 1)).limit(4).toList();
     }
     public boolean hasGuideSources(){return !hits.isEmpty();}
+    public Optional<String> focusedStatComparisonAnswer() {
+        if (references.size() != 2 || partialReferenceFailure || !referenceFailures.isEmpty()
+                || !question.matches("^(?:请)?只比较.{1,60}的(?:基础|种族)?HP[和与及、](?:基础|种族)?速度[，,](?:表格)?(?:列出|列|给出|展示)四个数值(?:[，,](?:附|给出)(?:读取|资料)?来源)?[。]?$"))
+            return Optional.empty();
+        var text = new StringBuilder("| 宝可梦 | 基础HP | 基础速度 |\n| --- | --- | --- |\n");
+        for (var fact : references.values()) {
+            if ((!question.contains(fact.speciesNameZh()) && !question.toLowerCase(Locale.ROOT).contains(fact.slug()))
+                    || fact.sourceUrl() == null || !fact.sourceUrl().matches("https://pokeapi\\.co/api/v2/pokemon/[a-z0-9-]+/"))
+                return Optional.empty();
+            text.append("| ").append(EvidenceText.inline(fact.speciesNameZh())).append(" | ")
+                    .append(fact.hp()).append(" | ").append(fact.speed()).append(" |\n");
+        }
+        text.append("\n来源为本次读取的 PokéAPI 本地参考。\n");
+        for (var fact : references.values()) text.append("- [").append(EvidenceText.inline(fact.speciesNameZh()))
+                .append("](").append(fact.sourceUrl()).append(")\n");
+        return Optional.of(text.toString());
+    }
     public Optional<String> documentAttribution(String documentId) {
         return hits.stream().filter(hit -> documentId.equals(hit.document().id()))
                 .findFirst().map(hit -> "来源：项目攻略《" + EvidenceText.inline(hit.document().title())
@@ -340,11 +357,16 @@ public final class GuideAnswerEvidence {
                 +"\n这些不是同等级的实际速度，不能据此保证实战先手；本次未核对特性、招式或机制，不补充相关断言。\n");
     }
     public String verifiedAnswer(boolean includeReferences) {
+        if (references.isEmpty() && !referenceFailures.isEmpty()
+                && referenceFailures.values().stream().allMatch(Boolean::booleanValue)
+                && !GUIDE_REQUEST.matcher(question).find())
+            return referenceFailureSummary();
         if(LocalGuideOnlyRoute.matches(question))
             return "本次检索到的本地攻略没有提供可核验的当前月份完整队伍与胜率数据，不能据此列出实时最强阵容。通用培养或伤害说明不支持这种结论。需要带日期、赛制和完整配置的赛事或样例来源；本次不把无关原文当作答案。";
         if(teamBuildChecks.attempted()||TeamBuildAnswerEvidence.requested(question))return teamBuildChecks.summary(question);
         String prefix = includeReferences ? referenceSummary() : "";
-        if (partialReferenceFailure) prefix += "### 资料读取提醒\n本次有资料调用失败或未通过校验；以下仅展示已核对的结果，未取得的资料不作确认。\n\n";
+        if (partialReferenceFailure && (!references.isEmpty() || referenceFailures.isEmpty()))
+            prefix += "### 资料读取提醒\n本次有资料调用失败或未通过校验；以下仅展示已核对的结果，未取得的资料不作确认。\n\n";
         prefix+=referenceFailureSummary();
         prefix+=resources.summary();
         prefix+=learnsets.summary(question,references.values());

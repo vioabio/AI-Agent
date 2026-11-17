@@ -11,7 +11,7 @@ public final class AnswerPresentation {
     private static final Pattern NEGATED=Pattern.compile("^(?:请)?(?:不要|别|不用|无需|不必).{0,8}(?:一句|一两句|简短|简洁)|^(?:please\\s+)?(?:do not|don't)\\s+(?:answer|reply).{0,20}one sentence",Pattern.CASE_INSENSITIVE);
     private static final Pattern ONE=Pattern.compile("^(?:请|麻烦)?(?:只|仅)?用(?:一|1)句(?:话)?|^(?:please\\s+)?(?:in\\s+(?:one|a single)\\s+sentence|(?:answer|reply|respond|explain|summari[sz]e)\\b.{0,40}\\bin\\s+(?:one|a single)\\s+sentence)",Pattern.CASE_INSENSITIVE);
     private static final Pattern DETAIL=Pattern.compile("^(?:请|麻烦)?(?:详细|展开|分步骤|逐步|全面)|^(?:please\\s+)?(?:explain|describe)\\s+in\\s+detail",Pattern.CASE_INSENSITIVE);
-    private static final Pattern BRIEF=Pattern.compile("^(?:请|麻烦)?(?:简短|简洁|简单)|^(?:please\\s+)?(?:briefly|concisely)",Pattern.CASE_INSENSITIVE);
+    private static final Pattern BRIEF=Pattern.compile("^(?:请|麻烦)?(?:简短|简洁|简单|只解释这个问题|只比较|只列出|只回答|只说明|只给出)|^(?:please\\s+)?(?:briefly|concisely)",Pattern.CASE_INSENSITIVE);
     public static Mode resolve(String currentRequest,ResponseStyle preference) {
         Mode mode=preference==ResponseStyle.CONCISE?Mode.CONCISE:preference==ResponseStyle.DETAILED?Mode.DETAILED:Mode.STANDARD;
         String visible=visibleRequest(currentRequest);

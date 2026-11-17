@@ -16,10 +16,10 @@ public final class DamageDialogueRoute {
     static boolean isKnockoutSufficiencyQuestion(String question) {
         if (question == null || question.length() > 300) return false;
         // Match the entire conceptual question so an additional task keeps its planner.
-        return question.strip().matches("(?i)^(?:知道了|已知|只知道|仅凭|只凭|只看)?"
-                + "(?:属性)?(?:[1248一二两四八]倍克制|属性克制)[，, ]*"
+        return question.strip().matches("(?i)^(?:知道了|已知|只知道|仅凭|只凭|只看|如果都为|如果为|如果都是|如果是)?"
+                + "(?:属性)?(?:[1248一二两四八]倍(?:克制)?|属性克制)[，, ]*"
                 + "(?:可以(?:断言|认为)?|能否(?:保证)?|是否(?:意味着)?|能(?:保证)?|就能|就可以)"
-                + "(?:一定|必定|保证)?(?:一击击倒|一击必杀|秒杀|OHKO)(?:吗|么)?[？?。]?$" );
+                + "(?:一定|必定|保证)?(?:一击击倒|一击必杀|一招结束战斗|秒杀|OHKO)(?:吗|么)?[？?。]?$" );
     }
     static Optional<String> knockoutSufficiencyReply(String question) {
         if (!isKnockoutSufficiencyQuestion(question)) return Optional.empty();
@@ -87,6 +87,9 @@ public final class DamageDialogueRoute {
             try {output=tool.get().call(input.get());}finally {ToolExecutionContextHolder.set(parent);}
             var evidence=new DamageAnswerEvidence();evidence.begin(question);evidence.observe("calculateBattleDamage",output);
             if (!evidence.complete()) throw new DamageCalculationFailedException();
+            if (!current && zeroQuestion && question.length() <= 200
+                    && !question.matches("(?s).*(完整|详细|全部|表格|保存|修改|预览|推荐|搭配).*"))
+                return Optional.of(evidence.verifiedInterpretation(false));
             return Optional.of(evidence.verifiedSummary()+evidence.verifiedInterpretation());
         } catch(com.vio.vioaiagent.observability.TaskBudgetExceededException|com.vio.vioaiagent.observability.ContextBudgetExceededException|java.util.concurrent.CancellationException stop){throw stop;}
         catch(Exception failure){throw new DamageCalculationFailedException();}
