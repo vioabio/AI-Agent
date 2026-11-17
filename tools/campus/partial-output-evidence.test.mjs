@@ -66,6 +66,7 @@ test('controlled browser guard refuses personal backend and remote control befor
 })
 
 test('partial verifier CLI accepts underscore names and rejects report-directory traversal',()=>{
+  fs.mkdirSync('artifacts',{recursive:true})
   const artifacts=fs.realpathSync('artifacts'),directory=fs.mkdtempSync(path.join(artifacts,'partial-verifier-test-'))
   assert.equal(path.dirname(fs.realpathSync(directory)),artifacts)
   const c=combination(),script=path.resolve('tools/campus/upgrade-partial-combination-verify.mjs')

@@ -30,6 +30,7 @@ test('new prompts do not exactly repeat the frozen or stage regression questions
   for(const row of loadIndependentSuite().cases)for(const prompt of row.turns)assert.equal(used.has(prompt),false,prompt)
 })
 test('changed frozen bytes, category counts and source traversal are rejected',()=>{
+  fs.mkdirSync('artifacts',{recursive:true})
   const artifacts=fs.realpathSync('artifacts'),directory=fs.mkdtempSync(path.join(artifacts,'candidate-suite-test-'))
   assert.equal(path.dirname(fs.realpathSync(directory)),artifacts)
   try {

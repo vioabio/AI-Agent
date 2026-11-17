@@ -14,6 +14,8 @@ Java 21 · Spring Boot · Spring AI · DeepSeek · Vue 3 · SSE · Tool Calling 
 
 主线包含 U0～U6 的能力实现、问答修复、网页适配及学习资料。本次按用户发布指令交付v1.1.0，补充简短回答、已声明版本承接与故障提示修复。回答质量按AI辅助复核登记，人工领域审核持续待办。构建身份、运行包及验证范围见[发布记录](document/发布记录/v1.1.0.md)，上一版见[v1.0.0记录](document/发布记录/v1.0.0.md)。
 
+[GitHub Release](https://github.com/vioabio/AI-Agent/releases/tag/v1.1.0)提供运行包与SHA-256文件。旧`Release candidate`严格镜像发布流程仍缺评测签收及关联证据，详见发布记录的流水线核对章节。
+
 ## 项目简介
 
 VIO 是一个面向宝可梦玩家的全栈 AI 应用：通过自然语言查询图鉴、分析已保存队伍、规划道馆挑战，并调用本地引擎核验伤害。用户可以在同一网页中完成对话、资料查看、队伍配置和确认修改。

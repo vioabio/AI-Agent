@@ -77,6 +77,7 @@ test('version drift, late writes, live buttons and accepted expired previews blo
 })
 
 test('termination verifier CLI accepts timed_out filenames and rejects paths outside its report directory',()=>{
+  fs.mkdirSync('artifacts',{recursive:true})
   const artifactRoot=fs.realpathSync('artifacts')
   const directory=fs.mkdtempSync(path.join(artifactRoot,'termination-verifier-test-'))
   assert.equal(path.dirname(fs.realpathSync(directory)),artifactRoot)

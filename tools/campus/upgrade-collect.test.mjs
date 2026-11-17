@@ -2,13 +2,14 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {createServer} from 'node:http'
 import {spawn} from 'node:child_process'
-import {mkdtempSync, readFileSync, rmSync, realpathSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, readFileSync, rmSync, realpathSync} from 'node:fs'
 import {join, resolve} from 'node:path'
 import {coreComponents,additionalComponents} from './runtime-component-manifest.mjs'
 import {stage2Team} from './stage2-regression.mjs'
 import {loadIndependentSuite} from './independent-suite.mjs'
 
 async function collect(mode) {
+  mkdirSync('artifacts',{recursive:true})
   const artifacts = realpathSync('artifacts')
   const parent = mkdtempSync(join(artifacts,'collection-cli-'))
   const directory = join(parent,'sample')
