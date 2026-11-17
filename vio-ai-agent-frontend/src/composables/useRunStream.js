@@ -20,12 +20,14 @@ import {
   loadRunResume,
   saveRunResume as persistRunResume
 } from '@/composables/runPersistence'
+import { createTransportErrorTracker } from '@/api/run-transport-error'
 
 // 断线属于传输层故障，不能直接把业务 Run 标记为 cancelled。客户端最多
 // 自动重连几次，之后保留 runId/游标交给用户手动继续；这样既避免无限请求，
 // 也不会在网络异常时伪造答案或终态。
 const MAX_AUTO_RECONNECT_ATTEMPTS = 6
 const RECONNECT_BACKOFF_MS = 500
+const APPROVAL_POLL_MS = 2000
 const NON_RETRYABLE_STREAM_STATUSES = new Set([400, 401, 403, 404, 409])
 
 /**
@@ -40,6 +42,7 @@ export function useRunStream() {
   function clearRunResume(conversationId, runId) { deleteRunResume(conversationId, runId, { epoch: persistenceEpoch }) }
   const runs = reactive(new Map())
   const controllers = new Map()
+  const transportErrors = createTransportErrorTracker()
   // Page-local monotonic clocks; never restore these from server data or localStorage.
   const clientStarts = new Map()
   const monotonicNow = () => typeof globalThis.performance?.now === 'function' ? globalThis.performance.now() : null
@@ -154,14 +157,18 @@ export function useRunStream() {
     controllers.set(runId, controller)
     try {
       if (model.status === RUN_STATUS.CREATING || model.status === RUN_STATUS.RECONNECTING) {
-        model.status = RUN_STATUS.RUNNING
+        model.status = model.approval ? RUN_STATUS.WAITING_APPROVAL : RUN_STATUS.RUNNING
       }
       // 后端 SSE 是可恢复的快照流：连接结束不代表 Run 结束，持续补读直到终态。
       // 每次异常都从 lastEventId 继续，成功收到一批事件后重置退避计数。
-      while (!TERMINAL_STATUSES.has(model.status)
-        && model.status !== RUN_STATUS.WAITING_APPROVAL
-        && !controller.signal.aborted) {
+      while (!TERMINAL_STATUSES.has(model.status) && !controller.signal.aborted) {
         try {
+          if (model.status === RUN_STATUS.WAITING_APPROVAL) {
+            await delay(APPROVAL_POLL_MS, controller.signal)
+            await replayPage(model, controller.signal)
+            model.reconnectAttempts = 0
+            continue
+          }
           const page = await subscribeRunEvents(runId, {
             lastEventId: model.lastEventId,
             signal: controller.signal,
@@ -169,11 +176,9 @@ export function useRunStream() {
           })
           advanceCursor(model, page?.nextEventId ?? page?.nextCursor)
           if (TERMINAL_STATUSES.has(model.status)
-            || model.status === RUN_STATUS.WAITING_APPROVAL
             || controller.signal.aborted) break
           await replayPage(model, controller.signal)
           if (TERMINAL_STATUSES.has(model.status)
-            || model.status === RUN_STATUS.WAITING_APPROVAL
             || controller.signal.aborted) break
           model.reconnectAttempts = 0
           await delay(500, controller.signal)
@@ -183,6 +188,7 @@ export function useRunStream() {
           if (error?.status === 410 || error?.code === 'EVENT_CURSOR_EXPIRED') {
             // 服务端已清理游标对应的事件；不能从未知位置拼接答案。
             model.status = RUN_STATUS.FAILED
+            model.approval = null
             model.error = '事件游标已过期，请重新打开会话'
             model.streamError = 'EVENT_CURSOR_EXPIRED'
             model.finishedAt = model.finishedAt || new Date().toISOString()
@@ -208,6 +214,7 @@ export function useRunStream() {
               // 参数错误、Run 不存在和状态冲突无法靠重复请求修复；将其
               // 作为本地 fail-closed 终态，清理坏游标并保留明确错误。
               model.status = RUN_STATUS.FAILED
+              model.approval = null
               model.finishedAt = model.finishedAt || new Date().toISOString()
               if (conversationRuns.get(model.conversationId) === runId) {
                 conversationRuns.delete(model.conversationId)
@@ -217,7 +224,7 @@ export function useRunStream() {
             break
           }
           model.status = RUN_STATUS.RECONNECTING
-          model.error = error?.message || '连接暂时中断'
+          transportErrors.record(model, error?.message || '连接暂时中断')
           model.reconnectAttempts += 1
           if (model.reconnectAttempts > MAX_AUTO_RECONNECT_ATTEMPTS) {
             // 保留 reconnecting 以便 UI 提供“继续连接”，不伪造业务失败。
@@ -227,7 +234,7 @@ export function useRunStream() {
             break
           }
           await delay(RECONNECT_BACKOFF_MS * Math.min(model.reconnectAttempts, 6), controller.signal)
-          if (!TERMINAL_STATUSES.has(model.status)) model.status = RUN_STATUS.RUNNING
+          if (!TERMINAL_STATUSES.has(model.status)) model.status = model.approval ? RUN_STATUS.WAITING_APPROVAL : RUN_STATUS.RUNNING
         }
       }
     } finally {
@@ -282,9 +289,11 @@ export function useRunStream() {
         model.status = RUN_STATUS.WAITING_APPROVAL
       } else if (TERMINAL_STATUSES.has(status)) {
         model.status = status
+        model.approval = null
         model.finishedAt = snapshot.finishedAt || model.finishedAt || new Date().toISOString()
       }
     }
+    transportErrors.recover(model)
     saveOrClearResume(model)
     return page
   }
@@ -307,12 +316,14 @@ export function useRunStream() {
   function applyEvent(model, event) {
     if (!isCurrentModel(model)) return
     const next = reduceRunEvent(model, event)
+    const accepted = compareCursorIds(next.lastEventId, model.lastEventId) > 0
     if (!model.clientTiming && clientStarts.has(model.runId) && next.answer !== model.answer && next.answer?.trim()) {
       const now = monotonicNow()
       if (now !== null) next.clientTiming = { schemaVersion: 'client-response-timing-v1', source: 'BROWSER_OBSERVED',
         firstAnswerReceivedMs: Math.max(0, Math.floor(now - clientStarts.get(model.runId))) }
     }
     Object.assign(model, next)
+    if (accepted) transportErrors.recover(model)
     if (TERMINAL_STATUSES.has(model.status)) {
       clientStarts.delete(model.runId)
       if (conversationRuns.get(model.conversationId) === model.runId) {
@@ -322,11 +333,8 @@ export function useRunStream() {
     } else if (isCurrentConversationModel(model)) {
       saveRunResume(model)
     }
-    // approval.required 后停止当前快照轮询；审批决定是显式用户动作，
-    // handleApproveRun/reconnect 会重新打开连接，避免等待期间高频空请求。
-    if (model.status === RUN_STATUS.WAITING_APPROVAL) {
-      controllers.get(model.runId)?.abort()
-    }
+    // Pending approvals continue bounded, abortable event polling so server
+    // deadlines and decisions from another tab reach this page.
   }
 
   async function cancelRun(runId, reason = 'user_cancelled') {

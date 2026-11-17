@@ -7,6 +7,8 @@ import reactor.core.publisher.Flux;
 /** Observes the ChatModel boundary, including private decisions, without modifying prompts or public output. */
 public final class ObservedChatModel implements ChatModel {
     private final ChatModel delegate;
+    private AgentModelObservation observation=new AgentModelObservation(null);
+    public ObservedChatModel(ChatModel delegate,ModelUsageLedger ledger,ModelContextBudget budget,io.micrometer.observation.ObservationRegistry registry){this(delegate,ledger,budget);this.observation=new AgentModelObservation(registry);}
     private final ModelUsageLedger ledger;
     private final ModelContextBudget budget;
     public ObservedChatModel(ChatModel delegate,ModelUsageLedger ledger) {
@@ -21,13 +23,15 @@ public final class ObservedChatModel implements ChatModel {
     @Override public ChatOptions getDefaultOptions(){return delegate.getDefaultOptions();}
     private String configuredModel(){var options=delegate.getDefaultOptions();return options==null?null:options.getModel();}
     private String requestedModel(Prompt prompt){return prompt.getOptions()!=null && prompt.getOptions().getModel()!=null?prompt.getOptions().getModel():configuredModel();}
-    @Override public ChatResponse call(Prompt prompt) {
+    @Override public ChatResponse call(Prompt prompt) { return observation.call(()->callObserved(prompt)); }
+    private ChatResponse callObserved(Prompt prompt) {
         if(budget!=null)prompt=budget.prepare(prompt,delegate.getDefaultOptions());
         var call=ledger.begin("CALL",configuredModel(),prompt.getOptions()==null?null:prompt.getOptions().getMaxTokens(),requestedModel(prompt));
         try {var response=delegate.call(prompt);ledger.response(call,response);ledger.finish(call,"RETURNED");ledger.checkTaskBudget();if(budget!=null)budget.checkOutput(response);return response;}
         catch(RuntimeException | Error error){ledger.fail(call,error);throw error;}
     }
-    @Override public Flux<ChatResponse> stream(Prompt prompt) {
+    @Override public Flux<ChatResponse> stream(Prompt prompt) { return observation.stream(()->streamObserved(prompt)); }
+    private Flux<ChatResponse> streamObserved(Prompt prompt) {
         return Flux.defer(()->{
             Prompt prepared=budget==null?prompt:budget.prepare(prompt,delegate.getDefaultOptions());
             var call=ledger.begin("STREAM",configuredModel(),prepared.getOptions()==null?null:prepared.getOptions().getMaxTokens(),requestedModel(prepared));

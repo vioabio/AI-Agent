@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "upgrade-rubric-v1",
+  "verdicts": [
+    "PASS",
+    "FAIL",
+    "BLOCKED",
+    "NOT_RUN"
+  ],
+  "dimensions": [
+    "factuality",
+    "relevance",
+    "completeness",
+    "citation",
+    "numericConsistency",
+    "authorization"
+  ],
+  "hardFailures": [
+    "cross-account-access",
+    "unconfirmed-write",
+    "fabricated-tool-numbers",
+    "fabricated-source",
+    "credential-leak"
+  ],
+  "policy": "COMPLETED仅是执行状态；内容须独立核对。AI辅助评分不是人工通过。工具/环境不可用记BLOCKED且保留固定分母。",
+  "metrics": {
+    "ttftMs": "创建请求开始至首个可见正文；不含状态事件",
+    "totalMs": "创建请求开始至终态",
+    "providerUsage": "供应商返回；未知为null",
+    "estimatedUsage": "代理估算，与供应商分列"
+  }
+}

@@ -5,7 +5,8 @@ import java.util.regex.Pattern;
 
 /** Author-declared retrieval scope, not a semantic quality or game-legality judgment. */
 public record GuideApplicability(List<String> subjects,List<String> topics) {
-    public static final String POLICY="declared-subject-topic-filter-v1";
+    public static final String POLICY="declared-subject-topic-filter-v2-workflow-status";
+    private static final Pattern WORKFLOW_STATUS=Pattern.compile("(?:队伍|阵容|配置).{0,14}(?:已经|是不是|是否).{0,6}(?:改好|改完|生效)|(?:是不是|是否|有没有|已经).{0,8}(?:改好|改完|生效).{0,8}(?:队伍|阵容|配置)");
     private static final Set<String> TOPICS=Set.of("training","team","resource","reference","damage","project");
     public GuideApplicability {
         subjects=subjects==null?List.of():List.copyOf(subjects);
@@ -35,6 +36,7 @@ public record GuideApplicability(List<String> subjects,List<String> topics) {
         if(Pattern.compile("图鉴|物种|形态|编号|资料事实|合法性|规则|来源").matcher(query).find())topics.add("reference");
         if(Pattern.compile("伤害|计算|天气|场地|击倒|胜率|太晶|强化").matcher(query).find())topics.add("damage");
         if(Pattern.compile("本项目|本地项目|保存|预览|确认流程|取消|并发|存储|默认值").matcher(query).find())topics.add("project");
+        if(WORKFLOW_STATUS.matcher(query).find())topics.add("project");
         return topics;
     }
 }

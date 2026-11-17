@@ -1,7 +1,7 @@
 <template>
   <div class="game-master-page workspace-shell reading-workspace" :class="{ 'team-mode': workspaceMode === 'team', 'nav-collapsed': navCollapsed, 'drawer-open': resourcesOpen && !wideViewport }" :style="{ '--resource-width': resourceWidth + 'px' }" :inert="settingsOpen || undefined">
     <button v-if="mobileNavOpen" class="nav-scrim" aria-label="关闭历史菜单" @click="mobileNavOpen = false"></button>
-    <aside class="workspace-nav" :class="{ 'mobile-open': mobileNavOpen }" aria-label="工作区导航">
+    <aside class="workspace-nav" :class="{ 'mobile-open': mobileNavOpen }" aria-label="工作区导航" :inert="smallViewport && !mobileNavOpen || undefined" :aria-hidden="smallViewport && !mobileNavOpen || undefined">
       <RouterLink to="/" class="workspace-brand" title="VIO 宝可梦助手"><VioMark /><span><strong>VIO</strong></span></RouterLink>
       <button class="new-chat" type="button" title="新对话" aria-label="新对话" :disabled="workspaceBusy || historyLoading" @click="newConversation"><UiIcon name="plus" /><span>新对话</span></button>
       <button class="workspace-entry" type="button" title="对话" aria-label="助手工作区" @click="mobileNavOpen = false"><UiIcon name="chat" /><span>对话</span></button>
@@ -38,11 +38,11 @@
       <div class="workspace-body" :class="{ 'resources-hidden': !resourcesOpen }">
         <section class="conversation-pane" :aria-label="workspaceMode === 'team' ? 'AI 搭配建议' : '助手对话'" :inert="resourcesOpen && !wideViewport || mobileNavOpen || undefined">
           <header v-if="workspaceMode === 'team'" class="conversation-pane-heading"><h2>AI 搭配建议</h2><button type="button" @click="openResourceSection('facts')">返回图鉴</button></header>
-          <ChatRoom :messages="messages" :connectionStatus="historyLoading || historyError ? 'creating' : connectionStatus" :draft-request="draftRequest" :pokemon-names="pokemonNames" :selected-pokemon="resourcesOpen && resourceSection === 'facts' ? selectedPokemon : null" :developer-mode="developerMode" compact :runViewModel="activeRun" aiType="game" @send-message="handleSend" @cancel-run="handleCancelRun" @reconnect-run="handleReconnectRun" @approve-run="handleApproveRun" @feedback="handleFeedback" @resource-section="openResourceSection"><template #suggestions><div v-if="workspaceMode === 'team'" class="team-advice-actions"><button type="button" :disabled="workspaceBusy || historyLoading" @click="workbenchRef?.analyzeCurrentTeam()"><UiIcon name="team" />分析当前队伍</button></div></template></ChatRoom>
+          <ChatRoom :messages="messages" :connectionStatus="historyLoading || historyError ? 'creating' : connectionStatus" :draft-request="draftRequest" :pokemon-names="pokemonNames" :selected-pokemon="resourcesOpen && resourceSection === 'facts' ? selectedPokemon : null" :developer-mode="developerMode" compact :runViewModel="activeRun" aiType="game" @send-message="handleSend" @cancel-run="handleCancelRun" @reconnect-run="handleReconnectRun" @approve-run="handleApproveRun" @feedback="handleFeedback" @resource-section="openResourceSection" @import-training-draft="importTrainingDraft"><template #suggestions><div v-if="workspaceMode === 'team'" class="team-advice-actions"><button type="button" :disabled="workspaceBusy || historyLoading" @click="workbenchRef?.analyzeCurrentTeam()"><UiIcon name="team" />分析当前队伍</button></div></template></ChatRoom>
         </section>
         <div v-if="resourcesOpen && wideViewport && workspaceMode !== 'team'" class="resource-resizer" role="separator" tabindex="0" aria-label="调整资料面板宽度" aria-orientation="vertical" :aria-valuenow="resourceWidth" aria-valuemin="320" :aria-valuemax="maxResourceWidth" @pointerdown="startResize" @pointermove="resizePanel" @pointerup="stopResize" @pointercancel="stopResize" @keydown.left.prevent="changeResourceWidth(20)" @keydown.right.prevent="changeResourceWidth(-20)"><span>⋮</span></div>
         <button v-if="resourcesOpen && !wideViewport" class="resource-scrim" aria-label="关闭资料抽屉" @click="closeResources"></button>
-        <aside v-if="resourcesMounted" v-show="resourcesOpen" id="workspace-resources" ref="resourceElement" class="resource-sidebar" :role="wideViewport ? undefined : 'dialog'" :aria-modal="!wideViewport || undefined" aria-label="资料与队伍侧栏" tabindex="-1" @keydown.esc.stop="closeResources" @keydown.tab="trapDrawerFocus">
+        <aside v-if="resourcesMounted" v-show="resourcesOpen" id="workspace-resources" ref="resourceElement" class="resource-sidebar" :class="{ 'dex-sidebar': resourceSection === 'facts' }" :role="wideViewport ? undefined : 'dialog'" :aria-modal="!wideViewport || undefined" aria-label="资料与队伍侧栏" tabindex="-1" @keydown.esc.stop="closeResources" @keydown.tab="trapDrawerFocus">
           <div class="resource-sidebar-heading"><h2><UiIcon name="book" />{{ resourceSectionTitle }}</h2><button class="close-resources" type="button" aria-label="关闭资料侧栏" @click="closeResources"><UiIcon name="close" /></button></div>
           <PokemonWorkbench ref="workbenchRef" embedded :scenario="scenario" :pokemon-names="pokemonNames" :workspace-mode="workspaceMode" :busy="workspaceBusy || historyLoading || !!historyError" @ask="prepareQuestion" @continue-conversation="resumeHistory" @history-change="sidebarHistory = $event" @mode-change="workspaceMode = $event" @section-change="resourceSection = $event" @fact-selected="selectedPokemon = $event" />
         </aside>
@@ -64,10 +64,10 @@ import { readLayoutPreference, saveLayoutPreference, groupConversations, trapFoc
 import { readableUserMessage } from '@/api/reference-prompts'
 import { useRoute, useRouter } from 'vue-router'
 import { chatWithGameApp, decideRunApproval, decideTeamChange, submitAnswerFeedback, fetchConversationMessages, fetchPokemonReferenceStatus, fetchPokemonNames, fetchRunTeamChange } from '@/api'
-import { BATTLE_FORMAT_OPTIONS, serializeRunContext } from '@/api/version-registry'
+import { BATTLE_FORMAT_OPTIONS, serializeRunContext, conversationContextFromHistory } from '@/api/version-registry'
 import { useRunStream } from '@/composables/useRunStream'
 import { getOrCreateConversationId, selectConversationId } from '@/composables/runPersistence'
-import { RUN_STATUS, TERMINAL_STATUSES } from '@/api/run-contract'
+import { RUN_STATUS, TERMINAL_STATUSES, answerDisplayText, canSubmitRunApproval } from '@/api/run-contract'
 import { useAuthSession } from '@/composables/useAuthSession'
 const { state: authState, signOut } = useAuthSession()
 
@@ -143,6 +143,13 @@ async function openResourceSection(section, pokemonQuery) {
   await nextTick()
   if (section === 'facts' && pokemonQuery) await workbenchRef.value?.openPokemon(pokemonQuery)
   else workbenchRef.value?.showSection(section)
+}
+async function importTrainingDraft(block) {
+  if (workspaceBusy.value || historyLoading.value || historyError.value) return
+  resourcesOpen.value = true
+  mobileNavOpen.value = false
+  await nextTick()
+  await workbenchRef.value?.importTrainingDraft(block)
 }
 function openRecentConversation(conversation) {
   if (workspaceBusy.value || historyLoading.value) return
@@ -257,8 +264,8 @@ async function handleSend(message) {
 
 function bindAnswerBubble(aiMessage) {
   stopAnswerWatch?.()
-  stopAnswerWatch = watch(() => [activeRun.value?.answer, activeRun.value?.status, activeRun.value?.modelUsageAttempts], ([value]) => {
-    aiMessage.content = value || ''
+  stopAnswerWatch = watch(() => [activeRun.value?.answer, activeRun.value?.status, activeRun.value?.modelUsageAttempts], () => {
+    aiMessage.content = answerDisplayText(activeRun.value)
     if(activeRun.value) {
       aiMessage.runId=activeRun.value.runId
       if(activeRun.value.modelUsageAttempts?.length)aiMessage.metadata={ ...aiMessage.metadata, modelUsageAttempts: activeRun.value.modelUsageAttempts }
@@ -331,7 +338,7 @@ async function handleReconnectRun(runId) {
 }
 
 async function handleApproveRun(approval) {
-  if (!approval?.approvalId || !activeRun.value?.runId || activeRun.value.approvalSubmitting) return
+  if (!activeRun.value?.runId || !canSubmitRunApproval(activeRun.value, approval)) return
   if (approval.teamChange && activeRun.value.teamDecisionState?.approvalId === approval.approvalId) return
   const runId = activeRun.value.runId
   activeRun.value.approvalSubmitting = true
@@ -447,6 +454,7 @@ onMounted(async () => {
   let hasStoredUser = false
   try {
     const stored = await fetchConversationMessages(chatId.value, { signal: historyController.signal })
+    if (!historyController.signal.aborted) applyContext({ ...conversationContextFromHistory(stored), ...route.query })
     if (!historyController.signal.aborted && messages.value.length === 1 && Array.isArray(stored)) {
       const history = stored.filter(m => ['user', 'assistant'].includes(m.role) && typeof m.content === 'string')
       if (history.length) messages.value.splice(0, 1, ...history)

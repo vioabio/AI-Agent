@@ -22,6 +22,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class DefaultRunExecutor implements ContractAwareRunExecutor {
     private final ChatModel chatModel;
+    @Autowired(required=false)
+    private io.micrometer.observation.ObservationRegistry observationRegistry=io.micrometer.observation.ObservationRegistry.NOOP;
     private final ToolCallback[] allTools;
     private final ToolCallbackProvider mcpToolProvider;
     private final ToolExecutionGateway toolExecutionGateway;
@@ -33,6 +35,10 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
     public void setGuideResearchEnabled(boolean enabled){this.guideResearchEnabled=enabled;}
     @Value("${vio.agent.specialists.enabled:false}")
     private boolean specialistsEnabled;
+    @Value("${vio.agent.skills.enabled:false}")
+    private boolean skillsEnabled;
+    @Value("${vio.agent.context-assembly.enabled:false}")
+    private boolean contextAssemblyEnabled;
     public void setSpecialistsEnabled(boolean enabled){this.specialistsEnabled=enabled;}
     private com.vio.vioaiagent.config.EvaluationToolPolicy evaluationPolicy=com.vio.vioaiagent.config.EvaluationToolPolicy.off();
     @Autowired(required=false)
@@ -102,6 +108,11 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
      * 接收文本，因此这里保留文本兼容适配；需要展示引用的上层可直接消费契约。
      */
     public AnswerContract executeContract(AgentRunContext context) {
+        return new com.vio.vioaiagent.observability.AgentRunObservation(observationRegistry)
+                .execute(context.run().id(), () -> executeContractObserved(context));
+    }
+
+    private AnswerContract executeContractObserved(AgentRunContext context) {
         AgentRun run = context.run();
         if (groundingEnabled) {
             if (knowledgeFacade == null) {
@@ -135,10 +146,30 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
     private String executeLegacy(AgentRunContext context) {
         AgentRun run = context.run();
         if(!evaluationPolicy.active()){
+            var version=com.vio.vioaiagent.agent.GameVersionRequest.clarification(run.prompt(),run.gameReleaseId());
+            if(version.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(version.get());return version.get();}
+            var bypass=com.vio.vioaiagent.agent.TeamMutationIntent.confirmationBypassReply(run.prompt());
+            if(bypass.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(bypass.get());return bypass.get();}
+            var foreignTeam=com.vio.vioaiagent.agent.AccountScopeReply.reply(run.prompt());
+            if(foreignTeam.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(foreignTeam.get());return foreignTeam.get();}
+            var sourceInstruction=com.vio.vioaiagent.agent.SourceInstructionReply.reply(run.prompt());
+            if(sourceInstruction.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(sourceInstruction.get());return sourceInstruction.get();}
+            if(com.vio.vioaiagent.agent.TrainingIntentState.resetRequested(run.prompt())){
+                String reset="后续培养核对将从本条消息起重新收集条件。请重新说明游戏、目标、进度、练级与资源限制；本次没有删除历史消息、修改保存队伍或切换对话版本。";
+                context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(reset);return reset;
+            }
+            var clarification=com.vio.vioaiagent.agent.AccountScopeReply.adviceClarification(run.prompt(),context.dialogueHistory());
+            if(clarification.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(clarification.get());return clarification.get();}
             var types=com.vio.vioaiagent.agent.TypeMatchupReply.reply(run.prompt());
             if(types.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(types.get());return types.get();}
             var training=com.vio.vioaiagent.agent.TrainingMechanicsReply.reply(run.prompt());
             if(training.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(training.get());return training.get();}
+            var conversation=com.vio.vioaiagent.agent.ConversationRecallReply.reply(context);
+            if(conversation.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(conversation.get());return conversation.get();}
+            var explanation=com.vio.vioaiagent.agent.ConfigurationExplanationRoute.reply(context,allTools);
+            if(explanation.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(explanation.get());return explanation.get();}
+            var referenceRules=com.vio.vioaiagent.agent.ReferenceRulesReply.reply(context,allTools);
+            if(referenceRules.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(referenceRules.get());return referenceRules.get();}
             var localGuide=com.vio.vioaiagent.agent.LocalGuideOnlyRoute.reply(context,allTools);
             if(localGuide.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(localGuide.get());return localGuide.get();}
             var saveStatus=com.vio.vioaiagent.agent.OwnedTeamReadRoute.saveStatusReply(run.prompt());
@@ -146,9 +177,13 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
             var damageReply=com.vio.vioaiagent.agent.DamageDialogueRoute.reply(context,allTools);
             if(damageReply.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(damageReply.get());return damageReply.get();}
             if(run.prompt().matches("(?s).*这一轮仅回复[“\"]收到[”\"].*")){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept("收到");return "收到";}
+            if(com.vio.vioaiagent.agent.SavedTrainingRoadmap.requested(run.prompt())){
+                var trainingReply=com.vio.vioaiagent.agent.OwnedTeamReadRoute.reply(context,allTools,toolExecutionGateway);
+                if(trainingReply.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(trainingReply.get());return trainingReply.get();}
+            }
             var gymReply=com.vio.vioaiagent.agent.GymDialogueRouter.reply(context,allTools);
             if(gymReply.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(gymReply.get());return gymReply.get();}
-            var ownedReply=com.vio.vioaiagent.agent.OwnedTeamReadRoute.reply(context,allTools);
+            var ownedReply=com.vio.vioaiagent.agent.OwnedTeamReadRoute.reply(context,allTools,toolExecutionGateway);
             if(ownedReply.isPresent()){context.modelUsage().noModelCalls();if(context.answerDeltaSink()!=null)context.answerDeltaSink().accept(ownedReply.get());return ownedReply.get();}
         }
         if(teamWorkflow!=null && !evaluationPolicy.active()) {
@@ -186,7 +221,11 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
                     new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage(),
                             new com.vio.vioaiagent.observability.ModelContextBudget(contextBudgetProperties,java.util.List.of(),context.modelUsage())),allTools);
             VioManus agent = new VioManus(evaluationPolicy.select(allTools), evaluationPolicy.active()?null:mcpToolProvider,
-                    new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage(),budget));
+                    new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage(),budget,observationRegistry));
+            agent.setPokemonBlockSink(context.mutations()::publishFact);
+            agent.setDamageBlockSink(context.mutations()::publishDamage);
+            agent.setTeamBlockSink(context.mutations()::publishTeam);
+            agent.setTrainingPlanSink(context.mutations()::publishTraining);
             agent.setGuideResearchResult(research);
             configureSpecialists(agent,context);
             agent.setToolExecutionGateway(toolExecutionGateway);
@@ -219,7 +258,7 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
         if (chatModel != null && allTools.length > 0) {
             var budget=new com.vio.vioaiagent.observability.ModelContextBudget(contextBudgetProperties,context.history(),context.modelUsage());
             VioManus agent = new VioManus(allTools, mcpToolProvider,
-                    new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage(),budget));
+                    new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage(),budget,observationRegistry));
             configureSpecialists(agent,context);
             agent.setToolExecutionGateway(toolExecutionGateway);
             agent.setCurrentUserRequest(run.prompt());
@@ -248,9 +287,13 @@ public class DefaultRunExecutor implements ContractAwareRunExecutor {
     }
 
     private void configureSpecialists(VioManus agent,AgentRunContext context) {
-        if(specialistsEnabled&&!evaluationPolicy.active())agent.setSpecialistCoordinator(new com.vio.vioaiagent.agent.SpecialistAgentCoordinator(context,
+        if(specialistsEnabled&&!evaluationPolicy.active()) {
+            var coordinator=new com.vio.vioaiagent.agent.SpecialistAgentCoordinator(context,
                 new com.vio.vioaiagent.observability.ObservedChatModel(chatModel,context.modelUsage(),
-                        new com.vio.vioaiagent.observability.ModelContextBudget(contextBudgetProperties,java.util.List.of(),context.modelUsage()))));
+                        new com.vio.vioaiagent.observability.ModelContextBudget(contextBudgetProperties,java.util.List.of(),context.modelUsage()),observationRegistry));
+            coordinator.setContextAssembly(contextAssemblyEnabled,contextBudgetProperties);
+            coordinator.setSkillsEnabled(skillsEnabled);agent.setSpecialistCoordinator(coordinator);
+        }
     }
 
     private void append(StringBuilder builder, String key, String value) {

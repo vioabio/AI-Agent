@@ -2,6 +2,13 @@ const MODES = new Set(['oidc', 'local', 'api_key', 'disabled'])
 const LOGIN_URL = '/api/oauth2/authorization/vio'
 const LOGOUT_URL = '/api/logout'
 
+/** A conversation belongs to its authenticated owner, even when it is in the URL. */
+export function workspaceRouteWithoutConversation(route) {
+  const query = { ...route.query }
+  delete query.conversation
+  return { path: route.path, query, hash: route.hash || '' }
+}
+
 /** Validate the server contract before an identity can open a business view. */
 export function normalizeSession(value) {
   const invalid = () => { throw new Error('登录状态响应不符合契约') }

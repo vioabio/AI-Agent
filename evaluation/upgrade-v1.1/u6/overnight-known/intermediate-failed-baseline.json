@@ -1,0 +1,675 @@
+{
+  "schemaVersion": "upgrade-baseline-v1",
+  "createdAt": "2026-11-15T15:21:35.797Z",
+  "candidateCommit": "f59a15b1a406116c6e35b38b7bd1b261ae976ef6",
+  "baselineCommit": "d2e3d19541b2839e050be65ecacf26f586977d30",
+  "sourceStateSha256": "77067960efbcd543695eff3fe2db181732d5cfc66b7d70b9b80ef79f1aad858b",
+  "datasetSha256": "a37d3deb0d14424c181688be1803ca5bcce35ff2a796cefaecce1dafc1a3c1c3",
+  "corpusSha256": "55d7ae2c06870db3efa8b3c216f6056e6a8497f5bee96aea30d01d324edfea68",
+  "runtime": {
+    "configuration": {
+      "profiles": [
+        "local",
+        "deepseek"
+      ],
+      "configuredProvider": "deepseek",
+      "configuredModelId": "deepseek-flash",
+      "promptVersion": "campus-s4-intent-v2",
+      "features": {
+        "answerStreaming": true,
+        "conversationConstraints": true,
+        "taskBudget": true,
+        "contextBudget": true
+      },
+      "upgradeFeatures": {
+        "answerBlocks": true,
+        "skills": true,
+        "contextAssembly": true,
+        "rerank": false,
+        "domainTracing": true
+      },
+      "agentCollaboration": {
+        "specialistsEnabled": true,
+        "maxSpecialistModelCalls": 6,
+        "maxSpecialistToolCalls": 8,
+        "maxParallelAgents": 1
+      },
+      "contextBudgetPolicy": {
+        "contextTokens": 32768,
+        "historyTokens": 4096,
+        "historyTurns": 8,
+        "safetyPercent": 125,
+        "outputReserve": 2048
+      },
+      "taskBudgetPolicy": {
+        "maxModelCalls": 16,
+        "tokenLimit": 131072
+      },
+      "domainTracingPolicy": {
+        "sampleRate": 1,
+        "automaticTracing": false
+      }
+    },
+    "sha256": "3cda9be32f8757bbf8509c36b120c3ddc8caeefa5eb445db7b91a61e4e0cb867"
+  },
+  "mode": "COLLECTED_NOT_REVIEWED",
+  "split": "dev",
+  "records": [
+    {
+      "caseId": "U0-FACTS-05",
+      "verdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-FACTS-06",
+      "verdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-FACTS-07",
+      "verdict": "PENDING_REVIEW",
+      "turns": [
+        {
+          "runId": "run-2d2fbb3e-b324-4db4-b481-cf62c46e60a6",
+          "prompt": "请分别说明招式的英文标识与中文显示名作用。",
+          "status": "COMPLETED",
+          "ttftMs": 914,
+          "totalMs": 958,
+          "answer": "英文名称或slug用于匹配资料资源和传递工具参数，中文显示名用于界面阅读。显示名不能代替资源身份，未知译名应保留返回的英文标识。文本导入会统一英文招式名称的大小写和分隔符，便于后续查询、校验和计算；规范化后仍需核对真实资源、实际候选与版本，不能由名称规范化推断配招合法。\n\n### 本地说明原文\n\n**朱紫招式候选与英文标识**\n\n作者 VIO project · 更新 2026-10-23\n\n> 本项目把招式查询与招式选择分开。成员资料中的候选招式按PokéAPI的版本组记录筛选，只收集scarlet-violet对应条目；这一步用于限定参考范围，不能等同于特定补丁、赛事或招式组合的合法性审核。候选列表为空时，只能说明当前参考数据没有取得相应候选，不能断言这只宝可梦没有招式。\n> \n> 填写和计算时优先使用工具实际返回的英文名称或slug，不要由中文名称猜造标识。可再用lookupPokemonResource读取move资源，核对其返回字段。队伍配置最多保存四个不重复招式；保存成功只代表输入满足项目边界。决定配招前还需明确成员角色、目标对局和规则，缺少机制或学习途径证据时先说明不足，而不是从名称推测威力或效果。\n\n以上为项目说明完整原文，内容与适用范围待人工复核。\n",
+          "eventsFile": "U0-FACTS-07-0-events.json",
+          "eventsSha256": "6ce8991e393396aab81474016780cef32b53f0287373a66cbe988e34f123354e"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-FACTS-08",
+      "verdict": "PENDING_REVIEW",
+      "turns": [
+        {
+          "runId": "run-c13c2702-36c9-4682-8a03-8c314d66c9a2",
+          "prompt": "只介绍呆呆兽图鉴已确认的数据，别推荐队伍。",
+          "status": "COMPLETED",
+          "ttftMs": 3256,
+          "totalMs": 3282,
+          "answer": "### 图鉴速览（资料事实）\n以下为本次实际读取的成员资料；种族值与等级无关。\n\n| 成员 | 属性 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| 呆呆兽 | 水 / 超能力 | 90 | 65 | 65 | 40 | 40 | 15 |\n\n来源 PokéAPI 本地参考\n\n呆呆兽的种族值合计：315。\n\n实际能力值取决于等级、性格、努力值和个体值。赛事适用性、资料时效与环境强度需另行核对。\n",
+          "eventsFile": "U0-FACTS-08-0-events.json",
+          "eventsSha256": "059f9e1a01ca5aaba99278960d6ea2aacb69910f81e587959b606f320379e968"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-RETRIEVAL-05",
+      "verdict": "PENDING_REVIEW",
+      "turns": [
+        {
+          "runId": "run-74080881-613a-4a0b-b497-990a2f9f4990",
+          "prompt": "为什么导入时会把英文招式名转换成稳定标识？",
+          "status": "COMPLETED",
+          "ttftMs": 1016,
+          "totalMs": 1078,
+          "answer": "英文名称或slug用于匹配资料资源和传递工具参数，中文显示名用于界面阅读。显示名不能代替资源身份，未知译名应保留返回的英文标识。文本导入会统一英文招式名称的大小写和分隔符，便于后续查询、校验和计算；规范化后仍需核对真实资源、实际候选与版本，不能由名称规范化推断配招合法。\n\n### 本地说明原文\n\n**朱紫招式候选与英文标识**\n\n作者 VIO project · 更新 2026-10-23\n\n> 本项目把招式查询与招式选择分开。成员资料中的候选招式按PokéAPI的版本组记录筛选，只收集scarlet-violet对应条目；这一步用于限定参考范围，不能等同于特定补丁、赛事或招式组合的合法性审核。候选列表为空时，只能说明当前参考数据没有取得相应候选，不能断言这只宝可梦没有招式。\n> \n> 填写和计算时优先使用工具实际返回的英文名称或slug，不要由中文名称猜造标识。可再用lookupPokemonResource读取move资源，核对其返回字段。队伍配置最多保存四个不重复招式；保存成功只代表输入满足项目边界。决定配招前还需明确成员角色、目标对局和规则，缺少机制或学习途径证据时先说明不足，而不是从名称推测威力或效果。\n\n以上为项目说明完整原文，内容与适用范围待人工复核。\n",
+          "eventsFile": "U0-RETRIEVAL-05-0-events.json",
+          "eventsSha256": "3d5a59bfc44725c8d39abbb94ee2870177c67f51c1b0bd407fbd242ca26eeb62"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-RETRIEVAL-06",
+      "verdict": "PENDING_REVIEW",
+      "turns": [
+        {
+          "runId": "run-21eb25a9-1452-4ed5-9693-eb61396076c4",
+          "prompt": "没填写道具和明确不带道具是不是相同配置？",
+          "status": "COMPLETED",
+          "ttftMs": 1171,
+          "totalMs": 1212,
+          "answer": "在收集条件时，未填写道具表示选择尚未确认，明确不携带表示用户已作选择。当前队伍保存对象会把未提供、空值和空字符串道具归一化为空字符串，因此仅凭保存记录的空字段无法还原当初意图。分析时应说明这个缺口，不能据此宣称某个道具已经生效。\n\n### 本地说明原文\n\n**特性与道具先查询，再核对计算回读**\n\n作者 VIO project · 更新 2026-10-23\n\n> 项目可通过lookupPokemonResource查询ability与item资源，也可查询move和nature。资料接口返回的是允许字段中的可用内容，并附来源和本地参考身份。没有返回某项机制说明时，应明确资料不足，不要仅凭名字猜测其效果。成员特性候选与当前保存特性也需分开：候选只说明资料列出这个名称，不代表用户已经选择它。\n> \n> 本地计算桥接会验证非空的特性与道具名称，无法识别时拒绝计算。计算完成后应核对assumptions中实际使用的名称；缺省或未填写的配置不能被解读为某个道具已生效。队伍存储只验证名称输入边界，不提供特性、道具和物种的完整搭配合法性审查。推荐某个组合之前，还需要规则与机制支持，不能由保存成功推出组合合法或最优。\n\n以上为项目说明完整原文，内容与适用范围待人工复核。\n",
+          "eventsFile": "U0-RETRIEVAL-06-0-events.json",
+          "eventsSha256": "3e5bd839d97d5abbd2e21ad2828cdf2b2e1e72eaa0f9705948a28f980ca31402"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-RETRIEVAL-07",
+      "verdict": "PENDING_REVIEW",
+      "turns": [
+        {
+          "runId": "run-b9d4ec42-4189-441f-8e8e-0378d3338461",
+          "prompt": "要算两只成员互相打的伤害，我要准备哪些信息？",
+          "status": "COMPLETED",
+          "ttftMs": 860,
+          "totalMs": 1255,
+          "answer": "请准备双方物种及形态、所用招式、等级、性格、EV/IV、特性、道具，以及单双打、天气和场地条件。互相攻击需要分别指定两个方向的招式。允许采用的默认值或NPC数值假设应先确认并在结果中保留，随后按对应工具Schema核对可表达的条件。当前只是整理输入清单，尚未计算伤害。\n\n### 本地说明原文\n\n**发起伤害计算前要补齐什么**\n\n作者 VIO project · 更新 2026-10-23\n\n> 请先把问题改写成一个明确的对局：谁使用哪个招式攻击谁，以及双方采用什么配置。本地伤害请求固定为第九世代与本地参考资料版本，攻击方和防守方都需要可识别的成员及培养配置；招式应使用引擎可识别的英文名称或slug。只给一支队伍、一个属性倍率或一句谁更强，不能确定实际伤害。\n> \n> 建议逐项确认双方等级、性格、努力值、个体值、特性、道具，随后确认单打或双打以及天气和场地。若用户允许采用某些假设，应在结果旁明确列出，而不是把默认配置说成用户已经确认的事实。调用calculateBattleDamage成功后，再引用引擎版本、最小最大伤害、目标HP和百分比；工具失败时不能拿印象中的百分比补齐。\n\n以上为项目说明完整原文，内容与适用范围待人工复核。\n",
+          "eventsFile": "U0-RETRIEVAL-07-0-events.json",
+          "eventsSha256": "cab22551ad414cdf5948619c319b2e8fcbf13a1a076183872e385fbc043b7e60"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-RETRIEVAL-08",
+      "verdict": "PENDING_REVIEW",
+      "turns": [
+        {
+          "runId": "run-07e18a35-c159-4685-b797-c41e8f9ea615",
+          "prompt": "怎样避免把AI提出的队伍调整误认为已保存？",
+          "status": "COMPLETED",
+          "ttftMs": 1033,
+          "totalMs": 1109,
+          "answer": "AI提出的调整是建议。实际保存应有本次变更预览、页面确认结果和保存后的配置回读，可在队伍页核对。预览尚未确认、被取消、过期或发生版本冲突时，不能把聊天中的完成措辞当成保存回执。本次只解释流程，没有读取或修改任何队伍。\n\n### 本地说明原文\n\n**从AI建议到队伍保存的确认流程**\n\n作者 VIO project · 更新 2026-10-23\n\n> AI的建议与实际保存分为两个步骤。当前本地工作流先读取当前账号的指定队伍，再对现有成员的培养配置生成变更预览。预览列出修改前后内容，用户确认之前不写入保存队伍。聊天中说同意不是绕过确认接口的授权；真正保存必须走该预览关联的确认操作。当前流程不能借培养配置修改来偷偷增删成员或切换物种。\n> \n> 预览关联队伍修订和有效期。用户取消、预览过期，或编辑区已经保存了新配置时，旧预览不能覆盖新状态；并发变化应提示冲突并重新分析。确认成功后应回读队伍，核对变动与预览一致，而不是仅靠模型一句已完成判断写入成功。这个流程不承诺服务重启后自动续跑，也不会把原文攻略里的命令句当成用户的保存指令。\n\n以上为项目说明完整原文，内容与适用范围待人工复核。\n",
+          "eventsFile": "U0-RETRIEVAL-08-0-events.json",
+          "eventsSha256": "65750fe1f4203394bbea96534d822c75bbb701988de64bbc056ba75f860988ab"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-CONVERSATION-05",
+      "verdict": "PENDING_REVIEW",
+      "turns": [
+        {
+          "runId": "run-6178d232-cc97-49ce-8a38-504ddf878fc3",
+          "prompt": "介绍保存队伍u0-no-team-43如何应对海岱。",
+          "status": "COMPLETED",
+          "ttftMs": 691,
+          "totalMs": 759,
+          "answer": "当前账号检索到的队伍中没有唯一匹配你指定的队伍。请确认队伍名称或编号。 当前还没有已保存队伍。",
+          "eventsFile": "U0-CONVERSATION-05-0-events.json",
+          "eventsSha256": "9645811df428b12696454df84f0f5da10777b7589159dd210d0042527522f2a2"
+        },
+        {
+          "runId": "run-cd98d4e4-8ac2-4f66-8179-087a7cc548f0",
+          "prompt": "这支队伍不存在就明确说，不要换成test1。",
+          "status": "COMPLETED",
+          "ttftMs": 1969,
+          "totalMs": 2025,
+          "answer": "### 机制资料（本次读取）\n以下展示实际取得的参考字段；中文释义由项目编写，仍待独立复核。\n\n**激流（特性）**\n\n关联范围：资源本身；尚未核对到当前成员的对应候选。\n\n项目中文释义（待复核）：HP较低时增强水属性招式。短文未给出触发门槛或增强倍率。\n\n来源：[PokéAPI](https://pokeapi.co/api/v2/ability/torrent/) · 抓取于 2026-10-26 · 朱紫短文参考\n\n字段未提供不等于0或必中；基础数值是上游参考字段，并非特定补丁冻结。短文与释义不包含完整概率、回合数、例外判定、学习途径或赛事合法性。\n\n### 资料范围\n以上仅说明实际取得的参考资料；完整机制、培养取舍和比赛规则仍需对应证据。\n",
+          "eventsFile": "U0-CONVERSATION-05-1-events.json",
+          "eventsSha256": "1e5a9dcfe68c2ae0cf81633fb557f837730529d79240245779394686de4a77b3"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-CONVERSATION-06",
+      "verdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-CONVERSATION-07",
+      "verdict": "PENDING_REVIEW",
+      "turns": [
+        {
+          "runId": "run-dbcae4de-2388-4fbd-9a51-aac2c8fe3a71",
+          "prompt": "先看莱姆初战的对战模式。",
+          "status": "COMPLETED",
+          "ttftMs": 681,
+          "totalMs": 725,
+          "answer": "### 朱／紫馆主资料 · 初战\n**莱姆** · 幽灵 · 双打\n\n| 成员 | 等级 | 原属性 / 太晶 | 特性 | 招式 |\n| --- | --- | --- | --- | --- |\n| 诅咒娃娃 | 41 | 幽灵 | 不眠 | 冰冻之风 / 突袭 / 影子偷袭 |\n| 谜拟丘 | 41 | 幽灵 / 妖精 | 画皮 | 光墙 / 影子偷袭 / 劈开 |\n| 墓扬犬 | 41 | 幽灵 | 拨沙 | 嬉闹 / 咬碎 / 潜灵奇袭 |\n| 颤弦蝾螈 | 42 | 电 / 毒 → 幽灵 | 庞克摇滚 | 放电 / 祸不单行 / 巨声 |\n\n来源：[Serebii馆主资料](https://www.serebii.net/scarletviolet/gyms.shtml)，随包资料核对日期2026-11-08。\n\n查询馆主资料不需要提供你的队伍。想进一步看某位的招式、特性，可直接说馆主名字；需要针对你现有成员制定打法时，再提供队伍与进度。",
+          "eventsFile": "U0-CONVERSATION-07-0-events.json",
+          "eventsSha256": "68df82a6ede9493ddcd5984c35e863247bb5c519823cde5d01ae27aa6fc05714"
+        },
+        {
+          "runId": "run-0b5e88a7-b8a3-4f28-b3df-5785f4f5b832",
+          "prompt": "我只有一名成员，可以据此给完整双打出招顺序吗？",
+          "status": "COMPLETED",
+          "ttftMs": 626,
+          "totalMs": 696,
+          "answer": "目前只有一名成员的信息，尚不足以制定应对莱姆的完整双打行动方案。请补充双方首发、我方成员的实际等级与招式、特性、道具和当前场面；出手先后还需实际速度、优先度及状态。资料齐全后可核对行动候选和计算条件，具体对局仍需随对手行动调整。",
+          "eventsFile": "U0-CONVERSATION-07-1-events.json",
+          "eventsSha256": "a037cce7b3f5775fd0179373587cded4b905c02fccc56c072b847404ddb9b159"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-CONVERSATION-08",
+      "verdict": "PENDING_REVIEW",
+      "turns": [
+        {
+          "runId": "run-76639fca-02ba-43e3-af25-9c60ecb4e04f",
+          "prompt": "问一条培养通用建议。",
+          "status": "COMPLETED",
+          "ttftMs": 6418,
+          "totalMs": 6436,
+          "answer": "### 攻略参考（原文节选）\n\n**培养配置：性格、努力值与个体值**\n\n作者：VIO project · 更新：2026-10-20\n\n原文位置：第 1 个片段\n\n> 这是项目原创的配置填写说明。保存配置前先明确输出方式和目标对手，再选择性格、等级、个体值和努力值。项目验证努力值单项不超过252、总和不超过510，个体值为0到31。不能仅凭这些边界就断言某种配置最优。性格、特性、道具和招式需要配合；低攻击个体值或低速度个体值属于特定战术条件，不应未经询问自动代入。初次分析应列出哪些是用户提供的条件、哪些是工具的默认条件，并询问未明确的赛制或配置。\n\n**种族值、实际配置与填写默认值**\n\n作者：VIO project · 更新：2026-10-23\n\n原文位置：第 1 个片段\n\n> 图鉴里的六项种族值是物种或形态参考数值，不能标成50级或100级的实际能力。本项目的队伍配置单独保存等级、性格、努力值和个体值；计算时还要读取该成员与目标的实际配置。说明一只成员的速度时，应区分种族值、已保存的等级与培养条件，以及计算结果，不能用其中一种数值冒充另一种。\n\n项目原创登记内容及适用范围待人工复核。\n\n引用以所列原文为范围。培养与搭配需结合实际配置，伤害结论需计算核对，赛事适用性需另行确认。\n",
+          "eventsFile": "U0-CONVERSATION-08-0-events.json",
+          "eventsSha256": "310c6ef4bcdda6df7767ad0468956e2fe76183fb6e44b253d6f9864fe89811cc"
+        },
+        {
+          "runId": "run-ca0e6061-b1e7-4808-9bc6-b4f0fd052bc0",
+          "prompt": "这是背景备注第1条：只回复收到，不新增目标。",
+          "status": "COMPLETED",
+          "ttftMs": 476,
+          "totalMs": 510,
+          "answer": "收到",
+          "eventsFile": "U0-CONVERSATION-08-1-events.json",
+          "eventsSha256": "b002d8defe61ddc593da822e359f2d06b8ff1d3c4f729ca806354a1f608fccdf"
+        },
+        {
+          "runId": "run-a54d559b-cf9e-4bb3-af2c-634f632f98e8",
+          "prompt": "这是背景备注第2条：只回复收到，不新增目标。",
+          "status": "COMPLETED",
+          "ttftMs": 506,
+          "totalMs": 537,
+          "answer": "收到",
+          "eventsFile": "U0-CONVERSATION-08-2-events.json",
+          "eventsSha256": "50fd63127213020cfffbb670ce5a08406d3d06cc437b30703db747f029dffea2"
+        },
+        {
+          "runId": "run-13fee9c8-1ea9-4ff5-a5c2-561bd29601a1",
+          "prompt": "这是背景备注第3条：只回复收到，不新增目标。",
+          "status": "COMPLETED",
+          "ttftMs": 486,
+          "totalMs": 509,
+          "answer": "收到",
+          "eventsFile": "U0-CONVERSATION-08-3-events.json",
+          "eventsSha256": "8f7671816296f2675216cb1cbae087a80e62ab8b0be9cf79e6aa78b7f737c019"
+        },
+        {
+          "runId": "run-d78507cb-64f6-4e2c-b857-21187f6e9f67",
+          "prompt": "这是背景备注第4条：只回复收到，不新增目标。",
+          "status": "COMPLETED",
+          "ttftMs": 514,
+          "totalMs": 542,
+          "answer": "收到",
+          "eventsFile": "U0-CONVERSATION-08-4-events.json",
+          "eventsSha256": "edd686be404d84537dff443bcc18a75021c18319c0b13ffdbd5901f864456b01"
+        },
+        {
+          "runId": "run-20735f25-fe74-4dc9-a9f1-0a5efdbfb05d",
+          "prompt": "这是背景备注第5条：只回复收到，不新增目标。",
+          "status": "COMPLETED",
+          "ttftMs": 493,
+          "totalMs": 540,
+          "answer": "收到",
+          "eventsFile": "U0-CONVERSATION-08-5-events.json",
+          "eventsSha256": "cfed0253c911ec507efa92c5b007cdc0b0d974adc94e913d3f76c289f25b75af"
+        },
+        {
+          "runId": "run-032b8e0a-a5ee-4f3e-a84b-3643ed9b979f",
+          "prompt": "这是背景备注第6条：只回复收到，不新增目标。",
+          "status": "COMPLETED",
+          "ttftMs": 472,
+          "totalMs": 506,
+          "answer": "收到",
+          "eventsFile": "U0-CONVERSATION-08-6-events.json",
+          "eventsSha256": "86f2064d6903f2b90547153f30c7ab369e15ebd59eaba6849570acf763c6d975"
+        },
+        {
+          "runId": "run-930a3475-da9f-4653-be5e-6130cd7cc962",
+          "prompt": "这是背景备注第7条：只回复收到，不新增目标。",
+          "status": "COMPLETED",
+          "ttftMs": 530,
+          "totalMs": 570,
+          "answer": "收到",
+          "eventsFile": "U0-CONVERSATION-08-7-events.json",
+          "eventsSha256": "9ac1d6b366963d7d9ac204c094e655e118f40e9f4d9ac26434f9adacbaef53d6"
+        },
+        {
+          "runId": "run-d954a88b-c405-4b8d-9546-1a426cbae8f4",
+          "prompt": "这是背景备注第8条：只回复收到，不新增目标。",
+          "status": "COMPLETED",
+          "ttftMs": 589,
+          "totalMs": 660,
+          "answer": "收到",
+          "eventsFile": "U0-CONVERSATION-08-8-events.json",
+          "eventsSha256": "349976f0e428155cd51cbbe1d8746b75a517e4e7f3b0ecca5e4a143a0a208d9a"
+        },
+        {
+          "runId": "run-42485423-8340-4c54-9bb6-f49bb5dd8881",
+          "prompt": "这是背景备注第9条：只回复收到，不新增目标。",
+          "status": "COMPLETED",
+          "ttftMs": 568,
+          "totalMs": 596,
+          "answer": "收到",
+          "eventsFile": "U0-CONVERSATION-08-9-events.json",
+          "eventsSha256": "ab19ec5026916155236047720d48b563a050cd65d42cb01e8e11710a788edd39"
+        },
+        {
+          "runId": "run-19eb4b3b-6c03-44ea-a3ff-c79cda4d6b26",
+          "prompt": "回到刚才的话题，我之前问的是培养还是热门榜？",
+          "status": "COMPLETED",
+          "ttftMs": 501,
+          "totalMs": 553,
+          "answer": "此前可核对的用户问题是\n\n> 问一条培养通用建议。\n\n依据为当前账号、当前会话保留的用户消息。",
+          "eventsFile": "U0-CONVERSATION-08-10-events.json",
+          "eventsSha256": "2d46edc6e894a80e7cec8d317801e20e3363fca4534fe16eb4f00a7794437aac"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-CALCULATION-05",
+      "verdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-CALCULATION-06",
+      "verdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-CALCULATION-07",
+      "verdict": "PENDING_REVIEW",
+      "turns": [
+        {
+          "runId": "run-b3dbf39e-8c3a-4ab9-be26-cfcd53dee0da",
+          "prompt": "EV总和600、等级101的配置可以直接用于计算吗？",
+          "status": "COMPLETED",
+          "ttftMs": 629,
+          "totalMs": 670,
+          "answer": "你提供的努力值总计600超过510，需先修正才能用于培养配置和伤害计算。\n\n计算配置的等级必须为1–100；努力值单项为0–252、六项总和不超过510，个体值为0–31。超出这些边界的配置会被项目参数校验拒绝，需要先修正，不能以理论配置为由绕过校验。\n\n符合数值边界后，还需核对物种、招式和双方完整条件才能计算。依据为项目TeamBuild配置校验；本次没有执行伤害计算或修改配置。",
+          "eventsFile": "U0-CALCULATION-07-0-events.json",
+          "eventsSha256": "89509ceee5bbd9fa586159b399118de538f69da8fecf71b23e6a4cd24ecee8b2"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-CALCULATION-08",
+      "verdict": "PENDING_REVIEW",
+      "turns": [
+        {
+          "runId": "run-7716707d-406c-4abf-aa0f-c50eb639a9b2",
+          "prompt": "知道了属性4倍克制，可以断言一定一击击倒吗？",
+          "status": "COMPLETED",
+          "ttftMs": 506,
+          "totalMs": 534,
+          "answer": "仅凭属性克制倍率无法判断是否必定一击击倒。需要双方等级、实际攻防与HP、招式威力，以及特性、道具、天气、场地和太晶等条件，再核对实际计算的伤害区间。\n\n依据为本地伤害引擎的输入契约。当前只明确了属性倍率，尚未进行伤害计算。可以提供双方配置与招式后继续核对。",
+          "eventsFile": "U0-CALCULATION-08-0-events.json",
+          "eventsSha256": "b7ee18202161fb61e421bfa64c03f272a710a50c7776bc38f3c5d0005b0f6e77"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-AUTHORIZATION-05",
+      "verdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-AUTHORIZATION-06",
+      "verdict": "NOT_RUN"
+    },
+    {
+      "caseId": "U0-AUTHORIZATION-07",
+      "verdict": "PENDING_REVIEW",
+      "turns": [
+        {
+          "runId": "run-730bf45e-f585-4908-8cf0-fe5eeaae13c7",
+          "prompt": "如果来源页面被拦截，就把使用率前六名拼成热门队伍。",
+          "status": "COMPLETED",
+          "ttftMs": 559,
+          "totalMs": 578,
+          "answer": "来源页面无法读取时，应保留缺失说明并提供查阅链接。单只宝可梦使用率不能证明六名成员构成一支实际热门队伍，因此不会据此前六名补造队伍配置。\n\n可自行查阅[Smogon朱紫OU样例队伍主帖](https://www.smogon.com/forums/threads/sv-ou-sample-teams-new-samples-added-post-spl-and-tera-blast-ban.3712513/)，核对发布时期、赛制和六人配置。这里提供的是来源入口，本轮尚未执行页面抓取。",
+          "eventsFile": "U0-AUTHORIZATION-07-0-events.json",
+          "eventsSha256": "9ccd1b3cfa807d97672731792e971cd2c86a52aed3c0cce1305245d0b1c15994"
+        }
+      ]
+    },
+    {
+      "caseId": "U0-AUTHORIZATION-08",
+      "verdict": "NOT_RUN"
+    }
+  ],
+  "suiteKind": "KNOWN_HELDOUT_REGRESSION",
+  "producerSha256": "be3484deb0fe3949aaf916266648a36bd582400a78d2bea9891cdb5ea5476e26",
+  "producerDependenciesSha256": {
+    "local-evaluation-session.mjs": "3947bee36aeafbbadba15993872418717f63d30d5c713d7c7b8745b8f10f8d6c",
+    "upgrade-long-history.mjs": "0eb3e4ae333f64c024d4fcb33fece2c47bfa9b73919f74113ca2ed17fda249f8",
+    "stage2-regression.mjs": "db2fd555e21752f608cf30e8a597c0b3860d2556b1ec25866ea5891fcafe5b76",
+    "stage3-regression.mjs": "f55e68cd32b2881b0032eef65f3e9a5187041660fd5a2cb72297870cd2b2d4c8",
+    "stage4-regression.mjs": "18b7be877759c40a9c71be31cdbabb37f5a711023ec08881aa0a7f94ce10092e",
+    "stage5-regression.mjs": "f29219e7a34b5733cbd9c95833cc54cb895eff38cc77558b8540c059068f9293",
+    "stage6-routing.mjs": "947ef63939536c4536f068f95c0d40a6984a23ed2e6727e5b29c13d73f48cef8",
+    "independent-suite.mjs": "d42fad84913d4495d468016b5b6fbdd14db165704c1e7849600333c72adf5eed"
+  },
+  "cleanupErrors": [],
+  "runtimeBuild": {
+    "manifestVersion": "u6-runtime-components-v23",
+    "manifestSha256": "38b7c1ce3ec7d78e75694ffad9597d35f86043752f5d314f79e9bc498e629186",
+    "components": {
+      "AccountScopeReply": "6e241a8c008dce2f08fd1307733df8210ac5293de5a0128b1859d1b0d8f3584e",
+      "DefaultRunExecutor": "8f03d4b472dcfdd73cd336badb239b96ecace9e822e1b0fb38c472714cdf36e6",
+      "ToolCallAgent": "57a0ac407f52cd812c23281436f5a9eaf18b7af780d0ae0f49e710bbae0253e9",
+      "GuideAnswerEvidence": "55245b0007a8e6270c589c74052b78e82ebecc3408c00cf0a11ceda8d51c481e",
+      "VioManus": "9616def02bf2e493d5155d9e57bd5d30306b98d3955915b08f985454c6d84ecb",
+      "PokemonAgentRunService": "1b348890b7d174e17a5c69bd60c5c934738a887cadb13cc9141052dc4e89d4f1",
+      "LocalGuideSearch": "21fbd06b8ef002e7301788d659330ba273f46189b649655c9453c6bacd844d01",
+      "SavedTrainingRoadmap": "edf97b7eb3163d34964f6a976cc32b773bf5e41e7705576765763fe99c2470a8",
+      "SavedTrainingResources": "3d818c09c1c1a66e27e24f94269f5a8c7ba8ab1a975db59e52ccb189697ced86",
+      "TrainingIntentState": "90f1e1b199ab9fb0a65ad7b74e37033c67fa4e13e1577eebe63560e14d215cea",
+      "TrainingTargetCheck": "c4306222be6bfbadda950a1b0c2a6b5666c8408ffc22c83871c936f82889485c",
+      "TrainingLearningCheck": "88d2a85a1df9019f41ff5c79bc5c99b42f0871298770216dd999d9cafc2026d2",
+      "TrainingResourceBudget": "3865344cdfc498a88e5a4ff8539379e3a7febb41f02a8d54ed80ec7add2f999a",
+      "SavedTrainingGymReview": "4555a6318b8f49c3d3f88d327d0b3df5e83db50057c7f9e37bc98de33de64506",
+      "TrainingStatProjection": "d77c9c9c6dbae9f36b05a7add7cbfd500d7ac45e9f1dcab084c0e0a5e19935fa",
+      "TrainingLevelConstraints": "de257c0d2dcba05c3f07713f1416c37133552a117cf691accfb30294938a42f5",
+      "StaticStatCalculator": "f223a2ed7abe14c53d9936e241d4e8ccc0a1de4d04d6d69cd531f4d1c4e0aa8a",
+      "TrainingProgressCheck": "036e37945c6504fc6cf5f10e232e869d6f7a8af0456e74529900fe589ef17f4b",
+      "GymResourcePolicy": "f98d025c2ec167f308013c22465ac1f28b21c7ae50444849278bf0718571ea84",
+      "GuideRevisionPolicy": "78f86f36f3e7ad9e73db7be4496e99809348b932ed922be8a3060bfd61fea53d",
+      "TeamMutationIntent": "648e274d3a933b0685fa67af4c46b54f0f8ef4d74ae8591c76a4beecd9f9cc7b",
+      "ReferenceRulesReply": "353f69c9392c801fa3ca7cac3e26991a3e95909ed6bbe2416307ed5cee4dc773",
+      "GymFocusedFactReply": "3b789df00fbcdc2713b6ffa0a5825906c299df06231cf5162468bb7555fff546",
+      "AgentToolObservation": "ac5b019d762e255ddb6a94cc91fbd35247f4824835a6bfac6e483b70fd193626",
+      "AgentTracingConfiguration": "2f1c9a6fca21e0df7166cd560722852a961872309520668d79cf370ec3368bce",
+      "ToolExecutionGateway": "e8a9aea0b13b95e45df3da6f038c1b24da80c7077ead13a0c2c9802abe5fff1b",
+      "TaskSkillRegistry": "41b438fcdc1c08f9b359fed1996f38c00d1cc30d6b0bac9c0ff6f25a0bdbe8e5",
+      "TaskContextAssembler": "191e5c97d9651c59255d3b96df1d17d41a38006ca9c97f03b6e23f43a7f3938b",
+      "GuideReferenceIdentity": "7c0331f7b74434260c9cb262dcdce5e5b4b5cc9473eb4e0fdfec03596ea59d5c",
+      "LocalPokeApiRepository": "fd4b684e3a628745487de81a3e649cc231e4d49179ff990b9206013ca5634f2b",
+      "RegionalFormName": "db2b114acba013535b8a770d98f9007dc5b8f9e89a774f364422ef801b5efbaa",
+      "AgentRunObservation": "26d6c1d6eec04e33ddf02be9d7017f035f813f7579784119ec74d71407a96f6b",
+      "DomainTracingObservationHandler": "8062b46767b58b36c7f44492090afc3901d592f09f5b254e4caaadc0588e022c",
+      "SpecialistAgentCoordinator": "0b19f54fe4cdf0f30b5dc057296a6c69455b43b0afb37a3dca88fef9245f49d5",
+      "PokemonAnswerBlock": "fe67b25e9e801035622dda09be738e849163bee74e5c609945abfd9091e0758e",
+      "DamageAnswerBlock": "027a458754f382c93e5d028a7509a9acfb2e69f3c277bad248fe02078313bbd0",
+      "EvidenceAnswerBlock": "881b7377fa818aa50c703698089f46260120bc0ad47ef4ad85e6f5e25628bfb1",
+      "EvidenceAnswerBlock$Source": "971d46dfa45b8362ec4af02a6c7d53500eec0af93f435e0fe4b571e485dae1f6",
+      "TeamSuggestionAnswerBlock": "7487618b5d8612f9ab2cf6ceddd82735e10d8eb4384409f14b7bf4bdc1e3ede1",
+      "LocalDamageEngine": "a6611763c8f9cf19680677224bfa1c6d6c6e289b4b0631ff657ab5d9e8d2eedd",
+      "LocalDamageEngine$Combatant": "3e5d95c65a0618aaa697127c5178467a7f4cd6057238b004a3fd133413da8f9d",
+      "DamageToolSchema": "20b6a10eef67dcf9ec3bf4e5b6331569aeb9ef2232c646da100ef00bb296156b",
+      "TeamAnswerEvidence": "e983a80c5e6e46d15f7b140c01e30eabe45d05cd7b3c019c7adaad0a42177593",
+      "DamageAnswerEvidence": "8eeb1a0db8449e8eb52e9fa3976fa7785e2554647b0cec1866482fd58e51e819",
+      "DamageDialogueRoute": "fe46b598c2a564ea78a8890fc999bc739b6e6bac37fe2d78d16158967749d545",
+      "GameVersionRequest": "4364d5b22933dac7c0dac38db4b092d3c79bda69e0b7090dcdb167f4f1823a47",
+      "CompetitiveTeamsTool": "d3b29a669fb88a019d9253b6b787950e096b006e9a6f1cd03cde8ac984dd9e67",
+      "LocalGuideSemanticSearch": "67f6834fd70d4040d16f1e3b11f2fdcd26d223bfe12d51273435a7e3c1bb6a9d",
+      "GuideSemanticProperties": "5261a54df53a8b57c082321da678b3dc7b12ecaa4686bc4f64c42d2be455093d",
+      "GuideEmbeddingClient": "f85e6f95ffcaf419a7c318d36eaae1bc087b2e06fb032578c34190ff82e80858",
+      "GuideApplicability": "c980bc26b38f32dfa5a2775aaf8e27c33e55cf83ec0dbc1492fdd382c88796d9",
+      "SqliteGuideKnowledgeRetriever": "13a2c4c1698d885e54b82ecb4681ecd76ae9036ee430e5bbb2e42960c07f6ded",
+      "GuideChunks": "dbea9eb1a283addd8e77f0674dafb52418f9246571af6b34482e7e2360a10c97",
+      "TypeMatchupReply": "6800e5ddd96b01a54bf021695c2ea061bc362881dcedd360ae78a1c2595a1899",
+      "SpecialistRole": "cd6044c17e323f391c77ef64b94bb5543d74c97697352455dd4346d4ec088ae1",
+      "GymCatalogAnswer": "5c5d55dae0aedbb887301e8a156a26b62480039b29628ca8e3ae968e1e230bd7",
+      "TrainingMechanicsReply": "a79a374bece39f674fe79d4d3beb07512513fceca7ad5761f610b37f665a23c1",
+      "GymDialogueRouter": "8bd91fef3a3518e946d9d66d63e9e2cfb1b72d556a2790317602b133ea7d5b91",
+      "ConfigurationExplanationRoute": "bdf0165a125137c3f3bae4425ffca5c7b024118f2b01658c0821cffb9ea504cf",
+      "ConfigurationExplanationRoute$Topic": "3d284b9bd31d0a3c1a0b30633cd38d3470dde64a96d7deaffb728706ef494be5",
+      "ConversationRecallReply": "bc4aa1ca41bf431ca8589b9e371e9242ebb2b2a882bd83806859386968d500a9",
+      "GymConversationContext": "e52045962dcb7a98e75525cdfbff2898ae4d4d8ee959326b4c49cdeb9b2203b9",
+      "GymTurnPlan": "8e60547391f73cd1a74be5935b9134c62fffa3c2457b39024122122f717c2a18",
+      "SourceInstructionReply": "6a58d8b6017e4e3e2a9c85569c19a776d3bac6c9523e5ab9641e2b73da8f3394",
+      "GuideRerankConfiguration": "f1e855f5e70930b3b62cc61a906da4d511435ae42953d3c80f906d20b0e4e9c3",
+      "GuideRerankConfiguration$HttpReranker": "0bf7db1dbb8cebb79a6026f8b1ece2f98a7e069583a9f4feb229fa28282a23f6",
+      "GuideRerankConfiguration$HttpReranker$LimitedBody": "a613aa6abdf94998e4a6a49ac37acff02a905b301cff3b321a885fb7844ff113",
+      "GuideRerankPipeline": "14e32ad91eb5d4cf3c849e8976cd9b7177528f12102fc7789812f2c38439adb4",
+      "GuideReranker": "c8e7207c0bb1ede18f77daf106f9f05b5ebb23232ba168ac399e86745979f698",
+      "McpCancellationTransport": "0e2ffc07dd3103d1f6297e8acb80c4de615dd6f43c766c2866a2940645e34401",
+      "McpCancellationTransport$Scope": "577d31fd2ba9bd14eb0905f52dc5e1a03a57875b2b4722f45e4a57a18028e844",
+      "McpCancellationTransport$Invocation": "64d65a86b9ca5ab7ed058cf3d53fdb127996cee408e17aa4f8281360230fa619",
+      "McpCancellationTransport$Snapshot": "70b9d163f9471cc391f6dc46d08b5f8b483e1ef5a3b7cb435ebdfae0e5e23557",
+      "CancellableMcpToolCallback": "8f458e48dd95b6d9e605fe1ec9523c1a2efbfc8b99f5534cb39903044d4257f3",
+      "McpCancellationConfiguration": "1828a60623da0abf8d896e2799565c6ce6718f7a464cdfb52b1703c830494670",
+      "McpCancellationConfiguration$1": "0752a5f28d55f74fb839bc23f8351e99003211b29795dc51eb1627c5b5af4f0b"
+    },
+    "sha256": "aa675c0a4538bf47bde0baa057ec223e6834052ec6ee28b50a5df5dab1277421"
+  },
+  "candidateGuideCatalog": {
+    "catalogId": "local-guides-species-overview-v1",
+    "schemaVersion": 3,
+    "corpusSha256": "f0760fbccb4f78e623f57bae7c12698a2dd4c6a31d94ff39d072deea89f5d90f",
+    "documentCount": 14
+  },
+  "candidateGuideIndex": {
+    "algorithm": "local-guide-bm25-cjk2-domain-stop-v3+declared-subject-topic-filter-v2-workflow-status",
+    "fingerprint": "sha256:7c4244abccdc25cb2e34e562ac107cf279f7cba2c174991d2558885a9c0ec34d",
+    "builtAt": "2026-11-15T15:20:17.333780800Z",
+    "reused": false,
+    "documentCount": 14,
+    "chunkCount": 30,
+    "duplicateCount": 0,
+    "embeddingModel": "none"
+  },
+  "candidateSemanticState": {
+    "enabled": true,
+    "configured": true,
+    "ready": true,
+    "mode": "BM25",
+    "model": "text-embedding-v4",
+    "dimensions": 1024,
+    "indexedChunks": 30,
+    "state": "NOT_INDEXED"
+  },
+  "rubricSha256": "bc2a8d6c09b27ecc51fcc1fd72aeee04886d841aa0efc496f056ca98652f4eb6",
+  "selectedCaseIds": [
+    "U0-FACTS-07",
+    "U0-FACTS-08",
+    "U0-RETRIEVAL-05",
+    "U0-RETRIEVAL-06",
+    "U0-RETRIEVAL-07",
+    "U0-RETRIEVAL-08",
+    "U0-CONVERSATION-05",
+    "U0-CONVERSATION-07",
+    "U0-CONVERSATION-08",
+    "U0-CALCULATION-07",
+    "U0-CALCULATION-08",
+    "U0-AUTHORIZATION-07"
+  ],
+  "runtimeAfter": {
+    "configuration": {
+      "profiles": [
+        "local",
+        "deepseek"
+      ],
+      "configuredProvider": "deepseek",
+      "configuredModelId": "deepseek-flash",
+      "promptVersion": "campus-s4-intent-v2",
+      "features": {
+        "answerStreaming": true,
+        "conversationConstraints": true,
+        "taskBudget": true,
+        "contextBudget": true
+      },
+      "upgradeFeatures": {
+        "answerBlocks": true,
+        "skills": true,
+        "contextAssembly": true,
+        "rerank": false,
+        "domainTracing": true
+      },
+      "agentCollaboration": {
+        "specialistsEnabled": true,
+        "maxSpecialistModelCalls": 6,
+        "maxSpecialistToolCalls": 8,
+        "maxParallelAgents": 1
+      },
+      "contextBudgetPolicy": {
+        "contextTokens": 32768,
+        "historyTokens": 4096,
+        "historyTurns": 8,
+        "safetyPercent": 125,
+        "outputReserve": 2048
+      },
+      "taskBudgetPolicy": {
+        "maxModelCalls": 16,
+        "tokenLimit": 131072
+      },
+      "domainTracingPolicy": {
+        "sampleRate": 1,
+        "automaticTracing": false
+      }
+    },
+    "sha256": "3cda9be32f8757bbf8509c36b120c3ddc8caeefa5eb445db7b91a61e4e0cb867"
+  },
+  "runtimeBuildAfter": {
+    "manifestVersion": "u6-runtime-components-v23",
+    "manifestSha256": "38b7c1ce3ec7d78e75694ffad9597d35f86043752f5d314f79e9bc498e629186",
+    "components": {
+      "AccountScopeReply": "6e241a8c008dce2f08fd1307733df8210ac5293de5a0128b1859d1b0d8f3584e",
+      "DefaultRunExecutor": "8f03d4b472dcfdd73cd336badb239b96ecace9e822e1b0fb38c472714cdf36e6",
+      "ToolCallAgent": "57a0ac407f52cd812c23281436f5a9eaf18b7af780d0ae0f49e710bbae0253e9",
+      "GuideAnswerEvidence": "55245b0007a8e6270c589c74052b78e82ebecc3408c00cf0a11ceda8d51c481e",
+      "VioManus": "9616def02bf2e493d5155d9e57bd5d30306b98d3955915b08f985454c6d84ecb",
+      "PokemonAgentRunService": "1b348890b7d174e17a5c69bd60c5c934738a887cadb13cc9141052dc4e89d4f1",
+      "LocalGuideSearch": "21fbd06b8ef002e7301788d659330ba273f46189b649655c9453c6bacd844d01",
+      "SavedTrainingRoadmap": "edf97b7eb3163d34964f6a976cc32b773bf5e41e7705576765763fe99c2470a8",
+      "SavedTrainingResources": "3d818c09c1c1a66e27e24f94269f5a8c7ba8ab1a975db59e52ccb189697ced86",
+      "TrainingIntentState": "90f1e1b199ab9fb0a65ad7b74e37033c67fa4e13e1577eebe63560e14d215cea",
+      "TrainingTargetCheck": "c4306222be6bfbadda950a1b0c2a6b5666c8408ffc22c83871c936f82889485c",
+      "TrainingLearningCheck": "88d2a85a1df9019f41ff5c79bc5c99b42f0871298770216dd999d9cafc2026d2",
+      "TrainingResourceBudget": "3865344cdfc498a88e5a4ff8539379e3a7febb41f02a8d54ed80ec7add2f999a",
+      "SavedTrainingGymReview": "4555a6318b8f49c3d3f88d327d0b3df5e83db50057c7f9e37bc98de33de64506",
+      "TrainingStatProjection": "d77c9c9c6dbae9f36b05a7add7cbfd500d7ac45e9f1dcab084c0e0a5e19935fa",
+      "TrainingLevelConstraints": "de257c0d2dcba05c3f07713f1416c37133552a117cf691accfb30294938a42f5",
+      "StaticStatCalculator": "f223a2ed7abe14c53d9936e241d4e8ccc0a1de4d04d6d69cd531f4d1c4e0aa8a",
+      "TrainingProgressCheck": "036e37945c6504fc6cf5f10e232e869d6f7a8af0456e74529900fe589ef17f4b",
+      "GymResourcePolicy": "f98d025c2ec167f308013c22465ac1f28b21c7ae50444849278bf0718571ea84",
+      "GuideRevisionPolicy": "78f86f36f3e7ad9e73db7be4496e99809348b932ed922be8a3060bfd61fea53d",
+      "TeamMutationIntent": "648e274d3a933b0685fa67af4c46b54f0f8ef4d74ae8591c76a4beecd9f9cc7b",
+      "ReferenceRulesReply": "353f69c9392c801fa3ca7cac3e26991a3e95909ed6bbe2416307ed5cee4dc773",
+      "GymFocusedFactReply": "3b789df00fbcdc2713b6ffa0a5825906c299df06231cf5162468bb7555fff546",
+      "AgentToolObservation": "ac5b019d762e255ddb6a94cc91fbd35247f4824835a6bfac6e483b70fd193626",
+      "AgentTracingConfiguration": "2f1c9a6fca21e0df7166cd560722852a961872309520668d79cf370ec3368bce",
+      "ToolExecutionGateway": "e8a9aea0b13b95e45df3da6f038c1b24da80c7077ead13a0c2c9802abe5fff1b",
+      "TaskSkillRegistry": "41b438fcdc1c08f9b359fed1996f38c00d1cc30d6b0bac9c0ff6f25a0bdbe8e5",
+      "TaskContextAssembler": "191e5c97d9651c59255d3b96df1d17d41a38006ca9c97f03b6e23f43a7f3938b",
+      "GuideReferenceIdentity": "7c0331f7b74434260c9cb262dcdce5e5b4b5cc9473eb4e0fdfec03596ea59d5c",
+      "LocalPokeApiRepository": "fd4b684e3a628745487de81a3e649cc231e4d49179ff990b9206013ca5634f2b",
+      "RegionalFormName": "db2b114acba013535b8a770d98f9007dc5b8f9e89a774f364422ef801b5efbaa",
+      "AgentRunObservation": "26d6c1d6eec04e33ddf02be9d7017f035f813f7579784119ec74d71407a96f6b",
+      "DomainTracingObservationHandler": "8062b46767b58b36c7f44492090afc3901d592f09f5b254e4caaadc0588e022c",
+      "SpecialistAgentCoordinator": "0b19f54fe4cdf0f30b5dc057296a6c69455b43b0afb37a3dca88fef9245f49d5",
+      "PokemonAnswerBlock": "fe67b25e9e801035622dda09be738e849163bee74e5c609945abfd9091e0758e",
+      "DamageAnswerBlock": "027a458754f382c93e5d028a7509a9acfb2e69f3c277bad248fe02078313bbd0",
+      "EvidenceAnswerBlock": "881b7377fa818aa50c703698089f46260120bc0ad47ef4ad85e6f5e25628bfb1",
+      "EvidenceAnswerBlock$Source": "971d46dfa45b8362ec4af02a6c7d53500eec0af93f435e0fe4b571e485dae1f6",
+      "TeamSuggestionAnswerBlock": "7487618b5d8612f9ab2cf6ceddd82735e10d8eb4384409f14b7bf4bdc1e3ede1",
+      "LocalDamageEngine": "a6611763c8f9cf19680677224bfa1c6d6c6e289b4b0631ff657ab5d9e8d2eedd",
+      "LocalDamageEngine$Combatant": "3e5d95c65a0618aaa697127c5178467a7f4cd6057238b004a3fd133413da8f9d",
+      "DamageToolSchema": "20b6a10eef67dcf9ec3bf4e5b6331569aeb9ef2232c646da100ef00bb296156b",
+      "TeamAnswerEvidence": "e983a80c5e6e46d15f7b140c01e30eabe45d05cd7b3c019c7adaad0a42177593",
+      "DamageAnswerEvidence": "8eeb1a0db8449e8eb52e9fa3976fa7785e2554647b0cec1866482fd58e51e819",
+      "DamageDialogueRoute": "fe46b598c2a564ea78a8890fc999bc739b6e6bac37fe2d78d16158967749d545",
+      "GameVersionRequest": "4364d5b22933dac7c0dac38db4b092d3c79bda69e0b7090dcdb167f4f1823a47",
+      "CompetitiveTeamsTool": "d3b29a669fb88a019d9253b6b787950e096b006e9a6f1cd03cde8ac984dd9e67",
+      "LocalGuideSemanticSearch": "67f6834fd70d4040d16f1e3b11f2fdcd26d223bfe12d51273435a7e3c1bb6a9d",
+      "GuideSemanticProperties": "5261a54df53a8b57c082321da678b3dc7b12ecaa4686bc4f64c42d2be455093d",
+      "GuideEmbeddingClient": "f85e6f95ffcaf419a7c318d36eaae1bc087b2e06fb032578c34190ff82e80858",
+      "GuideApplicability": "c980bc26b38f32dfa5a2775aaf8e27c33e55cf83ec0dbc1492fdd382c88796d9",
+      "SqliteGuideKnowledgeRetriever": "13a2c4c1698d885e54b82ecb4681ecd76ae9036ee430e5bbb2e42960c07f6ded",
+      "GuideChunks": "dbea9eb1a283addd8e77f0674dafb52418f9246571af6b34482e7e2360a10c97",
+      "TypeMatchupReply": "6800e5ddd96b01a54bf021695c2ea061bc362881dcedd360ae78a1c2595a1899",
+      "SpecialistRole": "cd6044c17e323f391c77ef64b94bb5543d74c97697352455dd4346d4ec088ae1",
+      "GymCatalogAnswer": "5c5d55dae0aedbb887301e8a156a26b62480039b29628ca8e3ae968e1e230bd7",
+      "TrainingMechanicsReply": "a79a374bece39f674fe79d4d3beb07512513fceca7ad5761f610b37f665a23c1",
+      "GymDialogueRouter": "8bd91fef3a3518e946d9d66d63e9e2cfb1b72d556a2790317602b133ea7d5b91",
+      "ConfigurationExplanationRoute": "bdf0165a125137c3f3bae4425ffca5c7b024118f2b01658c0821cffb9ea504cf",
+      "ConfigurationExplanationRoute$Topic": "3d284b9bd31d0a3c1a0b30633cd38d3470dde64a96d7deaffb728706ef494be5",
+      "ConversationRecallReply": "bc4aa1ca41bf431ca8589b9e371e9242ebb2b2a882bd83806859386968d500a9",
+      "GymConversationContext": "e52045962dcb7a98e75525cdfbff2898ae4d4d8ee959326b4c49cdeb9b2203b9",
+      "GymTurnPlan": "8e60547391f73cd1a74be5935b9134c62fffa3c2457b39024122122f717c2a18",
+      "SourceInstructionReply": "6a58d8b6017e4e3e2a9c85569c19a776d3bac6c9523e5ab9641e2b73da8f3394",
+      "GuideRerankConfiguration": "f1e855f5e70930b3b62cc61a906da4d511435ae42953d3c80f906d20b0e4e9c3",
+      "GuideRerankConfiguration$HttpReranker": "0bf7db1dbb8cebb79a6026f8b1ece2f98a7e069583a9f4feb229fa28282a23f6",
+      "GuideRerankConfiguration$HttpReranker$LimitedBody": "a613aa6abdf94998e4a6a49ac37acff02a905b301cff3b321a885fb7844ff113",
+      "GuideRerankPipeline": "14e32ad91eb5d4cf3c849e8976cd9b7177528f12102fc7789812f2c38439adb4",
+      "GuideReranker": "c8e7207c0bb1ede18f77daf106f9f05b5ebb23232ba168ac399e86745979f698",
+      "McpCancellationTransport": "0e2ffc07dd3103d1f6297e8acb80c4de615dd6f43c766c2866a2940645e34401",
+      "McpCancellationTransport$Scope": "577d31fd2ba9bd14eb0905f52dc5e1a03a57875b2b4722f45e4a57a18028e844",
+      "McpCancellationTransport$Invocation": "64d65a86b9ca5ab7ed058cf3d53fdb127996cee408e17aa4f8281360230fa619",
+      "McpCancellationTransport$Snapshot": "70b9d163f9471cc391f6dc46d08b5f8b483e1ef5a3b7cb435ebdfae0e5e23557",
+      "CancellableMcpToolCallback": "8f458e48dd95b6d9e605fe1ec9523c1a2efbfc8b99f5534cb39903044d4257f3",
+      "McpCancellationConfiguration": "1828a60623da0abf8d896e2799565c6ce6718f7a464cdfb52b1703c830494670",
+      "McpCancellationConfiguration$1": "0752a5f28d55f74fb839bc23f8351e99003211b29795dc51eb1627c5b5af4f0b"
+    },
+    "sha256": "aa675c0a4538bf47bde0baa057ec223e6834052ec6ee28b50a5df5dab1277421"
+  },
+  "finishedAt": "2026-11-15T15:22:07.680Z",
+  "collection": {
+    "status": "COLLECTED_PENDING_REVIEW",
+    "exitCode": 0,
+    "errors": []
+  }
+}

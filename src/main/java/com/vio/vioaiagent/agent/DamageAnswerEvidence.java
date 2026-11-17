@@ -92,6 +92,7 @@ public final class DamageAnswerEvidence {
         }
         var defaults=evidence.path("conditionValidation").path("engineDefaultAbilitySides");
         if(defaults.isArray()&&!defaults.isEmpty())text.append("注意：未指定的特性采用了引擎默认特性（见上方实际条件），请确认该假设；这不表示用户已经选择了该特性。\n");
+        else text.append("上方特性等配置为本次计算假设，请核对未明确提供的条件。\n");
         if(gym()){
             text.append("招式：").append(safe(PokemonDisplayNames.calculationLabel("move",assumptions.path("move").asText()))).append("；场地：").append(safe(PokemonDisplayNames.condition(assumptions.path("field").path("gameType").asText()))).append("。\n");
             for(String side:List.of("attacker","defender")){var state=assumptions.path(side).path("state");text.append(side.equals("attacker")?"攻击方状态：":"防御方状态：").append("剩余HP ").append(state.path("hpPercent").asInt()).append("%；太晶 ").append(state.path("teraActive").asBoolean()?safe(PokemonDisplayNames.type(state.path("activeTeraType").asText())):"未激活").append("；异常状态 ").append(safe(PokemonDisplayNames.condition(state.path("status").asText()))).append("；能力变化 ").append(boosts(state.path("boosts"))).append("。\n");}
@@ -118,6 +119,16 @@ public final class DamageAnswerEvidence {
         String comparison;
         if (max == 0) {
             comparison = "本次计算结果为零伤害；仅凭这个结果不能认定是属性、特性或其他机制导致。";
+            if (!gym() && evidence.path("defenderTypes").isArray() && !evidence.path("moveType").asText().isBlank()) {
+                var defending = new ArrayList<String>();
+                evidence.path("defenderTypes").forEach(type -> defending.add(PokemonDisplayNames.type(type.asText())));
+                String attack = PokemonDisplayNames.type(evidence.path("moveType").asText());
+                try {
+                    if (new com.vio.vioaiagent.pokemon.calculator.TypeEffectivenessCalculator().calculate(attack, defending.toArray(String[]::new)) == 0)
+                        comparison = "已核对本次引擎回读的" + attack + "属性招式及目标" + String.join("／", defending)
+                                + "属性，基础属性表的倍率为0，符合属性免疫。本次引擎结果为0～0，零伤害本身属于有效计算结果。其他特性和状态以所列计算条件为准。";
+                } catch (IllegalArgumentException unsupported) { /* Older or unsupported metadata retains the bounded numerical explanation. */ }
+            }
             if(gym()&&"Ground".equals(evidence.path("moveType").asText())&&"Levitate".equals(evidence.path("assumptions").path("defender").path("ability").asText())&&!evidence.path("assumptions").path("field").path("isGravity").asBoolean()
                     &&!Set.of("Mold Breaker","Teravolt","Turboblaze").contains(evidence.path("assumptions").path("attacker").path("ability").asText()))comparison="本次计算为零伤害：在当前无重力、无破格类特性等所列条件下，地面招式受到防御方飘浮免疫；电太晶不会移除其特性。不能把这个零伤害当作整场胜负结论。";
         } else if (min >= hp) {

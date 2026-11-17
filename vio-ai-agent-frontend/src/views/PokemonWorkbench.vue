@@ -103,7 +103,7 @@
           <div v-else-if="factsState.status === 'error'" class="state-box error" role="alert">事实读取失败：{{ factsState.error }}<button type="button" @click="searchFacts">重试</button></div>
           <div v-else-if="factsState.status === 'empty'" class="state-box empty">该 data release 没有可展示的事实；候选/未审核数据不会被前端猜测。</div>
           <div v-else-if="facts.length" class="fact-list">
-            <article v-for="fact in facts" :key="`${fact.dataReleaseId}:${fact.formId}`" class="fact-card">
+            <article v-for="fact in displayedFacts" :key="`${fact.dataReleaseId}:${fact.formId}`" class="fact-card">
               <button class="fact-favorite" type="button" :aria-label="isFactFavorite(fact) ? '该资料已收藏' : '收藏该资料'" :aria-pressed="isFactFavorite(fact)" :disabled="favoritesState.status === 'saving' || isFactFavorite(fact)" @click="favoriteFact(fact)"><UiIcon name="star" /></button>
               <div class="fact-hero">
                 <div>
@@ -122,7 +122,8 @@
                 <button class="primary-btn" type="button" :disabled="teamsState.status === 'saving'" @click="addFactToTeam(fact)"><UiIcon name="plus" />加入队伍</button>
                 <button class="secondary-btn" type="button" :disabled="busy" @click="askAboutFact(fact)"><UiIcon name="chat" />询问 AI</button>
               </div>
-              <details class="fact-provenance"><summary><UiIcon name="book" />{{ fact.releaseStatus === 'LOCAL_REFERENCE' ? 'PokéAPI · 本地参考' : '资料来源与版本' }}<UiIcon name="chevron" /></summary>
+              <details class="fact-provenance" @keydown.esc="closeFactProvenance"><summary><UiIcon name="book" />{{ fact.releaseStatus === 'LOCAL_REFERENCE' ? 'PokéAPI · 本地参考' : '资料来源与版本' }}<UiIcon name="chevron" /></summary>
+              <div class="fact-provenance-content">
               <div class="lineage-block">
                 <span>data release：<code>{{ fact.dataReleaseId || '未返回' }}</code></span>
                 <span>game release：<code>{{ fact.gameReleaseId || '未返回' }}</code></span>
@@ -135,10 +136,16 @@
                 <span v-else class="muted">服务端未返回可验证 HTTP(S) 来源</span>
                 <span class="evidence-text">证据摘录：{{ fact.evidenceText || '当前 Fact DTO 未提供 evidenceText，不能由前端补写。' }}</span>
               </div>
+              </div>
               </details>
             </article>
           </div>
           <div v-else class="state-box idle fact-empty"><PokemonPortrait form-id="7" name="杰尼龟" /><strong>从一位伙伴开始</strong><p>输入“杰尼龟”、squirtle 或编号 7，<br />看看它的属性与种族值。</p></div>
+          <nav v-if="embedded && facts.length > 1 && factsState.status === 'ready'" class="fact-pagination" aria-label="图鉴查询结果翻页">
+            <button type="button" :disabled="factIndex === 0" @click="selectFactPage(factIndex - 1)">上一条</button>
+            <span aria-live="polite">{{ factIndex + 1 }} / {{ facts.length }}</span>
+            <button type="button" :disabled="factIndex === facts.length - 1" @click="selectFactPage(factIndex + 1)">下一条</button>
+          </nav>
           <section class="draft-preview" aria-label="当前队伍预览"><div><strong>当前队伍 · {{ teamForm.members.filter(Boolean).length }}/6</strong><button type="button" @click="showSection('teams')">编辑队伍 →</button></div><div class="draft-preview-slots"><button v-for="(id, index) in teamForm.members" :key="index" type="button" :aria-label="id ? `编辑第 ${index + 1} 位成员` : `添加第 ${index + 1} 位成员`" @click="id ? selectMember(index) : factSearchInput?.focus()"><PokemonPortrait v-if="id" :form-id="id" :name="memberName(index)" /><UiIcon v-else name="plus" /></button></div></section>
         </section>
 
@@ -474,6 +481,7 @@ import TeamBuildCheckPanel from '@/components/TeamBuildCheckPanel.vue'
 import { createTeamExport, teamFileName, MAX_TEAM_FILE_BYTES, TERA_LABELS } from '@/api/team-transfer'
 import {buildCheckDraft} from '@/api/build-check'
 import {teamBuildQuestion} from '@/api/team-build-check'
+import { trainingBlockToDraft } from '@/api/training-draft'
 
 const props = defineProps({
   embedded: { type: Boolean, default: false },
@@ -568,7 +576,7 @@ async function openPokemon(query) {
   factQuery.value = identity?.nameZh || String(query || '')
   await searchFacts()
 }
-defineExpose({ showSection, openPokemon, resumeConversation, analyzeCurrentTeam, refreshHistory: loadConversations, refreshConfirmedTeam })
+defineExpose({ showSection, openPokemon, resumeConversation, analyzeCurrentTeam, refreshHistory: loadConversations, refreshConfirmedTeam, importTrainingDraft })
 async function refreshConfirmedTeam(saved) {
   if (!saved?.id) return
   const canReplace = String(editingTeamId.value) === String(saved.id) && teamSaved.value
@@ -605,6 +613,19 @@ const context = props.scenario || reactive({
 const factQuery = ref('')
 const nameSuggestions = computed(() => matchingPokemonNames(factQuery.value, props.pokemonNames))
 const facts = ref([])
+const factIndex = ref(0)
+const displayedFacts = computed(() => props.embedded ? facts.value.slice(factIndex.value, factIndex.value + 1) : facts.value)
+function selectFactPage(index) {
+  if (index < 0 || index >= facts.value.length) return
+  factIndex.value = index
+  emit('fact-selected', facts.value[index])
+}
+function closeFactProvenance(event) {
+  if (!event.currentTarget.open) return
+  event.stopPropagation()
+  event.currentTarget.open = false
+  event.currentTarget.querySelector('summary')?.focus()
+}
 const teams = ref([])
 const activities = ref([])
 const favorites = ref([])
@@ -1005,6 +1026,7 @@ async function searchFacts() {
     })
     if (requestWasSuperseded(controller)) return
     facts.value = resourceItems(result)
+    factIndex.value = 0
     emit('fact-selected', facts.value[0] || null)
     facts.value.forEach(rememberFact)
     markCollection(factsState, facts.value)
@@ -1105,6 +1127,40 @@ function exportTeamFile() {
 function chooseTeamFile() {
   if (teamsState.status !== 'saving' && !teamImporting.value) teamPasteOpen.value = true
 }
+function applyImportedTeam(team) {
+  // Always create a new local draft; never retain a source team ID or edit baseline.
+  editingTeamId.value = null
+  editingBaseline.value = ''
+  teamForm.name = team.name
+  teamForm.rulesetId = team.rulesetId
+  teamForm.dataReleaseId = team.dataReleaseId
+  teamForm.members = Array.from({ length: 6 }, (_, index) => {
+    const member = team.members.find(value => value.slot === index + 1)
+    memberBuilds[index] = member ? { ...defaultBuild(), ...JSON.parse(JSON.stringify(member.build)), movesText: member.build.moves.join(', ') } : defaultBuild()
+    return member ? String(member.formId) : ''
+  })
+  teamPasteOpen.value = false
+  selectedMember.value = team.members[0].slot - 1
+  teamFormError.value = ''
+  hydrateTeamMembers(team)
+}
+
+function importTrainingDraft(raw) {
+  if (disposed) return false
+  if (props.busy || teamImporting.value || teamsState.status === 'saving') { resourceNotice.value='当前任务、保存或导入尚未结束，请稍后再导入配置卡片。';return false }
+  try {
+    const team = trainingBlockToDraft(raw, context)
+    const checkpoint = JSON.stringify([teamForm,memberBuilds,editingTeamId.value,context])
+    if (!teamSaved.value && (teamForm.name || teamForm.members.some(Boolean)) && !window.confirm('当前未保存草稿将被替换。只导入为新草稿，不修改任何已保存队伍。继续？')) return false
+    if (checkpoint !== JSON.stringify([teamForm,memberBuilds,editingTeamId.value,context])) throw new Error('确认期间队伍或版本已变更，请重新导入')
+    applyImportedTeam(team)
+    resourceNotice.value = ''
+    showSection('teams')
+    transferNotice(`已从读取时快照导入「${team.name}」为新草稿，原队伍未修改；核对后手动保存。`)
+    return true
+  } catch (error) { resourceNotice.value=`导入失败：${error.message}`;transferNotice(resourceNotice.value,true);return false }
+}
+
 async function importTeamFile(event) {
   const file = event.target.files?.[0]
   event.target.value = '' // Selecting the same file again must still trigger change.
@@ -1138,21 +1194,7 @@ async function importTeamFile(event) {
     if (!teamSaved.value && (teamForm.name || teamForm.members.some(Boolean))) notices.push('当前未保存的草稿将被替换。')
     if (team.rulesetId !== context.rulesetVersionId || team.dataReleaseId !== context.dataReleaseId) notices.push('文件与当前规则或数据版本不同，将保留文件中的队伍版本。')
     if (notices.length && !window.confirm(`${notices.join('\n')}\n确认导入？已有的已保存队伍不会被覆盖。`)) return
-    // Do not accept portable file IDs as an existing account-owned team.
-    editingTeamId.value = null
-    editingBaseline.value = ''
-    teamForm.name = team.name
-    teamForm.rulesetId = team.rulesetId
-    teamForm.dataReleaseId = team.dataReleaseId
-    teamForm.members = Array.from({ length: 6 }, (_, index) => {
-      const member = team.members.find(value => value.slot === index + 1)
-      memberBuilds[index] = member ? { ...defaultBuild(), ...member.build, movesText: member.build.moves.join(', ') } : defaultBuild()
-      return member ? String(member.formId) : ''
-    })
-    teamPasteOpen.value = false
-    selectedMember.value = team.members[0].slot - 1
-    teamFormError.value = ''
-    hydrateTeamMembers(team)
+    applyImportedTeam(team)
     transferNotice(`已导入「${team.name}」，点击保存队伍创建新队伍。格式校验不代表赛制合法性。`)
   } catch (error) {
     if (!disposed) transferNotice(`导入失败：${error.message}`, true)

@@ -15,11 +15,14 @@ public final class CompetitiveTrendsRequest {
     }
     private static boolean has(String q, String expression) { return Pattern.compile(expression, Pattern.CASE_INSENSITIVE).matcher(q).find(); }
     public static Optional<Plan> select(String request, List<Message> history) {
-        if (request == null || request.length() > 800 || has(request, "[\\r\\n]|```|本地|文档|笔记|不要联网|不用联网|禁止联网|不联网|不需要联网|不必联网|不要搜索|不搜索|不用搜索|不必搜索|不要检索|不用查|不要查|别搜|别联网|离线|解释|定义|是什么意思|为什么|保存|修改|删除|预览|读取|计算|伤害|以下资料|引用文本|示例")) return Optional.empty();
-        String positive=request.replaceAll("(?:不要|不必|无需)(?:把.{0,30}(?:说成|当作)|介绍|讨论|查询)?(?:当前)?(?:热门阵容|热门队伍|使用率|胜率|排行榜)","");
+        if (request == null || request.length() > 800) return Optional.empty();
+        String intent=request.replaceAll("(?:读取不了|读取失败|访问不了|访问失败|获取失败|抓取失败|抓不到)[^。；;]*", "");
+        if (has(intent, "[\\r\\n]|```|本地|文档|笔记|不要联网|不用联网|禁止联网|不联网|不需要联网|不必联网|不要搜索|不搜索|不用搜索|不必搜索|不要检索|不用查|不要查|别搜|别联网|离线|解释|定义|是什么意思|为什么|保存|修改|删除|预览|读取|计算|伤害|以下资料|引用文本|示例")) return Optional.empty();
+        String positive=intent.replaceAll("(?:不要|不必|无需)(?:把.{0,30}(?:说成|当作)|介绍|讨论|查询)?(?:当前)?(?:热门阵容|热门队伍|使用率|胜率|排行榜)","");
         boolean current = has(positive, "热门|强势|流行|主流|使用率|胜率|meta")
                 && has(positive, "队伍|阵容|配队|搭配|使用率|胜率|meta");
         current=current || has(positive,"当前|最近")&&has(positive,"完整样例队伍|完整队伍|六人完整配置");
+        current=current || has(positive,"完整.{0,8}(样例|队伍|阵容)|(?:样例|队伍|阵容).{0,8}完整")&&has(positive,"gen9ou|OU|VGC");
         if (!current && history != null && request.length() < 80 && has(request, "OU|VGC|单打|双打|同属性")) {
             // Only a direct answer to our immediately preceding clarification qualifies.
             int lastIndex = history.size() - 1;

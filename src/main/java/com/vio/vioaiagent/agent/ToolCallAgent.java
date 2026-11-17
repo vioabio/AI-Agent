@@ -40,6 +40,58 @@ import java.util.stream.Collectors;
 @Data
 @Slf4j
 public class ToolCallAgent extends ReActAgent {
+    private java.util.function.Consumer<PokemonAnswerBlock> pokemonBlockSink;
+    private java.util.function.Consumer<DamageAnswerBlock> damageBlockSink;
+    private java.util.function.Consumer<TeamSuggestionAnswerBlock> teamBlockSink;
+    private java.util.function.BiConsumer<Long,com.vio.vioaiagent.pokemon.team.TeamWorkflowService.ReadTeam> trainingPlanSink;
+    public void setTrainingPlanSink(java.util.function.BiConsumer<Long,com.vio.vioaiagent.pokemon.team.TeamWorkflowService.ReadTeam> sink){trainingPlanSink=sink;}
+    private void publishVerifiedTraining(ToolResponseMessage.ToolResponse response){
+        if(trainingPlanSink==null||!"readCurrentTeam".equals(response.name())||response.responseData()==null||response.responseData().length()>120000)return;
+        long id;com.vio.vioaiagent.pokemon.team.TeamWorkflowService.ReadTeam read;
+        try{
+            String arguments=toolCallChatResponse.getResult().getOutput().getToolCalls().stream().filter(c->c.id().equals(response.id())&&c.name().equals(response.name())).map(AssistantMessage.ToolCall::arguments).findFirst().orElseThrow();
+            var requested=new com.fasterxml.jackson.databind.ObjectMapper().readTree(arguments).path("teamId");
+            if(!requested.isIntegralNumber()||!requested.canConvertToLong())return;id=requested.asLong();
+            var evidence=new SavedTeamAnswerEvidence();evidence.observe(response.name(),response.responseData());read=evidence.verifiedRead().orElseThrow();
+        }catch(Exception invalid){return;}
+        trainingPlanSink.accept(id,read);
+    }
+    public void setTeamBlockSink(java.util.function.Consumer<TeamSuggestionAnswerBlock> sink){teamBlockSink=sink;}
+    private void publishVerifiedTeam(ToolResponseMessage.ToolResponse response){
+        if(teamBlockSink==null||!"lookupPokemonTeamReference".equals(response.name())||response.responseData()==null||response.responseData().length()>1048576)return;
+        TeamSuggestionAnswerBlock block;
+        try {
+            String arguments=toolCallChatResponse.getResult().getOutput().getToolCalls().stream().filter(c->c.id().equals(response.id())&&c.name().equals(response.name())).map(AssistantMessage.ToolCall::arguments).findFirst().orElseThrow();
+            var mapper=new com.fasterxml.jackson.databind.ObjectMapper();var request=mapper.readTree(arguments);
+            var queries=mapper.convertValue(request.path("queries"),new com.fasterxml.jackson.core.type.TypeReference<List<String>>(){});
+            block=TeamSuggestionAnswerBlock.from(queries,request.path("dataReleaseId").asText(),mapper.readValue(response.responseData(),com.vio.vioaiagent.pokemon.reference.TeamReferenceTools.TeamEvidence.class));
+        }catch(Exception invalid){return;}
+        teamBlockSink.accept(block);
+    }
+    public void setDamageBlockSink(java.util.function.Consumer<DamageAnswerBlock> sink){damageBlockSink=sink;}
+    private void publishVerifiedDamage(org.springframework.ai.chat.messages.ToolResponseMessage.ToolResponse response){
+        if(damageBlockSink==null||!"calculateBattleDamage".equals(response.name())||response.responseData()==null||response.responseData().length()>131072)return;
+        DamageAnswerBlock block;
+        try {
+            String arguments=toolCallChatResponse.getResult().getOutput().getToolCalls().stream().filter(c->c.id().equals(response.id())&&c.name().equals(response.name())).map(org.springframework.ai.chat.messages.AssistantMessage.ToolCall::arguments).findFirst().orElseThrow();
+            var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
+            var request=mapper.treeToValue(mapper.readTree(arguments).path("request"),com.vio.vioaiagent.pokemon.engine.LocalDamageEngine.Request.class);
+            block=DamageAnswerBlock.from(request,mapper.readTree(response.responseData()));
+        }catch(Exception invalid){return;}
+        damageBlockSink.accept(block);
+    }
+    public void setPokemonBlockSink(java.util.function.Consumer<PokemonAnswerBlock> sink){this.pokemonBlockSink=sink;}
+    private void publishVerifiedPokemon(String name,String response) {
+        if(pokemonBlockSink==null||!"lookupPokemonReference".equals(name)||response==null||response.length()>500000)return;
+        PokemonAnswerBlock block;
+        try {
+            var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
+            var fact=mapper.treeToValue(mapper.readTree(response).path("fact"),com.vio.vioaiagent.pokemon.domain.PokemonFact.class);
+            block=PokemonAnswerBlock.from(fact);
+        }catch(Exception invalid){return;}
+        pokemonBlockSink.accept(block);
+    }
+
 
     /** 单次工具调用返回结果的最大字符数（超过则截断，防止 Token 爆炸） */
     private static final int MAX_TOOL_OUTPUT_LENGTH = 3000;
@@ -126,6 +178,8 @@ public class ToolCallAgent extends ReActAgent {
         if (mcpTools == null || mcpTools.length == 0) {
             return availableTools;
         }
+        mcpTools = Arrays.stream(mcpTools)
+                .map(com.vio.vioaiagent.mcp.client.CancellableMcpToolCallback::wrap).toArray(ToolCallback[]::new);
         if (toolExecutionGateway != null) {
             mcpTools = toolExecutionGateway.wrap(mcpTools);
         }
@@ -140,6 +194,10 @@ public class ToolCallAgent extends ReActAgent {
     @Override
     public boolean think() {
         String currentQuestion = currentQuestion();
+        var version=GameVersionRequest.clarification(currentQuestion,guideGameReleaseId);
+        if(version.isPresent()) {finalAnswer=publishVerified(version.get());setState(AgentState.FINISHED);return false;}
+        var knockout=DamageDialogueRoute.inputSufficiencyReply(currentQuestion);
+        if(knockout.isPresent()) {finalAnswer=publishVerified(knockout.get());setState(AgentState.FINISHED);return false;}
         if(ExplicitDamageRequest.hasInput(currentQuestion)&&ExplicitDamageRequest.arguments(currentQuestion).isEmpty()){
             finalAnswer=publishVerified(ExplicitDamageRequest.INVALID_INPUT);setState(AgentState.FINISHED);return false;
         }
@@ -190,6 +248,7 @@ public class ToolCallAgent extends ReActAgent {
                             + draftIdentity.instruction() + TeamMutationIntent.instruction(currentQuestion));
             ToolCallback[] planningTools = gymMode?GymQuestionPolicy.tools(getMergedTools()):TeamMutationIntent.planningTools(currentQuestion,
                             draftIdentity.planningTools(TeamBuildAnswerEvidence.planningTools(currentQuestion,getMergedTools())));
+            planningTools = GuideAnswerEvidence.statMeaningTools(currentQuestion, planningTools);
             specialistDecision = specialistCoordinator==null?null:specialistCoordinator.plan(planningTools,planningInstruction).orElse(null);
             // Tool selection is private. A model can put planning text in content,
             // not only reasoning_content, so it must never share the answer stream.
@@ -439,7 +498,7 @@ public class ToolCallAgent extends ReActAgent {
         });
         // Existing registered callback, same gateway/context/lease; no second registration or ungoverned invocation.
         String output=toolExecutionGateway.execute(guide,input,marked).toModelText();
-        guideAnswerEvidence.observe("searchPokemonGuides",output);
+        guideAnswerEvidence.observe("searchPokemonGuides",output,input);
         String id=purpose+"-guide-"+java.util.UUID.randomUUID();
         getMessageList().add(new AssistantMessage("",java.util.Map.of("selectionOrigin",origin),List.of(
                 new AssistantMessage.ToolCall(id,"function","searchPokemonGuides",input))));
@@ -517,6 +576,16 @@ public class ToolCallAgent extends ReActAgent {
             }).toList();
             toolCallChatResponse = new ChatResponse(generations, toolCallChatResponse.getMetadata());
         }
+        var normalizedGenerations=toolCallChatResponse.getResults().stream().map(generation -> {
+            var output=generation.getOutput();
+            var calls=output.getToolCalls().stream().map(call -> {
+                String arguments=com.vio.vioaiagent.tools.governance.DamageToolSchema.unwrapRequest(call.name(),call.arguments());
+                return java.util.Objects.equals(arguments,call.arguments())?call
+                        :new AssistantMessage.ToolCall(call.id(),call.type(),call.name(),arguments);
+            }).toList();
+            return new org.springframework.ai.chat.model.Generation(new AssistantMessage(output.getText(),output.getMetadata(),calls),generation.getMetadata());
+        }).toList();
+        toolCallChatResponse=new ChatResponse(normalizedGenerations,toolCallChatResponse.getMetadata());
         if (!toolCallChatResponse.hasToolCalls()) {
             return "没有工具需要调用";
         }
@@ -608,6 +677,10 @@ public class ToolCallAgent extends ReActAgent {
                         toolCallChatResponse.getResult().getOutput().getToolCalls().stream()
                                 .filter(call -> call.id().equals(response.id()) && call.name().equals(response.name()))
                                 .map(AssistantMessage.ToolCall::arguments).findFirst().orElse(null)));
+        toolResponseMessage.getResponses().forEach(response -> publishVerifiedPokemon(response.name(),response.responseData()));
+        toolResponseMessage.getResponses().forEach(this::publishVerifiedDamage);
+        toolResponseMessage.getResponses().forEach(this::publishVerifiedTeam);
+        toolResponseMessage.getResponses().forEach(this::publishVerifiedTraining);
         if (savedTeamAnswerEvidence != null) toolResponseMessage.getResponses().forEach(response ->
                 savedTeamAnswerEvidence.observe(response.name(), response.responseData()));
         if (teamWorkflow != null) toolResponseMessage.getResponses().forEach(response ->
@@ -660,6 +733,11 @@ public class ToolCallAgent extends ReActAgent {
     }
 
     protected String summarizeAnswer() {
+        // A pure form comparison is a factual request, even if the planner made unrelated reads.
+        if (guideAnswerEvidence != null) {
+            var forms = guideAnswerEvidence.formComparisonAnswer();
+            if (forms.isPresent()) return publishVerified(forms.get());
+        }
         var types=TypeMatchupReply.reply(currentQuestion());
         if(types.isPresent())return publishVerified(types.get());
         if (LocalGuideOnlyRoute.matches(currentQuestion()) && guideAnswerEvidence != null)
@@ -687,6 +765,8 @@ public class ToolCallAgent extends ReActAgent {
         boolean guardedSaved = savedTeamAnswerEvidence != null && savedTeamAnswerEvidence.complete();
         boolean guarded = guardedTeam || guardedDamage || guardedSaved;
         if (!guarded && guideAnswerEvidence != null) {
+            var forms = guideAnswerEvidence.formComparisonAnswer();
+            if (forms.isPresent()) return publishVerified(forms.get());
             var comparison=guideAnswerEvidence.speedComparisonAnswer();
             if(comparison.isPresent())return publishVerified(comparison.get());
             var basicFacts = guideAnswerEvidence.basicFactAnswer();
@@ -705,6 +785,8 @@ public class ToolCallAgent extends ReActAgent {
         String verifiedPrefix = (guardedSaved ? savedTeamAnswerEvidence.verifiedSummary() + "\n" : "")
                 + (guardedTeam ? teamAnswerEvidence.verifiedSummary() + "\n" : "")
                 + (guardedDamage ? (damageAnswerEvidence.complete() ? damageAnswerEvidence.verifiedSummary() : damageAnswerEvidence.missingAnswer()) + "\n" : "");
+        if (guardedTeam && teamAnswerEvidence.factsOnly() && !guardedDamage && !guardedSaved)
+            return publishVerified(verifiedPrefix);
         if (guideAnswerEvidence != null && guideAnswerEvidence.active()) {
             // Search success cannot authorize arbitrary prose to inherit citations.
             // Preserve independently checked team/calculation facts for mixed tasks.

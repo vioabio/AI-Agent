@@ -58,6 +58,11 @@ class SpeciesGuidePreflightTest {
             else assertTrue(events.isEmpty());
             if(alreadyFocused||triggered&&role.equals("trainer"))assertTrue(agent.getFinalAnswer().contains("特攻努力值252、速度252、HP 4"));
             else assertFalse(agent.getFinalAnswer().contains("特攻努力值252、速度252、HP 4"));
+            if(triggered&&role.equals("trainer")) {
+                evidence.observe("searchPokemonGuides","[]",mapper.writeValueAsString(Map.of(
+                        "query","通用组队角色","gameReleaseId","pokemon-scarlet-violet")));
+                assertTrue(evidence.verifiedAnswer().contains("特攻努力值252、速度252、HP 4"));
+            }
         }finally{ToolExecutionContextHolder.clear();gateway.shutdown();hitl.shutdown();}
     }
     @Test void missingModelSubjectGetsOneMarkedGovernedSourceReadWithoutAnotherModelCall() throws Exception {exercise("trainer",false,true,true);}

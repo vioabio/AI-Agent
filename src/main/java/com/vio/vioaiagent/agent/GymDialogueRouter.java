@@ -10,14 +10,25 @@ public final class GymDialogueRouter {
     public static Optional<String> reply(AgentRunContext context, ToolCallback[] tools) {
         var plan = GymTurnPlan.from(context);
         if (!"pokemon-scarlet-violet".equals(plan.gameReleaseId())) return Optional.empty();
+        String prompt=context.run().prompt();
+        if(plan.target().isPresent() && prompt.length()<300 && !prompt.contains("\n")
+                && prompt.matches("(?:我)?(?:目前|现在|当前)?(?:只有|仅有)(?:一|1)(?:名|只|个)(?:成员|宝可梦)[，,].*")
+                && prompt.contains("完整") && prompt.contains("双打") && prompt.contains("出招顺序"))
+            return Optional.of("目前只有一名成员的信息，尚不足以制定应对"+plan.target().orElseThrow().name()+"的完整双打行动方案。请补充双方首发、我方成员的实际等级与招式、特性、道具和当前场面；出手先后还需实际速度、优先度及状态。资料齐全后可核对行动候选和计算条件，具体对局仍需随对手行动调整。");
         if(context.run().prompt().matches("(?s).*(剑盾|剑／盾|剑/盾|绿宝石|火红|叶绿|究极之日|究极之月).*")&&!context.run().prompt().contains("不要混用"))return GymQuestionPolicy.clarification(context.run().prompt());
         Optional<String> response;
-        if (plan.intent() == GymTurnPlan.Intent.CATALOG) {
-            String question=context.run().prompt();
-            if(plan.target().isPresent()&&(GymOrdinalReference.requestedOrdinal(question).isPresent()||question.matches("(?s).*(这个|该|这位)馆主.*"))){
+        if (plan.intent() == GymTurnPlan.Intent.CATALOG && GymCatalogAnswer.requestsOverview(prompt)) {
+            response = GymCatalogAnswer.overview(prompt);
+        } else if (plan.intent() == GymTurnPlan.Intent.CATALOG) {
+            var focused=GymFocusedFactReply.reply(plan,context.run().prompt());
+            if(focused.isPresent())response=focused;
+            else {
+            String question=GymConversationContext.requestedActions(context.run().prompt());
+            if(plan.target().isPresent()){
                 var target=plan.target().get();question+="\n目标馆主："+target.name()+"；"+(target.phase().equals("rematch")?"只看重赛":"只看初战");
             }
             response=GymCatalogAnswer.reply(question,plan.gameReleaseId(),GymOrdinalReference.displayedOrder(context.dialogueHistory()));
+            }
         } else if (plan.intent() == GymTurnPlan.Intent.SAVED_TEAM_ANALYSIS) {
             response = SavedGymQuestionRoute.reply(context, tools,true);
         } else if (plan.intent() == GymTurnPlan.Intent.RECOMMEND_TEAM || plan.intent() == GymTurnPlan.Intent.GENERAL_ADVICE) {

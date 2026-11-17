@@ -66,7 +66,12 @@ public class GymChallengeService {
             for(String move:member.build().moves()){
                 var known=options.lookupMove(move.toLowerCase(Locale.ROOT).replace(' ','-'));
                 if(known.typeKey()==null||!TYPES.containsKey(known.typeKey())||known.damageClass()==null){missing.add("招式 "+move+" 参数未取得");continue;}
-                if("status".equals(known.damageClass()))continue;
+                if("status".equals(known.damageClass())) {
+                    plan.add(name+"的"+known.nameZh()+"属于变化招式，可作为功能候选；需另行核对机制、使用时机及队友配合");
+                    continue;
+                }
+                if (!suggestedAttack(known.nameZh()))
+                    missing.add(name+"的点到为止会保留目标至少1HP，已从击倒出招候选中排除，属性相性仍保留供核对。机制参考 https://github.com/smogon/pokemon-showdown/blob/master/data/moves.ts");
                 for(var foe:gym.path("opponents")){
                     List<String> defending=new ArrayList<>();foe.path("types").forEach(t->defending.add(t.asText()));
                     double before=effectiveness(TYPES.get(known.typeKey()),defending,foe.path("ability").asText());
@@ -76,9 +81,9 @@ public class GymChallengeService {
             }
         }
         for(var foe:gym.path("opponents")){
-            var best=results.stream().filter(r->r.opponent().equals(foe.path("name").asText())&&r.afterTera()>0).max(Comparator.comparingDouble(Matchup::afterTera).thenComparingInt(Matchup::levelGap));
+            var best=results.stream().filter(r->suggestedAttack(r.move())&&r.opponent().equals(foe.path("name").asText())&&r.afterTera()>0).max(Comparator.comparingDouble(Matchup::afterTera).thenComparingInt(Matchup::levelGap));
             if(best.isPresent()){var b=best.get();plan.add("对 "+b.opponent()+" 可优先考虑第"+b.slot()+"位 "+b.pokemon()+" 的 "+b.move()+"（"+b.afterTera()+"倍属性效果），仅为当前招式中的覆盖候选，不是伤害或先手保证");}
-            else missing.add("对 "+foe.path("name").asText()+" 尚无可评估的已填攻击招式");
+            else missing.add("对 "+foe.path("name").asText()+" 缺少可用于击倒的已核对攻击候选");
         }
         if(gym.path("id").asText().equals("iono"))plan.add("关键威胁：梦妖魔电太晶后仍有飘浮，地面攻击无效；不要按电属性弱地面直接安排收尾");
         if(gym.path("id").asText().equals("ryme"))plan.add("这是双打；需安排两位首发、注意群体招式与友军波及，以及现场观众带来的能力变化");
@@ -86,6 +91,10 @@ public class GymChallengeService {
         missing.add("馆主等级、招式、特性、持物已收录；性格、EV、IV及实时HP未核实，伤害计算必须明确假设，不代表NPC真实数值");
         missing.add("当前捕获/获得等级未提供，不能仅按现等级断言服从。资源只检查已收录途径；解锁途径不等于背包已有、可学习或有足够制作材料");
         return new Report(gym.deepCopy(),List.copyOf(results),List.copyOf(plan),List.copyOf(missing),"sv-"+phase+"-v2 / 核对2026-11-08",badges,edition,resourceChecks);
+    }
+    /** False Swipe's onDamage cap is defined in Pokemon Showdown data/moves.ts. */
+    public static boolean suggestedAttack(String move) {
+        return !Set.of("点到为止", "false-swipe", "False Swipe").contains(move);
     }
     static double effectiveness(String attack,List<String> defending,String ability){if(attack.equals("地面")&&ability.equalsIgnoreCase("levitate"))return 0;return new TypeEffectivenessCalculator().calculate(attack,defending.toArray(String[]::new));}
 }

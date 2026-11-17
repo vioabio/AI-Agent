@@ -8,6 +8,17 @@ import java.util.concurrent.Executors;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PokemonAgentRunServiceToolOutcomeTest {
+    @Test void rerankObservationSurvivesRunEventPersistence() {
+        var events=new InMemoryEventRepository();
+        RunExecutor executor=context->{var scope=ToolExecutionContextHolder.current();scope.eventSink().accept(new ToolGovernanceEvent("retrieval.finished",scope.runId(),"searchPokemonGuides","rank-event",Instant.now(),Map.of("rerankState","RRF_FALLBACK","retrievalStage","POST_RETRIEVAL_RERANK")));return "fallback answer";};
+        var service=new PokemonAgentRunService(new InMemoryRunRepository(),events,new InMemoryConversationRepository(),new InMemoryChatMessageRepository(),executor,Executors.newSingleThreadExecutor(),Executors.newSingleThreadScheduledExecutor());
+        try{
+            var run=service.createRun(new CreateRunCommand("owner",null,null,"fixture","sv-1","singles","rules-1","zh-CN",null,null,Duration.ofSeconds(15)));
+            assertEquals(AgentEventType.RUN_COMPLETED,RunTestAwait.awaitTerminalEvent(events,run.runId()).type());
+            var observed=events.findAfter(run.runId(),0).stream().filter(e->e.type()==AgentEventType.RETRIEVAL_FINISHED).toList();
+            assertEquals(1,observed.size());assertEquals("RRF_FALLBACK",observed.getFirst().payload().get("rerankState"));
+        }finally{service.shutdown();}
+    }
     @Test void failedCalculationPublishesFailedTerminalWithSafeMessage() {
         var runs=new InMemoryRunRepository();var events=new InMemoryEventRepository();
         var service=new PokemonAgentRunService(runs,events,new InMemoryConversationRepository(),new InMemoryChatMessageRepository(),

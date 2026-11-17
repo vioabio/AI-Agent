@@ -1,7 +1,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { canUseApplication, createSessionController, normalizeSession } from '../src/auth/session-state.js'
+import { canUseApplication, createSessionController, normalizeSession, workspaceRouteWithoutConversation } from '../src/auth/session-state.js'
+
+test('身份切换清理旧会话路由，保留公共筛选且不改写原路由', () => {
+  const route = {path:'/game-master',query:{conversation:'private-owner-a',gameReleaseId:'pokemon-scarlet-violet',panel:'resources'},hash:'#facts'}
+  assert.deepEqual(workspaceRouteWithoutConversation(route),{path:'/game-master',query:{gameReleaseId:'pokemon-scarlet-violet',panel:'resources'},hash:'#facts'})
+  assert.equal(route.query.conversation,'private-owner-a')
+  assert.deepEqual(workspaceRouteWithoutConversation({path:'/game-master',query:{}}),{path:'/game-master',query:{},hash:''})
+})
 
 const serverTime = '2026-10-12T00:00:00Z'
 function snapshot(overrides = {}) {

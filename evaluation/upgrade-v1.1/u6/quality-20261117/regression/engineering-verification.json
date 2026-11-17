@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "quality-fix-engineering-verification-v1",
+  "date": "2026-11-17",
+  "backend": {
+    "tests": 1904,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 8
+  },
+  "conditionalSkippedTests": [
+    {
+      "class": "com.vio.vioaiagent.mcp.McpClientStdioTest",
+      "test": "testStdioToolInvocation",
+      "reason": "需要先构建 vio-image-search-mcp-server-*.jar 到 target/ 目录"
+    },
+    {
+      "class": "com.vio.vioaiagent.mcp.McpClientStdioTest",
+      "test": "testStdioConnectionAndToolDiscovery",
+      "reason": "需要先构建 vio-image-search-mcp-server-*.jar 到 target/ 目录"
+    },
+    {
+      "class": "com.vio.vioaiagent.observability.AgentTracingOverheadTest",
+      "test": "recordsRepeatedSdkWorkloadsWithSamplingAndFailedExport",
+      "reason": "System property [vio.tracing.probe] does not exist"
+    },
+    {
+      "class": "com.vio.vioaiagent.observability.JaegerCollectorTest",
+      "test": "collectorStoresSanitizedFailures",
+      "reason": "System property [vio.jaeger.integration] does not exist"
+    },
+    {
+      "class": "com.vio.vioaiagent.observability.JaegerCollectorTest",
+      "test": "admissionDispatchAndResumedAttemptIdentitiesAreQueryable",
+      "reason": "System property [vio.jaeger.integration] does not exist"
+    },
+    {
+      "class": "com.vio.vioaiagent.observability.JaegerCollectorTest",
+      "test": "collectorReceivesWorkerTreeAndQueryUiIsAvailable",
+      "reason": "System property [vio.jaeger.integration] does not exist"
+    },
+    {
+      "class": "com.vio.vioaiagent.observability.JaegerCollectorTest",
+      "test": "cancelledStreamExportsOneChildAndPreservesRunParent",
+      "reason": "System property [vio.jaeger.integration] does not exist"
+    },
+    {
+      "class": "com.vio.vioaiagent.pokemon.PokeApiReferenceTest",
+      "test": "liveSmokeOnlyWhenExplicitlyRequested",
+      "reason": ""
+    }
+  ],
+  "runtimeJarComparableClasses": 172,
+  "differentClasses": [],
+  "jarSha256": "b90b167c5780ddcf8b7a6a1c13e32c2984f4284e8d79898cb70dba06ba273f37",
+  "privateResourceNames": [],
+  "exactPrivateCredentialMatches": 0,
+  "scope": "BOOT-INF/classes",
+  "frontend": {
+    "chromeTests": 123,
+    "passed": 123,
+    "failed": 0,
+    "skipped": 0,
+    "contractTests": 231,
+    "lint": "PASS",
+    "typecheck": "PASS",
+    "securityContract": "PASS",
+    "build": "PASS",
+    "aggregateWrapper": "ENVIRONMENT_PENDING_BUNDLED_CHROMIUM_MISSING_DIRECT_INSTALLED_CHROME_USED"
+  },
+  "nodeTools": {
+    "tests": 497,
+    "failures": 0
+  },
+  "damageBridge": {
+    "tests": 13,
+    "failures": 0
+  },
+  "stagedGitleaks": "PASS_ZERO_FINDINGS"
+}

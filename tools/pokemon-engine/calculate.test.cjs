@@ -17,6 +17,8 @@ test('zero damage remains a valid result even when SDK KO description cannot for
  assert.equal(result.assumptions.move,'Tackle')
  assert.equal(result.assumptions.defender.species,'Froslass')
  assert.match(result.description,/0-0 \(0%\)/)
+ assert.equal(result.moveType,'Normal')
+ assert.deepEqual(result.defenderTypes,['Ice','Ghost'])
 })
 test('real engine resolves PokeAPI slugs and returns deterministic ranges plus assumptions',()=>{
   const r=calculateInput(battle())
@@ -33,7 +35,9 @@ test('versioned bridge preserves the frozen v1 positive-damage contract',()=>{
  const legacy=require('./calculate.cjs').calculateInput
  for(const weather of [undefined,'Rain','Sun']){
   const input=battle();input.field.weather=weather
-  assert.deepEqual(calculateInput(input),legacy(input))
+  const {moveType,defenderTypes,...compatible}=calculateInput(input)
+  assert.equal(moveType,'Water');assert.deepEqual(defenderTypes,['Fire'])
+  assert.deepEqual(compatible,legacy(input))
  }
 })
 test('unknown species, status moves, generation and invalid EV are rejected',()=>{

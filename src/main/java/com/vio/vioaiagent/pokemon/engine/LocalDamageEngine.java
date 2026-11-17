@@ -60,7 +60,13 @@ public class LocalDamageEngine {
             throw new IllegalStateException("参考快照与伤害引擎的种族值不一致，拒绝混用版本");
     }
     public record Combatant(String species,TeamBuild build) {
-        public Combatant { if(species==null||species.isBlank()||species.length()>80)throw new IllegalArgumentException("缺少有效物种名称");build=build==null?TeamBuild.defaults():build; }
+        public Combatant {
+            if(species==null||species.isBlank()||species.length()>80)throw new IllegalArgumentException("缺少有效物种名称");
+            build=build==null?TeamBuild.defaults():build;
+            // Read-only calculation input accepts the explicit no-held-item spelling.
+            if (build.item().equalsIgnoreCase("none"))
+                build=new TeamBuild(build.moves(),build.ability(),"",build.nature(),build.level(),build.evs(),build.ivs(),build.teraType());
+        }
     }
     public record Field(String gameType,@org.springframework.ai.tool.annotation.ToolParam(required=false) String weather,
                         @org.springframework.ai.tool.annotation.ToolParam(required=false) String terrain) {

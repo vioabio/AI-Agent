@@ -13,6 +13,7 @@ import java.util.concurrent.*;
 public final class CompetitiveTeamsTool {
     public static final String SOURCE="https://www.smogon.com/forums/threads/sv-ou-sample-teams-new-samples-added-post-spl-and-tera-blast-ban.3712513/";
     public static final String MIRROR="https://pkmn.github.io/smogon/data/teams/gen9ou.json";
+    public static final String MIRROR_ORIGIN="https://raw.githubusercontent.com/pkmn/smogon/master/data/teams/gen9ou.json";
     private final CompetitiveTrendsTool.Transport transport;
     private final Clock clock;
     private Snapshot cached;
@@ -62,28 +63,36 @@ public final class CompetitiveTeamsTool {
     }
     /** Public structured third-party source; never follows arbitrary URLs or executes source text. */
     private Snapshot readMirror(Exception primaryFailure) {
-        if(Thread.currentThread().isInterrupted())throw new CancellationException("Team lookup cancelled");
-        try {
-            var root=new ObjectMapper().readTree(bounded(transport.read(MIRROR),1_000_000));
-            if(!root.isArray()||root.size()>200)throw new IllegalArgumentException("Invalid samples array");
-            var teams=new ArrayList<Team>();
-            for(var team:root){
-                try {
-                    var data=team.path("data");if(!data.isArray()||data.size()!=6)continue;
-                    var blocks=new ArrayList<String>();
-                    for(var member:data)blocks.add(exportSet(member));
-                    String configuration=String.join("\n\n",blocks);
-                    teams.add(new Team(safe(team.path("name").asText("公开样例")),safe(team.path("author").asText("来源未署名")),MIRROR,parseMembers(configuration),configuration));
-                }catch(IllegalArgumentException invalid){/* Reject the whole team, never silently drop a field/member. */}
-                if(teams.size()==3)break;
-            }
-            if(teams.isEmpty())throw new IllegalArgumentException("No complete samples");
-            cached=new Snapshot("gen9ou",MIRROR,clock.instant().toString(),"第三方接口未提供逐队更新时间",List.copyOf(teams),
-                "Smogon论坛未能读取，本次使用@pkmn/smogon第三方样例镜像；不是实时热门排名、胜率或本项目合法性认证。来源未写出的EV为0、IV为31、等级为100（Showdown默认），太晶属性缺失不补填。未自动保存；缓存15分钟，使用前需核对当前禁限。原帖："+SOURCE);
-            return cached;
-        }catch(InterruptedException stop){Thread.currentThread().interrupt();throw new CancellationException("Team lookup cancelled");}
-        catch(CancellationException stop){throw stop;}
-        catch(Exception unavailable){throw new IllegalStateException("TEAM_SOURCES_UNAVAILABLE",primaryFailure);}
+        var failures=new ArrayList<Exception>();
+        for(String source:List.of(MIRROR,MIRROR_ORIGIN)) {
+            if(Thread.currentThread().isInterrupted())throw new CancellationException("Team lookup cancelled");
+            try {return readMirrorSnapshot(source);}
+            catch(InterruptedException stop){Thread.currentThread().interrupt();throw new CancellationException("Team lookup cancelled");}
+            catch(CancellationException stop){throw stop;}
+            catch(Exception unavailable){failures.add(unavailable);}
+        }
+        var failure=new IllegalStateException("TEAM_SOURCES_UNAVAILABLE",primaryFailure);
+        failures.forEach(failure::addSuppressed);
+        throw failure;
+    }
+    private Snapshot readMirrorSnapshot(String source) throws Exception {
+        var root=new ObjectMapper().readTree(bounded(transport.read(source),1_000_000));
+        if(!root.isArray()||root.size()>200)throw new IllegalArgumentException("Invalid samples array");
+        var teams=new ArrayList<Team>();
+        for(var team:root){
+            try {
+                var data=team.path("data");if(!data.isArray()||data.size()!=6)continue;
+                var blocks=new ArrayList<String>();
+                for(var member:data)blocks.add(exportSet(member));
+                String configuration=String.join("\n\n",blocks);
+                teams.add(new Team(safe(team.path("name").asText("公开样例")),safe(team.path("author").asText("来源未署名")),source,parseMembers(configuration),configuration));
+            }catch(IllegalArgumentException invalid){/* Reject the whole team, never silently drop a field/member. */}
+            if(teams.size()==3)break;
+        }
+        if(teams.isEmpty())throw new IllegalArgumentException("No complete samples");
+        cached=new Snapshot("gen9ou",source,clock.instant().toString(),"第三方接口未提供逐队更新时间",List.copyOf(teams),
+            "Smogon论坛未能读取，本次使用@pkmn/smogon第三方样例镜像；不是实时热门排名、胜率或本项目合法性认证。来源未写出的EV为0、IV为31、等级为100（Showdown默认），太晶属性缺失不补填。未自动保存；缓存15分钟，使用前需核对当前禁限。原帖："+SOURCE);
+        return cached;
     }
     private static String exportSet(com.fasterxml.jackson.databind.JsonNode member) {
         var fields=Set.of("species","name","gender","item","ability","teraType","evs","ivs","nature","moves","level","shiny","happiness","hpType");
@@ -138,11 +147,12 @@ public final class CompetitiveTeamsTool {
     private static String safe(String value){return value.replaceAll("[^\\p{L}\\p{N} .,'’()\\-]"," ").strip().substring(0,Math.min(160,value.replaceAll("[^\\p{L}\\p{N} .,'’()\\-]"," ").strip().length()));}
     private static String bounded(String value,int limit){if(value==null||value.length()>limit)throw new IllegalStateException("TEAM_RESPONSE_INVALID");return value;}
     private static CompetitiveTrendsTool.Transport http(){
-        var client=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).followRedirects(HttpClient.Redirect.NEVER).build();
+        // Fixed public sources also support HTTP/1.1, avoiding HTTP/2 negotiation stalls.
+        var client=HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(Duration.ofSeconds(5)).followRedirects(HttpClient.Redirect.NEVER).build();
         return url->{
-            if(!SOURCE.equals(url)&&!MIRROR.equals(url)&&!url.matches("https://pokepast\\.es/[a-f0-9]{16}/json"))throw new IllegalArgumentException("非法队伍来源");
-            var future=client.sendAsync(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(5)).header("User-Agent","VioPokemonSamples/1.0").GET().build(),HttpResponse.BodyHandlers.ofString());
-            try{var response=future.get(6,TimeUnit.SECONDS);if(response.statusCode()!=200)throw new IllegalStateException("TEAM_SOURCE_HTTP_"+response.statusCode());return response.body();}
+            if(!SOURCE.equals(url)&&!MIRROR.equals(url)&&!MIRROR_ORIGIN.equals(url)&&!url.matches("https://pokepast\\.es/[a-f0-9]{16}/json"))throw new IllegalArgumentException("非法队伍来源");
+            var future=client.sendAsync(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(6)).header("User-Agent","VioPokemonSamples/1.0").GET().build(),HttpResponse.BodyHandlers.ofString());
+            try{var response=future.get(7,TimeUnit.SECONDS);if(response.statusCode()!=200)throw new IllegalStateException("TEAM_SOURCE_HTTP_"+response.statusCode());return response.body();}
             finally{if(!future.isDone())future.cancel(true);}
         };
     }

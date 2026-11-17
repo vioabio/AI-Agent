@@ -55,6 +55,49 @@ class LocalGuideSemanticSearchTest {
         assertEquals(8,client.embed(Collections.nCopies(8,"苹果资料。")).size());
         assertEquals(List.of(8),batchSizes);
     }
+    @Test void statusAndRepeatedBuildDoNotUploadCorpusImplicitly(){
+        var source=index(List.of(doc("apple","苹果培养资料。")));
+        var search=new LocalGuideSemanticSearch(properties("status-model"));
+        for(int i=0;i<3;i++)assertFalse(search.status(source).ready());
+        assertEquals(0,calls.get());
+        assertTrue(search.build(source).ready());
+        int uploaded=calls.get();
+        for(int i=0;i<3;i++)assertTrue(search.status(source).ready());
+        assertEquals("READY_REUSED",search.build(source).state());
+        assertEquals(uploaded,calls.get());
+    }
+    @Test void toolRetrievalRecordsActualRanksWithoutRawQueriesAndSurvivesObservationFailure() throws Exception {
+        var search=new LocalGuideSearch(json,new org.springframework.core.io.DefaultResourceLoader(),"classpath:pokemon-strategy/overview-v1.json",dir.resolve("observed.sqlite").toString());
+        search.setSemantic(new LocalGuideSemanticSearch(properties("observed-model")));
+        assertTrue(search.buildSemanticIndex().ready());
+        var events=new ArrayList<com.vio.vioaiagent.tools.governance.ToolGovernanceEvent>();
+        com.vio.vioaiagent.tools.governance.ToolExecutionContextHolder.set(new com.vio.vioaiagent.tools.governance.ToolExecutionContext("owner","run-observed",Set.of("trainer"),"trace",null,events::add));
+        try {
+            assertFalse(search.search("PRIVATE_QUERY 培养 努力值","pokemon-scarlet-violet").isEmpty());
+            var event=events.stream().filter(e->"BASE_RETRIEVAL".equals(e.attributes().get("retrievalStage"))).findFirst().orElseThrow();
+            assertTrue(((Number)event.attributes().get("semanticCandidates")).longValue()>0);
+            assertFalse(json.writeValueAsString(event.attributes()).contains("PRIVATE_QUERY"));
+        }finally{com.vio.vioaiagent.tools.governance.ToolExecutionContextHolder.clear();}
+        com.vio.vioaiagent.tools.governance.ToolExecutionContextHolder.set(new com.vio.vioaiagent.tools.governance.ToolExecutionContext("owner","run-broken-observation",Set.of("trainer"),"trace",null,e->{throw new IllegalStateException("observer unavailable");}));
+        try {assertFalse(search.search("培养 努力值","pokemon-scarlet-violet").isEmpty());}
+        finally{com.vio.vioaiagent.tools.governance.ToolExecutionContextHolder.clear();}
+    }
+    @Test void invalidQueryDimensionAndFailedRebuildPreservePersistedRows() throws Exception {
+        var source=index(List.of(doc("apple","苹果培养资料。")));
+        var search=new LocalGuideSemanticSearch(properties("dimension-model"));
+        assertTrue(search.build(source).ready());
+        var dataSource=new org.sqlite.SQLiteDataSource();dataSource.setUrl("jdbc:sqlite:"+dir.resolve("vectors.sqlite"));
+        var db=new org.springframework.jdbc.core.JdbcTemplate(dataSource);
+        var before=db.queryForList("SELECT * FROM guide_vector ORDER BY index_id,chunk_id");
+        var meta=db.queryForList("SELECT * FROM guide_vector_meta ORDER BY index_id");
+        mode="DIMENSION";
+        assertEquals(source.retrieve(query("苹果")),search.retrieve(query("苹果"),source));
+        assertEquals("DIMENSION_OR_INDEX_MISMATCH",search.status(source).state());
+        var changed=index(List.of(doc("apple","苹果修订后的培养资料。"),doc("banana","香蕉资料。")));
+        assertFalse(search.build(changed).ready());
+        assertEquals(before,db.queryForList("SELECT * FROM guide_vector ORDER BY index_id,chunk_id"));
+        assertEquals(meta,db.queryForList("SELECT * FROM guide_vector_meta ORDER BY index_id"));
+    }
 
     @Test void explicitBuildEnablesParaphraseRetrievalWithCanonicalCitationAndPersistentReuse(){
         var source=index(List.of(doc("apple","苹果培养资料。"),doc("banana","香蕉资料。")));var search=new LocalGuideSemanticSearch(properties("fixture-model"));
@@ -77,6 +120,10 @@ class LocalGuideSemanticSearchTest {
         int before=calls.get();var other=new LocalGuideSemanticSearch(properties("second"));assertTrue(other.retrieve(query("水果"),source).isEmpty());assertEquals(before,calls.get());
         assertTrue(other.build(source).ready());assertEquals(before+1,calls.get());
         var replacement=index(List.of(doc("apple","苹果修订后的培养资料。")));assertTrue(other.retrieve(query("水果"),replacement).isEmpty());assertEquals(before+1,calls.get());
+        assertTrue(other.build(replacement).ready());assertEquals(before+2,calls.get());
+        var hits=other.retrieve(query("苹果"),replacement);
+        assertTrue(hits.stream().allMatch(hit->hit.view().chunk().content().contains("修订后")));
+        assertFalse(hits.isEmpty());
     }
     @Test void providerFailureFallsBackWithoutLeakingTheProviderResponse(){
         var source=index(List.of(doc("apple","苹果培养资料。")));var search=new LocalGuideSemanticSearch(properties("fixture-model"));search.build(source);mode="FAIL";

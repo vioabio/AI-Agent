@@ -14,6 +14,41 @@ public class CompetitiveTeamsToolTest {
         var tool=new CompetitiveTeamsTool(url->"<p>Checking your browser...</p><noscript>JavaScript and cookies are required</noscript>",Clock.systemUTC());
         assertEquals("TEAM_SOURCES_UNAVAILABLE",assertThrows(IllegalStateException.class,()->tool.lookupCompetitiveTeams("gen9ou")).getMessage());
     }
+    @Test void retainsBothSourceFailuresForDiagnosisAndDoesNotCacheFailure() throws Exception {
+        var calls=new AtomicInteger();
+        var forum=new java.net.http.HttpTimeoutException("forum timeout");
+        var mirror=new java.net.ConnectException("mirror unavailable");
+        String fixture=new String(getClass().getResourceAsStream("/pokemon-teams-mirror-fixture.json").readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
+        var tool=new CompetitiveTeamsTool(url->{
+            int attempt=calls.incrementAndGet();
+            if(url.equals(CompetitiveTeamsTool.SOURCE))throw forum;
+            if(attempt<=3)throw mirror;
+            return fixture;
+        },Clock.systemUTC());
+        var failure=assertThrows(IllegalStateException.class,()->tool.lookupCompetitiveTeams("gen9ou"));
+        assertEquals("TEAM_SOURCES_UNAVAILABLE",failure.getMessage());
+        assertSame(forum,failure.getCause());
+        assertArrayEquals(new Throwable[]{mirror,mirror},failure.getSuppressed());
+        assertEquals(6,tool.lookupCompetitiveTeams("gen9ou").teams().getFirst().members().size());
+        assertEquals(5,calls.get());
+    }
+    @Test void fixedRepositoryOriginRetainsActualSourceAndCompleteConfiguration() throws Exception {
+        String fixture=new String(getClass().getResourceAsStream("/pokemon-teams-mirror-fixture.json").readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
+        var reads=new java.util.ArrayList<String>();
+        var tool=new CompetitiveTeamsTool(url->{
+            reads.add(url);
+            if(url.equals(CompetitiveTeamsTool.MIRROR_ORIGIN))return fixture;
+            throw new java.net.http.HttpConnectTimeoutException("source unavailable");
+        },Clock.systemUTC());
+        var result=tool.lookupCompetitiveTeams("gen9ou");
+        assertEquals(java.util.List.of(CompetitiveTeamsTool.SOURCE,CompetitiveTeamsTool.MIRROR,CompetitiveTeamsTool.MIRROR_ORIGIN),reads);
+        assertEquals(CompetitiveTeamsTool.MIRROR_ORIGIN,result.sourceUrl());
+        assertEquals(CompetitiveTeamsTool.MIRROR_ORIGIN,result.teams().getFirst().sourceUrl());
+        assertEquals(6,result.teams().getFirst().members().size());
+        assertTrue(result.teams().getFirst().configuration().contains("Tera Type:"));
+        assertSame(result,tool.lookupCompetitiveTeams("gen9ou"));
+        assertEquals(3,reads.size());
+    }
     @Test void publicMirrorProvidesFullTeamsWhenForumRequiresBrowser() throws Exception {
         String fixture=new String(getClass().getResourceAsStream("/pokemon-teams-mirror-fixture.json").readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
         var tool=new CompetitiveTeamsTool(url->url.equals(CompetitiveTeamsTool.MIRROR)?fixture:"Checking your browser",Clock.systemUTC());

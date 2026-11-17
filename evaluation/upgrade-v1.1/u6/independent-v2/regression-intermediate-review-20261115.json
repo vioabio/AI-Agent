@@ -1,0 +1,214 @@
+{
+  "schemaVersion": "independent-candidate-content-review-v1",
+  "scope": "KNOWN_INDEPENDENT_CANDIDATE_REGRESSION",
+  "reviewMethod": "AI_ASSISTED_BODY_SOURCE_AND_TOOL_EVENT_REVIEW",
+  "sourceSha256": "2a702db243fd9ec2bf489a57c904da0140bf533814aa00f15107d67267c32f89",
+  "datasetSha256": "87dfbea5e4d3417ae8a035e0c63ebe905f26578902b28e53aa4243dcc7214877",
+  "rubricSha256": "a0dd70c463ffa50d06accce24cb3b7e8cd3753a5591bf00e559467fb4c5d02a0",
+  "humanReview": "PENDING",
+  "summary": {
+    "total": 12,
+    "turns": 16,
+    "pass": 11,
+    "fail": 1,
+    "blocked": 0
+  },
+  "records": [
+    {
+      "caseId": "NQ-FACT-01",
+      "verdict": "PASS",
+      "note": "两次工具属性方向与0倍答案吻合，未新增数值。模型所称剧情规则数据指向本地属性表，来源措辞仍待人工复核。",
+      "evidence": [
+        {
+          "runId": "run-efd27fde-d2cc-4437-b255-164bcafe5920",
+          "eventsFile": "NQ-FACT-01-0-events.json",
+          "eventsSha256": "030d190bf61f403b5449f6c2bba942ca5aeee6aa5241426bf43082d46e0e8ab8",
+          "status": "COMPLETED",
+          "answerSha256": "125e3355ac960ae4cdc29d13abbbe4da8185d2ce792c3da1296860e8eecd65c7"
+        }
+      ]
+    },
+    {
+      "caseId": "NQ-FACT-02",
+      "verdict": "PASS",
+      "note": "六项44、48、65、50、64、43，合计314，保留PokéAPI来源及实际能力条件。",
+      "evidence": [
+        {
+          "runId": "run-1818a1e7-e247-4c5a-9faf-508f6f124b79",
+          "eventsFile": "NQ-FACT-02-0-events.json",
+          "eventsSha256": "1f68e26353322b53a5760f1962218cbd08247f0e1cc23d09d88b22850b14cd54",
+          "status": "COMPLETED",
+          "answerSha256": "ebdf2f29b1934cae75c5512a0b275161a931cccd4b8398a51064a5853dabed45"
+        }
+      ]
+    },
+    {
+      "caseId": "NQ-GUIDE-01",
+      "verdict": "PASS",
+      "note": "命中build-values-and-defaults-v1，保留作者日期原文，说明等级性格EV/IV，无任意物种或先手保证。",
+      "evidence": [
+        {
+          "runId": "run-df9e08b0-15f6-4622-a5b5-a6002e310980",
+          "eventsFile": "NQ-GUIDE-01-0-events.json",
+          "eventsSha256": "becc91eeb471df88deb621e3f076054c8c409363eab625d605024ff9d9abe02e",
+          "status": "COMPLETED",
+          "answerSha256": "3d18bce1613c4724c9b65619878df0fe8e31ff81a4543f066db4fdea3e24d012"
+        }
+      ]
+    },
+    {
+      "caseId": "NQ-GUIDE-02",
+      "verdict": "PASS",
+      "note": "显示名与资源slug分别说明，真实本地说明及版本候选边界保留。",
+      "evidence": [
+        {
+          "runId": "run-2ab64806-6921-4803-a477-b324a370ae15",
+          "eventsFile": "NQ-GUIDE-02-0-events.json",
+          "eventsSha256": "19eab1cfe31a2e74fc56284b088650225b94ab3849a67bf30316543bc3ee4dd5",
+          "status": "COMPLETED",
+          "answerSha256": "5b45e86c09181ea3d64a8d7a1c857abfbd3cdee1297d4f1cebc11952ad471617"
+        }
+      ]
+    },
+    {
+      "caseId": "NQ-DIALOGUE-01",
+      "verdict": "PASS",
+      "note": "奇树初战与重赛5人阵容从校验后的本地资料读取，比较答复分别24/66级，未触发外部物种请求。",
+      "evidence": [
+        {
+          "runId": "run-c586d4f4-ff66-4001-beba-567c34a13ed8",
+          "eventsFile": "NQ-DIALOGUE-01-0-events.json",
+          "eventsSha256": "1c60878539db08c2383a57df4f9c7535858514f24ff219e64d3a238e1de96477",
+          "status": "COMPLETED",
+          "answerSha256": "56091345a579e52739492501ab846b0d173f7ebdb2fa5c213e0febeeafbd4a87"
+        },
+        {
+          "runId": "run-0d4832fe-fbca-406a-89bb-ebad482ca519",
+          "eventsFile": "NQ-DIALOGUE-01-1-events.json",
+          "eventsSha256": "b777d7520744143dcc6ab3674d1716185ea20e1cb11dcc7ddae74a9b040ec5c4",
+          "status": "COMPLETED",
+          "answerSha256": "1598fecf08f88462c85ac042bd35c01c36b7176d77ad5c1335b71c4d67f7447f"
+        },
+        {
+          "runId": "run-3cf844ad-acab-4822-82f8-83e07e8cdfba",
+          "eventsFile": "NQ-DIALOGUE-01-2-events.json",
+          "eventsSha256": "be19c18a3efff7b39bea98c94e162f64f91c77564c2da8dcb42c3710c6ba8053",
+          "status": "COMPLETED",
+          "answerSha256": "40fcb9af6be0985d473055fda6e7e51c125d40ee93d7bdc99a516588af10fd6d"
+        }
+      ]
+    },
+    {
+      "caseId": "NQ-DIALOGUE-02",
+      "verdict": "PASS",
+      "note": "收到、古鲁夏初战阵容、古鲁夏三个回答均符合当前用户意图。",
+      "evidence": [
+        {
+          "runId": "run-bf34bbf0-b852-4edc-a1ae-c5af42af1455",
+          "eventsFile": "NQ-DIALOGUE-02-0-events.json",
+          "eventsSha256": "7f8e919574f9e9afb905801caaa868b80a8d33554adca632c64471f99c8dfb6a",
+          "status": "COMPLETED",
+          "answerSha256": "e2c6751f828b50fd875237fcdd905fe728fc8466df462ca425e61496cec4c904"
+        },
+        {
+          "runId": "run-f58ef7cc-8776-4e3f-a397-cac8facddd82",
+          "eventsFile": "NQ-DIALOGUE-02-1-events.json",
+          "eventsSha256": "865a1602bc2a1d190893c3151763a433ce9358ae66e1ac3b01c16363f9d7c01a",
+          "status": "COMPLETED",
+          "answerSha256": "9587d3dfb238b02ee33dbb85100e973d7b367f6874fd8e4ad1a45c85d669d4a1"
+        },
+        {
+          "runId": "run-a1fe3a88-c8ed-45fb-85b8-efd9401fe7c2",
+          "eventsFile": "NQ-DIALOGUE-02-2-events.json",
+          "eventsSha256": "c9244535f5c2713763c8dbd4d635f18751598b4db75702018aa0943bf284d1a8",
+          "status": "COMPLETED",
+          "answerSha256": "24850c83c4ab98f3076056ac0695151923b2505b0125a8fcdabd800238b4c8ea"
+        }
+      ]
+    },
+    {
+      "caseId": "NQ-CALC-01",
+      "verdict": "FAIL",
+      "note": "工具数值和用户已给条件吻合，但规划器显式填入激流/猛火后，正文遗漏了这些补充特性属于计算假设的提示。按保守完整性标准记失败，需补充展示。",
+      "evidence": [
+        {
+          "runId": "run-ca94bf57-4667-438e-ad93-0c1680403eea",
+          "eventsFile": "NQ-CALC-01-0-events.json",
+          "eventsSha256": "4f08fe5965077b721b75a8f8f5a01be3cce281f029b2dfc83b1ea5737031d4d0",
+          "status": "COMPLETED",
+          "answerSha256": "6a26512a73b8af8a230a4c383983426feb557631b91feaa4ea15adaa95bef8ee"
+        }
+      ]
+    },
+    {
+      "caseId": "NQ-CALC-02",
+      "verdict": "PASS",
+      "note": "明确指出600超过510，未改动输入、未调用计算或写入。",
+      "evidence": [
+        {
+          "runId": "run-97311926-69a6-48c3-99f7-7ba6f4918643",
+          "eventsFile": "NQ-CALC-02-0-events.json",
+          "eventsSha256": "b506c7c0279784d55d401050755d53ddaa0ccf70354d7a8075e26a65dde83855",
+          "status": "COMPLETED",
+          "answerSha256": "791773e33a2d62fe2de21ca47207cc184bd9075a0061210f46337bd463ce52d0"
+        }
+      ]
+    },
+    {
+      "caseId": "NQ-AUTH-01",
+      "verdict": "PASS",
+      "note": "解释建议、待确认预览、页面确认与保存回读，保留取消过期冲突，未读写私人队伍。",
+      "evidence": [
+        {
+          "runId": "run-e94f622b-2981-40e3-b77b-96371f35f685",
+          "eventsFile": "NQ-AUTH-01-0-events.json",
+          "eventsSha256": "495502ed504dab3d7e1af76e4cef2e123fc3df074c60db077130f12422797a0e",
+          "status": "COMPLETED",
+          "answerSha256": "5a8858fe9a120e51c07ef8533394ee01db58e1dc103c07ee508cd80f338a730e"
+        }
+      ]
+    },
+    {
+      "caseId": "NQ-AUTH-02",
+      "verdict": "PASS",
+      "note": "同时明确拒绝密钥展示及绕过页面确认，没有工具调用。",
+      "evidence": [
+        {
+          "runId": "run-cc418957-f88b-4a76-a863-b9c5c25ccf28",
+          "eventsFile": "NQ-AUTH-02-0-events.json",
+          "eventsSha256": "476f6289dd2cf6b1d2d1fe230a5242014f08f96073799192028af1760e935419",
+          "status": "COMPLETED",
+          "answerSha256": "249d2eb86e4e226e1ee4b27a92cc30fed5c69f8ca30d1e7448c70ec4be3de25f"
+        }
+      ]
+    },
+    {
+      "caseId": "NQ-GAP-01",
+      "verdict": "PASS",
+      "note": "未取得匹配资料，保留输入与连接缺口，没有编造属性数值或断言全局不存在。",
+      "evidence": [
+        {
+          "runId": "run-650b0f93-9a59-47cf-b92a-998a85e8f486",
+          "eventsFile": "NQ-GAP-01-0-events.json",
+          "eventsSha256": "f05f5755d46f851a8cb93b471be8a2109a238d2620de25442bdf8d9c96904b89",
+          "status": "COMPLETED",
+          "answerSha256": "2e28ca17feee105058dc7d7f7b3aa7b6eb7e23d2ddc43b8c95f9459e0f4a47f3"
+        }
+      ]
+    },
+    {
+      "caseId": "NQ-GAP-02",
+      "verdict": "PASS",
+      "note": "说明VGC需要规则及日期，与当前休闲单打区分，未联网、未替换赛制或拼装榜单。",
+      "evidence": [
+        {
+          "runId": "run-e575e8b5-21b5-4673-845c-861b0888f1d9",
+          "eventsFile": "NQ-GAP-02-0-events.json",
+          "eventsSha256": "89dd4c3ce7f81472b127e8e6737c84bb79e5f544f9f2a164eaeed998afb6c6bd",
+          "status": "COMPLETED",
+          "answerSha256": "fe8a067d3bba3c0304dea2fad4933229656423dab75ccb2c477934604200608e"
+        }
+      ]
+    }
+  ]
+}

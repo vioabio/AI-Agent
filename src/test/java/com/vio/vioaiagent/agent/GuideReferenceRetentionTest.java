@@ -10,6 +10,35 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class GuideReferenceRetentionTest {
+    @Test void speciesEvidenceSurvivesALaterGeneralSearchAndSameQueryFailureInvalidatesIt() throws Exception {
+        var search = new LocalGuideSearch(mapper,new DefaultResourceLoader(),"classpath:pokemon-strategy/overview-v1.json",directory.resolve("merged.sqlite").toString());
+        String speciesArgs = mapper.writeValueAsString(java.util.Map.of("query","杰尼龟 培养 搭配","gameReleaseId","pokemon-scarlet-violet"));
+        String generalArgs = mapper.writeValueAsString(java.util.Map.of("query","围绕核心成员构建队伍","gameReleaseId","pokemon-scarlet-violet"));
+        String species = mapper.writeValueAsString(search.search("杰尼龟 培养 搭配","pokemon-scarlet-violet").stream().filter(h->h.document().id().equals("squirtle-conditional-overview-v1")).toList());
+        String general = mapper.writeValueAsString(search.search("围绕核心成员构建队伍","pokemon-scarlet-violet").stream().filter(h->h.document().id().equals("team-roles-v1")).toList());
+        var e = new GuideAnswerEvidence();
+        e.begin("请结合杰尼龟的资料和本地攻略，详细讨论休闲单打的培养思路、队伍角色、搭配取舍及需要核对的条件，并列出来源。");
+        e.observe("lookupPokemonReference",squirtle());
+        e.observe("searchPokemonGuides",species,speciesArgs);
+        e.observe("searchPokemonGuides",general,generalArgs);
+        String answer = e.verifiedAnswer();
+        assertTrue(answer.contains("杰尼龟：休闲单打的培养起点与搭配取舍"));
+        assertTrue(answer.contains("围绕核心成员构建队伍"));
+        assertTrue(answer.contains("508点分配"));
+        assertTrue(answer.indexOf("杰尼龟：休闲单打") < answer.indexOf("围绕核心成员"));
+        e.observe("searchPokemonGuides","[tool.error] PRIVATE_PROVIDER_ERROR",generalArgs);
+        assertTrue(e.verifiedAnswer().contains("杰尼龟：休闲单打"));
+        assertFalse(e.verifiedAnswer().contains("PRIVATE_PROVIDER_ERROR"));
+        e.observe("searchPokemonGuides","[]",speciesArgs);
+        assertFalse(e.verifiedAnswer().contains("杰尼龟：休闲单打"));
+        e.begin("给一条通用原则");
+        assertFalse(e.hasGuideSources());
+    }
+    @Test void unboundMalformedGuideReadCannotKeepOldGuideSources() throws Exception {
+        var e=evidence();assertTrue(e.hasGuideSources());
+        e.observe("searchPokemonGuides","{}",null);
+        assertFalse(e.hasGuideSources());
+    }
     @TempDir Path directory;
     final ObjectMapper mapper=new ObjectMapper();
     GuideAnswerEvidence evidence() throws Exception {

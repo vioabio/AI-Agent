@@ -23,7 +23,7 @@
         <!-- 消息气泡 -->
         <div class="message-content">
           <span v-if="msg.role === 'assistant'" class="message-author">VIO <small>宝可梦助手</small></span>
-          <div v-if="msg.role === 'assistant' && msg.content" class="response-actions pokemon-message-cards">
+          <div v-if="msg.role === 'assistant' && msg.content && !(isRunMessage(msg,index) && runViewModel.cards?.teams?.some(card => ['teamSuggestion','trainingPlan'].includes(card.answerBlock?.kind)))" class="response-actions pokemon-message-cards">
             <button v-for="pokemon in messagePokemon(msg)" :key="pokemon.nationalNo" class="pokemon-message-card" type="button" :aria-label="`查看图鉴 · ${pokemon.nameZh}`" @click="$emit('resource-section','facts', String(pokemon.nationalNo))"><PokemonPortrait :form-id="pokemon.nationalNo" :name="pokemon.nameZh" /><span><small>#{{ String(pokemon.nationalNo).padStart(3, '0') }}</small><strong>{{ pokemon.nameZh }}</strong></span><span class="pokemon-card-link">{{ String(selectedPokemon?.nationalNo) === String(pokemon.nationalNo) ? '已在右侧打开' : '打开图鉴' }}<UiIcon name="arrow" /></span></button>
             <button v-if="!messagePokemon(msg).length && index === messages.length - 1" class="generic-dex-link" type="button" @click="$emit('resource-section','facts')"><UiIcon name="book" />查看图鉴</button>
           </div>
@@ -35,6 +35,12 @@
           </div>
           <p v-if="trimmedHistory(msg)" class="message-context-notice" role="status">部分历史未参与本次回答；关键限制请在当前问题中重申。</p>
           <ModelUsageDetails v-if="(!compact || developerMode) && msg.role === 'assistant' && msg.metadata?.modelUsageAttempts && !isRunMessage(msg, index)" :attempts="msg.metadata.modelUsageAttempts" />
+          <template v-if="isRunMessage(msg,index)">
+            <PokemonAnswerBlock v-for="card in (runViewModel.cards?.facts || []).filter(c=>c.answerBlock)" :key="card.answerBlock.blockId" :block="card.answerBlock" @open-pokemon="$emit('resource-section','facts',String($event.formId))" />
+            <DamageAnswerBlock v-for="card in (runViewModel.cards?.calculations || []).filter(c=>c.answerBlock)" :key="card.answerBlock.blockId" :block="card.answerBlock" />
+            <TeamSuggestionAnswerBlock v-for="card in (runViewModel.cards?.teams || []).filter(c=>c.answerBlock)" :key="card.answerBlock.blockId" :block="card.answerBlock" @open-pokemon="$emit('resource-section','facts',String($event.formId))" />
+            <TrainingPlanAnswerBlock v-for="card in (runViewModel.cards?.teams || []).filter(c=>c.answerBlock?.kind === 'trainingPlan')" :key="card.answerBlock.blockId" :block="card.answerBlock" :busy="isBusy" @open-pokemon="$emit('resource-section','facts',String($event.formId))" @import-draft="$emit('import-training-draft',$event)" />
+          </template>
           <RunTimeline v-if="isRunMessage(msg, index)" :run="runViewModel" :compact="compact" :developer-mode="developerMode" @cancel="$emit('cancel-run', $event)" @reconnect="$emit('reconnect-run', $event)" @approve="$emit('approve-run', $event)" @feedback="$emit('feedback', $event)" />
           <time v-if="msg.createdAt" class="message-time" :datetime="msg.createdAt">{{ messageTime(msg.createdAt) }}</time>
           <div v-if="msg.content" class="message-actions" aria-label="消息操作">
@@ -109,6 +115,10 @@ import AiAvatarFallback from '@/components/AiAvatarFallback.vue'
 import RunTimeline from '@/components/RunTimeline.vue'
 import ModelUsageDetails from '@/components/ModelUsageDetails.vue'
 import UiIcon from '@/components/UiIcon.vue'
+import PokemonAnswerBlock from './PokemonAnswerBlock.vue'
+import DamageAnswerBlock from './DamageAnswerBlock.vue'
+import TeamSuggestionAnswerBlock from './TeamSuggestionAnswerBlock.vue'
+import TrainingPlanAnswerBlock from './TrainingPlanAnswerBlock.vue'
 import MessageBody from '@/components/MessageBody.vue'
 import PokemonPortrait from '@/components/PokemonPortrait.vue'
 import { summarizeModelUsage } from '@/api/model-usage'
@@ -126,7 +136,7 @@ const props = defineProps({
   compact: Boolean
 })
 
-const emit = defineEmits(['send-message', 'cancel-run', 'reconnect-run', 'approve-run', 'feedback', 'resource-section'])
+const emit = defineEmits(['send-message', 'cancel-run', 'reconnect-run', 'approve-run', 'feedback', 'resource-section', 'import-training-draft'])
 const targetCache = new WeakMap()
 const messageTargets = computed(() => props.messages.map(msg => {
   const saved = targetCache.get(msg)

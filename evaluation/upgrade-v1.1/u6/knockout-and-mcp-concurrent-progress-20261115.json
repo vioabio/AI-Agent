@@ -1,0 +1,121 @@
+{
+  "schemaVersion": "knockout-relevance-and-mcp-concurrent-progress-v1",
+  "date": "2026-11-15",
+  "phase": "U6_KNOCKOUT_RELEVANCE_AND_MCP_CONCURRENT_CANCEL",
+  "releaseDecision": "PENDING",
+  "backend": {
+    "summary": {
+      "tests": 1855,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3
+    },
+    "skips": [
+      {
+        "class": "com.vio.vioaiagent.mcp.McpClientStdioTest",
+        "method": "testStdioToolInvocation",
+        "reason": "需要先构建 vio-image-search-mcp-server-*.jar 到 target/ 目录"
+      },
+      {
+        "class": "com.vio.vioaiagent.mcp.McpClientStdioTest",
+        "method": "testStdioConnectionAndToolDiscovery",
+        "reason": "需要先构建 vio-image-search-mcp-server-*.jar 到 target/ 目录"
+      },
+      {
+        "class": "com.vio.vioaiagent.pokemon.PokeApiReferenceTest",
+        "method": "liveSmokeOnlyWhenExplicitlyRequested",
+        "reason": null
+      }
+    ],
+    "log": "artifacts/u6-ko-mcp-final-verified-full-20261115.log",
+    "logSha256": "acadf6fa684511698ff41bc7867d959911887ee3866f29a12fc7b1e20ae64e34",
+    "tracingSupplement": "artifacts/u6-ko-mcp-tracing-20261115.log",
+    "tracingSupplementSha256": "76352bef4e28c55a7a6389b62a4326e85a5fdb0052eb84cf3e9c551599cf40de",
+    "tracingTests": 5
+  },
+  "node": {
+    "tests": 487,
+    "failures": 0,
+    "log": "artifacts/u6-ko-mcp-node-20261115.log",
+    "sha256": "f1fc5fb03fbe61dedc75354dd02eb8ff39636c2c6810c32b46a86357eee4aece"
+  },
+  "frontend": {
+    "contractTests": 230,
+    "failures": 0,
+    "log": "artifacts/u6-ko-mcp-frontend-20261115.log",
+    "sha256": "4830ae8c65ffef3e5ed0c009677a586bc544e9efdad23dc93cf29ed15d444bb7"
+  },
+  "knownQuestionRegression": {
+    "cases": 12,
+    "turns": 24,
+    "pass": 12,
+    "fail": 0,
+    "blocked": 0,
+    "review": "evaluation/upgrade-v1.1/u6/knockout-known-review-20261115.json",
+    "reviewMethod": "AI_ASSISTED_BODY_SOURCE_AND_TOOL_EVENT_REVIEW",
+    "humanReview": "PENDING"
+  },
+  "knockoutQuestion": {
+    "caseId": "U0-CALCULATION-08",
+    "modelCalls": 0,
+    "toolCalls": 0,
+    "scope": "COMPLETE_BOUNDED_CONCEPTUAL_QUESTION",
+    "evidence": "artifacts/u6-ko-mcp-known-bindings-20261115.json",
+    "evidenceSha256": "31c5cb125d8bba58d7bfa7df6a7962620fbb4b68aed3365e97923830bf2a6256"
+  },
+  "mcpConcurrentCancellation": {
+    "scope": "OFFICIAL_SDK_REAL_SERVER_OFFLINE_UPSTREAM_CONCURRENT_CANCEL",
+    "rounds": 5,
+    "cancelledRequests": 10,
+    "workerStopMarkers": 10,
+    "recoveredQueries": 5,
+    "report": "artifacts/u6-mcp-concurrent-cancel-10339624521998610712/report.json",
+    "reportSha256": "e0bf96a5474e728d8a1bbd604b4ab432979d32164b1d9e3ce8ace3f16461bec5",
+    "verification": "artifacts/u6-ko-mcp-concurrent-verified-20261115.json",
+    "webAgentPath": "NOT_EXERCISED",
+    "readConcurrency": "SERIALIZED_REPOSITORY_CACHE"
+  },
+  "runtimeBuild": {
+    "manifest": "u6-runtime-components-v22",
+    "components": 69,
+    "status": "ARTIFACTS_MATCH",
+    "file": "artifacts/u6-ko-mcp-verified-server-20261115/build-check-after.json",
+    "sha256": "1fce4327a0c04b9bfc3340f57e9750f3ca1464893c29fb4df0269928b2c26f98"
+  },
+  "semanticState": {
+    "enabled": true,
+    "configured": true,
+    "ready": true,
+    "mode": "HYBRID",
+    "model": "text-embedding-v4",
+    "dimensions": 1024,
+    "indexedChunks": 30,
+    "state": "READY"
+  },
+  "rerankConfiguration": [
+    {
+      "name": "VIO_GUIDE_RERANK_ENDPOINT",
+      "configured": false
+    },
+    {
+      "name": "VIO_GUIDE_RERANK_MODEL",
+      "configured": false
+    },
+    {
+      "name": "VIO_GUIDE_RERANK_API_KEY",
+      "configured": false
+    }
+  ],
+  "remaining": [
+    "WEB_AGENT_EXTERNAL_MCP_CANCEL_PROPAGATION",
+    "LONG_DURATION_PRESSURE",
+    "REAL_RERANK_COMPARISON",
+    "BROADER_QUALITY_AND_HUMAN_ACCEPTANCE"
+  ],
+  "personalBackendRebuildRequired": true,
+  "notes": [
+    "First answer scores from previous rounds remain archived.",
+    "Only the final completed Maven log supplies this whole-suite result.",
+    "MCP upstream is a controlled offline fixture and read operations are serialized."
+  ]
+}

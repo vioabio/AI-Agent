@@ -7,6 +7,21 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DamageAnswerEvidenceTest {
+    @Test void suppliedToolAbilitiesAreStillPresentedAsCalculationAssumptions() throws Exception {
+        var value = result();
+        value.putObject("conditionValidation").putArray("engineDefaultAbilitySides");
+        String original = value.toString();
+        var policy = new DamageAnswerEvidence();
+        policy.begin("请实际计算伤害并展示输入假设。");
+        policy.observe("calculateBattleDamage", original);
+        String summary = policy.verifiedSummary();
+        assertTrue(summary.contains("特性等配置为本次计算假设"));
+        assertTrue(summary.contains("核对未明确提供的条件"));
+        assertFalse(summary.contains("引擎默认特性"));
+        assertTrue(summary.contains("164～194 HP"));
+        assertEquals(original, value.toString());
+    }
+
     @Test void translatesComputedNamesWithoutChangingEvidenceOrHidingUnknownForms() throws Exception {
         var value=result();String original=value.toString();var policy=new DamageAnswerEvidence();policy.begin("计算伤害");policy.observe("calculateBattleDamage",original);
         String shown=policy.verifiedSummary();

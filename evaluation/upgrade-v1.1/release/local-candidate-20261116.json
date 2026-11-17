@@ -1,0 +1,369 @@
+{
+  "schemaVersion": "vio-local-candidate-technical-summary-v1",
+  "recordedDate": "2026-11-16",
+  "timezone": "Asia/Shanghai",
+  "candidate": "v1.1.0-rc.1-local",
+  "status": "TECHNICAL_VALIDATION_COMPLETE_HUMAN_REVIEW_PENDING",
+  "repository": "https://github.com/vioabio/AI-Agent.git",
+  "branch": "codex/v1.1-agent-upgrade",
+  "build": {
+    "baseCommit": "39e970a580c58c3a4a80ddb159192d697d92e64a",
+    "sourceState": "TESTED_WORKTREE_ON_BASE",
+    "mavenVersion": "0.0.1-SNAPSHOT",
+    "changedCodeFiles": [
+      {
+        "path": "ops/local/benchmark-real-rerank.ps1",
+        "sha256": "170db72efc13d7db61c8bdfc113ecb137b72ee2259936a327656e3f37f1b4d12",
+        "gitContentSha256": "170db72efc13d7db61c8bdfc113ecb137b72ee2259936a327656e3f37f1b4d12"
+      },
+      {
+        "path": "ops/local/package-local-candidate.ps1",
+        "sha256": "bfe5158c3d62dc20ea15f9157a4378b0c10bd66ce71cb13004b864c40d87956e",
+        "gitContentSha256": "bfe5158c3d62dc20ea15f9157a4378b0c10bd66ce71cb13004b864c40d87956e"
+      },
+      {
+        "path": "pom.xml",
+        "sha256": "070544e1d32fb4ec4d25da1ba96eacaaac4a0f0f3c00557131a48c411441a0f2",
+        "gitContentSha256": "cc9566b492a9523cb415113728b23dfe9b80d42378b22c3e5186d9e242d54045"
+      },
+      {
+        "path": "src/main/java/com/vio/vioaiagent/agent/ConfigurationExplanationRoute.java",
+        "sha256": "dbc1024011b5eb338f2d7dbcd8ecb46d48e86d7904c9d6eac0345beeddcdfa89",
+        "gitContentSha256": "dbc1024011b5eb338f2d7dbcd8ecb46d48e86d7904c9d6eac0345beeddcdfa89"
+      },
+      {
+        "path": "src/main/java/com/vio/vioaiagent/agent/GuideAnswerEvidence.java",
+        "sha256": "ded39132d5842849f94599f9ecd97f1d120d66266b18d161e9c920274d40eb30",
+        "gitContentSha256": "ccd2067f25a333bb530c0c31d80f1c8c718b6c48d43c6bd954e0aae5b17ba867"
+      },
+      {
+        "path": "src/main/java/com/vio/vioaiagent/agent/GymCatalogAnswer.java",
+        "sha256": "3d2e241ed1d7a281e472360d5cdd5c66c36a2b6cc6bc91953fa089df85cf14d8",
+        "gitContentSha256": "cfe68411029e17c58b9e00e905cf6e3e1a4ee19651c98dbff94e0b32a32a82db"
+      },
+      {
+        "path": "src/main/java/com/vio/vioaiagent/agent/GymConversationContext.java",
+        "sha256": "bb62c7f701d64f6df86debddbf1f4b2bedd05b858bfad79f891e3afee6a69da5",
+        "gitContentSha256": "0da61ab01b373f2a90174f1cbf65f569c88a1e7731e215e71391d636c9511298"
+      },
+      {
+        "path": "src/main/java/com/vio/vioaiagent/agent/GymDialogueRouter.java",
+        "sha256": "55b96a75d8ab2d12db1bec07b38d6dc2a46cb0d085574f94035450b500940907",
+        "gitContentSha256": "429335ae578087c2c8d9eb8529a3608bb90a17598a96bd9bfb2d0c1ee00e00bf"
+      },
+      {
+        "path": "src/main/java/com/vio/vioaiagent/agent/GymFocusedFactReply.java",
+        "sha256": "eca28488338d8e856f3c8847e66070e1b7c79a879cdd7611d75393271a952137",
+        "gitContentSha256": "a9d94a225f3987e102020726004c32e808b695d47dd33c0008a3189296279a4d"
+      },
+      {
+        "path": "src/main/java/com/vio/vioaiagent/agent/GymTurnPlan.java",
+        "sha256": "afcb649eb100b66f65e3165616ffa94d1fce886c60cee78f7104b6e0bf771f82",
+        "gitContentSha256": "f39d469cb7222aa19d6f7ccc4b97c7135aee0366926def459256737b8d5f640d"
+      },
+      {
+        "path": "src/main/java/com/vio/vioaiagent/agent/SavedGymQuestionRoute.java",
+        "sha256": "c1c4b4d540d3324bd7b891f5630ef19d29c1bb178e25d4768017f6221e785eb2",
+        "gitContentSha256": "1a5214368c893bec1d475b9ad5e76278a609a260c24be99cd873722aee501857"
+      },
+      {
+        "path": "src/main/java/com/vio/vioaiagent/agent/ToolCallAgent.java",
+        "sha256": "c5ca4421fe61e40e80164e8d5a66cc57cd95aa06aa9e2a47608c2763928cf439",
+        "gitContentSha256": "9035d19558c23b33ffdaab0a7f9c1da441961bd6a9f19c2c0eeb7903d4e89c29"
+      },
+      {
+        "path": "src/main/java/com/vio/vioaiagent/agent/TypeMatchupReply.java",
+        "sha256": "2e70055157e3cd139ebe15cb83209999da0ee402a4809685efd39906fd8d9045",
+        "gitContentSha256": "ab698210368b8ef37296d29a47fae63602c82d8d0f42101b58cd48e000734889"
+      },
+      {
+        "path": "src/main/java/com/vio/vioaiagent/controller/LocalRuntimeController.java",
+        "sha256": "8b76261ad0558df1b0bc28588ff95701f5d1871f4d39f3fc75ebee6ed52b45f0",
+        "gitContentSha256": "56ff8d3b3d9af0df82dede84f6f2f603e1af3c7ccd3c4b504917b60a26cfbf42"
+      },
+      {
+        "path": "src/main/java/com/vio/vioaiagent/pokemon/gym/GymChallengeService.java",
+        "sha256": "e5dde3a56d7f26b51e415a7f5a6a30f6e9d9f35e98b2dd7e7723d33928567d5c",
+        "gitContentSha256": "09fd00dba05c7b13990286a4926fc6142fa263bd2659dab19a9b019f1465a471"
+      },
+      {
+        "path": "src/main/java/com/vio/vioaiagent/pokemon/team/TeamWorkflowService.java",
+        "sha256": "c74421082802f359697dc4d29ffc30def591d7959a3055c7b70f0998252bbf6d",
+        "gitContentSha256": "c74421082802f359697dc4d29ffc30def591d7959a3055c7b70f0998252bbf6d"
+      },
+      {
+        "path": "src/main/resources/application.yml",
+        "sha256": "358e16e7e809947c7b105f1b1ecadae3218365e25ecb24a613150744e5a4758c",
+        "gitContentSha256": "5b13f7ad0b3ef809f6f6fd6e0372c2e54c5aaea1d4e3adaf3550123dc27b3a9c"
+      },
+      {
+        "path": "src/main/resources/pokemon-guides/expanded-v4.json",
+        "sha256": "4acf581fae5144af4ddb8e2e80a2b14ee7ac0c04e204514b90b4d05f26392324",
+        "gitContentSha256": "4acf581fae5144af4ddb8e2e80a2b14ee7ac0c04e204514b90b4d05f26392324"
+      },
+      {
+        "path": "src/test/java/com/vio/vioaiagent/agent/AnswerRegression20261110Test.java",
+        "sha256": "947ae50ce522a82f2ac46794971d67a4d6cf64e6489f0ebc1083762e72223a91",
+        "gitContentSha256": "8a65834ebbd057d8833b66ef0dfb37cb2cce74f5635bbe66196109bb13fdb61c"
+      },
+      {
+        "path": "src/test/java/com/vio/vioaiagent/agent/ConfigurationExplanationRouteTest.java",
+        "sha256": "c1f217d0fd24a7f2c90f5ad55c0aab0132eb5474b21f15c2dab3f8f21bc7e1b1",
+        "gitContentSha256": "c1f217d0fd24a7f2c90f5ad55c0aab0132eb5474b21f15c2dab3f8f21bc7e1b1"
+      },
+      {
+        "path": "src/test/java/com/vio/vioaiagent/agent/GuideReferenceRetentionTest.java",
+        "sha256": "1fe08ae046eae068adc77cb4a6704f989153eb6109aec04cb53ce274f29a049e",
+        "gitContentSha256": "c562c6f4fea43908106b2cb3bdc26aaa9d87f56f51ff1dbc9d2938b86454f2c7"
+      },
+      {
+        "path": "src/test/java/com/vio/vioaiagent/agent/GymDialogueRouterTest.java",
+        "sha256": "c8108ea678fc4545df5af24b669085755aa280877cbef93371bad170ca1dc408",
+        "gitContentSha256": "dccae681d3888c5e03494357c2fd4e3cb0e78b9b9d5060d8a615e9a47ca36ab2"
+      },
+      {
+        "path": "src/test/java/com/vio/vioaiagent/agent/GymFocusedFactReplyTest.java",
+        "sha256": "e614bd1017158531f35888b1627985cbf5db69dbb7417fb3036ccd5b66f4c3a4",
+        "gitContentSha256": "e614bd1017158531f35888b1627985cbf5db69dbb7417fb3036ccd5b66f4c3a4"
+      },
+      {
+        "path": "src/test/java/com/vio/vioaiagent/agent/SavedGymQuestionRouteTest.java",
+        "sha256": "7c9f75a1ba1299f7c399b3188e2769cbb17d5b4ee1fe22c2ac02816ede36e15a",
+        "gitContentSha256": "7c9f75a1ba1299f7c399b3188e2769cbb17d5b4ee1fe22c2ac02816ede36e15a"
+      },
+      {
+        "path": "src/test/java/com/vio/vioaiagent/agent/SpeciesGuidePreflightTest.java",
+        "sha256": "8762d310fa63292aea007956d8f217b89b81af1975023894e9035e2d2f5cce25",
+        "gitContentSha256": "8762d310fa63292aea007956d8f217b89b81af1975023894e9035e2d2f5cce25"
+      },
+      {
+        "path": "src/test/java/com/vio/vioaiagent/agent/TypeMatchupReplyTest.java",
+        "sha256": "7e80b309b5e0be81769d87d93cf965aa7261e485589478c47e85319512c77d59",
+        "gitContentSha256": "3e87604b4ce2c3715a1b200d55b14f4cbf57bcd2bed0a747578a6e6b83ac59ed"
+      },
+      {
+        "path": "src/test/java/com/vio/vioaiagent/config/PrivateConfigurationPackagingTest.java",
+        "sha256": "7c9709e550e784261f866e17db714567cdd7f57789aa422b619b8b98ab2406e2",
+        "gitContentSha256": "7c9709e550e784261f866e17db714567cdd7f57789aa422b619b8b98ab2406e2"
+      },
+      {
+        "path": "src/test/java/com/vio/vioaiagent/controller/LocalRuntimeControllerTest.java",
+        "sha256": "804ae962053405e9b05ed9d33ad3b6744faec9acc75b1e6849984399bdf59f96",
+        "gitContentSha256": "804ae962053405e9b05ed9d33ad3b6744faec9acc75b1e6849984399bdf59f96"
+      },
+      {
+        "path": "src/test/java/com/vio/vioaiagent/pokemon/TeamWorkflowTest.java",
+        "sha256": "43753a5837f846694c274a36799cb068b9aab3baee7c26e1ad5c8a7d5742efa8",
+        "gitContentSha256": "2d4f5483af2fe211e0a28ecfefa057ea425fa8006479a71228159bfaa4c1bdca"
+      },
+      {
+        "path": "src/test/java/com/vio/vioaiagent/pokemon/gym/GymChallengeServiceTest.java",
+        "sha256": "6e43fc3f21575ab6e8ee3b837a576de78f0c2800c1b28c20708ae265533714c9",
+        "gitContentSha256": "6e43fc3f21575ab6e8ee3b837a576de78f0c2800c1b28c20708ae265533714c9"
+      },
+      {
+        "path": "tools/campus/LiveGuideRerankBenchmark.java",
+        "sha256": "e34787f9b9a25629b723b7da1ca9a0714fb9096f00ec6e7fa9d61f08eea38dab",
+        "gitContentSha256": "e34787f9b9a25629b723b7da1ca9a0714fb9096f00ec6e7fa9d61f08eea38dab"
+      },
+      {
+        "path": "tools/campus/audit-s3-corpus.mjs",
+        "sha256": "526c09b447e2d754c0101075e836a79ea977f09032f9a4d62c4b8a07dc523e69",
+        "gitContentSha256": "c5609cc55b8c67af833de9a9fc166bf41e02ce13c9ddd94078b24d3b44c3b84c"
+      },
+      {
+        "path": "tools/campus/local-candidate-verify.mjs",
+        "sha256": "b8f8ad202e6a5f6f1b899786b4a6eaa8318314d1f21979498b7b98a73fcf0c2a",
+        "gitContentSha256": "b8f8ad202e6a5f6f1b899786b4a6eaa8318314d1f21979498b7b98a73fcf0c2a"
+      },
+      {
+        "path": "tools/campus/local-candidate-verify.test.mjs",
+        "sha256": "a50962b4ddde7f810fe415196aff3c1b96396f2a7830e41cdd91813631ad082b",
+        "gitContentSha256": "a50962b4ddde7f810fe415196aff3c1b96396f2a7830e41cdd91813631ad082b"
+      },
+      {
+        "path": "tools/campus/real-rerank-compare.mjs",
+        "sha256": "e5fda66508da90c44f035bba1ef3a5f43a2040932e42fd5a937a8b8ce6de2303",
+        "gitContentSha256": "e5fda66508da90c44f035bba1ef3a5f43a2040932e42fd5a937a8b8ce6de2303"
+      },
+      {
+        "path": "tools/campus/real-rerank-compare.test.mjs",
+        "sha256": "08d147691a59f88da24fef45ed99ed3896a1ad796b69150c45bd396e3bc1df3d",
+        "gitContentSha256": "08d147691a59f88da24fef45ed99ed3896a1ad796b69150c45bd396e3bc1df3d"
+      },
+      {
+        "path": "tools/campus/s3-retrieval.test.mjs",
+        "sha256": "b9ff5eb762cba6a600c62a742abe5c8ddefc97b2f5a4d4dc85541927a5dbe396",
+        "gitContentSha256": "1186b4d616c73c064a71cdca7671820d5637e212deee6bf294237d034b4784e4"
+      },
+      {
+        "path": "vio-ai-agent-frontend/e2e/team-change.spec.js",
+        "sha256": "9fc3fd65ff6da67c4bf49e8f3032a396a7e5eb8aaa6da524c7339870240266af",
+        "gitContentSha256": "9fc3fd65ff6da67c4bf49e8f3032a396a7e5eb8aaa6da524c7339870240266af"
+      },
+      {
+        "path": "vio-ai-agent-frontend/scripts/run-contract.test.mjs",
+        "sha256": "245e9cf895819fdcd90bad768124bfe80874e7114cfd64f4c57f49a151bdcc4a",
+        "gitContentSha256": "ff59ba3dd9fc8273cfc2e9482bf2ec4a22a0ba66c3d4b77736dc1aabe65cbdd6"
+      },
+      {
+        "path": "vio-ai-agent-frontend/src/api/run-contract.js",
+        "sha256": "6e9acd8b6687714ee1dd4fdbf5e95ec621ef0a17158efc3e468f6e464afe21e5",
+        "gitContentSha256": "bc28bf85df2cfbbc58d106545c5e2367f29fb8bb8d2925c51d732ecda6d079ac"
+      },
+      {
+        "path": "vio-ai-agent-frontend/src/components/RunTimeline.vue",
+        "sha256": "469d7eae70bb0781a0fdcdf3330d2155aa3aba20760de2ae138522590aed86f5",
+        "gitContentSha256": "8522aa06f91807c1f6fa38fbc5bee2fe36a867e4af85d0aa53582f67a60377b9"
+      },
+      {
+        "path": "vio-ai-agent-frontend/src/views/SuperAgent.vue",
+        "sha256": "140f314437bc9b74f6eebff91bfcf1bfeddf414971b12c540c6e445417cbaba1",
+        "gitContentSha256": "0d36de2557e87f9a724a66cb5e8c0b14f6391b508c0f725137dd1213ee3ad48a"
+      }
+    ],
+    "sourceHashScope": "sha256 is raw tested worktree bytes; gitContentSha256 is normalized staged Git content"
+  },
+  "review": {
+    "humanApproval": "PENDING",
+    "formalRelease": "PENDING",
+    "scope": "U0_U6_LOCAL_CANDIDATE",
+    "sourceArchive": "FROZEN_BEFORE_FINAL_DOCUMENTATION_SYNC"
+  },
+  "checks": {
+    "backend": {
+      "tests": 1894,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 8
+    },
+    "campusNode": {
+      "tests": 497,
+      "pass": 497,
+      "fail": 0,
+      "skipped": 0
+    },
+    "frontendContracts": {
+      "tests": 231,
+      "pass": 231,
+      "fail": 0,
+      "skipped": 0
+    },
+    "chrome": {
+      "passed": 114,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0
+    },
+    "damageBridge": {
+      "tests": 13,
+      "pass": 13,
+      "fail": 0,
+      "skipped": 0
+    },
+    "packagedJarHttp": {
+      "total": 12,
+      "passed": 12,
+      "failed": 0
+    },
+    "archiveIntegrity": {
+      "status": "PASS",
+      "checksummedFiles": 294,
+      "zipSha256": "32d4cad54eae3c8ce10ed0ac605ab52042fe6bf519ec1f44b66112e8b225a086",
+      "zipMatchesManifest": true,
+      "privateConfigurationEntries": 0,
+      "credentialMatches": 0,
+      "excludedDocumentedPlaceholder": "your-dashscope-api-key-here",
+      "packagedEngine": {
+        "engineVersion": "0.12.0",
+        "range": {
+          "minimum": 164,
+          "maximum": 194
+        }
+      }
+    }
+  },
+  "limits": {
+    "backendConditionalSkips": [
+      "legacy image-search MCP JAR checks",
+      "opt-in Jaeger and tracing probe",
+      "opt-in live PokeAPI smoke"
+    ],
+    "generatedAnswerReview": "AI_ASSISTED_WITH_FIRST_FAILURES_RETAINED_HUMAN_DOMAIN_REVIEW_PENDING",
+    "rerank": "144 retrieval observations across two collections; 8 development queries; equal hybrid and reranked quality; default remains off",
+    "retrievalKnownMiss": "S5-Q05 expected legacy damage-assumptions-v1 source excluded by current applicability policy; retained as a miss",
+    "productionSla": "NOT_ESTABLISHED_BY_LOCAL_MEASUREMENTS"
+  },
+  "evidence": [
+    {
+      "path": "artifacts/local-candidate-secure-package-20261116.log",
+      "sha256": "f1ad7572f2412eb6e41628d6d0ad8edaeb26c0dfcb06be977566c90cf3c474b8",
+      "availability": "LOCAL_IGNORED_ARTIFACT"
+    },
+    {
+      "path": "artifacts/local-candidate-final-campus-20261116.log",
+      "sha256": "86ed365792a6800d36e75b58e285a09037e59f4da78f6ea2f2f330e8e4aa2105",
+      "availability": "LOCAL_IGNORED_ARTIFACT"
+    },
+    {
+      "path": "artifacts/cancel-display-contract-20261116.log",
+      "sha256": "0f4d709cb03471737de9410e1d448098d0f4cdd782a1fd125441db55bd40b047",
+      "availability": "LOCAL_IGNORED_ARTIFACT"
+    },
+    {
+      "path": "artifacts/final-frontend-e2e-20261116.json",
+      "sha256": "8e9afd27f3a24c97d5eee26175ab16b42c574ab20716ab2d8e76ec140ffde4fb",
+      "availability": "LOCAL_IGNORED_ARTIFACT"
+    },
+    {
+      "path": "artifacts/local-candidate-engine-20261116.log",
+      "sha256": "0afc872df858693b0aed5f4b98bbb7d7b686cf0306da6de4040d4cb4e293d2ec",
+      "availability": "LOCAL_IGNORED_ARTIFACT"
+    },
+    {
+      "path": "artifacts/local-candidate-jar-smoke-20261116/report.json",
+      "sha256": "f4d6ba327a12797585ae658d2f263a0ea083ded239b7fd103c71bfd4cb91ff6d",
+      "availability": "LOCAL_IGNORED_ARTIFACT"
+    },
+    {
+      "path": "artifacts/local-candidate-verification-20261116.json",
+      "sha256": "6b7d4af0040fc8d08b347fbbe17f9cd9e390f85ef4394dffd2125d78a2f92acf",
+      "availability": "LOCAL_IGNORED_ARTIFACT"
+    },
+    {
+      "path": "artifacts/local-candidate-final-integrity-20261116.json",
+      "sha256": "4f58964b5afa5813a2a795dd771782cf6256fb9bb78c37416018ac66020b2072",
+      "availability": "LOCAL_IGNORED_ARTIFACT"
+    },
+    {
+      "path": "artifacts/push-final-campus-20261116.log",
+      "sha256": "529f24fcfa04eff4aa94d00362682900615870867328ab29b82a8d1cbd17c6d8",
+      "availability": "LOCAL_IGNORED_ARTIFACT"
+    },
+    {
+      "path": "artifacts/prepush-gitleaks-20261116.log",
+      "sha256": "20dc9d7d2711ceb5b099996fbbd6c87bfeb78c5129aa9bb75648683673db1092",
+      "availability": "LOCAL_IGNORED_ARTIFACT"
+    },
+    {
+      "path": "artifacts/prepush-exact-key-scan-20261116.json",
+      "sha256": "1b9708a915f1b6b7af7f9854522e5e8ee83fda85c307eaf82d3ec08de532d272",
+      "availability": "LOCAL_IGNORED_ARTIFACT"
+    }
+  ],
+  "versionedRetrievalEvidence": "evaluation/upgrade-v1.1/u1/real-rerank-20261116/",
+  "prePush": {
+    "nodeRerun": {
+      "tests": 497,
+      "passed": 497,
+      "failed": 0,
+      "skipped": 0
+    },
+    "gitleaks": {
+      "version": "8.24.3",
+      "findings": 0,
+      "scope": "57 staged files"
+    },
+    "exactConfiguredCredentialMatches": 0
+  }
+}

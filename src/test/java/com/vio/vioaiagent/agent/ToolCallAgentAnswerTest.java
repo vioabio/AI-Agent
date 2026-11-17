@@ -51,7 +51,7 @@ class ToolCallAgentAnswerTest {
     void guardedCalculationCannotBeRewrittenByModelBeforePublication() throws Exception {
         ChatModel model = mock(ChatModel.class);
         var call = new AssistantMessage("计算规划", Map.of(), List.of(
-                new AssistantMessage.ToolCall("damage-1", "function", "calculateBattleDamage", "{}")));
+                new AssistantMessage.ToolCall("damage-1", "function", "calculateBattleDamage", "{\"request\":{\"request\":{\"generation\":9}}}")));
         when(model.call(any(Prompt.class))).thenReturn(
                 new ChatResponse(List.of(new Generation(call))),
                 new ChatResponse(List.of(new Generation(new AssistantMessage("准备解释计算")))),
@@ -69,6 +69,9 @@ class ToolCallAgentAnswerTest {
         assertFalse(agent.getFinalAnswer().contains("999"));
         assertFalse(agent.getFinalAnswer().contains("必定一击必杀"));
         assertEquals(String.join("",chunks),agent.getFinalAnswer());
+        var actual=org.mockito.ArgumentCaptor.forClass(ChatResponse.class);
+        verify(manager).executeToolCalls(any(),actual.capture());
+        assertEquals("{\"request\":{\"generation\":9}}",actual.getValue().getResult().getOutput().getToolCalls().getFirst().arguments());
     }
 
     @Test
@@ -99,6 +102,29 @@ class ToolCallAgentAnswerTest {
         assertFalse(String.join("",chunks).contains("内部规划"));
         assertEquals(String.join("",chunks),agent.getFinalAnswer());
         verify(model,never()).stream(any(Prompt.class));
+    }
+
+    @Test
+    void factsOnlyTeamRequestReturnsVerifiedSummaryWithoutGeneratingStrategy() throws Exception {
+        ChatModel model=mock(ChatModel.class);
+        var call=new AssistantMessage("内部规划",Map.of(),List.of(new AssistantMessage.ToolCall("team-facts","function","lookupPokemonTeamReference","{}")));
+        when(model.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(new Generation(call))),
+                new ChatResponse(List.of(new Generation(new AssistantMessage("资料已齐")))),
+                new ChatResponse(List.of(new Generation(new AssistantMessage("未请求的培养建议")))));
+        var manager=mock(ToolCallingManager.class);
+        String evidenceJson=TeamAnswerEvidenceTest.MAPPER.writeValueAsString(TeamAnswerEvidenceTest.evidence());
+        when(manager.executeToolCalls(any(),any())).thenReturn(new DefaultToolExecutionResult(List.of(call,
+                new ToolResponseMessage(List.of(new ToolResponseMessage.ToolResponse("team-facts","lookupPokemonTeamReference",
+                        evidenceJson)))),false));
+        var agent=new ToolCallAgent(new ToolCallback[0]);
+        agent.setSystemPrompt("Be accurate.");agent.setChatClient(ChatClient.builder(model).build());
+        agent.setToolCallingManager(manager);agent.setTeamAnswerEvidence(new TeamAnswerEvidence());
+        var chunks=new java.util.ArrayList<String>();agent.setAnswerDeltaSink(chunks::add);
+        agent.run("分析队伍，只看这两位参考成员的资料，不保存。\n参考成员：squirtle、charmander");
+        assertTrue(agent.getFinalAnswer().contains("杰尼龟 | 水 | 43"));
+        assertFalse(agent.getFinalAnswer().contains("培养建议"));
+        assertEquals(agent.getFinalAnswer(),String.join("",chunks));
+        verify(model,times(2)).call(any(Prompt.class));verify(model,never()).stream(any(Prompt.class));
     }
 
     @Test

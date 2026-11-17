@@ -1,0 +1,173 @@
+{
+  "schemaVersion": "real-rerank-reviewed-comparison-v1",
+  "scope": "FROZEN_DEVELOPMENT_RETRIEVAL_NOT_INDEPENDENT_ANSWER_ACCEPTANCE",
+  "datasetSha256": "dc1f161fcded4b789ecf309163cdf03a16f715bfcd2167b81b373b83e0fa4848",
+  "corpusSha256": "f0760fbccb4f78e623f57bae7c12698a2dd4c6a31d94ff39d072deea89f5d90f",
+  "candidatePoolsIdentical": true,
+  "records": 72,
+  "summaries": {
+    "BM25": {
+      "rounds": [
+        {
+          "planned": 8,
+          "positive": 6,
+          "negative": 2,
+          "documentRecallWithinTop5Chunks": 0.8333333333333334,
+          "mrrAt5": 0.6388888888888888,
+          "negativeEmptyAccuracy": 1,
+          "sourcesVerified": 8,
+          "exclusionViolations": 0,
+          "seedEvidenceCoverageAt5": null,
+          "scope": "Source-linked development seeds, not exhaustive relevance judgments, human acceptance, heldout quality, or an S2 ablation result."
+        },
+        {
+          "planned": 8,
+          "positive": 6,
+          "negative": 2,
+          "documentRecallWithinTop5Chunks": 0.8333333333333334,
+          "mrrAt5": 0.6388888888888888,
+          "negativeEmptyAccuracy": 1,
+          "sourcesVerified": 8,
+          "exclusionViolations": 0,
+          "seedEvidenceCoverageAt5": null,
+          "scope": "Source-linked development seeds, not exhaustive relevance judgments, human acceptance, heldout quality, or an S2 ablation result."
+        },
+        {
+          "planned": 8,
+          "positive": 6,
+          "negative": 2,
+          "documentRecallWithinTop5Chunks": 0.8333333333333334,
+          "mrrAt5": 0.6388888888888888,
+          "negativeEmptyAccuracy": 1,
+          "sourcesVerified": 8,
+          "exclusionViolations": 0,
+          "seedEvidenceCoverageAt5": null,
+          "scope": "Source-linked development seeds, not exhaustive relevance judgments, human acceptance, heldout quality, or an S2 ablation result."
+        }
+      ],
+      "recallAt5": 0.8333333333333334,
+      "mrrAt5": 0.6388888888888888,
+      "negativeEmptyAccuracy": 1,
+      "latencyMs": {
+        "p50": 10.8864,
+        "p95": 15.507
+      },
+      "states": {
+        "BM25": 24
+      }
+    },
+    "HYBRID": {
+      "rounds": [
+        {
+          "planned": 8,
+          "positive": 6,
+          "negative": 2,
+          "documentRecallWithinTop5Chunks": 0.8333333333333334,
+          "mrrAt5": 0.75,
+          "negativeEmptyAccuracy": 1,
+          "sourcesVerified": 8,
+          "exclusionViolations": 0,
+          "seedEvidenceCoverageAt5": null,
+          "scope": "Source-linked development seeds, not exhaustive relevance judgments, human acceptance, heldout quality, or an S2 ablation result."
+        },
+        {
+          "planned": 8,
+          "positive": 6,
+          "negative": 2,
+          "documentRecallWithinTop5Chunks": 0.8333333333333334,
+          "mrrAt5": 0.75,
+          "negativeEmptyAccuracy": 1,
+          "sourcesVerified": 8,
+          "exclusionViolations": 0,
+          "seedEvidenceCoverageAt5": null,
+          "scope": "Source-linked development seeds, not exhaustive relevance judgments, human acceptance, heldout quality, or an S2 ablation result."
+        },
+        {
+          "planned": 8,
+          "positive": 6,
+          "negative": 2,
+          "documentRecallWithinTop5Chunks": 0.8333333333333334,
+          "mrrAt5": 0.75,
+          "negativeEmptyAccuracy": 1,
+          "sourcesVerified": 8,
+          "exclusionViolations": 0,
+          "seedEvidenceCoverageAt5": null,
+          "scope": "Source-linked development seeds, not exhaustive relevance judgments, human acceptance, heldout quality, or an S2 ablation result."
+        }
+      ],
+      "recallAt5": 0.8333333333333334,
+      "mrrAt5": 0.75,
+      "negativeEmptyAccuracy": 1,
+      "latencyMs": {
+        "p50": 852.6479,
+        "p95": 2061.4664
+      },
+      "states": {
+        "HYBRID": 24
+      }
+    },
+    "HYBRID_RERANK": {
+      "rounds": [
+        {
+          "planned": 8,
+          "positive": 6,
+          "negative": 2,
+          "documentRecallWithinTop5Chunks": 0.8333333333333334,
+          "mrrAt5": 0.75,
+          "negativeEmptyAccuracy": 1,
+          "sourcesVerified": 8,
+          "exclusionViolations": 0,
+          "seedEvidenceCoverageAt5": null,
+          "scope": "Source-linked development seeds, not exhaustive relevance judgments, human acceptance, heldout quality, or an S2 ablation result."
+        },
+        {
+          "planned": 8,
+          "positive": 6,
+          "negative": 2,
+          "documentRecallWithinTop5Chunks": 0.8333333333333334,
+          "mrrAt5": 0.75,
+          "negativeEmptyAccuracy": 1,
+          "sourcesVerified": 8,
+          "exclusionViolations": 0,
+          "seedEvidenceCoverageAt5": null,
+          "scope": "Source-linked development seeds, not exhaustive relevance judgments, human acceptance, heldout quality, or an S2 ablation result."
+        },
+        {
+          "planned": 8,
+          "positive": 6,
+          "negative": 2,
+          "documentRecallWithinTop5Chunks": 0.8333333333333334,
+          "mrrAt5": 0.75,
+          "negativeEmptyAccuracy": 1,
+          "sourcesVerified": 8,
+          "exclusionViolations": 0,
+          "seedEvidenceCoverageAt5": null,
+          "scope": "Source-linked development seeds, not exhaustive relevance judgments, human acceptance, heldout quality, or an S2 ablation result."
+        }
+      ],
+      "recallAt5": 0.8333333333333334,
+      "mrrAt5": 0.75,
+      "negativeEmptyAccuracy": 1,
+      "latencyMs": {
+        "p50": 1303.1432,
+        "p95": 1756.5652
+      },
+      "states": {
+        "RERANKED": 18,
+        "EMPTY": 6
+      }
+    }
+  },
+  "delta": {
+    "recallAt5": 0,
+    "mrrAt5": 0,
+    "negativeEmptyAccuracy": 0,
+    "p95Ms": -304.9011999999998
+  },
+  "recommendation": "KEEP_DEFAULT_OFF",
+  "chatModelCallCount": 0,
+  "providerBillingUsage": null,
+  "answerQuality": "NOT_MEASURED_BY_RETRIEVAL_BENCHMARK",
+  "evidence": "SOURCE_LINKED_DEVELOPMENT_SEEDS_THREE_ROUNDS_NOT_STATISTICAL_SIGNIFICANCE",
+  "inputSha256": "464f0092d8c1ac4ab4001ca466ba3d364e851ba739082fbe1d2536198c483f6f"
+}

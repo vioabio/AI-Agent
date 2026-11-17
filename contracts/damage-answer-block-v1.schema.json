@@ -1,0 +1,260 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Verified damage answer block v1",
+  "$comment": "Runtime validators additionally enforce ordered range, percentage/HP consistency, EV total and binding to the actual tool request/output. A digest is not a trust proof by itself. Optional evidence requires two distinct source roles and matching target/projection digests at runtime; absent provenance does not invalidate verified numerical results.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "blockId",
+    "kind",
+    "attacker",
+    "defender",
+    "move",
+    "field",
+    "minimum",
+    "maximum",
+    "defenderHp",
+    "minimumPercent",
+    "maximumPercent",
+    "gameReleaseId",
+    "dataReleaseId",
+    "evidenceDigest"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "answer-block-v1"
+    },
+    "kind": {
+      "const": "damageResult"
+    },
+    "blockId": {
+      "type": "string",
+      "pattern": "^damage-[a-f0-9]{64}$"
+    },
+    "attacker": {
+      "$ref": "#/$defs/member"
+    },
+    "defender": {
+      "$ref": "#/$defs/member"
+    },
+    "move": {
+      "$ref": "#/$defs/name"
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gameType",
+        "weather",
+        "terrain"
+      ],
+      "properties": {
+        "gameType": {
+          "enum": [
+            "Singles",
+            "Doubles"
+          ]
+        },
+        "weather": {
+          "enum": [
+            null,
+            "Sun",
+            "Rain",
+            "Sand",
+            "Hail",
+            "Snow",
+            "Harsh Sunshine",
+            "Heavy Rain",
+            "Strong Winds"
+          ]
+        },
+        "terrain": {
+          "enum": [
+            null,
+            "Electric",
+            "Grassy",
+            "Misty",
+            "Psychic"
+          ]
+        }
+      }
+    },
+    "minimum": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "maximum": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "defenderHp": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    "minimumPercent": {
+      "type": "number",
+      "minimum": 0
+    },
+    "maximumPercent": {
+      "type": "number",
+      "minimum": 0
+    },
+    "gameReleaseId": {
+      "const": "pokemon-scarlet-violet"
+    },
+    "dataReleaseId": {
+      "const": "pokeapi-reference-v1"
+    },
+    "evidenceDigest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "evidence": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/evidence"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "species",
+        "level",
+        "nature",
+        "ability",
+        "item",
+        "evs",
+        "ivs"
+      ],
+      "properties": {
+        "species": {
+          "$ref": "#/$defs/name"
+        },
+        "nature": {
+          "$ref": "#/$defs/name"
+        },
+        "ability": {
+          "$ref": "#/$defs/name"
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "item": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "evs": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 252
+          }
+        },
+        "ivs": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 31
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "kind",
+        "targetBlockId",
+        "requestDigest",
+        "projectionDigest",
+        "engineVersion",
+        "scope",
+        "sources"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "answer-block-v1"
+        },
+        "kind": {
+          "const": "evidence"
+        },
+        "targetBlockId": {
+          "type": "string",
+          "pattern": "^damage-[a-f0-9]{64}$"
+        },
+        "requestDigest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "projectionDigest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "engineVersion": {
+          "const": "0.12.0"
+        },
+        "scope": {
+          "const": "PUBLIC_REFERENCE_AND_LOCAL_ENGINE_NOT_LEGALITY"
+        },
+        "sources": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/source"
+          }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "url",
+        "checksum"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "attacker",
+            "defender"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https://pokeapi\\.co/api/v2/pokemon/[1-9][0-9]{0,5}/$"
+        },
+        "checksum": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      }
+    }
+  }
+}

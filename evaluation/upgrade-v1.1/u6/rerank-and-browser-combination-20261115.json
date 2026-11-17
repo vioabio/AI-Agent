@@ -1,0 +1,128 @@
+{
+  "schemaVersion": "u6-rerank-browser-progress-v1",
+  "date": "2026-11-15",
+  "branch": "codex/v1.1-agent-upgrade",
+  "baseCommit": "f59a15b1a406116c6e35b38b7bd1b261ae976ef6",
+  "uncommittedChanges": true,
+  "fixes": [
+    "VERIFIED_STATS_WITHOUT_TOOL_EVIDENCE_STAYS_UNCONFIRMED",
+    "BOUND_NOT_FOUND_DISTINCT_FROM_TRANSPORT_FAILURE",
+    "PER_COMPONENT_BUILD_CHECK_DEADLINES"
+  ],
+  "browser": {
+    "status": "EVIDENCE_VERIFIED",
+    "runs": 20,
+    "groups": 2,
+    "features": [
+      "skills",
+      "contextAssembly",
+      "answerBlocks",
+      "domainTracing"
+    ],
+    "semanticMode": "HYBRID",
+    "embeddingModel": "text-embedding-v4",
+    "dimensions": 1024,
+    "review": "AI_ASSISTED_DEVELOPMENT_FUNCTIONAL",
+    "humanReview": "PENDING"
+  },
+  "rerank": {
+    "status": "CONTROLLED_CHECKS_PASSED",
+    "runs": 20,
+    "restartVerified": true,
+    "scope": "SYNTHETIC_TRANSPORT_AND_FALLBACK",
+    "qualityBenefit": "NOT_EVALUATED",
+    "realProvider": "CONFIGURATION_REQUIRED",
+    "missingConfiguration": [
+      "VIO_GUIDE_RERANK_ENDPOINT",
+      "VIO_GUIDE_RERANK_MODEL",
+      "VIO_GUIDE_RERANK_API_KEY"
+    ]
+  },
+  "tests": {
+    "java": {
+      "schemaVersion": "java-regression-summary-v1",
+      "suites": 370,
+      "tests": 1838,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3,
+      "skippedCases": [
+        "com.vio.vioaiagent.mcp.McpClientStdioTest.testStdioToolInvocation",
+        "com.vio.vioaiagent.mcp.McpClientStdioTest.testStdioConnectionAndToolDiscovery",
+        "com.vio.vioaiagent.pokemon.PokeApiReferenceTest.liveSmokeOnlyWhenExplicitlyRequested"
+      ]
+    },
+    "node": {
+      "tests": 469,
+      "failures": 0
+    },
+    "frontend": {
+      "contractTests": 225,
+      "failures": 0,
+      "typecheck": "PASS",
+      "build": "PASS"
+    }
+  },
+  "buildChecks": [
+    {
+      "path": "artifacts/u6-browser-final-on-server-20261115/build-check.json",
+      "sha256": "87b1f02de737d09eeb3870ca342eaa89ab11cba6c31a0aaf1506bd0e35389169",
+      "componentCount": 66,
+      "build": "937d030110197811afc5d4da313c700068b275c36d041378bbba119e538f071f"
+    },
+    {
+      "path": "artifacts/u6-browser-final-off-server-20261115/build-check.json",
+      "sha256": "87b1f02de737d09eeb3870ca342eaa89ab11cba6c31a0aaf1506bd0e35389169",
+      "componentCount": 66,
+      "build": "937d030110197811afc5d4da313c700068b275c36d041378bbba119e538f071f"
+    },
+    {
+      "path": "artifacts/u6-rerank-final-server-20261115/build-check.json",
+      "sha256": "87b1f02de737d09eeb3870ca342eaa89ab11cba6c31a0aaf1506bd0e35389169",
+      "componentCount": 66,
+      "build": "937d030110197811afc5d4da313c700068b275c36d041378bbba119e538f071f"
+    },
+    {
+      "path": "artifacts/u6-rerank-final-restart-server-20261115/build-check.json",
+      "sha256": "87b1f02de737d09eeb3870ca342eaa89ab11cba6c31a0aaf1506bd0e35389169",
+      "componentCount": 66,
+      "build": "937d030110197811afc5d4da313c700068b275c36d041378bbba119e538f071f"
+    }
+  ],
+  "retainedAttempts": [
+    {
+      "path": "artifacts/u6-rerank-browser-node-verified-stats-20261115.log",
+      "finding": "24_CHILD_CHECKS_SHARED_30_SECOND_DEADLINE",
+      "resolution": "SPLIT_PER_COMPONENT_AND_FULL_SUITE_RERUN"
+    },
+    {
+      "path": "artifacts/u6-rerank-controlled-restart-20261115/result.json",
+      "finding": "COLLECTOR_STARTED_BEFORE_READY",
+      "resolution": "WAIT_FOR_READY_AND_RECOLLECT_IN_NEW_DIRECTORY"
+    },
+    {
+      "path": "artifacts/u6-browser-on-cards-20261115/browser-result.json",
+      "finding": "UNVERIFIED_UNKNOWN_SPECIES_LOOKUP_CLAIM",
+      "resolution": "VERIFIED_STATS_GUARD_AND_BOTH_GROUPS_RECOLLECTED"
+    }
+  ],
+  "evidence": {
+    "artifacts/u6-browser-final-combination-verified-20261115.json": "36c120ad6b393bc325480b2dab42061cbd1078439048a246f3ab529ab79a60ed",
+    "artifacts/u6-browser-final-content-review-20261115.json": "6500eef1a303b731e1f5241368e754fa918281a3bb03cbc451e2757624d91565",
+    "artifacts/u6-rerank-final-restart-verified-20261115.json": "5a707cd9b0f002a1fd010bfae575f3ce7af908910b7ce2287aebb19fb4baf8be",
+    "artifacts/u6-rerank-browser-final-java-summary-20261115.json": "10f9b1fdc72306a7da7cc1f59ed6145cb37979771d25e29682bbb13bd00f3793",
+    "artifacts/u6-rerank-browser-final-full-20261115.log": "2beeec1a56cb22a6f62eed383bab5d214d06326b6a252cefb5b12714bfe1d67b",
+    "artifacts/u6-rerank-browser-final-tracing-20261115.log": "868a22c3509c47e628aa10b5386de5b059e2e1e1bb3c0e45b81a8db976720f07",
+    "artifacts/u6-rerank-browser-final-node-20261115.log": "46a02efd7a6ca9f08daa02f1bde29bff2cb542fd3e775bf20b4025b6b1e098c3",
+    "artifacts/u6-rerank-browser-frontend-20261115.log": "00c0aadc6e249af9e5b5920d2bea2e14dc00ecb150b868ce9a44b35a3a76608b",
+    "artifacts/u6-rerank-browser-typecheck-20261115.log": "06e059649a47ae58eee167e54d3234ee80acdf04878c0c9adadac41cd5d65f17",
+    "artifacts/u6-rerank-browser-build-20261115.log": "d7a6b4ac7b763af2857f21374371c89f4eea4cb66d78be9b32567151de7c9d47"
+  },
+  "pending": [
+    "REAL_PROVIDER_RERANK_EFFECT_COMPARISON",
+    "BROADER_MCP_CANCEL_TIMEOUT_COMBINATIONS",
+    "OPEN_ENDED_ANSWER_CONCISION",
+    "NEW_FROZEN_INDEPENDENT_QUESTIONS_AND_HUMAN_REVIEW"
+  ],
+  "releaseDecision": "PENDING"
+}

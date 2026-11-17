@@ -1,0 +1,583 @@
+[
+  {
+    "schemaVersion": "1",
+    "eventId": 1,
+    "type": "run.created",
+    "sessionId": "1afc275c-cd74-4aff-93f0-a4e967b1fc79",
+    "runId": "run-07e18a35-c159-4685-b797-c41e8f9ea615",
+    "traceId": "95f7d052",
+    "timestamp": "2026-11-15T15:21:48.515202700Z",
+    "payload": {
+      "policyVersion": "local-account-v1-1",
+      "tenantId": "local",
+      "knowledgeReleaseId": "",
+      "indexReleaseId": "",
+      "allowedTools": [
+        "analyzeSavedTeamForGym",
+        "calculateBattleDamage",
+        "calculateGymDamage",
+        "checkPokemonBuild",
+        "checkPokemonTeamBuild",
+        "checkTypeEffectiveness",
+        "doTerminate",
+        "getTypeChart",
+        "listCurrentTeams",
+        "lookupCompetitiveTeams",
+        "lookupCompetitiveTrends",
+        "lookupPokemonLearnset",
+        "lookupPokemonMachine",
+        "lookupPokemonMechanics",
+        "lookupPokemonReference",
+        "lookupPokemonResource",
+        "lookupPokemonTeamReference",
+        "planGymChallenge",
+        "previewTeamChanges",
+        "readCurrentTeam",
+        "recommendGymTeamCore",
+        "searchPokemonGuides",
+        "searchWeb",
+        "web_search"
+      ],
+      "policyExpiresAt": "2026-11-15T23:21:40.169569400Z",
+      "roles": [
+        "trainer"
+      ],
+      "contractVersion": "v1",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "status": "CREATED",
+      "battleFormatId": "casual-singles",
+      "language": "zh-CN",
+      "policyFingerprint": "167259d4fbaf2c0c0c888fb64bab0e24777a4ebf731ed56d32659167cba2854d",
+      "rulesetVersionId": "casual-v1",
+      "dlcId": "",
+      "principalId": "local-5e78653a-b872-4fba-810b-fab2b1bdf0b0",
+      "bindingId": "oidc:8c979f8d06bbb718b62cff23b2e452a6e2c4c184c959fee51387b02a1df4dc0a"
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 2,
+    "type": "run.started",
+    "sessionId": "1afc275c-cd74-4aff-93f0-a4e967b1fc79",
+    "runId": "run-07e18a35-c159-4685-b797-c41e8f9ea615",
+    "traceId": "95f7d052",
+    "timestamp": "2026-11-15T15:21:48.517193700Z",
+    "payload": {
+      "battleFormatId": "casual-singles",
+      "knowledgeReleaseId": "",
+      "indexReleaseId": "",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "status": "RUNNING",
+      "contractVersion": "v1",
+      "dlcId": "",
+      "language": "zh-CN"
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 3,
+    "type": "context.confirmed",
+    "sessionId": "1afc275c-cd74-4aff-93f0-a4e967b1fc79",
+    "runId": "run-07e18a35-c159-4685-b797-c41e8f9ea615",
+    "traceId": "95f7d052",
+    "timestamp": "2026-11-15T15:21:48.571565Z",
+    "payload": {
+      "battleFormatId": "casual-singles",
+      "knowledgeReleaseId": "",
+      "indexReleaseId": "",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "battleFormat": "casual-singles",
+      "contractVersion": "v1",
+      "dlcId": "",
+      "language": "zh-CN"
+    }
+  },
+  {
+    "schemaVersion": "v1.1",
+    "eventId": 4,
+    "type": "context.card",
+    "sessionId": "1afc275c-cd74-4aff-93f0-a4e967b1fc79",
+    "runId": "run-07e18a35-c159-4685-b797-c41e8f9ea615",
+    "traceId": "95f7d052",
+    "timestamp": "2026-11-15T15:21:48.571565Z",
+    "payload": {
+      "battleFormatId": "casual-singles",
+      "knowledgeReleaseId": "",
+      "indexReleaseId": "",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "battleFormat": "casual-singles",
+      "contractVersion": "v1",
+      "dlcId": "",
+      "language": "zh-CN"
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 5,
+    "type": "route.selected",
+    "sessionId": "1afc275c-cd74-4aff-93f0-a4e967b1fc79",
+    "runId": "run-07e18a35-c159-4685-b797-c41e8f9ea615",
+    "traceId": "95f7d052",
+    "timestamp": "2026-11-15T15:21:48.571565Z",
+    "payload": {
+      "battleFormatId": "casual-singles",
+      "knowledgeReleaseId": "",
+      "indexReleaseId": "",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "contractVersion": "v1",
+      "dlcId": "",
+      "route": "controlled-agent",
+      "language": "zh-CN"
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 6,
+    "type": "tool.started",
+    "sessionId": "1afc275c-cd74-4aff-93f0-a4e967b1fc79",
+    "runId": "run-07e18a35-c159-4685-b797-c41e8f9ea615",
+    "traceId": "95f7d052",
+    "timestamp": "2026-11-15T15:21:48.684002500Z",
+    "payload": {
+      "governanceEventId": "48daa6ac-6bc0-47f7-ac66-d31fa01bd1a6",
+      "toolName": "searchPokemonGuides",
+      "contractVersion": "v1",
+      "dlcId": "",
+      "knowledgeReleaseId": "",
+      "indexReleaseId": "",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "battleFormatId": "casual-singles",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "inputEvidence": {
+        "toolVersion": "1.0.0",
+        "schemaVersion": "tool-input-evidence-v1",
+        "parameterDigest": "3a7f23cbc6763d8abe73bb381a67e3a43180527cc9439055825f907af0808ed7",
+        "coverage": "COMPLETE",
+        "fields": {
+          "/query": {
+            "kind": "SHA256_JSON",
+            "sha256": "bbef253b4f6b0b053a9b4620c8692ef6884f039992b7fc7c864ae21d205c1762"
+          },
+          "/gameReleaseId": {
+            "kind": "LITERAL",
+            "value": "pokemon-scarlet-violet"
+          }
+        },
+        "scope": "SUPPLIED_ARGUMENTS_ONLY"
+      },
+      "language": "zh-CN",
+      "attempt": 1
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 7,
+    "type": "retrieval.finished",
+    "sessionId": "1afc275c-cd74-4aff-93f0-a4e967b1fc79",
+    "runId": "run-07e18a35-c159-4685-b797-c41e8f9ea615",
+    "traceId": "95f7d052",
+    "timestamp": "2026-11-15T15:21:48.933009600Z",
+    "payload": {
+      "semanticCandidates": 2,
+      "knowledgeReleaseId": "",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "toolName": "searchPokemonGuides",
+      "retrievalStage": "BASE_RETRIEVAL",
+      "governanceEventId": "5488c866-b1fe-4973-b038-b238dee7d0cd",
+      "battleFormatId": "casual-singles",
+      "contractVersion": "v1",
+      "sources": [
+        {
+          "documentId": "team-change-confirmation-v1",
+          "chunkId": "guide-a8ac50bb79e69cf8b9cf35310dd2175d20e5592e0ec059fcb00a5130f6ebeb42",
+          "lexicalRank": 1,
+          "semanticRank": 2
+        },
+        {
+          "documentId": "team-change-confirmation-v1",
+          "chunkId": "guide-ef248d8303fab055bd6c49179810ca0be35fac5a5615b3460092d055533ff522",
+          "lexicalRank": 2,
+          "semanticRank": 1
+        },
+        {
+          "documentId": "build-values-and-defaults-v1",
+          "chunkId": "guide-461f739f9fa900fb24694afe2ab8ba21412d5c6a6becdeb5a9e8c9542ac789b4",
+          "lexicalRank": 3,
+          "semanticRank": 0
+        },
+        {
+          "documentId": "build-values-and-defaults-v1",
+          "chunkId": "guide-4286999c0c167c8d5b6d700a6374aa8f9e2bbedc4076d9d21f180f71b506df2f",
+          "lexicalRank": 4,
+          "semanticRank": 0
+        }
+      ],
+      "rulesetVersionId": "casual-v1",
+      "indexReleaseId": "",
+      "dlcId": "",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "language": "zh-CN"
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 8,
+    "type": "tool.finished",
+    "sessionId": "1afc275c-cd74-4aff-93f0-a4e967b1fc79",
+    "runId": "run-07e18a35-c159-4685-b797-c41e8f9ea615",
+    "traceId": "95f7d052",
+    "timestamp": "2026-11-15T15:21:48.937534700Z",
+    "payload": {
+      "durationMs": 251,
+      "parameterDigest": "3a7f23cbc6763d8abe73bb381a67e3a43180527cc9439055825f907af0808ed7",
+      "knowledgeReleaseId": "",
+      "indexReleaseId": "",
+      "contractVersion": "v1",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "governanceEventId": "48daa6ac-6bc0-47f7-ac66-d31fa01bd1a6",
+      "status": "SUCCEEDED",
+      "toolVersion": "1.0.0",
+      "battleFormatId": "casual-singles",
+      "traceId": "95f7d052",
+      "language": "zh-CN",
+      "retryCount": 0,
+      "rulesetVersionId": "casual-v1",
+      "approvalId": "",
+      "toolName": "searchPokemonGuides",
+      "dlcId": ""
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 9,
+    "type": "tool.finished",
+    "sessionId": "1afc275c-cd74-4aff-93f0-a4e967b1fc79",
+    "runId": "run-07e18a35-c159-4685-b797-c41e8f9ea615",
+    "traceId": "95f7d052",
+    "timestamp": "2026-11-15T15:21:48.937534700Z",
+    "payload": {
+      "timing": {
+        "schemaVersion": "tool-timing-v1",
+        "scope": "CALLBACK_ATTEMPTS",
+        "attempts": [
+          {
+            "accepted": true,
+            "callbackStarted": true,
+            "callbackCompleted": true,
+            "queueWaitMs": 0,
+            "authorizationMs": 0,
+            "executionMs": 250,
+            "observedMs": 250
+          }
+        ],
+        "complete": true,
+        "queueWaitMs": 0,
+        "authorizationMs": 0,
+        "executionMs": 250,
+        "observedMs": 250
+      },
+      "parameterDigest": "3a7f23cbc6763d8abe73bb381a67e3a43180527cc9439055825f907af0808ed7",
+      "knowledgeReleaseId": "",
+      "indexReleaseId": "",
+      "contractVersion": "v1",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "governanceEventId": "48daa6ac-6bc0-47f7-ac66-d31fa01bd1a6",
+      "status": "SUCCEEDED",
+      "toolVersion": "1.0.0",
+      "battleFormatId": "casual-singles",
+      "language": "zh-CN",
+      "retryCount": 0,
+      "rulesetVersionId": "casual-v1",
+      "approvalId": "",
+      "toolName": "searchPokemonGuides",
+      "dlcId": "",
+      "durationMs": 251
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 10,
+    "type": "answer.delta",
+    "sessionId": "1afc275c-cd74-4aff-93f0-a4e967b1fc79",
+    "runId": "run-07e18a35-c159-4685-b797-c41e8f9ea615",
+    "traceId": "95f7d052",
+    "timestamp": "2026-11-15T15:21:48.952755Z",
+    "payload": {
+      "battleFormatId": "casual-singles",
+      "knowledgeReleaseId": "",
+      "indexReleaseId": "",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "text": "AI提出的调整是建议。实际保存应有本次变更预览、页面确认结果和保存后的配置回读，可在队伍页核对。预览尚未确认、被取消、过期或发生版本冲突时，不能把聊天中的完成措辞当成保存回执。本次只解释流程，没有读取或修改任何队伍。\n\n### 本地说明原文\n\n**从AI建议到队伍保存的确认流程**\n\n作者 VIO project · 更新 2026-10-23\n\n> AI的建议与实际保存分为两个步骤。当前本地工作流先读取当前账号的指定队伍，再对现有成员的培养配置生成变更预览。预览列出修改前后内容，用户确认之前不写入保存队伍。聊天中说同意不是绕过确认接口的授权；真正保存必须走该预览关联的确认操作。当前流程不能借培养配置修改来偷偷增删成员或切换物种。\n> \n> 预览关联队伍修订和有效期。用户取消、预览过期，或编辑区已经保存了新配置时，旧预览不能覆盖新状态；并发变化应提示冲突并重新分析。确认成功后应回读队伍，核对变动与预览一致，而不是仅靠模型一句已完成判断写入成功。这个流程不承诺服务重启后自动续跑，也不会把原文攻略里的命令句当成用户的保存指令。\n\n以上为项目说明完整原文，内容与适用范围待人工复核。\n",
+      "contractVersion": "v1",
+      "dlcId": "",
+      "language": "zh-CN"
+    }
+  },
+  {
+    "schemaVersion": "v1.1",
+    "eventId": 11,
+    "type": "answer.completed",
+    "sessionId": "1afc275c-cd74-4aff-93f0-a4e967b1fc79",
+    "runId": "run-07e18a35-c159-4685-b797-c41e8f9ea615",
+    "traceId": "95f7d052",
+    "timestamp": "2026-11-15T15:21:49.109610600Z",
+    "payload": {
+      "contractVersion": "v1",
+      "answerDigest": "5a8858fe9a120e51c07ef8533394ee01db58e1dc103c07ee508cd80f338a730e",
+      "runId": "run-07e18a35-c159-4685-b797-c41e8f9ea615",
+      "status": "ANSWERED",
+      "battleFormatId": "casual-singles",
+      "traceId": "95f7d052",
+      "dlcId": "",
+      "lineageStatus": "PARTIAL",
+      "indexReleaseId": "",
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "rulesetVersionId": "casual-v1",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "answerId": "answer-run-07e18a35-c159-4685-b797-c41e8f9ea615",
+      "language": "zh-CN",
+      "knowledgeReleaseId": ""
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 12,
+    "type": "usage",
+    "sessionId": "1afc275c-cd74-4aff-93f0-a4e967b1fc79",
+    "runId": "run-07e18a35-c159-4685-b797-c41e8f9ea615",
+    "traceId": "95f7d052",
+    "timestamp": "2026-11-15T15:21:49.109610600Z",
+    "payload": {
+      "modelCallCount": 0,
+      "coverage": "INSTRUMENTED",
+      "schemaVersion": "model-usage-v1",
+      "scope": "EXECUTION_ATTEMPT",
+      "toolTimings": [
+        {
+          "eventId": "48daa6ac-6bc0-47f7-ac66-d31fa01bd1a6",
+          "timing": {
+            "schemaVersion": "tool-timing-v1",
+            "scope": "CALLBACK_ATTEMPTS",
+            "attempts": [
+              {
+                "accepted": true,
+                "callbackStarted": true,
+                "callbackCompleted": true,
+                "queueWaitMs": 0,
+                "authorizationMs": 0,
+                "executionMs": 250,
+                "observedMs": 250
+              }
+            ],
+            "complete": true,
+            "queueWaitMs": 0,
+            "authorizationMs": 0,
+            "executionMs": 250,
+            "observedMs": 250
+          },
+          "toolName": "searchPokemonGuides"
+        }
+      ],
+      "httpRequestCount": "UNKNOWN",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "modelDurationMs": 0,
+      "battleFormatId": "casual-singles",
+      "knownSubtotal": {
+        "totalTokens": 0,
+        "source": "COMPLETE_CALLS_ONLY",
+        "inputTokens": 0,
+        "outputTokens": 0
+      },
+      "rulesetVersionId": "casual-v1",
+      "responseTiming": {
+        "schemaVersion": "response-timing-v1",
+        "scope": "EXECUTION_ATTEMPT",
+        "origin": "TASK_REGISTERED",
+        "dispatchWaitMs": 0,
+        "firstAnswerReadyMs": 436,
+        "answerPath": "DELTA",
+        "observedMs": 480,
+        "deliveryMeasured": false
+      },
+      "taskBudget": {
+        "schemaVersion": "task-budget-v1",
+        "scope": "RUN",
+        "budgetId": "19bad7ec-099c-4d7e-aa8a-c8e37568f49f",
+        "accounting": "MAX_RESERVATION_OR_PROVIDER_V1",
+        "maxModelCalls": 16,
+        "tokenLimit": 131072,
+        "stateKnown": true,
+        "modelCalls": 0,
+        "reservedTokens": 0,
+        "chargedTokens": 0,
+        "remainingModelCalls": 16,
+        "remainingTokens": 131072,
+        "status": "ACTIVE",
+        "closed": false,
+        "blockReason": null
+      },
+      "toolTimingsTruncated": false,
+      "dlcId": "",
+      "cost": {
+        "schemaVersion": "model-cost-v1",
+        "status": "UNKNOWN",
+        "kind": "REFERENCE_ESTIMATE_NOT_INVOICE",
+        "reason": "NO_MODEL_CALLS",
+        "currency": null,
+        "amount": null
+      },
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "language": "zh-CN",
+      "totals": {
+        "totalTokens": 0,
+        "source": "PROVIDER_REPORTED_SUM",
+        "inputTokens": 0,
+        "outputTokens": 0
+      },
+      "recordsTruncated": false,
+      "calls": [],
+      "knowledgeReleaseId": "",
+      "usageStatus": "COMPLETE",
+      "callsWithUsage": 0,
+      "contractVersion": "v1",
+      "streamAggregation": "LAST_REPORTED_SNAPSHOT",
+      "attemptId": "db396327-924c-40da-ab98-9a34f179606f",
+      "indexReleaseId": ""
+    }
+  },
+  {
+    "schemaVersion": "1",
+    "eventId": 13,
+    "type": "run.completed",
+    "sessionId": "1afc275c-cd74-4aff-93f0-a4e967b1fc79",
+    "runId": "run-07e18a35-c159-4685-b797-c41e8f9ea615",
+    "traceId": "95f7d052",
+    "timestamp": "2026-11-15T15:21:49.109610600Z",
+    "payload": {
+      "contractVersion": "v1",
+      "answerDigest": "5a8858fe9a120e51c07ef8533394ee01db58e1dc103c07ee508cd80f338a730e",
+      "contractStatus": "ANSWERED",
+      "status": "COMPLETED",
+      "language": "zh-CN",
+      "runId": "run-07e18a35-c159-4685-b797-c41e8f9ea615",
+      "knowledgeReleaseId": "",
+      "dataReleaseId": "pokeapi-reference-v1",
+      "battleFormatId": "casual-singles",
+      "lineageStatus": "PARTIAL",
+      "limitations": [
+        "v1 版本化知识门面未启用"
+      ],
+      "answer": "AI提出的调整是建议。实际保存应有本次变更预览、页面确认结果和保存后的配置回读，可在队伍页核对。预览尚未确认、被取消、过期或发生版本冲突时，不能把聊天中的完成措辞当成保存回执。本次只解释流程，没有读取或修改任何队伍。\n\n### 本地说明原文\n\n**从AI建议到队伍保存的确认流程**\n\n作者 VIO project · 更新 2026-10-23\n\n> AI的建议与实际保存分为两个步骤。当前本地工作流先读取当前账号的指定队伍，再对现有成员的培养配置生成变更预览。预览列出修改前后内容，用户确认之前不写入保存队伍。聊天中说同意不是绕过确认接口的授权；真正保存必须走该预览关联的确认操作。当前流程不能借培养配置修改来偷偷增删成员或切换物种。\n> \n> 预览关联队伍修订和有效期。用户取消、预览过期，或编辑区已经保存了新配置时，旧预览不能覆盖新状态；并发变化应提示冲突并重新分析。确认成功后应回读队伍，核对变动与预览一致，而不是仅靠模型一句已完成判断写入成功。这个流程不承诺服务重启后自动续跑，也不会把原文攻略里的命令句当成用户的保存指令。\n\n以上为项目说明完整原文，内容与适用范围待人工复核。\n",
+      "rulesetVersionId": "casual-v1",
+      "indexReleaseId": "",
+      "citations": [],
+      "citationCount": 0,
+      "modelUsage": {
+        "schemaVersion": "model-usage-v1",
+        "attemptId": "db396327-924c-40da-ab98-9a34f179606f",
+        "scope": "EXECUTION_ATTEMPT",
+        "coverage": "INSTRUMENTED",
+        "modelCallCount": 0,
+        "callsWithUsage": 0,
+        "usageStatus": "COMPLETE",
+        "totals": {
+          "totalTokens": 0,
+          "source": "PROVIDER_REPORTED_SUM",
+          "inputTokens": 0,
+          "outputTokens": 0
+        },
+        "knownSubtotal": {
+          "totalTokens": 0,
+          "source": "COMPLETE_CALLS_ONLY",
+          "inputTokens": 0,
+          "outputTokens": 0
+        },
+        "modelDurationMs": 0,
+        "calls": [],
+        "recordsTruncated": false,
+        "streamAggregation": "LAST_REPORTED_SNAPSHOT",
+        "httpRequestCount": "UNKNOWN",
+        "cost": {
+          "schemaVersion": "model-cost-v1",
+          "status": "UNKNOWN",
+          "kind": "REFERENCE_ESTIMATE_NOT_INVOICE",
+          "reason": "NO_MODEL_CALLS",
+          "currency": null,
+          "amount": null
+        },
+        "taskBudget": {
+          "schemaVersion": "task-budget-v1",
+          "scope": "RUN",
+          "budgetId": "19bad7ec-099c-4d7e-aa8a-c8e37568f49f",
+          "accounting": "MAX_RESERVATION_OR_PROVIDER_V1",
+          "maxModelCalls": 16,
+          "tokenLimit": 131072,
+          "stateKnown": true,
+          "modelCalls": 0,
+          "reservedTokens": 0,
+          "chargedTokens": 0,
+          "remainingModelCalls": 16,
+          "remainingTokens": 131072,
+          "status": "ACTIVE",
+          "closed": false,
+          "blockReason": null
+        },
+        "responseTiming": {
+          "schemaVersion": "response-timing-v1",
+          "scope": "EXECUTION_ATTEMPT",
+          "origin": "TASK_REGISTERED",
+          "dispatchWaitMs": 0,
+          "firstAnswerReadyMs": 436,
+          "answerPath": "DELTA",
+          "observedMs": 480,
+          "deliveryMeasured": false
+        },
+        "toolTimings": [
+          {
+            "eventId": "48daa6ac-6bc0-47f7-ac66-d31fa01bd1a6",
+            "timing": {
+              "schemaVersion": "tool-timing-v1",
+              "scope": "CALLBACK_ATTEMPTS",
+              "attempts": [
+                {
+                  "accepted": true,
+                  "callbackStarted": true,
+                  "callbackCompleted": true,
+                  "queueWaitMs": 0,
+                  "authorizationMs": 0,
+                  "executionMs": 250,
+                  "observedMs": 250
+                }
+              ],
+              "complete": true,
+              "queueWaitMs": 0,
+              "authorizationMs": 0,
+              "executionMs": 250,
+              "observedMs": 250
+            },
+            "toolName": "searchPokemonGuides"
+          }
+        ],
+        "toolTimingsTruncated": false
+      },
+      "gameReleaseId": "pokemon-scarlet-violet",
+      "answerId": "answer-run-07e18a35-c159-4685-b797-c41e8f9ea615",
+      "traceId": "95f7d052",
+      "dlcId": ""
+    }
+  }
+]

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Reference portion of team suggestion block v1",
+  "$comment": "Not a saved team, complete battle build or legality proof. Runtime additionally checks distinct members, member versions and content-derived block identity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "blockId",
+    "kind",
+    "gameReleaseId",
+    "dataReleaseId",
+    "scope",
+    "members",
+    "missing"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "answer-block-v1"
+    },
+    "blockId": {
+      "type": "string",
+      "pattern": "^team-[a-f0-9]{64}$"
+    },
+    "kind": {
+      "const": "teamSuggestion"
+    },
+    "gameReleaseId": {
+      "const": "pokemon-scarlet-violet"
+    },
+    "dataReleaseId": {
+      "const": "pokeapi-reference-v1"
+    },
+    "scope": {
+      "const": "REFERENCE_MEMBERS_NOT_SAVED_TEAM"
+    },
+    "members": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 6,
+      "items": {
+        "$ref": "answer-block-v1.schema.json"
+      }
+    },
+    "missing": {
+      "const": [
+        "尚未核对招式、特性、道具、性格、等级、EV/IV及太晶配置",
+        "尚未验证资源可获得性、联合合法性、伤害或胜率；本卡片未保存队伍"
+      ]
+    }
+  }
+}

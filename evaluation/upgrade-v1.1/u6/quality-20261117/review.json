@@ -1,0 +1,345 @@
+{
+  "schemaVersion": "answer-quality-review-v1",
+  "date": "2026-11-17",
+  "datasetSha256": "8e86b2b80dba14c6adeaf0809a25d426785a68b9e7c0cd86735db63ffa4ad9d3",
+  "summary": {
+    "groups": 24,
+    "turns": 45,
+    "passed": 11,
+    "failed": 13,
+    "blocked": 0,
+    "notRun": 0,
+    "applicationCompletedRuns": 44,
+    "applicationFailedRuns": 1,
+    "scoringUnit": "CONVERSATION_GROUP",
+    "reviewMethod": "AI_ASSISTED"
+  },
+  "records": [
+    {
+      "caseId": "QF-01",
+      "category": "facts",
+      "verdict": "PASS",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-4064e020-8a2f-47a9-9ee0-5e0397370411",
+        "run-20fc5615-70e9-4670-878e-f34384f532af"
+      ],
+      "reason": "已逐轮核对正文、预先冻结的本题判据及实际工具/事件依据，主要判据满足。"
+    },
+    {
+      "caseId": "QF-02",
+      "category": "facts",
+      "verdict": "PASS",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-2b14bb1d-b95f-42c8-8837-081ddd92f2d5"
+      ],
+      "reason": "已逐轮核对正文、预先冻结的本题判据及实际工具/事件依据，主要判据满足。",
+      "observation": "四个数值正确，额外说明较长，可继续精简。"
+    },
+    {
+      "caseId": "QF-03",
+      "category": "facts",
+      "verdict": "PASS",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-6bce1856-5030-43c5-bf5d-4235c4cfc4b1"
+      ],
+      "reason": "已逐轮核对正文、预先冻结的本题判据及实际工具/事件依据，主要判据满足。",
+      "observation": "没有编造数据，但未知物种与读取故障的提示尚未清楚区分。"
+    },
+    {
+      "caseId": "QF-04",
+      "category": "facts",
+      "verdict": "FAIL",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-e5a1d042-daaa-4461-9fa6-777129d2cb16"
+      ],
+      "priority": "P2",
+      "issue": "简短指令未遵守",
+      "reason": "明确要求一句话、不要队伍，仍返回奇树完整队伍表格和附加说明。"
+    },
+    {
+      "caseId": "QM-01",
+      "category": "mechanics",
+      "verdict": "PASS",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-aa3967f9-46d6-45e5-a38c-b32dbe4b5cb4"
+      ],
+      "reason": "已逐轮核对正文、预先冻结的本题判据及实际工具/事件依据，主要判据满足。"
+    },
+    {
+      "caseId": "QM-02",
+      "category": "mechanics",
+      "verdict": "PASS",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-00f2be89-704c-458d-97bd-0cc5c44a9a5b"
+      ],
+      "reason": "已逐轮核对正文、预先冻结的本题判据及实际工具/事件依据，主要判据满足。",
+      "observation": "倍率正确，附加战术文字较多，部分概括可收窄。"
+    },
+    {
+      "caseId": "QM-03",
+      "category": "mechanics",
+      "verdict": "FAIL",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-69ca5ff4-b057-4763-afac-9cb1fbd38bed"
+      ],
+      "priority": "P1",
+      "issue": "同一回答自相矛盾",
+      "reason": "第一句断言地面对虫/飞行为0.5倍，随后计算0.5×0=0并改称免疫。"
+    },
+    {
+      "caseId": "QM-04",
+      "category": "mechanics",
+      "verdict": "PASS",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-95cdfb22-40f5-44f7-8cbf-218d92a88138",
+        "run-4b852ca7-64b9-4a40-a006-7e486e25081e"
+      ],
+      "reason": "已逐轮核对正文、预先冻结的本题判据及实际工具/事件依据，主要判据满足。"
+    },
+    {
+      "caseId": "QC-01",
+      "category": "conversation",
+      "verdict": "PASS",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-7bb8b6c5-9951-49e8-bbb2-71f4e81ab853",
+        "run-52b6f1ee-bba2-4ed6-8819-9618d971fd7c",
+        "run-ae9ec349-7980-40cf-b9f8-2dd9d17c54c3",
+        "run-4b2967cd-9822-4ba4-8b5b-058aad978883"
+      ],
+      "reason": "已逐轮核对正文、预先冻结的本题判据及实际工具/事件依据，主要判据满足。"
+    },
+    {
+      "caseId": "QC-02",
+      "category": "conversation",
+      "verdict": "FAIL",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-2453cab5-2203-466c-b010-4798b0207bb9",
+        "run-520d8f90-36e8-473c-987a-0948fbd51884",
+        "run-c7066a31-fcdc-4a66-bfef-80b0c95c247f"
+      ],
+      "priority": "P1",
+      "issue": "重赛上下文丢失",
+      "reason": "先列莱姆重赛65/66级，追问王牌与初战比较时只回答初战42级，遗漏重赛66级。"
+    },
+    {
+      "caseId": "QC-03",
+      "category": "conversation",
+      "verdict": "FAIL",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-5565b045-6aed-47ab-9168-104a04b80ed0",
+        "run-18a970ba-35f2-409d-9336-c17425c2e179",
+        "run-41b18bc8-f1eb-43f7-9bdd-2d8a06699d1f"
+      ],
+      "priority": "P1",
+      "issue": "多余建议引入事实错误",
+      "reason": "第二轮正确列出海岱成员后，追加电、草对好胜毛蟹无效的错误说明，并声称资料没有招式、特性和道具；项目目录实际已收录。第三轮纠错目标成功。"
+    },
+    {
+      "caseId": "QC-04",
+      "category": "conversation",
+      "verdict": "FAIL",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-f4f8f846-6ca4-40b6-8702-2de973f6cf9b",
+        "run-1b722110-26d5-4f40-b5b1-cb87dd6b07cd",
+        "run-888ed820-ff5a-4f6a-8151-fe42a7d0f016",
+        "run-d5cea111-3099-4cb4-8670-33d81d47a9a6",
+        "run-59dd9b13-8706-4d57-a658-66e5b5213ebd",
+        "run-e5b425f3-823e-4182-9890-db1600f679ad",
+        "run-9ec6c2ed-70b3-4272-8e55-22342fcd8376",
+        "run-4619e4ff-ebf1-4671-a2b7-2418060dcbbd",
+        "run-46a9b900-d5dc-482e-b787-c35987113493",
+        "run-4e695027-f070-42c7-af56-6b6a04af90d7",
+        "run-295edef9-f0e3-4af6-b36e-2e527ab1199a"
+      ],
+      "priority": "P1",
+      "issue": "长历史目标与指令丢失",
+      "reason": "记住海岱目标却返回进度模板，数轮填充未按只回复收到的要求执行；最终追问目标仍返回通用进度模板。"
+    },
+    {
+      "caseId": "QP-01",
+      "category": "planning",
+      "verdict": "FAIL",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-d293dd69-71f8-48e8-baa3-edf1cd041143",
+        "run-d1283630-f8bb-49ca-b84f-eb50c663d70e"
+      ],
+      "priority": "P1",
+      "issue": "私人队伍读取被攻略解释抢占",
+      "reason": "第一轮没有列出test1实际配置，改为输出多段攻略；第二轮声称没有唯一匹配队伍，同时列出的唯一候选就是test1。"
+    },
+    {
+      "caseId": "QP-02",
+      "category": "planning",
+      "verdict": "FAIL",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-dccd4059-fe8d-4bb5-aa8f-5d15710a167c"
+      ],
+      "priority": "P1",
+      "issue": "队伍分析被馆主资料抢占",
+      "reason": "要求读取test1并逐只分析海岱对手，实际只列海岱队伍，未读取或分析保存配置。"
+    },
+    {
+      "caseId": "QP-03",
+      "category": "planning",
+      "verdict": "PASS",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-f4f2ba40-cd5d-43c6-9f97-6b7942b717df"
+      ],
+      "reason": "已逐轮核对正文、预先冻结的本题判据及实际工具/事件依据，主要判据满足。"
+    },
+    {
+      "caseId": "QP-04",
+      "category": "planning",
+      "verdict": "FAIL",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-628864a2-2ff4-4462-941e-27b82897b155"
+      ],
+      "priority": "P2",
+      "issue": "澄清范围过大",
+      "reason": "用户已明确朱版、阿枫、初战，仍要求重复这些信息，并未提供请求中的通用组队角色或选择思路。"
+    },
+    {
+      "caseId": "QD-01",
+      "category": "damage",
+      "verdict": "PASS",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-d21f1702-bc81-449d-82ba-8e82faadd7c6"
+      ],
+      "reason": "已逐轮核对正文、预先冻结的本题判据及实际工具/事件依据，主要判据满足。"
+    },
+    {
+      "caseId": "QD-02",
+      "category": "damage",
+      "verdict": "FAIL",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-4847b4dd-b0b0-41c5-b767-c8d2052cab4d",
+        "run-bfc4c28c-0862-41ab-87f5-013e924da57e"
+      ],
+      "priority": "P2",
+      "issue": "零伤害解释不完整",
+      "reason": "0–0数值与引擎一致，追问时没有核对电对地面的免疫，改为罗列未定位的可能原因和排查步骤。"
+    },
+    {
+      "caseId": "QD-03",
+      "category": "damage",
+      "verdict": "PASS",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-51f90470-f035-47be-ac2a-60c2d2869722"
+      ],
+      "reason": "已逐轮核对正文、预先冻结的本题判据及实际工具/事件依据，主要判据满足。",
+      "observation": "缺项澄清符合本题主要判据。附加激流阈值写成低于1/3，边界措辞需要领域复核；出现小火焰龙错名。"
+    },
+    {
+      "caseId": "QD-04",
+      "category": "damage",
+      "verdict": "FAIL",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-4c5f881e-9131-4983-89d0-1ec0649b46c0"
+      ],
+      "priority": "P2",
+      "issue": "非法参数提示缺少定位",
+      "reason": "EV253被拒绝，工具未产生有效伤害；用户只看到工具失败、请重试，没有指出EV越界。"
+    },
+    {
+      "caseId": "QR-01",
+      "category": "retrieval",
+      "verdict": "FAIL",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-12e0d780-2a49-4ce7-9dc1-6ed1bd9cc803"
+      ],
+      "priority": "P2",
+      "issue": "引用替代任务回答",
+      "reason": "仅拼接攻略原文，没有完整归纳确认、执行与回读步骤，也没有直接回答用户拒绝后的结果。"
+    },
+    {
+      "caseId": "QR-02",
+      "category": "retrieval",
+      "verdict": "PASS",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-35fa4507-a3c7-4f1e-9d61-2ac6a0d2cb9d"
+      ],
+      "reason": "已逐轮核对正文、预先冻结的本题判据及实际工具/事件依据，主要判据满足。",
+      "observation": "所引确认流程支持尚未保存的判断，附带的其他攻略片段相关性偏低。"
+    },
+    {
+      "caseId": "QR-03",
+      "category": "retrieval",
+      "verdict": "FAIL",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-bd3d59fd-0f19-4c8b-9f80-c8312fa0b9b2"
+      ],
+      "priority": "P1",
+      "issue": "公开样例队伍被误判为私人队伍",
+      "reason": "要求gen9ou公开完整样例及来源，却调用listCurrentTeams后回答当前账号没有匹配队伍，既没有样例也没有来源链接。"
+    },
+    {
+      "caseId": "QR-04",
+      "category": "retrieval",
+      "verdict": "FAIL",
+      "reviewMethod": "AI_ASSISTED",
+      "turnRunIds": [
+        "run-8103c8c0-eb33-4b8c-a908-2b930506b327"
+      ],
+      "priority": "P1",
+      "issue": "无答案检索返回无关内容",
+      "reason": "查询虚构流派时未明确说明没有该攻略，改为返回变化招式及队伍保存流程的无关摘录。"
+    }
+  ],
+  "evidenceIntegrity": {
+    "uniqueRunIds": 45,
+    "eventCount": 3868,
+    "orderedUniqueEventIds": true,
+    "runIdentityBound": true,
+    "completedStreamFinalEquality": 44,
+    "candidateJarComparableClasses": 172,
+    "differentComparableClasses": [],
+    "comparisonScope": "Runtime registered names having exactly one matching class entry in prior candidate JAR",
+    "rerankStates": {
+      "RERANKED": 7
+    }
+  },
+  "cleanup": {
+    "loggedOut": true,
+    "teamUnchanged": true,
+    "configurationUnchanged": true,
+    "cleanupErrors": [],
+    "testDataRetention": "Isolated local test account and one-member test1 retained in daily backend; generated credentials discarded by logout. User accounts and teams untouched."
+  },
+  "limits": [
+    "本轮为24组回答质量验收，原68项业务/页面/故障用例未在本轮重跑。",
+    "题目含新措辞与组合，既有领域场景重叠；QM-04为已知数值回归变体。",
+    "评分为AI辅助，PASS表示本题主要判据满足，附加观察仍保留。",
+    "单次模型首答，未测重复生成稳定性；本轮采集期间未修改业务代码。"
+  ],
+  "rawFirstAnswersSha256": "31f52b018f9b0c0cc9333833e1f7036981609aa4065c8e8ca706d7ab054b9dbd",
+  "versionedFirstAnswersSha256": "1bf9f075e0b0178596e716c4ca0314594ed6c5f6579d864703a046479e49c189",
+  "versionedMetadataProjection": {
+    "scope": "CLASS_FINGERPRINT_MAP_TO_COMPONENT_ARRAY",
+    "rawFirstAnswers": "artifacts/quality-first-20261117/first-answers.json",
+    "rawSha256": "31f52b018f9b0c0cc9333833e1f7036981609aa4065c8e8ca706d7ab054b9dbd",
+    "answerAndEventContent": "UNCHANGED"
+  }
+}

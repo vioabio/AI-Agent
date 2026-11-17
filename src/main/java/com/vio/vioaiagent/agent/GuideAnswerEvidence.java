@@ -22,6 +22,7 @@ public final class GuideAnswerEvidence {
     private boolean initialized, requested, attempted, projectExplanation, partialReferenceFailure, resourceAttempted;
     private String question="";
     private List<LocalGuideSearch.Hit> hits = List.of();
+    private final Map<String,List<LocalGuideSearch.Hit>> guideReads = new LinkedHashMap<>();
     private final Map<String,Boolean> referenceFailures = new LinkedHashMap<>();
     private final Map<Long,PokemonFact> references = new LinkedHashMap<>();
     private final ResourceAnswerEvidence resources=new ResourceAnswerEvidence();
@@ -31,7 +32,27 @@ public final class GuideAnswerEvidence {
     private final BuildCheckAnswerEvidence buildChecks=new BuildCheckAnswerEvidence();
     private final TeamBuildAnswerEvidence teamBuildChecks=new TeamBuildAnswerEvidence();
     private final MachineAnswerEvidence machines=new MachineAnswerEvidence();
-    public void begin(String prompt) { referenceFailures.clear();question=prompt;teamBuildChecks.begin(prompt); initialized = true; projectExplanation = ProjectGuideRequest.requiresSource(prompt); requested = GUIDE_REQUEST.matcher(prompt).find() || projectExplanation || (!TeamMutationIntent.requested(prompt) && java.util.regex.Pattern.compile("培养|搭配|对战策略").matcher(prompt).find()); }
+    public void begin(String prompt) { guideReads.clear();hits=List.of();attempted=false;referenceFailures.clear();question=prompt;teamBuildChecks.begin(prompt); initialized = true; projectExplanation = ProjectGuideRequest.requiresSource(prompt); requested = GUIDE_REQUEST.matcher(prompt).find() || projectExplanation || statMeaningQuestion(prompt) || (!TeamMutationIntent.requested(prompt) && (java.util.regex.Pattern.compile("培养|搭配|对战策略").matcher(prompt).find() || genericTeamRoles(prompt))); }
+    /** Conceptual interpretation does not require a live species read or a fabricated calculation. */
+    public static boolean statMeaningQuestion(String prompt) {
+        return prompt != null && prompt.length() <= 600 && !prompt.contains("\n")
+                && !prompt.contains("```") && !prompt.contains("{")
+                && Pattern.compile("种族值|基础数值").matcher(prompt).find()
+                && Pattern.compile("实际(?:的)?(?:速度|能力|数值)|能力值|实战先手|出手顺序").matcher(prompt).find()
+                && Pattern.compile("能否|是否|直接|等于|代表|区别|说明|为什么|为何").matcher(prompt).find()
+                && !Pattern.compile("查询|读取|列出|计算|伤害|配招|推荐|搭配|组队|队伍|保存|修改|预览|对比|比较|[0-9]").matcher(prompt).find();
+    }
+    public static org.springframework.ai.tool.ToolCallback[] statMeaningTools(String prompt, org.springframework.ai.tool.ToolCallback[] tools) {
+        if (!statMeaningQuestion(prompt)) return tools;
+        return Arrays.stream(tools).filter(tool -> "searchPokemonGuides".equals(tool.getToolDefinition().name()))
+                .toArray(org.springframework.ai.tool.ToolCallback[]::new);
+    }
+    private static boolean genericTeamRoles(String prompt) {
+        return prompt != null && prompt.length() < 800 && !prompt.contains("\n")
+                && Pattern.compile("组队|构建队伍").matcher(prompt).find()
+                && Pattern.compile("功能角色|角色重叠|职责|分工").matcher(prompt).find()
+                && !Pattern.compile("我的|已保存|读取|修改|保存|这支|这套").matcher(prompt).find();
+    }
     public boolean initialized() { return initialized; }
     public boolean needsReferenceTopic() {
         if(question==null||question.length()>800||question.contains("\n")||TeamMutationIntent.requested(question)
@@ -46,7 +67,7 @@ public final class GuideAnswerEvidence {
                 ||ProjectGuideRequest.requiresSource(question)
                 ||Pattern.compile("```|输入：|以下资料|读取|保存|修改|变更|计算").matcher(question).find()
                 ||!Pattern.compile("组队|队伍搭配|联防|属性覆盖").matcher(question).find()
-                ||!Pattern.compile("检索|攻略|笔记|为什么|为何").matcher(question).find())return false;
+                ||(!genericTeamRoles(question)&&!Pattern.compile("检索|攻略|笔记|为什么|为何").matcher(question).find()))return false;
         return hits.stream().noneMatch(h->h.document().applicability()!=null
                 &&!h.document().applicability().subjects().isEmpty()&&h.document().applicability().matchesSubject(question))
                 &&references.values().stream().noneMatch(f->question.contains(f.speciesNameZh())||question.toLowerCase(Locale.ROOT).contains(f.slug().toLowerCase(Locale.ROOT)));
@@ -89,6 +110,7 @@ public final class GuideAnswerEvidence {
         return Optional.of(head);
     }
     public String planningInstruction() {
+        if (statMeaningQuestion(question)) return "\n用户询问种族值与实际能力的关系。只检索种族值、实际配置与填写默认值的攻略原文，解释等级、性格、努力值和个体值的作用。无需查询任何物种，不能代入任意成员或计算缺失的实际数值。";
         if(TeamBuildAnswerEvidence.requested(question))return TeamBuildAnswerEvidence.instruction(question);
         String mechanicsInstruction=MechanicAnswerEvidence.instruction(question)+(BuildCheckAnswerEvidence.requested(question)?"\n用户要核对配招。工具开放时将用户原配置传给checkPokemonBuild，保留未提供字段为null，不自行补齐四招或特性。已保存队伍先读取实际记录，再按成员核对；逐项匹配不证明组合合法。":"");
         mechanicsInstruction+=MachineAnswerEvidence.instruction(question);
@@ -146,7 +168,11 @@ public final class GuideAnswerEvidence {
             return;
         }
         if (!"searchPokemonGuides".equals(tool)) return;
-        attempted = true; hits = List.of();
+        attempted = true;
+        String readKey = guideReadKey(arguments);
+        if (readKey == null) guideReads.clear();
+        else guideReads.remove(readKey);
+        refreshGuideHits();
         if (output == null || output.length() > 120_000) return;
         try {
             var root = mapper.readTree(output);
@@ -167,12 +193,48 @@ public final class GuideAnswerEvidence {
                 if (d.validUntil()!=null && LocalDate.parse(d.validUntil()).isBefore(LocalDate.now())) return;
                 if (hit.citation()!=null && (!"zh-CN".equals(d.language()) || !"casual-singles".equals(d.battleFormatId())
                         || !"casual-v1".equals(d.rulesetVersionId()) || !GuideChunks.validCitation(d,hit.citation()))) return;
-                checked.add(hit);
+                if(com.vio.vioaiagent.pokemon.guides.GuideRevisionPolicy.usable(d,question))checked.add(hit);
             }
-            hits = List.copyOf(checked);
+            if (guideReads.size() >= 8) guideReads.remove(guideReads.keySet().iterator().next());
+            guideReads.put(readKey == null ? "UNBOUND" : readKey, List.copyOf(checked));
+            refreshGuideHits();
         } catch (Exception ignored) { /* failed, malformed or truncated output is not a source */ }
     }
+    private String guideReadKey(String arguments) {
+        if (arguments == null || arguments.length() > 4000) return null;
+        try {
+            var input = mapper.readTree(arguments);
+            if (!input.isObject() || !input.path("query").isTextual()
+                    || !"pokemon-scarlet-violet".equals(input.path("gameReleaseId").asText())) return null;
+            String query = input.path("query").asText().strip();
+            if (query.isEmpty() || query.length() > 2000) return null;
+            return PokeApiClient.digest(query);
+        } catch (Exception invalid) { return null; }
+    }
+    private void refreshGuideHits() {
+        var documents = new LinkedHashMap<String,LocalGuideSearch.Hit>();
+        for (var read : guideReads.values())
+            for (var hit : read) documents.put(hit.document().id(), hit);
+        hits = documents.values().stream().sorted(Comparator.comparingInt(hit ->
+                hit.document().applicability() != null && !hit.document().applicability().subjects().isEmpty()
+                        && hit.document().applicability().matchesSubject(question) ? 0 : 1)).limit(4).toList();
+    }
     public boolean hasGuideSources(){return !hits.isEmpty();}
+    public Optional<String> documentAttribution(String documentId) {
+        return hits.stream().filter(hit -> documentId.equals(hit.document().id()))
+                .findFirst().map(hit -> "来源：项目攻略《" + EvidenceText.inline(hit.document().title())
+                        + "》，作者 " + EvidenceText.inline(hit.document().author())
+                        + "，更新 " + hit.document().updatedAt() + "。");
+    }
+    /** Only an actual, validated matching source can be expanded to its complete bounded text. */
+    public Optional<String> fullDocumentAnswer(String documentId) {
+        return hits.stream().filter(hit->documentId.equals(hit.document().id()))
+                .map(LocalGuideSearch.Hit::document)
+                .filter(d->d.content().codePointCount(0,d.content().length())<=ProjectGuideRequest.MAX_SOURCE_CODE_POINTS)
+                .findFirst().map(d->"### 本地说明原文\n\n**"+EvidenceText.inline(d.title())+"**\n\n作者 "+EvidenceText.inline(d.author())
+                        +" · 更新 "+d.updatedAt()+"\n\n"+EvidenceText.quote(d.content())
+                        +"\n\n以上为项目说明完整原文，内容与适用范围待人工复核。\n");
+    }
     private Optional<String> boundReferenceQuery(String arguments) {
         if(arguments==null||arguments.length()>2000)return Optional.empty();
         try {
@@ -211,14 +273,38 @@ public final class GuideAnswerEvidence {
         return verifiedAnswer(true);
     }
     /** Bounded reference lookup, not an interpretation of arbitrary strategy questions. */
+    public Optional<String> formComparisonAnswer() {
+        if (question == null || question.length() > 600 || question.contains("\n")
+                || !Pattern.compile("(?:区分|区别|比较|对比).{0,12}形态|形态.{0,12}(?:区分|区别|比较|对比)").matcher(question).find()
+                || Pattern.compile("培养|搭配|配招|招式|特性|道具|伤害|队伍|建议|计算").matcher(question).find()) return Optional.empty();
+        if (references.isEmpty()) return Optional.of("本次未取得可核验的形态资料，不能使用模型记忆补写属性、种族值或招式。请核对形态名称后重试。");
+        if (references.values().stream().map(PokemonFact::speciesId).distinct().count() != 1)
+            return Optional.of("本次读取的资料对应不同物种，不能当作同一物种的两种形态比较。请明确形态名称后重试；不使用模型记忆补写。");
+        String answer = referenceSummary() + referenceFailureSummary();
+        if (references.size() < 2) answer += "本次尚未核对到两种形态，不能补写未读取形态的属性或数值。\n\n";
+        return Optional.of(answer + "以上只比较实际读取的形态身份、属性与种族值；物种全国编号相同不代表形态相同。"
+                + "本次不从候选招式推导配招、特性机制或获取条件，也不据此证明朱紫存档可获得性和赛事合法性。\n");
+    }
+
+    /** Bounded reference lookup, not an interpretation of arbitrary strategy questions. */
     public Optional<String> basicFactAnswer() {
         // Only an explicit simple lookup may ignore unsolicited extra tool reads.
         // A declared moves/mechanics/strategy task is excluded below, not discarded.
         boolean simpleLookup=question!=null&&Pattern.compile("^(?:请)?(?:查|查询|读取).{1,30}的(?:(?:朱[／/]?紫|朱|紫)(?:版本)?的?)?(?:资料|图鉴(?:资料)?)(?:[，,。；;]|$)").matcher(question).find();
+        boolean explicitStats=question!=null && Pattern.compile("^(?:请)?(?:查询|读取).{1,80}的属性[与和及、]种族值[，,](?:只|仅)(?:列出|列|展示|显示)(?:图鉴)?已(?:核验|确认|验证)的?(?:字段|事实|数据)[。]?$" ).matcher(question).matches();
+        boolean confirmedOnly=question!=null && Pattern.compile("^(?:请)?(?:只|仅)(?:介绍|展示|列出).{1,30}(?:的)?图鉴(?:中)?(?:已确认|已核验|已验证)的?(?:数据|字段|资料)(?:[，,。；;]|$)").matcher(question).find();
+        boolean statsTotal=question!=null&&question.contains("种族值")&&Pattern.compile("总和|合计|总计").matcher(question).find();
+        simpleLookup=simpleLookup||explicitStats||confirmedOnly||statsTotal;
+        if((explicitStats||confirmedOnly) && references.isEmpty())return Optional.of(referenceFailures.isEmpty()
+                ? "本次未取得该成员的已核验图鉴资料，无法确认属性和种族值。请重试资料查询。"
+                : referenceFailureSummary());
+        // Remove only explicit declined recommendation clauses. A positive or mixed
+        // follow-up still needs its own evidence and must not disappear into this route.
+        String requested=confirmedOnly?question.replaceAll("(?:不要|无需|不必|别)(?:给出|提供|补充|推荐|介绍|讨论)?(?:队伍|阵容|培养建议|搭配建议)(?=[，,。；;！!？?]|$)",""):question;
         if (question == null || question.length() > 600 || references.isEmpty() || partialReferenceFailure
                 || (active()&&!simpleLookup) || question.contains("\n") || question.contains("```")
                 || (!simpleLookup&&!Pattern.compile("种族值|基础数值|图鉴属性|特点").matcher(question).find())
-                || Pattern.compile("培养|建议|搭配|攻略|配招|努力值|个体值|计算|伤害|对比|比较|克制|弱点|特性|招式|保存|修改|队伍").matcher(question).find())
+                || Pattern.compile("培养|建议|搭配|攻略|配招|努力值|个体值|计算|伤害|对比|比较|克制|弱点|特性|招式|保存|修改|队伍").matcher(requested).find())
             return Optional.empty();
         String lower = question.toLowerCase(Locale.ROOT);
         if (references.values().stream().anyMatch(f -> !question.contains(f.speciesNameZh())
@@ -228,9 +314,8 @@ public final class GuideAnswerEvidence {
         for (var f : references.values()) text.append(EvidenceText.inline(f.speciesNameZh()))
                 .append("的种族值合计：")
                 .append(f.hp() + f.attack() + f.defense() + f.spAttack() + f.spDefense() + f.speed()).append("。\n");
-        return Optional.of(text.append("\n以上为本次已读取成员的本地参考快照，不是历史补丁或实时赛事规则记录；未读取的成员不作确认。")
-                .append("种族值不是任意等级的实际能力值，后者还取决于等级、个体值、努力值和性格。")
-                .append("仅凭这些数据不能证明当前排位合法、热门程度或最优培养。确认合法性还需目标赛制的官方规则与具体配置。\n").toString());
+        return Optional.of(text.append("\n实际能力值取决于等级、性格、努力值和个体值。")
+                .append("赛事适用性、资料时效与环境强度需另行核对。\n").toString());
     }
     public Optional<String> speedComparisonAnswer() {
         if(question==null)return Optional.empty();
@@ -278,13 +363,19 @@ public final class GuideAnswerEvidence {
                 +"### 资料范围\n以上仅说明实际取得的参考资料；完整机制、培养取舍和比赛规则仍需对应证据。\n";
         if (hits.isEmpty()) return prefix + "### 训练家提醒\n本次没有取得可核对的本地攻略原文，暂不提供带引用的攻略结论。可以换一个养成、组队或伤害解读主题重试；本地资料也不能证明当前热门阵容。";
         var selected = projectExplanation ? List.of(hits.getFirst()) : hits;
+        if (statMeaningQuestion(question)) {
+            selected = hits.stream().filter(hit -> "build-values-and-defaults-v1".equals(hit.document().id())
+                    && hit.document().content().codePointCount(0, hit.document().content().length()) <= 2000).toList();
+            if (selected.isEmpty()) return prefix + "本次没有取得解释种族值与实际能力区别的匹配原文，请重试攻略检索。";
+        }
         if (projectExplanation && selected.getFirst().document().content().codePointCount(0, selected.getFirst().document().content().length()) > ProjectGuideRequest.MAX_SOURCE_CODE_POINTS)
             return prefix + "### 训练家提醒\n本次匹配的项目原文过长，暂不能展示完整说明。请缩小问题范围；不把截断内容当作完整流程或默认配置答案。";
         StringBuilder answer = new StringBuilder(prefix + (projectExplanation
-                ? "### 项目说明（原文参考）\n以下展示本次检索排名首位的项目笔记完整原文。它只支持原文中的项目行为；若未覆盖所问内容，仍需进一步核对。\n\n"
-                : "### 攻略参考（原文节选）\n以下是本次检索到的项目原创笔记；引文仅支持原文中的内容，不据此扩展具体配招或机制。\n\n"));
+                ? "### 项目说明（原文参考）\n\n"
+                : "### 攻略参考（原文节选）\n\n"));
         for (var hit : selected) {
             var d = hit.document();
+            boolean statNote = statMeaningQuestion(question);
             boolean speciesNote=!projectExplanation&&d.applicability()!=null&&!d.applicability().subjects().isEmpty()
                     && d.applicability().matchesSubject(question)
                     && references.values().stream().anyMatch(f->d.applicability().matchesSubject(f.slug())
@@ -292,25 +383,24 @@ public final class GuideAnswerEvidence {
                     && d.content().codePointCount(0,d.content().length())<=2000;
             answer.append("**").append(EvidenceText.inline(d.title())).append("**\n\n作者：")
                     .append(EvidenceText.inline(d.author())).append(" · 更新：").append(d.updatedAt()).append("\n\n");
-            if(projectExplanation||speciesNote)answer.append("原文范围：完整文档\n\n");
+            if(projectExplanation||speciesNote||statNote)answer.append("原文范围：完整文档\n\n");
             else if(hit.citation()!=null)answer.append("原文位置：第 ").append(hit.citation().chunkNo()+1).append(" 个片段\n\n");
-            if(d.provenance()!=null)answer.append(speciesNote
-                    ?"资料说明：项目原创的条件建议；事实依据与策略推断分列，待人工复核。\n\n"
-                    :"资料说明：项目原创；外部文档仅作接口参考，内容待人工复核。\n\n");
-            answer.append(EvidenceText.quote(projectExplanation||speciesNote ? d.content() : excerpt(hit.citation()==null?d.content():hit.citation().text()))).append("\n\n");
+            answer.append(EvidenceText.quote(projectExplanation||speciesNote||statNote ? d.content() : excerpt(hit.citation()==null?d.content():hit.citation().text()))).append("\n\n");
         }
+        if(selected.stream().anyMatch(hit->hit.document().provenance()!=null))
+            answer.append("项目原创登记内容及适用范围待人工复核。\n\n");
         return answer.append(projectExplanation
-                ? "### 训练家提醒\n以上是项目实现说明，不代表最优培养、赛事合法性或重启恢复保证；原文和适用范围仍待人工复核。\n"
-                : "### 训练家提醒\n以上是通用资料参考，不是当前最强阵容或正式比赛合法性证明。具体成员搭配需要另查成员资料，并在条件齐全时计算目标对局。\n").toString();
+                ? "具体项目行为还需结合当前配置与实际执行结果核对。\n"
+                : "引用以所列原文为范围。培养与搭配需结合实际配置，伤害结论需计算核对，赛事适用性需另行确认。\n").toString();
     }
     private String referenceSummary() {
         if (references.isEmpty()) return "";
         StringBuilder text = new StringBuilder("### 图鉴速览（资料事实）\n以下为本次实际读取的成员资料；种族值与等级无关。\n\n| 成员 | 属性 | HP | 攻击 | 防御 | 特攻 | 特防 | 速度 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n");
-        for (var f : references.values()) text.append("| ").append(EvidenceText.inline(f.speciesNameZh())).append(" | ")
+        for (var f : references.values()) text.append("| ").append(EvidenceText.inline(com.vio.vioaiagent.pokemon.reference.RegionalFormName.display(f))).append(" | ")
                 .append(EvidenceText.inline(f.type1()+(f.type2()==null?"":" / "+f.type2()))).append(" | ")
                 .append(f.hp()).append(" | ").append(f.attack()).append(" | ").append(f.defense()).append(" | ")
                 .append(f.spAttack()).append(" | ").append(f.spDefense()).append(" | ").append(f.speed()).append(" |\n");
-        return text.append("\n来源：PokéAPI 本地参考；不代表排位合法性或当前热门程度。\n\n").toString();
+        return text.append("\n来源 PokéAPI 本地参考\n\n").toString();
     }
     private static boolean blank(String text, int max) { return text == null || text.isBlank() || text.length() > max; }
     private static String excerpt(String text) {

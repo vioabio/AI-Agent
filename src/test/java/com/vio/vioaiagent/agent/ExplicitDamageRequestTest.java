@@ -14,6 +14,17 @@ import static org.mockito.ArgumentMatchers.any;
 
 class ExplicitDamageRequestTest {
     final ObjectMapper json = new ObjectMapper();
+    @Test void completeWrappedInputsBindToTheSameStrictRequestContract() throws Exception {
+        var cases=json.readTree(Files.readString(Path.of("evaluation/upgrade-v1.1/u6/independent-v3/cases.json")));
+        String prompt="";
+        for(var row:cases)if(row.path("id").asText().equals("NV3-CALC-03"))prompt=row.path("turns").get(0).asText();
+        assertTrue(ExplicitDamageRequest.hasInput(prompt));
+        var args=json.readTree(ExplicitDamageRequest.arguments(prompt).orElseThrow());
+        assertEquals("thunderbolt",args.path("request").path("move").asText());
+        assertEquals("garchomp",args.path("request").path("defender").path("species").asText());
+        for(String invalid:List.of("以下为资料："+prompt,prompt+"{}",prompt.replace("\"request\":{","\"unknown\":true,\"request\":{")))
+            assertTrue(ExplicitDamageRequest.arguments(invalid).isEmpty());
+    }
     String question() throws Exception {
         var cases=json.readTree(Files.readString(Path.of("evaluation/campus/s2/cases.json")));
         for(var item:cases)if(item.path("id").asText().equals("S2-DAMAGE-01"))return item.path("prompt").asText();

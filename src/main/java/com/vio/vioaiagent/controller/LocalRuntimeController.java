@@ -40,6 +40,7 @@ public class LocalRuntimeController {
                 || model.getDefaultOptions().getModel() == null ? "unconfigured" : model.getDefaultOptions().getModel();
         Map<String, String> hashes = new LinkedHashMap<>();
         for (Class<?> implementation : List.of(VioManus.class, ToolCallAgent.class, AnswerPresentation.class, CapabilityCatalog.class, AccountScopeReply.class, TeamAnswerEvidence.class, DamageAnswerEvidence.class,
+                PokemonAnswerBlock.class,DamageAnswerBlock.class,EvidenceAnswerBlock.class,TeamSuggestionAnswerBlock.class,GameVersionRequest.class,com.vio.vioaiagent.tools.CompetitiveTeamsTool.class,
                 GuideAnswerEvidence.class, DamageDialogueRoute.class, OwnedTeamReadRoute.class, TrainingMechanicsReply.class, LocalGuideOnlyRoute.class, GuideResearchAgent.class, SpecialistAgentCoordinator.class, SpecialistRole.class, SavedTeamAnswerEvidence.class, EvidenceText.class, TeamReferenceTools.class,
                 com.vio.vioaiagent.pokemon.team.TeamWorkflowService.class, com.vio.vioaiagent.run.RunMutationBoundary.class,
                 com.vio.vioaiagent.pokemon.team.TeamChangePresentation.class, com.vio.vioaiagent.pokemon.team.TeamWorkflowController.class,
@@ -61,6 +62,7 @@ public class LocalRuntimeController {
                 TeamBuildAnswerEvidence.class,com.vio.vioaiagent.tools.governance.TeamBuildResultEvidence.class,
                 TeamBuildRequestRoute.class,
                 com.vio.vioaiagent.tools.governance.BuildCheckResultEvidence.class,
+                SavedTrainingRoadmap.class,SavedTrainingResources.class,TrainingIntentState.class,TrainingTargetCheck.class,TrainingLearningCheck.class,TrainingResourceBudget.class,SavedTrainingGymReview.class,TrainingStatProjection.class,TrainingLevelConstraints.class,TrainingProgressCheck.class,TeamMutationIntent.class,ReferenceRulesReply.class,GymFocusedFactReply.class,com.vio.vioaiagent.pokemon.guides.GuideRevisionPolicy.class,com.vio.vioaiagent.pokemon.gym.GymResourcePolicy.class,com.vio.vioaiagent.pokemon.calculator.StaticStatCalculator.class,
                 MachineAnswerEvidence.class,com.vio.vioaiagent.pokemon.reference.MachineReferenceCatalog.class,com.vio.vioaiagent.pokemon.reference.MachineCraftingGuide.class,com.vio.vioaiagent.pokemon.reference.MachineRecipeCatalog.class,com.vio.vioaiagent.pokemon.reference.MachineAcquisitionCatalog.class,
                 com.vio.vioaiagent.pokemon.reference.MachineReferenceFacts.class,com.vio.vioaiagent.pokemon.reference.LocalMachineReferences.class,
                 com.vio.vioaiagent.pokemon.reference.PokemonMachineController.class,com.vio.vioaiagent.tools.governance.MachineResultEvidence.class,
@@ -69,6 +71,12 @@ public class LocalRuntimeController {
                 com.vio.vioaiagent.run.DefaultRunExecutor.class,
                 com.vio.vioaiagent.run.AgentRunContext.class,com.vio.vioaiagent.run.PokemonAgentRunService.class,
                 com.vio.vioaiagent.observability.ObservedChatModel.class,com.vio.vioaiagent.observability.ModelUsageLedger.class,
+                com.vio.vioaiagent.observability.AgentToolObservation.class,com.vio.vioaiagent.observability.AgentTracingConfiguration.class,
+                TaskSkillRegistry.class,TaskContextAssembler.class,
+                com.vio.vioaiagent.observability.AgentRunObservation.class,
+                com.vio.vioaiagent.observability.DomainTracingObservationHandler.class,
+                com.vio.vioaiagent.pokemon.reference.LocalPokeApiRepository.class,
+                com.vio.vioaiagent.pokemon.reference.RegionalFormName.class,
                 com.vio.vioaiagent.observability.ModelFailureDiagnostics.class,
                 com.vio.vioaiagent.observability.ProviderTokenUsage.class,
                 com.vio.vioaiagent.observability.TokenEstimateComparison.class,
@@ -95,11 +103,37 @@ public class LocalRuntimeController {
                 com.vio.vioaiagent.tools.ToolRegistration.class,
                 com.vio.vioaiagent.pokemon.engine.LocalDamageEngine.class,com.vio.vioaiagent.pokemon.engine.VerifiedLocalDamageEngine.class,com.vio.vioaiagent.pokemon.domain.TeamBuild.class,
                 com.vio.vioaiagent.pokemon.guides.LocalGuideSearch.class,com.vio.vioaiagent.pokemon.guides.GuideChunks.class,
+                com.vio.vioaiagent.agent.TypeMatchupReply.class,
                 com.vio.vioaiagent.pokemon.guides.GuideApplicability.class,
                 com.vio.vioaiagent.pokemon.guides.SqliteGuideKnowledgeRetriever.class,com.vio.vioaiagent.pokemon.guides.GuideProvenance.class,
                 com.vio.vioaiagent.pokemon.reference.RunToolScope.class)) {
             hashes.put(implementation.getSimpleName(), classDigest(implementation));
         }
+        hashes.put("EvidenceAnswerBlock$Source",classDigest(EvidenceAnswerBlock.Source.class));
+        hashes.put("LocalDamageEngine$Combatant",classDigest(com.vio.vioaiagent.pokemon.engine.LocalDamageEngine.Combatant.class));
+        hashes.put("LocalGuideSemanticSearch",classDigest(com.vio.vioaiagent.pokemon.guides.LocalGuideSemanticSearch.class));
+        hashes.put("GuideSemanticProperties",classDigest(com.vio.vioaiagent.pokemon.guides.GuideSemanticProperties.class));
+        hashes.put("GuideEmbeddingClient",classDigest("com.vio.vioaiagent.pokemon.guides.GuideEmbeddingClient"));
+        hashes.put("GymCatalogAnswer",classDigest("com.vio.vioaiagent.agent.GymCatalogAnswer"));
+        hashes.put("GymDialogueRouter",classDigest(GymDialogueRouter.class));
+        hashes.put("TypeMatchupReply",classDigest(TypeMatchupReply.class));
+        hashes.put("ConfigurationExplanationRoute",classDigest(ConfigurationExplanationRoute.class));
+        hashes.put("ConfigurationExplanationRoute$Topic",classDigest("com.vio.vioaiagent.agent.ConfigurationExplanationRoute$Topic"));
+        hashes.put("ConversationRecallReply",classDigest(ConversationRecallReply.class));
+        hashes.put("GymConversationContext",classDigest("com.vio.vioaiagent.agent.GymConversationContext"));
+        hashes.put("GymTurnPlan",classDigest("com.vio.vioaiagent.agent.GymTurnPlan"));
+        hashes.put("OwnedTeamReadRoute",classDigest(OwnedTeamReadRoute.class));
+        hashes.put("ExplicitDamageRequest",classDigest(ExplicitDamageRequest.class));
+        for(String name:List.of("McpCancellationTransport","McpCancellationTransport$Scope","McpCancellationTransport$Invocation","McpCancellationTransport$Snapshot","CancellableMcpToolCallback"))
+            hashes.put(name,classDigest("com.vio.vioaiagent.mcp.client."+name));
+        for(String name:List.of("McpCancellationConfiguration","McpCancellationConfiguration$1"))
+            hashes.put(name,classDigest("com.vio.vioaiagent.config."+name));
+        hashes.put("SourceInstructionReply",classDigest(SourceInstructionReply.class));
+        hashes.put("GuideRerankConfiguration",classDigest(com.vio.vioaiagent.pokemon.guides.GuideRerankConfiguration.class));
+        hashes.put("GuideRerankConfiguration$HttpReranker",classDigest("com.vio.vioaiagent.pokemon.guides.GuideRerankConfiguration$HttpReranker"));
+        hashes.put("GuideRerankConfiguration$HttpReranker$LimitedBody",classDigest("com.vio.vioaiagent.pokemon.guides.GuideRerankConfiguration$HttpReranker$LimitedBody"));
+        hashes.put("GuideRerankPipeline",classDigest(com.vio.vioaiagent.pokemon.guides.GuideRerankPipeline.class));
+        hashes.put("GuideReranker",classDigest(com.vio.vioaiagent.pokemon.guides.GuideReranker.class));
         Map<String,Object> runtime=new LinkedHashMap<>(Map.of("profiles", List.of(environment.getActiveProfiles()),
                 "configuredProvider", environment.getProperty("vio.model.provider", "dashscope"),
                 "configuredModelId", configuredModel,
@@ -135,6 +169,7 @@ public class LocalRuntimeController {
                 "scope","KEEP_ONLY_BOUND_UNAFFECTED_MEMBER_READS_INVALIDATE_SAME_OR_UNKNOWN_TARGET_NOT_COMPLETE_TEAM_EVIDENCE"));
         runtime.put("guideOverviewPolicy",Map.of("version",com.vio.vioaiagent.agent.GuideAnswerEvidence.OVERVIEW_READY_VERSION,
                 "scope","PROGRAM_VERIFIED_REFERENCE_AND_GENERAL_GUIDE_ONLY_EXCLUDES_CALCULATION_TEAM_AND_WRITES"));
+        runtime.put("guideRevisionPolicy",Map.of("version",com.vio.vioaiagent.pokemon.guides.GuideRevisionPolicy.VERSION,"scopeRestrictedRevisions",com.vio.vioaiagent.pokemon.guides.GuideRevisionPolicy.LEGACY_SCOPE.size(),"scope","EXACT_ID_CHECKSUM_AND_TOOL_SCOPE_NOT_SEMANTIC_VALIDATION"));
         runtime.put("guideRetrievalPolicy",Map.of("version",com.vio.vioaiagent.pokemon.guides.GuideApplicability.POLICY,
                 "scope","DECLARED_SUBJECT_AND_TOPIC_FILTER_THEN_SUBJECT_PRIORITY_BM25_NOT_SEMANTIC_REVIEW",
                 "subjectSourceVersion",GuideAnswerEvidence.SUBJECT_SOURCE_VERSION,"subjectSourceOrigin",GuideAnswerEvidence.SUBJECT_SOURCE_ORIGIN));
@@ -168,10 +203,24 @@ public class LocalRuntimeController {
         generation.put("maxTokens",options==null?null:options.getMaxTokens());
         generation.put("scope","CONFIGURED_DEFAULTS_NOT_PROVIDER_REQUEST_ATTESTATION");
         runtime.put("generationDefaults",generation);
+        runtime.put("upgradeFeatures",Map.of(
+            "answerBlocks",environment.getProperty("vio.agent.answer-blocks.enabled",Boolean.class,false),
+            "skills",environment.getProperty("vio.agent.skills.enabled",Boolean.class,false),
+            "contextAssembly",environment.getProperty("vio.agent.context-assembly.enabled",Boolean.class,false),
+            "rerank",environment.getProperty("vio.local-guides.rerank.enabled",Boolean.class,false),
+            "domainTracing",environment.getProperty("vio.observability.tracing.enabled",Boolean.class,false)));
+        runtime.put("domainTracingPolicy",Map.of(
+                "sampleRate",environment.getProperty("vio.observability.tracing.sample-rate",Double.class,0.1),
+                "automaticTracing",environment.getProperty("management.tracing.enabled",Boolean.class,false),
+                "scope","CONFIGURED_DOMAIN_ROOT_SAMPLING"));
         return Collections.unmodifiableMap(runtime);
     }
     private static String classDigest(Class<?> implementation) {
-        try (var input = implementation.getResourceAsStream(implementation.getSimpleName() + ".class")) {
+        return classDigest(implementation.getName());
+    }
+    private static String classDigest(String implementation) {
+        String resource="/"+implementation.replace('.','/')+".class";
+        try (var input = LocalRuntimeController.class.getResourceAsStream(resource)) {
             if (input == null) return "unavailable";
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(input.readAllBytes()));
         } catch (Exception error) { return "unavailable"; }
