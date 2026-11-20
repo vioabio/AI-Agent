@@ -348,6 +348,8 @@ def build():
       '## 三、基础知识如何落到代码\n',
       '| 基础 | 必须理解的机制 | 在项目中的使用与自测 |\n| --- | --- | --- |\n| Java集合与泛型 | HashMap键相等与哈希；List顺序；不可变副本；泛型编译期约束 | 工具注册表、事件序列、角色history；说清并发Map不保证复合操作原子性 |\n| Java并发 | 监视器互斥、可见性、线程池、Future中断、ThreadLocal生命周期 | 准入Permit、任务上下文；验证异常释放和切线程身份传播 |\n| JVM | 堆、栈、线程、GC与堆外资源；引用保留造成逻辑泄漏 | 长对话、未清理SSE连接、子进程；先看指标与线程栈再调参数 |\n| Spring | IoC、条件装配、AOP代理、事务传播与异常回滚 | Repository选择、事务边界；比较容器代理调用与对象内部自调用 |\n| JS事件循环 | 同步栈、微任务、网络回调、Promise错误传播 | 流读取、重连定时器、晚到响应；避免异步forEach丢失等待 |\n| Vue/TS | 响应式、computed、watch、生命周期、运行时数据验证 | ChatRoom、useRunStream与卡片；类型断言不代替校验 |\n| HTTP与网络 | 请求重试、超时、Cookie、CORS、TCP与应用事件分帧 | REST+SSE；区分上游断流和浏览器断线 |\n| SQL | B-tree索引、复合索引顺序、事务、条件更新和分页 | owner/id/revision限制；EXPLAIN验证，禁止把SQLite行为当通用数据库结论 |\n| 安全 | 认证授权、CSRF、XSS、SSRF与注入 | 本地账号、工具网络策略；不可信内容不能扩大权限 |\n| LLM基础 | Token、窗口、采样、工具Schema、Embedding与计量 | 不推断隐式思维；以实际调用和供应商usage为证据 |\n',
       '## 四、25个模块的开发与源码实读\n']
+    architecture=(DOC/'项目架构详解_2026-11-20.md').read_text(encoding='utf-8')
+    study.insert(2,'## 当前项目架构专题\n\n'+architecture+'\n')
     appendix=[]
     snapshots=[]
     for n,m in enumerate(MODULES,1):
@@ -385,10 +387,11 @@ def build():
       '每题先用60–90秒回答结论、机制、项目依据和限制，再回答追问。面试中“我实现”仅适用于真实个人职责。源码出处是项目举例，不能替代语言和框架基础。\n',
       '## 新增题模块索引\n\n| 模块 | 题号 | 主题 |\n| --- | --- | --- |\n']
     qa += [f'| M{i:02d} | Q{461+(i-1)*3}–Q{463+(i-1)*3} | {m["title"]} |' for i,m in enumerate(MODULES,1)]
-    qa += ['\n## 第一部分：完整保留的460题\n\n原文中的双岗位、旧基线和更新记录按历史语境保留；本版新增三方向使用方式及75道当前实现题。\n',qa_old,'\n## 第二部分：三方向新增实战题 Q461–Q535\n',*appendix,
+    qa += ['\n## 架构讲解与白板准备\n\n'+architecture+'\n','\n## 第一部分：完整保留的460题\n\n原文中的双岗位、旧基线和更新记录按历史语境保留；本版新增三方向使用方式及75道当前实现题。\n',qa_old,'\n## 第二部分：三方向新增实战题 Q461–Q535\n',*appendix,
       '## 第三部分：模拟面试与评分\n\nAI应用场：10分钟项目与工具循环、15分钟RAG和上下文、10分钟独立评测、10分钟故障与设计。AI全栈场：10分钟完整用户链、15分钟SSE与Vue、10分钟授权与提交、10分钟质量和交付。全栈场：10分钟HTTP与安全、15分钟Java/SQL并发、10分钟前端异步、10分钟部署与设计。\n\n每项0–3分：0无法解释；1能说概念；2能指出源码与实验；3能复现、修改并解释取舍。没有源码证据时不评3分；答错后写纠正与复习日期，不以背出题库作为通过。\n']
     (DOC/qa_name).write_text('\n'.join(qa),encoding='utf-8')
     manifest={'schemaVersion':'three-role-docs-v1','date':'2026-11-20','sourceCommit':commit,'hashEncoding':'UTF-8 without BOM, normalized LF','modules':25,'newQuestions':75,'totalQuestions':535,'sourceSnapshots':snapshots,'outputs':{name:normalized_hash(DOC/name) for name in [study_name,qa_name]},'scope':'Documentation build and source links only; no new product evaluation or human sign-off.'}
+    manifest['architecture']={'path':'项目架构详解_2026-11-20.md','sha256':normalized_hash(DOC/'项目架构详解_2026-11-20.md'),'images':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((DOC/'assets').glob('vio-*-20261120.png'))}}
     (DOC/'三方向文档源码索引_2026-11-20.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(json.dumps({'modules':25,'questions':535,'outputs':list(manifest['outputs'])},ensure_ascii=False))
 

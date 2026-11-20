@@ -15,6 +15,11 @@ def verify():
     manifest=json.loads((DOC/'三方向文档源码索引_2026-11-20.json').read_text(encoding='utf-8'))
     assert manifest['modules']==25 and manifest['totalQuestions']==535 and manifest['newQuestions']==75
     assert len(manifest['sourceSnapshots'])==25
+    architecture=manifest.get('architecture')
+    assert architecture and normalized_hash(DOC/architecture['path'])==architecture['sha256']
+    assert len(architecture['images'])==2
+    for name,expected in architecture['images'].items():
+        assert hashlib.sha256((DOC/'assets'/name).read_bytes()).hexdigest()==expected
     for row in manifest['sourceSnapshots']:
         source=ROOT/row['path']
         assert source.is_file(),source
